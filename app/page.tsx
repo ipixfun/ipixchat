@@ -59,14 +59,25 @@ export default function Home() {
     setInputMessage('');
   };
 
+  const handleLogin = () => {
+    if (!username.trim()) return alert("Masukkan nama dulu!");
+    
+    // Cek password admin
+    if (adminPass === 'ipixfun') {
+      setIsAdmin(true);
+    }
+    
+    setIsLoggedIn(true);
+  };
+
   if (!isLoggedIn) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100 p-4">
         <div className="w-full max-w-sm bg-white p-6 rounded-2xl shadow-xl space-y-4">
           <h1 className="text-xl font-black text-center text-emerald-600">IpixChat Final 💬</h1>
           <input className="w-full p-3 border rounded-xl text-black" placeholder="Nama Anda..." onChange={(e) => setUsername(e.target.value)} />
-          <input type="password" placeholder="Password Admin" className="w-full p-3 border rounded-xl text-black" onChange={(e) => setAdminPass(e.target.value)} />
-          <button onClick={() => { if(adminPass === 'ipixfun') setIsAdmin(true); if(username.trim()) setIsLoggedIn(true); }} className="w-full bg-emerald-500 text-white p-3 rounded-xl font-bold">Masuk Chat</button>
+          <input type="password" placeholder="Password Admin (Opsional)" className="w-full p-3 border rounded-xl text-black" onChange={(e) => setAdminPass(e.target.value)} />
+          <button onClick={handleLogin} className="w-full bg-emerald-500 text-white p-3 rounded-xl font-bold">Masuk Chat</button>
         </div>
       </div>
     );
@@ -82,8 +93,12 @@ export default function Home() {
               <span className="font-bold text-emerald-600 text-xs">{msg.username}</span>
               {isAdmin && (
                 <button onClick={async () => { 
-                  await supabase.from('blocked_users').insert([{ device_id: msg.device_id, username: msg.username, user_browser: msg.user_browser }]); 
-                  alert("User Terblokir!"); 
+                  await supabase.from('blocked_users').insert([{ 
+                    device_id: msg.device_id, 
+                    username: msg.username, 
+                    user_browser: msg.user_browser 
+                  }]); 
+                  alert(msg.username + " diblokir!"); 
                 }} className="text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded">BLOCK</button>
               )}
             </div>
