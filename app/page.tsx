@@ -37,7 +37,6 @@ export default function Home() {
     const deviceId = localStorage.getItem('device_id');
     const { data: bData } = await supabase.from('blocked_users').select('*');
     
-    // Auto-load profile & edit count
     let { data: pData } = await supabase.from('profiles').select('*').eq('device_id', deviceId).single();
     if (!pData && deviceId) {
        const { data: newP } = await supabase.from('profiles').insert([{ device_id: deviceId, username: 'Guest', edit_count: 0, browser_info: navigator.userAgent }]).select().single();
@@ -64,12 +63,18 @@ export default function Home() {
     }
   };
 
-  const handleEditUsername = async (isAdminForce = false) => {
+  const handleEditUsername = async (isAdminForce = false, targetDeviceId?: string) => {
     const newName = prompt("Masukkan nama baru:");
     if (!newName) return;
+    
+    const targetId = isAdminForce ? targetDeviceId : localStorage.getItem('device_id');
     if (!isAdminForce && editCount >= 2) return alert("Jatah edit nama habis!");
 
-    await supabase.from('profiles').upsert({ device_id: localStorage.getItem('device_id'), username: newName, browser_info: navigator.userAgent, edit_count: isAdminForce ? editCount : editCount + 1 });
+    // Update Profile
+    await supabase.from('profiles').upsert({ device_id: targetId, username: newName, browser_info: navigator.userAgent, edit_count: isAdminForce ? editCount : editCount + 1 });
+    // Update semua pesan lama user tersebut
+    await supabase.from('messages').update({ username: newName }).eq('device_id', targetId);
+    
     fetchData();
   };
 
@@ -147,7 +152,7 @@ export default function Home() {
               <div className="flex gap-4 mt-2">
                 <button onClick={async () => { await supabase.from('messages').delete().eq('id', m.id); fetchData(); }} className="text-[10px] text-red-600 font-bold underline">Hapus</button>
                 {m.username !== 'Admin●ipix.my.id' && <button onClick={async () => { await supabase.from('blocked_users').insert([{ device_id: m.device_id }]); fetchData(); }} className="text-[10px] text-orange-600 font-bold underline">Blokir</button>}
-                <button onClick={() => handleEditUsername(true)} className="text-[10px] text-green-600 font-bold underline">Force Edit</button>
+                <button onClick={() => handleEditUsername(true, m.device_id)} className="text-[10px] text-green-600 font-bold underline">Force Edit</button>
               </div>
             )}
           </div>
