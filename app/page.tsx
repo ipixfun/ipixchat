@@ -1,92 +1,82 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
 
 export default function Home() {
   const [messages, setMessages] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [adminPass, setAdminPass] = useState('');
+  const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
+  const [input, setInput] = useState('');
+  const [isAuth, setIsAuth] = useState(false);
 
+  // 1. Fetch & Realtime
   useEffect(() => {
-    // Cek sesi agar tidak crash di server
-    const logged = sessionStorage.getItem('isLoggedIn');
-    const admin = sessionStorage.getItem('isAdmin');
-    if (logged === 'true') {
-      setIsLoggedIn(true);
-      setIsAdmin(admin === 'true');
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    const fetchMessages = async () => {
+    const fetch = async () => {
       const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
       if (data) setMessages(data);
     };
-    fetchMessages();
-  }, [isLoggedIn]);
+    fetch();
+    const channel = supabase.channel('realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetch).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username.trim()) return alert("Masukkan nama!");
-    
-    const pass = (document.getElementById('pass') as HTMLInputElement).value;
-    const isNowAdmin = pass === 'ipixfun';
-    
-    sessionStorage.setItem('isLoggedIn', 'true');
-    sessionStorage.setItem('isAdmin', isNowAdmin ? 'true' : 'false');
-    
-    setIsAdmin(isNowAdmin);
-    setIsLoggedIn(true);
+  // 2. Fitur Hapus & Blokir
+  const deleteMsg = async (id: number) => { await supabase.from('messages').delete().eq('id', id); };
+  const blockUser = async (deviceId: string) => { await supabase.from('blocked_users').insert([{ device_id: deviceId }]); alert("User Terblokir!"); };
+
+  // 3. Render Pesan + Emoji + URL Image
+  const renderContent = (text: string) => {
+    return text.split(/(https?:\/\/[^\s]+\.(?:jpg|png|gif))/gi).map((part, i) => {
+      if (part.match(/\.(jpg|png|gif)$/i)) return <img key={i} src={part} className="max-w-xs rounded mt-2" />;
+      return <span key={i}>{part} </span>;
+    });
   };
 
-  if (loading) return <div className="p-10 text-center">Loading...</div>;
-
-  if (!isLoggedIn) {
+  if (!isAuth) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-100 p-4">
-        <form onSubmit={handleLogin} className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-xs space-y-4">
-          <h2 className="text-center font-bold text-lg">IpixChat Login</h2>
-          <input className="w-full border p-3 rounded-lg" placeholder="Nama Anda" onChange={(e) => setUsername(e.target.value)} />
-          <input id="pass" type="password" className="w-full border p-3 rounded-lg" placeholder="Password (Admin)" />
-          <button className="w-full bg-blue-600 text-white p-3 rounded-lg font-bold">Masuk Chat</button>
-        </form>
+      <div className="flex flex-col items-center justify-center h-screen bg-slate-900 text-white p-6">
+        <h1 className="text-3xl font-bold mb-8">IpixChat System</h1>
+        <div className="flex w-full max-w-sm bg-white rounded-xl p-1 mb-4">
+          <button className={`flex-1 py-2 rounded-lg ${activeTab === 'user' ? 'bg-blue-500 text-white' : 'text-black'}`} onClick={() => setActiveTab('user')}>User</button>
+          <button className={`flex-1 py-2 rounded-lg ${activeTab === 'admin' ? 'bg-red-500 text-white' : 'text-black'}`} onClick={() => setActiveTab('admin')}>Admin</button>
+        </div>
+        <input className="w-full max-w-sm p-3 rounded-lg text-black mb-3" placeholder="Nama" onChange={(e) => setUsername(e.target.value)} />
+        {activeTab === 'admin' && <input type="password" className="w-full max-w-sm p-3 rounded-lg text-black mb-3" placeholder="Pass Admin" onChange={(e) => setAdminPass(e.target.value)} />}
+        <button onClick={() => { if(activeTab === 'admin' && adminPass !== 'ipixfun') return alert('Password Salah'); setIsAuth(true); }} className="w-full max-w-sm bg-emerald-500 p-3 rounded-lg font-bold">Masuk</button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen w-full max-w-lg mx-auto bg-gray-50 shadow-2xl border-x border-gray-200">
-      {/* Header */}
-      <div className="p-4 bg-gray-900 text-white font-bold flex justify-between items-center shadow-md">
-        <span>IpixChat {isAdmin && " (Admin)"}</span>
+    <div className="max-w-2xl mx-auto h-screen flex flex-col bg-white shadow-2xl">
+      <div className="p-4 bg-gray-900 text-white flex justify-between items-center">
+        <span className="font-bold">IpixChat {activeTab === 'admin' ? '(MOD)' : ''}</span>
+        <span className="text-xs">{new Date().toLocaleString('id-ID')}</span>
       </div>
-
-      {/* List Pesan */}
+      
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((m) => (
-          <div key={m.id} className="bg-white p-3 rounded-xl shadow-sm border w-full">
-            <div className="flex justify-between items-start mb-1">
-              <span className="text-[10px] font-bold text-blue-600 uppercase">{m.username}</span>
-              {isAdmin && (
-                <button 
-                  onClick={async () => {
-                    await supabase.from('blocked_users').insert([{ device_id: m.device_id, username: m.username }]);
-                    alert("User " + m.username + " diblokir!");
-                  }}
-                  className="bg-red-500 hover:bg-red-600 text-white text-[9px] px-2 py-1 rounded font-bold shrink-0 ml-2"
-                >
-                  BLOCK
-                </button>
-              )}
+          <div key={m.id} className="border-b pb-2">
+            <div className="flex justify-between text-[10px] text-gray-500">
+              <b>{m.username}</b>
+              <span>{new Date(m.created_at).toLocaleTimeString()}</span>
             </div>
-            <p className="text-sm text-gray-800 break-words">{m.pesan}</p>
+            <div className="text-sm">{renderContent(m.pesan)}</div>
+            {activeTab === 'admin' && (
+              <div className="flex gap-2 mt-2">
+                <button onClick={() => deleteMsg(m.id)} className="bg-red-500 text-white text-[9px] px-2 py-1">Hapus</button>
+                <button onClick={() => blockUser(m.device_id)} className="bg-black text-white text-[9px] px-2 py-1">Blokir Device</button>
+              </div>
+            )}
           </div>
         ))}
       </div>
+
+      <form onSubmit={async (e) => { e.preventDefault(); await supabase.from('messages').insert([{ username, pesan: input }]); setInput(''); }} className="p-4 border-t flex gap-2">
+        <input className="flex-1 border p-2 rounded" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
+        <button className="bg-blue-600 text-white px-4 rounded">Kirim</button>
+      </form>
     </div>
   );
 }
