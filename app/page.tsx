@@ -12,7 +12,6 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [isAuth, setIsAuth] = useState(false);
 
-  // Fungsi Logout
   const handleLogout = () => {
     localStorage.removeItem('is_auth');
     localStorage.removeItem('saved_username');
@@ -28,7 +27,6 @@ export default function Home() {
       setUsername(localStorage.getItem('saved_username') || '');
       setActiveTab(localStorage.getItem('active_tab') as 'user' | 'admin' || 'user');
     }
-
     const checkAccess = async () => {
       const deviceId = localStorage.getItem('device_id') || Math.random().toString(36).substring(7);
       localStorage.setItem('device_id', deviceId);
@@ -58,6 +56,14 @@ export default function Home() {
     return () => { supabase.removeChannel(channel); };
   }, [mounted]);
 
+  const editMsg = async (id: number) => {
+    const newText = prompt("Edit pesan:");
+    if (newText) {
+        await supabase.from('messages').update({ pesan: newText }).eq('id', id);
+        fetchData();
+    }
+  };
+
   const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
 
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
@@ -86,35 +92,34 @@ export default function Home() {
   );
 
   return (
-    <div className="max-w-lg mx-auto h-screen flex flex-col bg-gray-100">
-      <div className="relative p-4 bg-gradient-to-r from-emerald-500 to-blue-600 text-white font-bold text-center">
-        {/* Tombol Logout */}
-        <button onClick={handleLogout} className="absolute top-2 right-3 text-[10px] bg-red-600 px-2 py-1 rounded shadow">Keluar</button>
-        
-        <div>Tanggal: {new Date().toLocaleDateString('id-ID')}</div>
-        <a href="https://ipix.my.id" target="_blank" className="underline text-sm">iPix Chat (ipix.my.id)</a>
+    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden">
+      <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b border-white/20 text-center">
+        <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full">Keluar</button>
+        <div className="text-lg font-black text-gray-800">iPixChat</div>
+        <a href="https://ipix.my.id" target="_blank" className="text-emerald-700 font-bold text-[10px] underline">ipix.my.id</a>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.map((m) => (
-          <div key={m.id} className="bg-white p-3 rounded-lg border shadow-sm">
+          <div key={m.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full">
             <div className="flex justify-between items-center mb-1">
               {m.username === 'Admin●ipix.my.id' ? (
-                <span>
+                <span className="flex items-center gap-1">
                   <span className="text-red-600 font-bold text-[10px]">Admin●</span>
                   <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 font-bold underline text-[10px]">ipix.my.id</a>
                 </span>
               ) : <b className="text-blue-700 text-[10px]">{m.username}</b>}
-              <span className="text-[9px] text-gray-400">
+              <span className="text-[9px] text-gray-400 whitespace-nowrap ml-2">
                 {new Date(m.created_at).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })} | 
                 {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
-            <div className="text-sm text-gray-800 font-medium">{m.pesan}</div>
+            <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
             {activeTab === 'admin' && m.username !== 'Admin●ipix.my.id' && (
-              <div className="flex gap-2 mt-2">
-                <button onClick={async () => { await supabase.from('messages').delete().eq('id', m.id); fetchData(); }} className="text-[9px] text-red-600 font-bold underline">Hapus</button>
-                <button onClick={async () => { await supabase.from('blocked_users').insert([{ device_id: m.device_id }]); fetchData(); }} className="text-[9px] text-orange-600 font-bold underline">Blokir</button>
+              <div className="flex gap-4 mt-2">
+                <button onClick={() => editMsg(m.id)} className="text-[10px] text-blue-600 font-bold underline">Edit</button>
+                <button onClick={async () => { await supabase.from('messages').delete().eq('id', m.id); fetchData(); }} className="text-[10px] text-red-600 font-bold underline">Hapus</button>
+                <button onClick={async () => { await supabase.from('blocked_users').insert([{ device_id: m.device_id }]); fetchData(); }} className="text-[10px] text-orange-600 font-bold underline">Blokir</button>
               </div>
             )}
           </div>
@@ -127,9 +132,9 @@ export default function Home() {
         </div>
       )}
 
-      <form onSubmit={async (e) => { e.preventDefault(); await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') }]); setInput(''); }} className="p-4 bg-white border-t flex gap-2">
-        <input className="flex-1 border p-2 rounded-full px-4 text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Tulis pesan..." />
-        <button className="bg-blue-600 text-white px-4 rounded-full font-bold">Kirim</button>
+      <form onSubmit={async (e) => { e.preventDefault(); await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') }]); setInput(''); }} className="p-3 bg-white border-t flex gap-2 items-center">
+        <input className="flex-1 border p-2 rounded-full px-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
+        <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm shrink-0">Kirim</button>
       </form>
     </div>
   );
