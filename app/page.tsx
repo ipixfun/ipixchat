@@ -16,6 +16,14 @@ export default function Home() {
   const [isAdminOnline, setIsAdminOnline] = useState(false);
   const [offlineTime, setOfflineTime] = useState("");
 
+  const renderMessage = (text: string) => {
+    const isImage = /\.(jpeg|jpg|gif|png|webp)$/i.test(text);
+    if (isImage) {
+      return <img src={text} alt="content" className="max-w-full max-h-60 rounded-lg object-contain mt-1 border" />;
+    }
+    return <div className="text-sm text-gray-800 break-words">{text}</div>;
+  };
+
   const getTimeAgo = (date: Date) => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
     let interval = seconds / 3600;
@@ -150,9 +158,11 @@ export default function Home() {
                   {isAdminOnline ? <span className="flex items-center text-[8px] text-green-600 font-bold animate-pulse"><span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span> ONLINE</span> : <span className="text-[8px] text-gray-400 font-bold">OFFLINE ({offlineTime})</span>}
                 </span>
               ) : <b className="text-blue-700 text-[10px]">{m.username}</b>}
-              <span className="text-[9px] text-gray-400">{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <span className="text-[9px] text-gray-400">
+                {new Date(m.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              </span>
             </div>
-            <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
+            {renderMessage(m.pesan)}
             {activeTab === 'admin' && (
               <div className="flex gap-4 mt-2">
                 <button onClick={() => editMsg(m.id)} className="text-[10px] text-blue-600 font-bold underline">Edit</button>
@@ -165,7 +175,13 @@ export default function Home() {
       </div>
       {activeTab === 'admin' && <div className="p-3 bg-gray-300 text-[10px] border-t"><strong>User Terblokir:</strong> {blockedList.map(b => <span key={b.device_id} className="mr-2 cursor-pointer text-blue-800 underline" onClick={() => unblock(b.device_id)}>{b.device_id.substring(0,5)} (Unblock)</span>)}</div>}
       <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-center">
-        <input className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
+        <input 
+          maxLength={200} 
+          className="flex-1 border p-2 rounded-full px-4 text-sm text-black" 
+          value={input} 
+          onChange={(e) => setInput(e.target.value)} 
+          placeholder="Ketik pesan (max 200)..." 
+        />
         <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm shrink-0">Kirim</button>
       </form>
     </div>
