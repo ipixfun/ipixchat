@@ -93,7 +93,7 @@ export default function Home() {
     if (!username.trim()) return alert("Masukkan nama Anda!");
     const { data: bData } = await supabase.from('blocked_users').select('*');
     if (bData?.some(b => b.device_id === localStorage.getItem('device_id'))) {
-      window.location.replace("https://ipix.my.id"); return;
+      window.location.replace("https://ipix.my.id/chat"); return;
     }
     setIsAuth(true); sessionStorage.setItem('is_auth', 'true'); sessionStorage.setItem('saved_username', username); sessionStorage.setItem('active_tab', 'user');
   };
