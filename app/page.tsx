@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
-import EmojiPicker from 'emoji-picker-react';
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -14,53 +13,27 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [isAuth, setIsAuth] = useState(false);
   const [lastSent, setLastSent] = useState(0);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    sessionStorage.clear();
+    localStorage.clear();
     setIsAuth(false);
     window.location.reload();
   };
 
   useEffect(() => {
-    if (!sessionStorage.getItem('device_id')) {
-      sessionStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
+    setMounted(true);
+    if (localStorage.getItem('is_auth') === 'true') {
+      setIsAuth(true);
+      setUsername(localStorage.getItem('saved_username') || '');
+      setActiveTab(localStorage.getItem('active_tab') as 'user' | 'admin' || 'user');
     }
-    
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const savedAuth = sessionStorage.getItem('is_auth');
-      const savedUser = sessionStorage.getItem('saved_username');
-      const savedTab = sessionStorage.getItem('active_tab');
-
-      if (session || savedAuth === 'true') {
-        setIsAuth(true);
-        setUsername(savedUser || '');
-        setActiveTab((savedTab as 'user' | 'admin') || 'user');
-      }
-      setMounted(true);
-    };
-    checkAuth();
   }, []);
 
   const fetchData = async () => {
     const { data: bData } = await supabase.from('blocked_users').select('*');
     const { data: mData } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-    
-    if (bData) {
-      setBlockedList(bData);
-      const myDeviceId = sessionStorage.getItem('device_id');
-      const isBlocked = bData.some(b => b.device_id === myDeviceId);
-      
-      if (isBlocked && isAuth) {
-        alert("Akses Anda telah diblokir dari sistem iPixChat.");
-        handleLogout();
-        window.location.href = "https://ipix.my.id";
-        return;
-      }
-    }
-    
+    if (bData) setBlockedList(bData);
     if (mData) {
       const bIds = bData?.map(b => b.device_id) || [];
       setMessages(mData.filter(m => !bIds.includes(m.device_id)));
@@ -85,9 +58,9 @@ export default function Home() {
       setIsAuth(true);
       setActiveTab('admin');
       setUsername('Admin●ipix.my.id');
-      sessionStorage.setItem('is_auth', 'true');
-      sessionStorage.setItem('saved_username', 'Admin●ipix.my.id');
-      sessionStorage.setItem('active_tab', 'admin');
+      localStorage.setItem('is_auth', 'true');
+      localStorage.setItem('saved_username', 'Admin●ipix.my.id');
+      localStorage.setItem('active_tab', 'admin');
     }
   };
 
@@ -99,14 +72,9 @@ export default function Home() {
         alert("Jangan spam! Tunggu 3 detik ya.");
         return;
     }
-    await supabase.from('messages').insert([{ 
-        username, 
-        pesan: input, 
-        device_id: sessionStorage.getItem('device_id') 
-    }]);
+    await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') }]);
     setLastSent(now);
     setInput('');
-    setShowEmojiPicker(false);
   };
 
   const editMsg = async (id: number) => {
@@ -137,13 +105,13 @@ export default function Home() {
           <input type="password" className="w-full p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
         </div>
       )}
-      <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : (setIsAuth(true), sessionStorage.setItem('is_auth', 'true'))} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
+      <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : setIsAuth(true)} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
     </div>
   );
 
   return (
-    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden relative">
-      <div className="sticky top-0 z-10 p-3 bg-white border-b border-gray-200 text-center">
+    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden">
+      <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b border-white/20 text-center">
         <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full">Keluar</button>
         <div className="text-lg font-black text-gray-800">iPixChat</div>
         <a href="https://ipix.my.id" target="_blank" className="text-emerald-700 font-bold text-[10px] underline">ipix.my.id</a>
@@ -153,7 +121,12 @@ export default function Home() {
         {messages.map((m) => (
           <div key={m.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full">
             <div className="flex justify-between items-center mb-1">
-              <b className="text-[10px] text-blue-700">{m.username}</b>
+              {m.username === 'Admin●ipix.my.id' ? (
+                <span className="flex items-center gap-1">
+                  <span className="text-red-600 font-bold text-[10px]">Admin●</span>
+                  <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 font-bold underline text-[10px]">ipix.my.id</a>
+                </span>
+              ) : <b className="text-blue-700 text-[10px]">{m.username}</b>}
               <span className="text-[9px] text-gray-400 whitespace-nowrap ml-2">
                 {new Date(m.created_at).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })} | 
                 {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -179,14 +152,7 @@ export default function Home() {
         </div>
       )}
 
-      {showEmojiPicker && (
-        <div className="absolute bottom-20 left-4 z-20">
-          <EmojiPicker onEmojiClick={(e) => setInput(prev => prev + e.emoji)} />
-        </div>
-      )}
-
       <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-center">
-        <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="text-xl">😊</button>
         <input className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
         <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm shrink-0">Kirim</button>
       </form>
