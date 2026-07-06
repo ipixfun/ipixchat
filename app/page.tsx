@@ -14,6 +14,16 @@ export default function Home() {
   const [isAuth, setIsAuth] = useState(false);
   const [lastSent, setLastSent] = useState(0);
   const [isAdminOnline, setIsAdminOnline] = useState(false);
+  const [offlineTime, setOfflineTime] = useState("");
+
+  const getTimeAgo = (date: Date) => {
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    let interval = seconds / 3600;
+    if (interval >= 1) return Math.floor(interval) + " jam yang lalu";
+    interval = seconds / 60;
+    if (interval >= 1) return Math.floor(interval) + " menit yang lalu";
+    return "baru saja";
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -55,7 +65,10 @@ export default function Home() {
       setMessages(mData.filter(m => !bData?.map(b => b.device_id).includes(m.device_id)));
       const lastAdminMsg = mData.filter(m => m.username === 'Admin●ipix.my.id').pop();
       if (lastAdminMsg) {
-        setIsAdminOnline(Date.now() - new Date(lastAdminMsg.created_at).getTime() < 300000);
+        const lastDate = new Date(lastAdminMsg.created_at);
+        const isOnline = Date.now() - lastDate.getTime() < 300000;
+        setIsAdminOnline(isOnline);
+        if (!isOnline) setOfflineTime(getTimeAgo(lastDate));
       }
     }
   };
@@ -134,7 +147,7 @@ export default function Home() {
               {m.username === 'Admin●ipix.my.id' ? (
                 <span className="flex items-center gap-2">
                   <span className="text-red-600 font-bold text-[10px]">Admin●</span>
-                  {isAdminOnline ? <span className="flex items-center text-[8px] text-green-600 font-bold animate-pulse"><span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span> ONLINE</span> : <span className="text-[8px] text-gray-400 font-bold">OFFLINE</span>}
+                  {isAdminOnline ? <span className="flex items-center text-[8px] text-green-600 font-bold animate-pulse"><span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span> ONLINE</span> : <span className="text-[8px] text-gray-400 font-bold">OFFLINE ({offlineTime})</span>}
                 </span>
               ) : <b className="text-blue-700 text-[10px]">{m.username}</b>}
               <span className="text-[9px] text-gray-400">{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
