@@ -22,11 +22,12 @@ export default function Home() {
   };
 
   useEffect(() => {
+    if (!sessionStorage.getItem('device_id')) {
+      sessionStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
+    }
+    
     const checkAuth = async () => {
-      // Cek sesi Supabase
       const { data: { session } } = await supabase.auth.getSession();
-      
-      // Ambil data dari sessionStorage
       const savedAuth = sessionStorage.getItem('is_auth');
       const savedUser = sessionStorage.getItem('saved_username');
       const savedTab = sessionStorage.getItem('active_tab');
@@ -44,7 +45,20 @@ export default function Home() {
   const fetchData = async () => {
     const { data: bData } = await supabase.from('blocked_users').select('*');
     const { data: mData } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-    if (bData) setBlockedList(bData);
+    
+    if (bData) {
+      setBlockedList(bData);
+      const myDeviceId = sessionStorage.getItem('device_id');
+      const isBlocked = bData.some(b => b.device_id === myDeviceId);
+      
+      if (isBlocked && isAuth) {
+        alert("Maaf, akses Anda telah terblokir dari iPixChat. Silakan hubungi admin.");
+        handleLogout();
+        window.location.href = "https://ipix.my.id";
+        return;
+      }
+    }
+    
     if (mData) {
       const bIds = bData?.map(b => b.device_id) || [];
       setMessages(mData.filter(m => !bIds.includes(m.device_id)));
@@ -75,7 +89,17 @@ export default function Home() {
     }
   };
 
-  const handleUserLogin = () => {
+  const handleUserLogin = async () => {
+    if (!username.trim()) return alert("Masukkan nama Anda!");
+    
+    const { data: bData } = await supabase.from('blocked_users').select('*');
+    const isBlocked = bData?.some(b => b.device_id === sessionStorage.getItem('device_id'));
+    
+    if (isBlocked) {
+      alert("Maaf, akses Anda telah terblokir. Silakan hubungi admin di ipix.my.id.");
+      return;
+    }
+
     setIsAuth(true);
     sessionStorage.setItem('is_auth', 'true');
     sessionStorage.setItem('saved_username', username);
@@ -90,7 +114,11 @@ export default function Home() {
         alert("Jangan spam! Tunggu 3 detik ya.");
         return;
     }
-    await supabase.from('messages').insert([{ username, pesan: input, device_id: sessionStorage.getItem('device_id') || 'guest' }]);
+    await supabase.from('messages').insert([{ 
+        username, 
+        pesan: input, 
+        device_id: sessionStorage.getItem('device_id') || 'guest' 
+    }]);
     setLastSent(now);
     setInput('');
   };
