@@ -57,6 +57,7 @@ export default function Home() {
   const fetchData = async () => {
     const { data: bData } = await supabase.from('blocked_users').select('*');
     const { data: mData } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+    
     if (bData) {
       setBlockedList(bData);
       if (bData.some(b => b.device_id === localStorage.getItem('device_id'))) {
@@ -147,7 +148,12 @@ export default function Home() {
         {messages.map((m) => (
           <div key={m.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full">
             <div className="flex justify-between items-center mb-1">
-              {m.username === 'Admin●ipix.my.id' ? <span className="text-red-600 font-bold text-[10px]">Admin● {isAdminOnline ? 'ONLINE' : `OFFLINE (${offlineTime})`}</span> : <b className="text-blue-700 text-[10px]">{m.username}</b>}
+              {m.username === 'Admin●ipix.my.id' ? (
+                <span className="text-red-600 font-bold text-[10px] flex items-center gap-1">
+                  <span className={`w-2 h-2 rounded-full ${isAdminOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></span>
+                  Admin● {isAdminOnline ? 'ONLINE' : `OFFLINE (${offlineTime})`}
+                </span>
+              ) : <b className="text-blue-700 text-[10px]">{m.username}</b>}
               <span className="text-[9px] text-gray-400">
                 {new Date(m.created_at).toLocaleDateString('id-ID', {day:'2-digit', month:'2-digit'})} {new Date(m.created_at).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}
               </span>
@@ -157,6 +163,7 @@ export default function Home() {
               <div className="flex gap-4 mt-2">
                 <button onClick={() => editMsg(m.id)} className="text-[10px] text-blue-600 font-bold underline">Edit</button>
                 <button onClick={async () => { await supabase.from('messages').delete().eq('id', m.id); fetchData(); }} className="text-[10px] text-red-600 font-bold underline">Hapus</button>
+                <button onClick={async () => { await supabase.from('blocked_users').insert([{ device_id: m.device_id }]); fetchData(); }} className="text-[10px] text-gray-600 font-bold underline">Blokir</button>
               </div>
             )}
           </div>
