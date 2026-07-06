@@ -17,18 +17,20 @@ export default function Home() {
   const [offlineTime, setOfflineTime] = useState("");
 
   const renderMessage = (text: string) => {
-    const isImg = /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(text) || text.includes('giphy.com/media');
-    let url = text;
-    if (text.includes('giphy.com/gifs/')) {
-        const id = text.split('-').pop();
-        url = `https://media.giphy.com/media/${id}/giphy.gif`;
+    const isImage = /\.(jpeg|jpg|gif|png|webp)$/i.test(text);
+    if (isImage) {
+      return <img src={text} alt="content" className="max-w-full max-h-60 rounded-lg object-contain mt-1 border" />;
     }
-    return isImg ? <img src={url} alt="content" className="max-w-full max-h-60 rounded-lg object-contain mt-1 border" onError={(e) => (e.currentTarget.style.display = 'none')} /> : <div className="text-sm text-gray-800 break-words">{text}</div>;
+    return <div className="text-sm text-gray-800 break-words">{text}</div>;
   };
 
   const getTimeAgo = (date: Date) => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    return seconds < 3600 ? Math.floor(seconds/60) + " menit lalu" : Math.floor(seconds/3600) + " jam lalu";
+    let interval = seconds / 3600;
+    if (interval >= 1) return Math.floor(interval) + " jam yang lalu";
+    interval = seconds / 60;
+    if (interval >= 1) return Math.floor(interval) + " menit yang lalu";
+    return "baru saja";
   };
 
   const handleLogout = async () => {
@@ -39,10 +41,13 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (!localStorage.getItem('device_id')) localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
+    if (!localStorage.getItem('device_id')) {
+      localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
+    }
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session || sessionStorage.getItem('is_auth') === 'true') {
+      const savedAuth = sessionStorage.getItem('is_auth');
+      if (session || savedAuth === 'true') {
         setIsAuth(true);
         setUsername(sessionStorage.getItem('saved_username') || '');
         setActiveTab((sessionStorage.getItem('active_tab') as 'user' | 'admin') || 'user');
@@ -59,26 +64,28 @@ export default function Home() {
     if (bData) {
       setBlockedList(bData);
       if (bData.some(b => b.device_id === localStorage.getItem('device_id'))) {
-        window.location.replace("https://ipix.my.id/chat"); return;
+        window.location.replace("https://ipix.my.id/chat");
+        return;
       }
     }
+    
     if (mData) {
       setMessages(mData.filter(m => !bData?.map(b => b.device_id).includes(m.device_id)));
       const lastAdminMsg = mData.filter(m => m.username === 'Admin●ipix.my.id').pop();
       if (lastAdminMsg) {
-        const isOnline = Date.now() - new Date(lastAdminMsg.created_at).getTime() < 300000;
+        const lastDate = new Date(lastAdminMsg.created_at);
+        const isOnline = Date.now() - lastDate.getTime() < 300000;
         setIsAdminOnline(isOnline);
-        if (!isOnline) setOfflineTime(getTimeAgo(new Date(lastAdminMsg.created_at)));
+        if (!isOnline) setOfflineTime(getTimeAgo(lastDate));
       }
     }
   };
 
   useEffect(() => {
-    if (mounted) {
-      fetchData();
-      const channel = supabase.channel('chat').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchData).subscribe();
-      return () => { supabase.removeChannel(channel); };
-    }
+    if (!mounted) return;
+    fetchData();
+    const channel = supabase.channel('chat').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchData).subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [mounted]);
 
   const handleAdminLogin = async () => {
@@ -103,7 +110,7 @@ export default function Home() {
     e.preventDefault();
     if (!input.trim()) return;
     const now = Date.now();
-    if (now - lastSent < 3000) { alert("Jangan spam!"); return; }
+    if (now - lastSent < 3000) { alert("Jangan spam! Tunggu 3 detik ya."); return; }
     await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') || 'guest' }]);
     setLastSent(now); setInput('');
   };
@@ -112,6 +119,8 @@ export default function Home() {
     const newText = prompt("Edit pesan:", messages.find(m => m.id === id)?.pesan || "");
     if (newText !== null) { await supabase.from('messages').update({ pesan: newText }).eq('id', id); fetchData(); }
   };
+
+  const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
 
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
 
@@ -125,7 +134,7 @@ export default function Home() {
       {activeTab === 'user' ? <input className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama Anda" onChange={(e) => setUsername(e.target.value)} /> : (
         <div className="w-full max-w-sm">
           <input className="w-full p-3 rounded text-black mb-3" placeholder="Email Admin" type="email" onChange={(e) => setAdminEmail(e.target.value)} />
-          <input type="password" class="w-full p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
+          <input type="password" className="w-full p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
         </div>
       )}
       <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : handleUserLogin()} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
@@ -134,7 +143,7 @@ export default function Home() {
 
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden">
-      <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b text-center">
+      <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b border-white/20 text-center">
         <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full">Keluar</button>
         <div className="text-lg font-black text-gray-800">iPixChat</div>
         <a href="https://ipix.my.id" target="_blank" className="text-emerald-700 font-bold text-[10px] underline">ipix.my.id</a>
@@ -143,9 +152,14 @@ export default function Home() {
         {messages.map((m) => (
           <div key={m.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full">
             <div className="flex justify-between items-center mb-1">
-              {m.username === 'Admin●ipix.my.id' ? <span className="text-red-600 font-bold text-[10px]">Admin● {isAdminOnline ? 'ONLINE' : `OFFLINE (${offlineTime})`}</span> : <b className="text-blue-700 text-[10px]">{m.username}</b>}
+              {m.username === 'Admin●ipix.my.id' ? (
+                <span className="flex items-center gap-2">
+                  <span className="text-red-600 font-bold text-[10px]">Admin●</span>
+                  {isAdminOnline ? <span className="flex items-center text-[8px] text-green-600 font-bold animate-pulse"><span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span> ONLINE</span> : <span className="text-[8px] text-gray-400 font-bold">OFFLINE ({offlineTime})</span>}
+                </span>
+              ) : <b className="text-blue-700 text-[10px]">{m.username}</b>}
               <span className="text-[9px] text-gray-400">
-                {new Date(m.created_at).toLocaleDateString('id-ID', {day:'numeric', month:'short'})} {new Date(m.created_at).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}
+                {new Date(m.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
             {renderMessage(m.pesan)}
@@ -153,15 +167,22 @@ export default function Home() {
               <div className="flex gap-4 mt-2">
                 <button onClick={() => editMsg(m.id)} className="text-[10px] text-blue-600 font-bold underline">Edit</button>
                 <button onClick={async () => { await supabase.from('messages').delete().eq('id', m.id); fetchData(); }} className="text-[10px] text-red-600 font-bold underline">Hapus</button>
+                {m.username !== 'Admin●ipix.my.id' && <button onClick={async () => { await supabase.from('blocked_users').insert([{ device_id: m.device_id }]); fetchData(); }} className="text-[10px] text-orange-600 font-bold underline">Blokir</button>}
               </div>
             )}
           </div>
         ))}
       </div>
-      {activeTab === 'admin' && <div className="p-3 bg-gray-300 text-[10px] border-t"><strong>User Terblokir:</strong> {blockedList.map(b => <span key={b.device_id} className="mr-2 cursor-pointer text-blue-800 underline" onClick={async() => {await supabase.from('blocked_users').delete().eq('device_id', b.device_id); fetchData();}}>{b.device_id.substring(0,5)} (Unblock)</span>)}</div>}
+      {activeTab === 'admin' && <div className="p-3 bg-gray-300 text-[10px] border-t"><strong>User Terblokir:</strong> {blockedList.map(b => <span key={b.device_id} className="mr-2 cursor-pointer text-blue-800 underline" onClick={() => unblock(b.device_id)}>{b.device_id.substring(0,5)} (Unblock)</span>)}</div>}
       <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-center">
-        <input maxLength={200} className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan (max 200)..." />
-        <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm">Kirim</button>
+        <input 
+          maxLength={200} 
+          className="flex-1 border p-2 rounded-full px-4 text-sm text-black" 
+          value={input} 
+          onChange={(e) => setInput(e.target.value)} 
+          placeholder="Ketik pesan (max 200)..." 
+        />
+        <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm shrink-0">Kirim</button>
       </form>
     </div>
   );
