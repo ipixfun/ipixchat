@@ -8,6 +8,7 @@ interface Message {
   pesan: string;
   created_at: string;
   device_id: string;
+  user_browser: string;
 }
 
 export default function Home() {
@@ -19,14 +20,12 @@ export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [deviceId, setDeviceId] = useState('');
 
-  // Inisialisasi Device
   useEffect(() => {
     let id = localStorage.getItem('device_id') || Math.random().toString(36).substring(2) + Date.now().toString(36);
     localStorage.setItem('device_id', id);
     setDeviceId(id);
   }, []);
 
-  // Fetch Pesan & Realtime
   useEffect(() => {
     if (!isLoggedIn) return;
     const fetchMessages = async () => {
@@ -35,8 +34,7 @@ export default function Home() {
     };
     fetchMessages();
     const channel = supabase.channel('room_chat')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, fetchMessages)
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, fetchMessages)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchMessages)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [isLoggedIn]);
@@ -52,7 +50,12 @@ export default function Home() {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
-    await supabase.from('messages').insert([{ username, pesan: inputMessage, device_id: deviceId }]);
+    await supabase.from('messages').insert([{ 
+      username, 
+      pesan: inputMessage, 
+      device_id: deviceId,
+      user_browser: navigator.userAgent 
+    }]);
     setInputMessage('');
   };
 
@@ -62,7 +65,7 @@ export default function Home() {
         <div className="w-full max-w-sm bg-white p-6 rounded-2xl shadow-xl space-y-4">
           <h1 className="text-xl font-black text-center text-emerald-600">IpixChat Final 💬</h1>
           <input className="w-full p-3 border rounded-xl text-black" placeholder="Nama Anda..." onChange={(e) => setUsername(e.target.value)} />
-          <input type="password" placeholder="Password Admin (Opsional)" className="w-full p-3 border rounded-xl text-black" onChange={(e) => setAdminPass(e.target.value)} />
+          <input type="password" placeholder="Password Admin" className="w-full p-3 border rounded-xl text-black" onChange={(e) => setAdminPass(e.target.value)} />
           <button onClick={() => { if(adminPass === 'ipixfun') setIsAdmin(true); if(username.trim()) setIsLoggedIn(true); }} className="w-full bg-emerald-500 text-white p-3 rounded-xl font-bold">Masuk Chat</button>
         </div>
       </div>
@@ -71,34 +74,25 @@ export default function Home() {
 
   return (
     <div className="flex flex-col h-screen w-full max-w-lg mx-auto bg-gray-100 overflow-hidden">
-      <div className="bg-emerald-500 p-3 text-white font-bold text-center text-sm shadow-md shrink-0">💬 IpixChat Room</div>
-      
+      <div className="bg-emerald-500 p-3 text-white font-bold text-center text-sm shadow-md">IpixChat Room</div>
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.map((msg) => (
           <div key={msg.id} className="bg-white p-3 rounded-lg shadow-sm border w-full">
             <div className="flex justify-between items-center mb-1">
               <span className="font-bold text-emerald-600 text-xs">{msg.username}</span>
               {isAdmin && (
-                <div className="flex gap-1">
-                  <button onClick={async () => { await supabase.from('blocked_users').insert([{ device_id: msg.device_id }]); alert("Terblokir!"); }} className="text-[9px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded">BLOCK</button>
-                  <button onClick={async () => await supabase.from('messages').delete().eq('id', msg.id)} className="text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded">HAPUS</button>
-                </div>
+                <button onClick={async () => { 
+                  await supabase.from('blocked_users').insert([{ device_id: msg.device_id, username: msg.username, user_browser: msg.user_browser }]); 
+                  alert("User Terblokir!"); 
+                }} className="text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded">BLOCK</button>
               )}
             </div>
             <p className="text-gray-800 break-words text-sm">{renderMessage(msg.pesan)}</p>
-            <div className="text-[8px] text-gray-400 mt-1 font-mono">
-              {new Date(msg.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-            </div>
+            {isAdmin && <p className="text-[8px] text-gray-400 mt-2 italic">{msg.user_browser.substring(0, 40)}...</p>}
           </div>
         ))}
       </div>
-      
-      <div className="bg-white border-t p-2 shrink-0">
-        <div className="flex gap-1 mb-2 overflow-x-auto pb-1">
-          {['😊', '😂', '🔥', '❤️', '🚀', '✨'].map(e => (
-            <button key={e} onClick={() => setInputMessage(p => p + e)} className="text-lg hover:bg-gray-100 rounded px-1">{e}</button>
-          ))}
-        </div>
+      <div className="bg-white border-t p-2">
         <form onSubmit={handleSendMessage} className="flex gap-2">
           <input value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} className="flex-1 p-2 border rounded text-sm text-black" placeholder="Pesan..." />
           <button type="submit" className="bg-emerald-500 text-white px-4 rounded text-sm font-bold">Kirim</button>
@@ -107,4 +101,3 @@ export default function Home() {
     </div>
   );
 }
-
