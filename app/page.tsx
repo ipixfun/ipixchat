@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { supabase } from './supabaseClient'; // Pastikan path ke file client supabase Anda benar
+import { supabase } from './supabaseClient';
 
 interface Message {
   id: number;
   username: string;
   pesan: string;
   created_at: string;
+  device_id: string;
 }
 
 export default function Home() {
@@ -15,21 +16,35 @@ export default function Home() {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isAdminMode, setIsAdminMode] = useState(false);
-  const [password, setPassword] = useState('');
+  const [deviceId, setDeviceId] = useState('');
 
-  // 1. Ambil data pesan & Realtime
+  // 1. Setup Device ID & Cek Blokir
+  useEffect(() => {
+    let id = localStorage.getItem('device_id');
+    if (!id) {
+      id = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      localStorage.setItem('device_id', id);
+    }
+    setDeviceId(id);
+
+    const checkBlocked = async () => {
+      const { data } = await supabase.from('blocked_users').select('device_id').eq('device_id', id);
+      if (data && data.length > 0) {
+        alert("Perangkat Anda telah diblokir!");
+        window.location.href = "about:blank";
+      }
+    };
+    checkBlocked();
+  }, []);
+
+  // 2. Ambil data & Listener Realtime
   useEffect(() => {
     if (!isLoggedIn) return;
-
+    
     const fetchMessages = async () => {
-      const { data } = await supabase
-        .from('messages')
-        .select('*')
-        .order('created_at', { ascending: true });
+      const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
       if (data) setMessages(data as Message[]);
     };
-
     fetchMessages();
 
     const channel = supabase.channel('room_chat')
@@ -44,64 +59,58 @@ export default function Home() {
     return () => { supabase.removeChannel(channel); };
   }, [isLoggedIn]);
 
-  // 2. Fungsi Kirim & Hapus
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMessage.trim()) return;
-    await supabase.from('messages').insert([{ username, pesan: inputMessage }]);
-    setInputMessage('');
+  // 3. Fungsi Aksi Admin
+  const handleBan = async (targetDeviceId: string) => {
+    if (confirm("Blokir perangkat ini selamanya?")) {
+      await supabase.from('blocked_users').insert([{ device_id: targetDeviceId }]);
+      alert("Perangkat diblokir!");
+    }
   };
 
   const handleDelete = async (id: number) => {
     await supabase.from('messages').delete().eq('id', id);
   };
 
-  // 3. Logic Login
-  const handleLogin = () => {
-    if (isAdminMode) {
-      if (password === 'ipixfun') { // GANTI PASSWORD DI SINI
-        setIsAdmin(true);
-        setIsLoggedIn(true);
-      } else {
-        alert('Password Admin Salah!');
-      }
-    } else if (username.trim()) {
-      setIsLoggedIn(true);
-    }
+  // 4. Kirim Pesan (Menyertakan device_id)
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputMessage.trim()) return;
+    await supabase.from('messages').insert([{ 
+      username, 
+      pesan: inputMessage, 
+      device_id: deviceId 
+    }]);
+    setInputMessage('');
   };
 
-  // Tampilan Halaman Login
   if (!isLoggedIn) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-100">
-        <div className="bg-white p-8 rounded-lg shadow-md w-80">
-          <h1 className="text-xl font-bold mb-4 text-center">IpixChat Login</h1>
-          <div className="flex gap-2 mb-4">
-            <button onClick={() => setIsAdminMode(false)} className={`flex-1 p-2 rounded ${!isAdminMode ? 'bg-emerald-500 text-white' : 'bg-gray-200'}`}>User</button>
-            <button onClick={() => setIsAdminMode(true)} className={`flex-1 p-2 rounded ${isAdminMode ? 'bg-red-500 text-white' : 'bg-gray-200'}`}>Admin</button>
-          </div>
-          <input className="w-full p-2 border rounded mb-2 text-black" placeholder="Username..." onChange={(e) => setUsername(e.target.value)} />
-          {isAdminMode && <input type="password" className="w-full p-2 border rounded mb-2 text-black" placeholder="Password Admin..." onChange={(e) => setPassword(e.target.value)} />}
-          <button onClick={handleLogin} className="w-full bg-blue-600 text-white p-2 rounded">Mulai Chatting</button>
+        <div className="bg-white p-8 rounded-lg shadow-md w-80 text-center">
+          <input className="w-full p-2 border rounded mb-2 text-black" placeholder="Nama Anda..." onChange={(e) => setUsername(e.target.value)} />
+          <button onClick={() => { if(username === 'ipixfun') setIsAdmin(true); setIsLoggedIn(true); }} className="w-full bg-blue-600 text-white p-2 rounded">Mulai</button>
         </div>
       </div>
     );
   }
 
-  // Tampilan Chat
   return (
     <div className="flex flex-col h-screen bg-gray-100 p-4">
       <div className="flex-1 overflow-y-auto pb-20">
         {messages.map((msg) => (
           <div key={msg.id} className="mb-4 bg-white p-3 rounded shadow-sm">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="font-bold text-sm text-emerald-600">{msg.username}</span>
-              {isAdmin && <button onClick={() => handleDelete(msg.id)} className="text-red-500 text-[10px]">Hapus</button>}
+              {isAdmin && (
+                <div className="flex gap-2">
+                  <button onClick={() => handleBan(msg.device_id)} className="text-orange-500 text-[10px]">Ban</button>
+                  <button onClick={() => handleDelete(msg.id)} className="text-red-500 text-[10px]">Hapus</button>
+                </div>
+              )}
             </div>
             <p className="text-gray-800">{msg.pesan}</p>
             <div className="text-[10px] text-gray-400 mt-2">
-              {new Date(msg.created_at).toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}
-              {' : '}
+              {new Date(msg.created_at).toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })} : 
               {new Date(msg.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
@@ -109,7 +118,7 @@ export default function Home() {
       </div>
       
       <form onSubmit={handleSendMessage} className="fixed bottom-0 left-0 w-full p-4 bg-white border-t flex gap-2">
-        <input value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} className="flex-1 p-2 border rounded" placeholder="Ketik pesan..." />
+        <input value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} className="flex-1 p-2 border rounded" placeholder="Pesan..." />
         <button type="submit" className="bg-emerald-500 text-white px-4 rounded">Kirim</button>
       </form>
     </div>
