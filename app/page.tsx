@@ -11,6 +11,8 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
   const [input, setInput] = useState('');
   const [isAuth, setIsAuth] = useState(false);
+  // State untuk anti-spam
+  const [lastSent, setLastSent] = useState(0);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -43,6 +45,27 @@ export default function Home() {
     const channel = supabase.channel('chat').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchData).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [mounted]);
+
+  // Fungsi Kirim Pesan dengan Anti-Spam
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const now = Date.now();
+    if (now - lastSent < 3000) {
+        alert("Jangan spam! Tunggu 3 detik ya.");
+        return;
+    }
+
+    await supabase.from('messages').insert([{ 
+        username, 
+        pesan: input, 
+        device_id: localStorage.getItem('device_id') 
+    }]);
+    
+    setLastSent(now);
+    setInput('');
+  };
 
   const editMsg = async (id: number) => {
     const currentMsg = messages.find(m => m.id === id);
@@ -118,13 +141,7 @@ export default function Home() {
         ))}
       </div>
 
-      {activeTab === 'admin' && (
-        <div className="p-3 bg-gray-300 text-[10px] border-t">
-          <strong>User Terblokir:</strong> {blockedList.map(b => <span key={b.device_id} className="mr-2 cursor-pointer text-blue-800 underline" onClick={() => unblock(b.device_id)}>{b.device_id.substring(0,5)} (Unblock)</span>)}
-        </div>
-      )}
-
-      <form onSubmit={async (e) => { e.preventDefault(); await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') }]); setInput(''); }} className="p-3 bg-white border-t flex gap-2 items-center">
+      <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-center">
         <input className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
         <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm shrink-0">Kirim</button>
       </form>
