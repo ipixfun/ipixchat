@@ -27,20 +27,15 @@ export default function Home() {
   const fetchData = async () => {
     const deviceId = localStorage.getItem('device_id');
     if (!deviceId) return;
-
-    // Load Profil
     let { data: pData } = await supabase.from('profiles').select('*').eq('device_id', deviceId).single();
     if (!pData) {
-      const { data: newP } = await supabase.from('profiles').insert([{ device_id: deviceId, username: 'User_' + deviceId.substring(0,4), edit_count: 0, browser_info: navigator.userAgent }]).select().single();
+      const { data: newP } = await supabase.from('profiles').insert([{ device_id: deviceId, username: 'Guest', edit_count: 0, browser_info: navigator.userAgent }]).select().single();
       pData = newP;
     }
     setUsername(pData.username);
     setEditCount(pData.edit_count);
-
-    // Load Data
     const { data: bData } = await supabase.from('blocked_users').select('*');
     const { data: mData } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-    
     if (mData) {
       setMessages(mData.filter(m => !bData?.map(b => b.device_id).includes(m.device_id)));
       const lastAdminMsg = mData.filter(m => m.username === 'Admin●ipix.my.id').pop();
@@ -69,13 +64,6 @@ export default function Home() {
     if (newText) { await supabase.from('messages').update({ pesan: newText }).eq('id', id); fetchData(); }
   };
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || Date.now() - lastSent < 3000) return;
-    await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') }]);
-    setLastSent(Date.now()); setInput('');
-  };
-
   useEffect(() => {
     if (!localStorage.getItem('device_id')) localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
     setMounted(true);
@@ -89,16 +77,17 @@ export default function Home() {
   }, [mounted]);
 
   if (!isAuth) return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-6">
+    <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-emerald-500 to-blue-600 text-white p-6">
       <h1 className="text-3xl font-bold mb-6">iPixChat Login</h1>
       <div className="flex gap-4 mb-4 bg-white/20 p-2 rounded-full">
-        <button onClick={() => setActiveTab('user')} className={`px-6 py-2 rounded-full ${activeTab === 'user' ? 'bg-white text-blue-600' : ''}`}>User</button>
-        <button onClick={() => setActiveTab('admin')} className={`px-6 py-2 rounded-full ${activeTab === 'admin' ? 'bg-white text-blue-600' : ''}`}>Admin</button>
+        <button onClick={() => setActiveTab('user')} className={`px-6 py-2 rounded-full ${activeTab === 'user' ? 'bg-white text-emerald-600' : ''}`}>User</button>
+        <button onClick={() => setActiveTab('admin')} className={`px-6 py-2 rounded-full ${activeTab === 'admin' ? 'bg-white text-emerald-600' : ''}`}>Admin</button>
       </div>
+      {activeTab === 'user' && <input className="w-full max-w-sm p-3 rounded mb-3 text-black" placeholder="Nama Anda" onChange={(e) => setUsername(e.target.value)} />}
       {activeTab === 'admin' && (
-        <div className="w-full max-w-sm"><input className="w-full p-3 rounded mb-3 text-black" placeholder="Email" onChange={(e) => setAdminEmail(e.target.value)} /><input type="password" className="w-full p-3 rounded mb-3 text-black" placeholder="Pass" onChange={(e) => setAdminPass(e.target.value)} /></div>
+        <div className="w-full max-w-sm"><input className="w-full p-3 rounded mb-3 text-black" placeholder="Email" onChange={(e) => setAdminEmail(e.target.value)} /><input type="password" className="w-full p-3 rounded mb-3 text-black" placeholder="Password" onChange={(e) => setAdminPass(e.target.value)} /></div>
       )}
-      <button onClick={async() => { if(activeTab === 'admin') await supabase.auth.signInWithPassword({email:adminEmail, password:adminPass}); setIsAuth(true); }} className="bg-white text-blue-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
+      <button onClick={async() => { if(activeTab === 'admin') await supabase.auth.signInWithPassword({email:adminEmail, password:adminPass}); setIsAuth(true); }} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
     </div>
   );
 
@@ -109,13 +98,12 @@ export default function Home() {
           <div className="font-bold">{username}</div>
           {editCount < 2 && <button onClick={() => handleEditUsername()} className="text-blue-500 underline text-left">Ganti Nama</button>}
         </div>
-        <div className="text-center font-bold">iPixChat<br/><span className="font-normal">ipix.my.id</span></div>
+        <div className="text-center font-bold">iPixChat<br/><span className="font-normal text-[8px]">ipix.my.id</span></div>
         <button onClick={() => window.location.reload()} className="bg-red-500 text-white px-3 py-1 rounded">Keluar</button>
       </div>
-
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {messages.map(m => (
-          <div key={m.id} className="bg-white p-3 rounded-lg border">
+          <div key={m.id} className="bg-white p-3 rounded-lg border shadow-sm">
             <div className="flex justify-between text-[10px] text-gray-500 mb-1">
               {m.username === 'Admin●ipix.my.id' ? <span className="text-red-600 font-bold">Admin● {isAdminOnline ? 'ONLINE' : `OFFLINE (${offlineTime})`}</span> : <b>{m.username}</b>}
             </div>
@@ -131,9 +119,9 @@ export default function Home() {
           </div>
         ))}
       </div>
-      <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2">
+      <form onSubmit={async(e) => { e.preventDefault(); if(!input.trim()) return; await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') }]); setInput(''); }} className="p-3 bg-white border-t flex gap-2">
         <input className="flex-1 border p-2 rounded-full px-4 text-sm" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
-        <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm">Kirim</button>
+        <button className="bg-emerald-600 text-white px-5 py-2 rounded-full font-bold text-sm">Kirim</button>
       </form>
     </div>
   );
