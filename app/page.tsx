@@ -13,6 +13,7 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [isAuth, setIsAuth] = useState(false);
   const [lastSent, setLastSent] = useState(0);
+  const [isAdminOnline, setIsAdminOnline] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -25,17 +26,13 @@ export default function Home() {
     if (!localStorage.getItem('device_id')) {
       localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
     }
-
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const savedAuth = sessionStorage.getItem('is_auth');
-      const savedUser = sessionStorage.getItem('saved_username');
-      const savedTab = sessionStorage.getItem('active_tab');
-
       if (session || savedAuth === 'true') {
         setIsAuth(true);
-        setUsername(savedUser || '');
-        setActiveTab((savedTab as 'user' | 'admin') || 'user');
+        setUsername(sessionStorage.getItem('saved_username') || '');
+        setActiveTab((sessionStorage.getItem('active_tab') as 'user' | 'admin') || 'user');
       }
       setMounted(true);
     };
@@ -48,19 +45,18 @@ export default function Home() {
     
     if (bData) {
       setBlockedList(bData);
-      const myDeviceId = localStorage.getItem('device_id');
-      const isBlocked = bData.some(b => b.device_id === myDeviceId);
-      
-      // Auto-redirect paksa jika terblokir
-      if (isBlocked) {
+      if (bData.some(b => b.device_id === localStorage.getItem('device_id'))) {
         window.location.replace("https://ipix.my.id");
         return;
       }
     }
     
     if (mData) {
-      const bIds = bData?.map(b => b.device_id) || [];
-      setMessages(mData.filter(m => !bIds.includes(m.device_id)));
+      setMessages(mData.filter(m => !bData?.map(b => b.device_id).includes(m.device_id)));
+      const lastAdminMsg = mData.filter(m => m.username === 'Admin●ipix.my.id').pop();
+      if (lastAdminMsg) {
+        setIsAdminOnline(Date.now() - new Date(lastAdminMsg.created_at).getTime() < 300000);
+      }
     }
   };
 
@@ -73,55 +69,34 @@ export default function Home() {
 
   const handleAdminLogin = async () => {
     const { error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPass });
-    if (error) {
-      alert("Login Admin Gagal: " + error.message);
-    } else {
-      setIsAuth(true);
-      setActiveTab('admin');
-      setUsername('Admin●ipix.my.id');
-      sessionStorage.setItem('is_auth', 'true');
-      sessionStorage.setItem('saved_username', 'Admin●ipix.my.id');
-      sessionStorage.setItem('active_tab', 'admin');
+    if (error) alert("Login Admin Gagal: " + error.message);
+    else {
+      setIsAuth(true); setActiveTab('admin'); setUsername('Admin●ipix.my.id');
+      sessionStorage.setItem('is_auth', 'true'); sessionStorage.setItem('saved_username', 'Admin●ipix.my.id'); sessionStorage.setItem('active_tab', 'admin');
     }
   };
 
   const handleUserLogin = async () => {
     if (!username.trim()) return alert("Masukkan nama Anda!");
-
     const { data: bData } = await supabase.from('blocked_users').select('*');
-    const isBlocked = bData?.some(b => b.device_id === localStorage.getItem('device_id'));
-    
-    if (isBlocked) {
-      window.location.replace("https://ipix.my.id");
-      return;
+    if (bData?.some(b => b.device_id === localStorage.getItem('device_id'))) {
+      window.location.replace("https://ipix.my.id"); return;
     }
-
-    setIsAuth(true);
-    sessionStorage.setItem('is_auth', 'true');
-    sessionStorage.setItem('saved_username', username);
-    sessionStorage.setItem('active_tab', 'user');
+    setIsAuth(true); sessionStorage.setItem('is_auth', 'true'); sessionStorage.setItem('saved_username', username); sessionStorage.setItem('active_tab', 'user');
   };
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
     const now = Date.now();
-    if (now - lastSent < 3000) {
-        alert("Jangan spam! Tunggu 3 detik ya.");
-        return;
-    }
+    if (now - lastSent < 3000) { alert("Jangan spam! Tunggu 3 detik ya."); return; }
     await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') || 'guest' }]);
-    setLastSent(now);
-    setInput('');
+    setLastSent(now); setInput('');
   };
 
   const editMsg = async (id: number) => {
-    const currentMsg = messages.find(m => m.id === id);
-    const newText = prompt("Edit pesan:", currentMsg?.pesan || "");
-    if (newText !== null) {
-        await supabase.from('messages').update({ pesan: newText }).eq('id', id);
-        fetchData();
-    }
+    const newText = prompt("Edit pesan:", messages.find(m => m.id === id)?.pesan || "");
+    if (newText !== null) { await supabase.from('messages').update({ pesan: newText }).eq('id', id); fetchData(); }
   };
 
   const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
@@ -135,9 +110,7 @@ export default function Home() {
         <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'user' ? 'bg-blue-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('user')}>User</button>
         <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'admin' ? 'bg-emerald-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('admin')}>Admin</button>
       </div>
-      {activeTab === 'user' ? (
-        <input className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama Anda" onChange={(e) => setUsername(e.target.value)} />
-      ) : (
+      {activeTab === 'user' ? <input className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama Anda" onChange={(e) => setUsername(e.target.value)} /> : (
         <div className="w-full max-w-sm">
           <input className="w-full p-3 rounded text-black mb-3" placeholder="Email Admin" type="email" onChange={(e) => setAdminEmail(e.target.value)} />
           <input type="password" className="w-full p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
@@ -154,42 +127,30 @@ export default function Home() {
         <div className="text-lg font-black text-gray-800">iPixChat</div>
         <a href="https://ipix.my.id" target="_blank" className="text-emerald-700 font-bold text-[10px] underline">ipix.my.id</a>
       </div>
-      
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.map((m) => (
           <div key={m.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full">
             <div className="flex justify-between items-center mb-1">
               {m.username === 'Admin●ipix.my.id' ? (
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-2">
                   <span className="text-red-600 font-bold text-[10px]">Admin●</span>
-                  <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 font-bold underline text-[10px]">ipix.my.id</a>
+                  {isAdminOnline ? <span className="flex items-center text-[8px] text-green-600 font-bold animate-pulse"><span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span> ONLINE</span> : <span className="text-[8px] text-gray-400 font-bold">OFFLINE</span>}
                 </span>
               ) : <b className="text-blue-700 text-[10px]">{m.username}</b>}
-              <span className="text-[9px] text-gray-400 whitespace-nowrap ml-2">
-                {new Date(m.created_at).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })} | 
-                {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
+              <span className="text-[9px] text-gray-400">{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
             <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
             {activeTab === 'admin' && (
               <div className="flex gap-4 mt-2">
                 <button onClick={() => editMsg(m.id)} className="text-[10px] text-blue-600 font-bold underline">Edit</button>
                 <button onClick={async () => { await supabase.from('messages').delete().eq('id', m.id); fetchData(); }} className="text-[10px] text-red-600 font-bold underline">Hapus</button>
-                {m.username !== 'Admin●ipix.my.id' && (
-                  <button onClick={async () => { await supabase.from('blocked_users').insert([{ device_id: m.device_id }]); fetchData(); }} className="text-[10px] text-orange-600 font-bold underline">Blokir</button>
-                )}
+                {m.username !== 'Admin●ipix.my.id' && <button onClick={async () => { await supabase.from('blocked_users').insert([{ device_id: m.device_id }]); fetchData(); }} className="text-[10px] text-orange-600 font-bold underline">Blokir</button>}
               </div>
             )}
           </div>
         ))}
       </div>
-
-      {activeTab === 'admin' && (
-        <div className="p-3 bg-gray-300 text-[10px] border-t">
-          <strong>User Terblokir:</strong> {blockedList.map(b => <span key={b.device_id} className="mr-2 cursor-pointer text-blue-800 underline" onClick={() => unblock(b.device_id)}>{b.device_id.substring(0,5)} (Unblock)</span>)}
-        </div>
-      )}
-
+      {activeTab === 'admin' && <div className="p-3 bg-gray-300 text-[10px] border-t"><strong>User Terblokir:</strong> {blockedList.map(b => <span key={b.device_id} className="mr-2 cursor-pointer text-blue-800 underline" onClick={() => unblock(b.device_id)}>{b.device_id.substring(0,5)} (Unblock)</span>)}</div>}
       <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-center">
         <input className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
         <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm shrink-0">Kirim</button>
