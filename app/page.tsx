@@ -12,8 +12,6 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [isAuth, setIsAuth] = useState(false);
   const [lastSent, setLastSent] = useState(0);
-  const [isAdminOnline, setIsAdminOnline] = useState(false);
-  const [offlineTime, setOfflineTime] = useState("");
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -22,8 +20,9 @@ export default function Home() {
   };
 
   const getTimeAgo = (date: Date) => {
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    return seconds < 3600 ? Math.floor(seconds/60) + " menit lalu" : Math.floor(seconds/3600) + " jam lalu";
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (seconds < 300) return "Online";
+    return seconds < 3600 ? Math.floor(seconds/60) + "m lalu" : Math.floor(seconds/3600) + "j lalu";
   };
 
   const fetchData = async () => {
@@ -33,15 +32,7 @@ export default function Home() {
     if (bData && bData.some(b => b.device_id === localStorage.getItem('device_id'))) {
         window.location.replace("https://ipix.my.id/chat"); return;
     }
-    if (mData) {
-      setMessages(mData);
-      const lastAdminMsg = mData.filter(m => m.username === 'Admin●ipix.my.id').pop();
-      if (lastAdminMsg) {
-        const isOnline = Date.now() - new Date(lastAdminMsg.created_at).getTime() < 300000;
-        setIsAdminOnline(isOnline);
-        if (!isOnline) setOfflineTime(getTimeAgo(new Date(lastAdminMsg.created_at)));
-      }
-    }
+    if (mData) setMessages(mData);
   };
 
   useEffect(() => {
@@ -103,7 +94,7 @@ export default function Home() {
             <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'user' ? 'bg-blue-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('user')}>User</button>
             <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'admin' ? 'bg-emerald-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('admin')}>Admin</button>
           </div>
-          {activeTab === 'user' ? <input maxLength={10} className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama..." onChange={(e) => setUsername(e.target.value)} /> : (
+          {activeTab === 'user' ? <input maxLength={10} className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama (Max 10)" onChange={(e) => setUsername(e.target.value)} /> : (
             <div className="w-full max-w-sm"><input className="w-full p-3 rounded text-black mb-3" placeholder="Email" type="email" onChange={(e) => setAdminEmail(e.target.value)} /><input type="password" className="w-full p-3 rounded text-black mb-3" placeholder="Password" onChange={(e) => setAdminPass(e.target.value)} /></div>
           )}
           <button onClick={handleAuth} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk</button>
@@ -111,37 +102,40 @@ export default function Home() {
       ) : (
         <>
           <div className="sticky top-0 p-3 bg-white/30 backdrop-blur-md border-b text-center">
-            <div className="absolute top-2 left-2 text-[10px] font-bold">Halo, {username}</div>
+            <div className="absolute top-2 left-2 text-[10px] font-bold text-gray-700">Halo, {username}</div>
             <button onClick={() => { supabase.auth.signOut(); window.location.reload(); }} className="absolute top-2 right-2 text-[9px] bg-red-500 text-white px-2 py-0.5 rounded">Keluar</button>
             <div className="text-lg font-black text-gray-800 mt-4">iPixChat</div>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
-            {messages.map((m) => (
-              <div key={m.id} className="bg-white p-3 rounded-xl border shadow-sm">
-                <div className="flex justify-between items-center mb-1">
-                  <div className="flex items-center gap-1.5">
-                    <b className={m.username === 'Admin●ipix.my.id' ? "text-red-600 text-[10px]" : "text-blue-700 text-[10px]"}>{m.username}</b>
-                    {m.username === 'Admin●ipix.my.id' && (
-                      <span className={`w-1.5 h-1.5 rounded-full ${isAdminOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></span>
-                    )}
+            {messages.map((m) => {
+              const timeStatus = getTimeAgo(new Date(m.created_at));
+              const isOnline = timeStatus === "Online";
+              return (
+                <div key={m.id} className="bg-white p-3 rounded-xl border shadow-sm">
+                  <div className="flex justify-between items-center mb-1">
+                    <div className="flex items-center gap-1.5">
+                      <b className={m.username === 'Admin●ipix.my.id' ? "text-red-600 text-[10px]" : "text-blue-700 text-[10px]"}>{m.username}</b>
+                      <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                      <span className="text-[8px] text-gray-400">{timeStatus}</span>
+                    </div>
+                    <span className="text-[9px] text-gray-400">{formatDateTime(m.created_at)}</span>
                   </div>
-                  <span className="text-[9px] text-gray-400">{formatDateTime(m.created_at)}</span>
+                  <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
+                  {activeTab === 'admin' && (
+                    <div className="flex gap-4 mt-2">
+                      <button onClick={() => editMsg(m.id)} className="text-[10px] text-blue-600 font-bold underline">Edit</button>
+                      <button onClick={async () => { await supabase.from('messages').delete().eq('id', m.id); fetchData(); }} className="text-[10px] text-red-600 font-bold underline">Hapus</button>
+                      {m.username !== 'Admin●ipix.my.id' && (
+                        <button onClick={async () => { await supabase.from('blocked_users').insert([{ device_id: m.device_id }]); fetchData(); }} className="text-[10px] text-gray-600 font-bold underline">Blokir</button>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
-                {activeTab === 'admin' && (
-                  <div className="flex gap-4 mt-2">
-                    <button onClick={() => editMsg(m.id)} className="text-[10px] text-blue-600 font-bold underline">Edit</button>
-                    <button onClick={async () => { await supabase.from('messages').delete().eq('id', m.id); fetchData(); }} className="text-[10px] text-red-600 font-bold underline">Hapus</button>
-                    {m.username !== 'Admin●ipix.my.id' && (
-                      <button onClick={async () => { await supabase.from('blocked_users').insert([{ device_id: m.device_id }]); fetchData(); }} className="text-[10px] text-gray-600 font-bold underline">Blokir</button>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
           <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2">
-            <input className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
+            <input maxLength={100} className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
             <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm">Kirim</button>
           </form>
         </>
