@@ -26,9 +26,10 @@ export default function Home() {
   };
 
   const fetchData = async () => {
-    const { data: bData } = await supabase.from('blocked_users').select('*');
+    const { data: bData } = await supabase.from('blocked_users').select('device_id');
     const { data: mData } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
     
+    // Blokir diarahkan ke ipix.my.id/chat
     if (bData && bData.some(b => b.device_id === localStorage.getItem('device_id'))) {
         window.location.replace("https://ipix.my.id/chat"); return;
     }
@@ -57,6 +58,13 @@ export default function Home() {
     }
   }, [mounted]);
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    sessionStorage.clear();
+    setIsAuth(false);
+    window.location.reload();
+  };
+
   const handleAuth = async () => {
     if (activeTab === 'admin') {
       const { error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPass });
@@ -74,13 +82,8 @@ export default function Home() {
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || Date.now() - lastSent < 3000) return;
-    await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') || 'guest' }]);
+    await supabase.from('messages').insert([{ username, pesan: input.substring(0, 100), device_id: localStorage.getItem('device_id') || 'guest' }]);
     setLastSent(Date.now()); setInput('');
-  };
-
-  const editMsg = async (id: number) => {
-    const newText = prompt("Edit:", messages.find(m => m.id === id)?.pesan || "");
-    if (newText !== null) { await supabase.from('messages').update({ pesan: newText }).eq('id', id); fetchData(); }
   };
 
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
@@ -103,7 +106,7 @@ export default function Home() {
         <>
           <div className="sticky top-0 p-3 bg-white/30 backdrop-blur-md border-b text-center">
             <div className="absolute top-2 left-2 text-[10px] font-bold text-gray-700">Halo, {username}</div>
-            <button onClick={() => { supabase.auth.signOut(); window.location.reload(); }} className="absolute top-2 right-2 text-[9px] bg-red-500 text-white px-2 py-0.5 rounded">Keluar</button>
+            <button onClick={handleLogout} className="absolute top-2 right-2 text-[9px] bg-red-500 text-white px-2 py-0.5 rounded">Keluar</button>
             <div className="text-lg font-black text-gray-800 mt-4">iPixChat</div>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
@@ -123,7 +126,7 @@ export default function Home() {
                   <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
                   {activeTab === 'admin' && (
                     <div className="flex gap-4 mt-2">
-                      <button onClick={() => editMsg(m.id)} className="text-[10px] text-blue-600 font-bold underline">Edit</button>
+                      <button onClick={async () => { const n = prompt("Edit:", m.pesan); if(n) { await supabase.from('messages').update({ pesan: n }).eq('id', m.id); fetchData(); }}} className="text-[10px] text-blue-600 font-bold underline">Edit</button>
                       <button onClick={async () => { await supabase.from('messages').delete().eq('id', m.id); fetchData(); }} className="text-[10px] text-red-600 font-bold underline">Hapus</button>
                       {m.username !== 'Admin●ipix.my.id' && (
                         <button onClick={async () => { await supabase.from('blocked_users').insert([{ device_id: m.device_id }]); fetchData(); }} className="text-[10px] text-gray-600 font-bold underline">Blokir</button>
