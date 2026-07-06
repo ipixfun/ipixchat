@@ -22,7 +22,6 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Memastikan device_id tersimpan permanen di localStorage
     if (!localStorage.getItem('device_id')) {
       localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
     }
@@ -52,11 +51,9 @@ export default function Home() {
       const myDeviceId = localStorage.getItem('device_id');
       const isBlocked = bData.some(b => b.device_id === myDeviceId);
       
-      // Logika auto-redirect ke ipix.my.id jika terblokir
-      if (isBlocked && isAuth) {
-        alert("Maaf, akses Anda telah terblokir dari iPixChat. Silakan hubungi admin di ipix.my.id.");
-        handleLogout();
-        window.location.href = "https://ipix.my.id";
+      // Auto-redirect paksa jika terblokir
+      if (isBlocked) {
+        window.location.replace("https://ipix.my.id");
         return;
       }
     }
@@ -95,7 +92,7 @@ export default function Home() {
     const isBlocked = bData?.some(b => b.device_id === localStorage.getItem('device_id'));
     
     if (isBlocked) {
-      alert("Maaf, akses Anda telah terblokir. Silakan hubungi admin di ipix.my.id.");
+      window.location.replace("https://ipix.my.id");
       return;
     }
 
