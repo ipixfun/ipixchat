@@ -7,6 +7,7 @@ export default function Home() {
   const [messages, setMessages] = useState<any[]>([]);
   const [blockedList, setBlockedList] = useState<any[]>([]);
   const [username, setUsername] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
   const [adminPass, setAdminPass] = useState('');
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
   const [input, setInput] = useState('');
@@ -48,7 +49,7 @@ export default function Home() {
 
   const handleAdminLogin = async () => {
     const { error } = await supabase.auth.signInWithPassword({
-      email: 'email-admin-anda@gmail.com', // GANTI DENGAN EMAIL ANDA
+      email: adminEmail,
       password: adminPass,
     });
     if (error) {
@@ -99,7 +100,10 @@ export default function Home() {
       {activeTab === 'user' ? (
         <input className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama Anda" onChange={(e) => setUsername(e.target.value)} />
       ) : (
-        <input type="password" className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
+        <div className="w-full max-w-sm">
+          <input className="w-full p-3 rounded text-black mb-3" placeholder="Email Admin" type="email" onChange={(e) => setAdminEmail(e.target.value)} />
+          <input type="password" className="w-full p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
+        </div>
       )}
       <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : setIsAuth(true)} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
     </div>
