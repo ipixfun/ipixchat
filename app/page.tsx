@@ -11,31 +11,40 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [isAuth, setIsAuth] = useState(false);
 
-  // 1. Inisialisasi & Anti-Hydration
+  // 1. Inisialisasi & Proteksi Awal
   useEffect(() => {
     setMounted(true);
-    // Cek apakah device ini diblokir saat pertama kali buka
-    const checkBlock = async () => {
+    const checkAccess = async () => {
       const deviceId = localStorage.getItem('device_id') || Math.random().toString(36).substring(7);
       localStorage.setItem('device_id', deviceId);
+      
       const { data } = await supabase.from('blocked_users').select('device_id').eq('device_id', deviceId);
       if (data && data.length > 0) {
-        alert("Anda diblokir!");
+        alert("Akses ditolak: Anda telah diblokir.");
         window.location.href = "about:blank";
       }
     };
-    checkBlock();
+    checkAccess();
   }, []);
 
-  // 2. Fetch Pesan & Realtime
+  // 2. Fetch Pesan dengan Filter (Pesan User Terblokir otomatis hilang)
+  const fetchMessages = async () => {
+    const { data: blockedList } = await supabase.from('blocked_users').select('device_id');
+    const blockedIds = blockedList?.map(b => b.device_id) || [];
+
+    const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+    
+    if (data) {
+      // Filter: Hanya tampilkan pesan yang pengirimnya TIDAK diblokir
+      const filtered = data.filter(m => !blockedIds.includes(m.device_id));
+      setMessages(filtered);
+    }
+  };
+
   useEffect(() => {
     if (!mounted) return;
-    const fetch = async () => {
-      const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-      if (data) setMessages(data);
-    };
-    fetch();
-    const channel = supabase.channel('chat').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetch).subscribe();
+    fetchMessages();
+    const channel = supabase.channel('chat').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchMessages).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [mounted]);
 
@@ -47,7 +56,7 @@ export default function Home() {
     });
   };
 
-  if (!mounted) return <div className="p-10 text-center">Memuat Sistem...</div>;
+  if (!mounted) return <div className="p-10 text-center">Memuat...</div>;
 
   if (!isAuth) {
     return (
@@ -68,7 +77,6 @@ export default function Home() {
     <div className="max-w-lg mx-auto h-screen flex flex-col bg-white border-x">
       <div className="p-4 bg-gray-900 text-white flex justify-between">
         <span className="font-bold">IpixChat {activeTab === 'admin' ? '(ADMIN)' : ''}</span>
-        <span className="text-xs">{new Date().toLocaleTimeString()}</span>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -89,7 +97,15 @@ export default function Home() {
         ))}
       </div>
 
-      <form onSubmit={async (e) => { e.preventDefault(); await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') }]); setInput(''); }} className="p-4 border-t flex gap-2">
+      <form onSubmit={async (e) => { 
+        e.preventDefault(); 
+        // Proteksi kirim pesan
+        const { data } = await supabase.from('blocked_users').select('id').eq('device_id', localStorage.getItem('device_id'));
+        if (data && data.length > 0) return alert("Anda diblokir!");
+        
+        await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') }]); 
+        setInput(''); 
+      }} className="p-4 border-t flex gap-2">
         <input className="flex-1 border p-2 rounded" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
         <button className="bg-blue-600 text-white px-4 rounded">Kirim</button>
       </form>
