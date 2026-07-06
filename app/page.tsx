@@ -40,21 +40,34 @@ export default function Home() {
     return () => { supabase.removeChannel(channel); };
   }, [mounted]);
 
-  const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
-  const deleteMsg = async (id: number) => { await supabase.from('messages').delete().eq('id', id); fetchData(); };
+  // Fungsi Admin
+  const deleteMsg = async (id: number) => { 
+    await supabase.from('messages').delete().eq('id', id); 
+    fetchData(); 
+  };
+  
+  const blockUser = async (deviceId: string) => { 
+    await supabase.from('blocked_users').insert([{ device_id: deviceId }]); 
+    fetchData(); 
+  };
+  
+  const unblock = async (id: string) => { 
+    await supabase.from('blocked_users').delete().eq('device_id', id); 
+    fetchData(); 
+  };
 
-  if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Loading...</div>;
+  if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
 
   if (!isAuth) return (
     <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-emerald-500 to-blue-600 text-white p-6">
       <h1 className="text-3xl font-bold mb-6">IpixChat</h1>
       <input className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama Anda" onChange={(e) => setUsername(e.target.value)} />
-      {activeTab === 'admin' && <input type="password" className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />}
-      <div className="flex gap-2 mb-4">
-        <button className={activeTab === 'user' ? 'underline' : ''} onClick={() => setActiveTab('user')}>User</button>
-        <button className={activeTab === 'admin' ? 'underline' : ''} onClick={() => setActiveTab('admin')}>Admin</button>
+      {activeTab === 'admin' && <input type="password" className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Pass Admin" onChange={(e) => setAdminPass(e.target.value)} />}
+      <div className="flex gap-4 mb-4">
+        <button className={activeTab === 'user' ? 'font-bold underline' : ''} onClick={() => setActiveTab('user')}>User</button>
+        <button className={activeTab === 'admin' ? 'font-bold underline' : ''} onClick={() => setActiveTab('admin')}>Admin</button>
       </div>
-      <button onClick={() => { if(activeTab === 'admin' && adminPass !== 'ipixfun') return alert('Pass Salah'); setIsAuth(true); }} className="bg-white text-blue-600 px-8 py-3 rounded-full font-bold">Masuk</button>
+      <button onClick={() => { if(activeTab === 'admin' && adminPass !== 'ipixfun') return alert('Pass Salah'); setIsAuth(true); }} className="bg-white text-blue-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
     </div>
   );
 
@@ -66,16 +79,16 @@ export default function Home() {
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((m) => (
-          <div key={m.id} className="border-b pb-2 relative group">
+          <div key={m.id} className="border-b pb-2 group">
             <div className="text-[10px] text-gray-400 flex justify-between">
               <b>{m.username}</b>
               <span>{new Date(m.created_at).toLocaleTimeString()}</span>
             </div>
             <div className="text-sm">{m.pesan}</div>
             {activeTab === 'admin' && (
-              <div className="flex gap-2 mt-1">
-                <button onClick={() => deleteMsg(m.id)} className="text-[9px] text-red-500 underline">Hapus</button>
-                <button onClick={() => supabase.from('blocked_users').insert([{ device_id: m.device_id }])} className="text-[9px] text-orange-500 underline">Blokir</button>
+              <div className="flex gap-3 mt-1">
+                <button onClick={() => deleteMsg(m.id)} className="text-[9px] text-red-500 font-bold">HAPUS</button>
+                <button onClick={() => blockUser(m.device_id)} className="text-[9px] text-orange-500 font-bold">BLOKIR</button>
               </div>
             )}
           </div>
@@ -84,7 +97,7 @@ export default function Home() {
 
       {activeTab === 'admin' && (
         <div className="p-2 bg-gray-100 text-[10px]">
-          <strong>Terblokir:</strong> {blockedList.map(b => <span key={b.device_id} className="mr-2 cursor-pointer text-blue-600" onClick={() => unblock(b.device_id)}>{b.device_id.substring(0,5)} (Unblock)</span>)}
+          <strong>User Terblokir:</strong> {blockedList.map(b => <span key={b.device_id} className="mr-2 cursor-pointer text-blue-600" onClick={() => unblock(b.device_id)}>{b.device_id.substring(0,5)} (x)</span>)}
         </div>
       )}
 
