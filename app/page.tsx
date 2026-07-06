@@ -12,8 +12,23 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [isAuth, setIsAuth] = useState(false);
 
+  // Fungsi Logout
+  const handleLogout = () => {
+    localStorage.removeItem('is_auth');
+    localStorage.removeItem('saved_username');
+    localStorage.removeItem('active_tab');
+    setIsAuth(false);
+    window.location.reload();
+  };
+
   useEffect(() => {
     setMounted(true);
+    if (localStorage.getItem('is_auth') === 'true') {
+      setIsAuth(true);
+      setUsername(localStorage.getItem('saved_username') || '');
+      setActiveTab(localStorage.getItem('active_tab') as 'user' | 'admin' || 'user');
+    }
+
     const checkAccess = async () => {
       const deviceId = localStorage.getItem('device_id') || Math.random().toString(36).substring(7);
       localStorage.setItem('device_id', deviceId);
@@ -62,6 +77,9 @@ export default function Home() {
       <button onClick={() => { 
         if(activeTab === 'admin' && adminPass !== 'ipixfun') return alert('Pass Salah'); 
         if(activeTab === 'admin') setUsername('Admin●ipix.my.id'); 
+        localStorage.setItem('is_auth', 'true');
+        localStorage.setItem('saved_username', activeTab === 'admin' ? 'Admin●ipix.my.id' : username);
+        localStorage.setItem('active_tab', activeTab);
         setIsAuth(true); 
       }} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
     </div>
@@ -69,7 +87,10 @@ export default function Home() {
 
   return (
     <div className="max-w-lg mx-auto h-screen flex flex-col bg-gray-100">
-      <div className="p-4 bg-gradient-to-r from-emerald-500 to-blue-600 text-white font-bold text-center">
+      <div className="relative p-4 bg-gradient-to-r from-emerald-500 to-blue-600 text-white font-bold text-center">
+        {/* Tombol Logout */}
+        <button onClick={handleLogout} className="absolute top-2 right-3 text-[10px] bg-red-600 px-2 py-1 rounded shadow">Keluar</button>
+        
         <div>Tanggal: {new Date().toLocaleDateString('id-ID')}</div>
         <a href="https://ipix.my.id" target="_blank" className="underline text-sm">iPix Chat (ipix.my.id)</a>
       </div>
