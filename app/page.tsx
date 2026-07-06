@@ -22,10 +22,11 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (!sessionStorage.getItem('device_id')) {
-      sessionStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
+    // Menggunakan localStorage agar ID perangkat permanen dan tidak bisa bypass
+    if (!localStorage.getItem('device_id')) {
+      localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
     }
-    
+
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const savedAuth = sessionStorage.getItem('is_auth');
@@ -48,11 +49,11 @@ export default function Home() {
     
     if (bData) {
       setBlockedList(bData);
-      const myDeviceId = sessionStorage.getItem('device_id');
+      const myDeviceId = localStorage.getItem('device_id');
       const isBlocked = bData.some(b => b.device_id === myDeviceId);
       
       if (isBlocked && isAuth) {
-        alert("Maaf, akses Anda telah terblokir dari iPixChat. Silakan hubungi admin.");
+        alert("Maaf, akses Anda telah terblokir dari iPixChat.");
         handleLogout();
         window.location.href = "https://ipix.my.id";
         return;
@@ -73,10 +74,7 @@ export default function Home() {
   }, [mounted]);
 
   const handleAdminLogin = async () => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: adminEmail,
-      password: adminPass,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPass });
     if (error) {
       alert("Login Admin Gagal: " + error.message);
     } else {
@@ -91,9 +89,9 @@ export default function Home() {
 
   const handleUserLogin = async () => {
     if (!username.trim()) return alert("Masukkan nama Anda!");
-    
+
     const { data: bData } = await supabase.from('blocked_users').select('*');
-    const isBlocked = bData?.some(b => b.device_id === sessionStorage.getItem('device_id'));
+    const isBlocked = bData?.some(b => b.device_id === localStorage.getItem('device_id'));
     
     if (isBlocked) {
       alert("Maaf, akses Anda telah terblokir. Silakan hubungi admin di ipix.my.id.");
@@ -114,11 +112,7 @@ export default function Home() {
         alert("Jangan spam! Tunggu 3 detik ya.");
         return;
     }
-    await supabase.from('messages').insert([{ 
-        username, 
-        pesan: input, 
-        device_id: sessionStorage.getItem('device_id') || 'guest' 
-    }]);
+    await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') || 'guest' }]);
     setLastSent(now);
     setInput('');
   };
