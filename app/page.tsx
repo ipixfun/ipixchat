@@ -123,10 +123,10 @@ export default function Home() {
         <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'user' ? 'bg-blue-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('user')}>User</button>
         <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'admin' ? 'bg-emerald-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('admin')}>Admin</button>
       </div>
-      {activeTab === 'user' ? <input maxLength={10} className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama (Max 10 huruf)" onChange={(e) => setUsername(e.target.value)} /> : (
+      {activeTab === 'user' ? <input maxLength={10} className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama (Max 10)" onChange={(e) => setUsername(e.target.value)} /> : (
         <div className="w-full max-w-sm">
           <input className="w-full p-3 rounded text-black mb-3" placeholder="Email Admin" type="email" onChange={(e) => setAdminEmail(e.target.value)} />
-          <input type="password" class="w-full p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
+          <input type="password" className="w-full p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
         </div>
       )}
       <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : handleUserLogin()} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
@@ -142,7 +142,6 @@ export default function Home() {
           <button onClick={fetchData} className="text-[9px] bg-blue-500 text-white px-2 py-0.5 rounded">Refresh</button>
         </div>
         <div className="text-lg font-black text-gray-800 mt-4">iPixChat</div>
-        <a href="https://ipix.my.id" target="_blank" className="text-emerald-700 font-bold text-[10px] underline">ipix.my.id</a>
       </div>
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.map((m) => (
