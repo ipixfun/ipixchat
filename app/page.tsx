@@ -5,6 +5,7 @@ import { supabase } from './supabaseClient';
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
+  const [blockedCount, setBlockedCount] = useState(0); // Penambahan state jumlah blokir
   const [username, setUsername] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPass, setAdminPass] = useState('');
@@ -29,9 +30,11 @@ export default function Home() {
     const { data: bData } = await supabase.from('blocked_users').select('device_id');
     const { data: mData } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
     
-    // Blokir diarahkan ke ipix.my.id/chat
-    if (bData && bData.some(b => b.device_id === localStorage.getItem('device_id'))) {
-        window.location.replace("https://ipix.my.id/chat"); return;
+    if (bData) {
+        setBlockedCount(bData.length); // Update jumlah blokir
+        if (bData.some(b => b.device_id === localStorage.getItem('device_id'))) {
+            window.location.replace("https://ipix.my.id/chat"); return;
+        }
     }
     if (mData) setMessages(mData);
   };
@@ -108,6 +111,8 @@ export default function Home() {
             <div className="absolute top-2 left-2 text-[10px] font-bold text-gray-700">Halo, {username}</div>
             <button onClick={handleLogout} className="absolute top-2 right-2 text-[9px] bg-red-500 text-white px-2 py-0.5 rounded">Keluar</button>
             <div className="text-lg font-black text-gray-800 mt-4">iPixChat</div>
+            {/* Status jumlah blokir khusus admin */}
+            {activeTab === 'admin' && <div className="text-[9px] text-red-500 font-bold mt-1">Total Diblokir: {blockedCount}</div>}
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {messages.map((m) => {
