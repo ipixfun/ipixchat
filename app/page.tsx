@@ -16,23 +16,25 @@ export default function Home() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    localStorage.clear();
+    sessionStorage.clear();
     setIsAuth(false);
     window.location.reload();
   };
 
-  // FIX: Memastikan status login tetap terjaga saat refresh
   useEffect(() => {
     const checkAuth = async () => {
+      // Cek sesi Supabase
       const { data: { session } } = await supabase.auth.getSession();
-      const savedAuth = localStorage.getItem('is_auth');
-      const savedUser = localStorage.getItem('saved_username');
-      const savedTab = localStorage.getItem('active_tab');
+      
+      // Ambil data dari sessionStorage
+      const savedAuth = sessionStorage.getItem('is_auth');
+      const savedUser = sessionStorage.getItem('saved_username');
+      const savedTab = sessionStorage.getItem('active_tab');
 
       if (session || savedAuth === 'true') {
         setIsAuth(true);
         setUsername(savedUser || '');
-        setActiveTab(savedTab as 'user' | 'admin' || 'user');
+        setActiveTab((savedTab as 'user' | 'admin') || 'user');
       }
       setMounted(true);
     };
@@ -67,10 +69,17 @@ export default function Home() {
       setIsAuth(true);
       setActiveTab('admin');
       setUsername('Admin●ipix.my.id');
-      localStorage.setItem('is_auth', 'true');
-      localStorage.setItem('saved_username', 'Admin●ipix.my.id');
-      localStorage.setItem('active_tab', 'admin');
+      sessionStorage.setItem('is_auth', 'true');
+      sessionStorage.setItem('saved_username', 'Admin●ipix.my.id');
+      sessionStorage.setItem('active_tab', 'admin');
     }
+  };
+
+  const handleUserLogin = () => {
+    setIsAuth(true);
+    sessionStorage.setItem('is_auth', 'true');
+    sessionStorage.setItem('saved_username', username);
+    sessionStorage.setItem('active_tab', 'user');
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -81,7 +90,7 @@ export default function Home() {
         alert("Jangan spam! Tunggu 3 detik ya.");
         return;
     }
-    await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') }]);
+    await supabase.from('messages').insert([{ username, pesan: input, device_id: sessionStorage.getItem('device_id') || 'guest' }]);
     setLastSent(now);
     setInput('');
   };
@@ -114,7 +123,7 @@ export default function Home() {
           <input type="password" className="w-full p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
         </div>
       )}
-      <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : setIsAuth(true)} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
+      <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : handleUserLogin()} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
     </div>
   );
 
