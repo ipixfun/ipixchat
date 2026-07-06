@@ -56,7 +56,7 @@ export default function Home() {
     if (bData) {
       setBlockedList(bData);
       if (bData.some(b => b.device_id === localStorage.getItem('device_id'))) {
-        window.location.replace("https://ipix.my.id");
+        window.location.replace("https://ipix.my.id/chat");
         return;
       }
     }
