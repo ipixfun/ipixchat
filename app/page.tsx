@@ -13,6 +13,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
   const [input, setInput] = useState('');
   const [isAuth, setIsAuth] = useState(false);
+  const [lastSent, setLastSent] = useState(0);
   const [isAdminOnline, setIsAdminOnline] = useState(false);
   const [offlineTime, setOfflineTime] = useState("");
 
@@ -25,15 +26,21 @@ export default function Home() {
     return "baru saja";
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    sessionStorage.clear();
+    setIsAuth(false);
+    window.location.reload();
+  };
+
   const fetchData = async () => {
     const deviceId = localStorage.getItem('device_id');
     if (!deviceId) return;
 
     const { data: bData } = await supabase.from('blocked_users').select('*');
     
-    // Auto-load data dari tabel 'profiles'
+    // Auto-load atau Create Profil
     let { data: pData } = await supabase.from('profiles').select('*').eq('device_id', deviceId).single();
-    
     if (!pData) {
       const { data: newP } = await supabase.from('profiles').insert([{ 
         device_id: deviceId, 
@@ -82,6 +89,15 @@ export default function Home() {
     fetchData();
   };
 
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+    if (Date.now() - lastSent < 3000) return alert("Tunggu 3 detik!");
+    await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') }]);
+    setLastSent(Date.now());
+    setInput('');
+  };
+
   useEffect(() => {
     if (!localStorage.getItem('device_id')) {
         localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
@@ -96,34 +112,36 @@ export default function Home() {
     return () => { supabase.removeChannel(channel); };
   }, [mounted]);
 
-  // (Fungsi handleAdminLogin, sendMessage, dll tetap sama)
+  if (!mounted) return <div className="h-screen flex items-center justify-center">Memuat...</div>;
 
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden">
-      <div className="p-4 bg-white border-b text-center">
-        <div className="text-sm font-bold text-gray-800">Halo, {username}</div>
-        {activeTab === 'user' && editCount < 2 && (
-          <button onClick={() => handleEditUsername()} className="text-[10px] text-blue-600 underline">Ganti Nama</button>
-        )}
+      <div className="sticky top-0 p-3 bg-white border-b text-center">
+        <div className="text-sm font-bold">Halo, {username}</div>
+        {activeTab === 'user' && editCount < 2 && <button onClick={() => handleEditUsername()} className="text-[10px] text-blue-600 underline">Ganti Nama</button>}
       </div>
-      
-      {/* Area Chat ... */}
+
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.map((m) => (
-          <div key={m.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full">
+          <div key={m.id} className="bg-white p-3 rounded-xl border w-full">
             <div className="flex justify-between items-center mb-1">
               {m.username === 'Admin●ipix.my.id' ? (
                 <span className="flex items-center gap-2">
                   <span className="text-red-600 font-bold text-[10px]">Admin●</span>
-                  {isAdminOnline ? <span className="flex items-center text-[8px] text-green-600 font-bold animate-pulse"><span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span> ONLINE</span> : <span className="text-[8px] text-gray-400 font-bold">OFFLINE ({offlineTime})</span>}
+                  {isAdminOnline ? <span className="text-[8px] text-green-600 font-bold animate-pulse">● ONLINE</span> : <span className="text-[8px] text-gray-400 font-bold">OFFLINE ({offlineTime})</span>}
                 </span>
               ) : <b className="text-blue-700 text-[10px]">{m.username}</b>}
-              <span className="text-[9px] text-gray-400">{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
-            <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
+            <div className="text-sm">{m.pesan}</div>
+            {activeTab === 'admin' && <button onClick={() => handleEditUsername(true)} className="text-[9px] text-green-600">Force Edit Nama</button>}
           </div>
         ))}
       </div>
+
+      <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2">
+        <input className="flex-1 border p-2 rounded-full px-4 text-sm" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
+        <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm">Kirim</button>
+      </form>
     </div>
   );
 }
