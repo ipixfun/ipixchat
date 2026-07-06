@@ -151,7 +151,7 @@ export default function Home() {
               {m.username === 'Admin●ipix.my.id' ? (
                 <span className="text-red-600 font-bold text-[10px] flex items-center gap-1">
                   <span className={`w-2 h-2 rounded-full ${isAdminOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></span>
-                  Admin● <span className={isAdminOnline ? "animate-pulse" : ""}>{isAdminOnline ? 'ONLINE' : `OFFLINE (${offlineTime})`}</span>
+                  Admin● <span className={isAdminOnline ? "animate-pulse text-green-600" : "text-gray-500"}>{isAdminOnline ? 'ONLINE' : `OFFLINE (${offlineTime})`}</span>
                 </span>
               ) : <b className="text-blue-700 text-[10px]">{m.username}</b>}
               <span className="text-[9px] text-gray-400">
