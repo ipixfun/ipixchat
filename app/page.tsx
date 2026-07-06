@@ -11,10 +11,10 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
   const [input, setInput] = useState('');
   const [isAuth, setIsAuth] = useState(false);
-  // State untuk anti-spam
   const [lastSent, setLastSent] = useState(0);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.clear();
     setIsAuth(false);
     window.location.reload();
@@ -46,23 +46,32 @@ export default function Home() {
     return () => { supabase.removeChannel(channel); };
   }, [mounted]);
 
-  // Fungsi Kirim Pesan dengan Anti-Spam
+  const handleAdminLogin = async () => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: 'email-admin-anda@gmail.com', // GANTI DENGAN EMAIL ANDA
+      password: adminPass,
+    });
+    if (error) {
+      alert("Login Admin Gagal: " + error.message);
+    } else {
+      setIsAuth(true);
+      setActiveTab('admin');
+      setUsername('Admin●ipix.my.id');
+      localStorage.setItem('is_auth', 'true');
+      localStorage.setItem('saved_username', 'Admin●ipix.my.id');
+      localStorage.setItem('active_tab', 'admin');
+    }
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
-
     const now = Date.now();
     if (now - lastSent < 3000) {
         alert("Jangan spam! Tunggu 3 detik ya.");
         return;
     }
-
-    await supabase.from('messages').insert([{ 
-        username, 
-        pesan: input, 
-        device_id: localStorage.getItem('device_id') 
-    }]);
-    
+    await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') }]);
     setLastSent(now);
     setInput('');
   };
@@ -70,7 +79,7 @@ export default function Home() {
   const editMsg = async (id: number) => {
     const currentMsg = messages.find(m => m.id === id);
     const newText = prompt("Edit pesan:", currentMsg?.pesan || "");
-    if (newText !== null && newText !== currentMsg?.pesan) {
+    if (newText !== null) {
         await supabase.from('messages').update({ pesan: newText }).eq('id', id);
         fetchData();
     }
@@ -92,14 +101,7 @@ export default function Home() {
       ) : (
         <input type="password" className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
       )}
-      <button onClick={() => { 
-        if(activeTab === 'admin' && adminPass !== 'ipixfun') return alert('Pass Salah'); 
-        if(activeTab === 'admin') setUsername('Admin●ipix.my.id'); 
-        localStorage.setItem('is_auth', 'true');
-        localStorage.setItem('saved_username', activeTab === 'admin' ? 'Admin●ipix.my.id' : username);
-        localStorage.setItem('active_tab', activeTab);
-        setIsAuth(true); 
-      }} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
+      <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : setIsAuth(true)} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
     </div>
   );
 
@@ -127,7 +129,6 @@ export default function Home() {
               </span>
             </div>
             <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
-            
             {activeTab === 'admin' && (
               <div className="flex gap-4 mt-2">
                 <button onClick={() => editMsg(m.id)} className="text-[10px] text-blue-600 font-bold underline">Edit</button>
@@ -140,6 +141,12 @@ export default function Home() {
           </div>
         ))}
       </div>
+
+      {activeTab === 'admin' && (
+        <div className="p-3 bg-gray-300 text-[10px] border-t">
+          <strong>User Terblokir:</strong> {blockedList.map(b => <span key={b.device_id} className="mr-2 cursor-pointer text-blue-800 underline" onClick={() => unblock(b.device_id)}>{b.device_id.substring(0,5)} (Unblock)</span>)}
+        </div>
+      )}
 
       <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-center">
         <input className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
