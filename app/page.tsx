@@ -56,11 +56,22 @@ export default function Home() {
     return () => { supabase.removeChannel(channel); };
   }, [mounted]);
 
+  // Fungsi Edit yang diperbarui agar stabil
   const editMsg = async (id: number) => {
-    const newText = prompt("Edit pesan:");
-    if (newText) {
-        await supabase.from('messages').update({ pesan: newText }).eq('id', id);
-        fetchData();
+    const currentMsg = messages.find(m => m.id === id);
+    const newText = prompt("Edit pesan:", currentMsg?.pesan || "");
+    
+    if (newText !== null && newText !== currentMsg?.pesan) {
+        const { error } = await supabase
+            .from('messages')
+            .update({ pesan: newText })
+            .eq('id', id);
+            
+        if (error) {
+            alert("Gagal update: " + error.message);
+        } else {
+            fetchData();
+        }
     }
   };
 
