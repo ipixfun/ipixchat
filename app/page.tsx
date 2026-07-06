@@ -123,7 +123,7 @@ export default function Home() {
         <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'user' ? 'bg-blue-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('user')}>User</button>
         <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'admin' ? 'bg-emerald-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('admin')}>Admin</button>
       </div>
-      {activeTab === 'user' ? <input className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama Anda" onChange={(e) => setUsername(e.target.value)} /> : (
+      {activeTab === 'user' ? <input maxLength={10} className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama (Max 10 huruf)" onChange={(e) => setUsername(e.target.value)} /> : (
         <div className="w-full max-w-sm">
           <input className="w-full p-3 rounded text-black mb-3" placeholder="Email Admin" type="email" onChange={(e) => setAdminEmail(e.target.value)} />
           <input type="password" class="w-full p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
@@ -136,8 +136,12 @@ export default function Home() {
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden">
       <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b text-center">
-        <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full">Keluar</button>
-        <div className="text-lg font-black text-gray-800">iPixChat</div>
+        <div className="absolute top-2 left-2 text-[10px] font-bold text-gray-600">Halo, {username}</div>
+        <div className="absolute top-2 right-2 flex flex-col gap-1">
+          <button onClick={handleLogout} className="text-[9px] bg-red-500 text-white px-2 py-0.5 rounded">Keluar</button>
+          <button onClick={fetchData} className="text-[9px] bg-blue-500 text-white px-2 py-0.5 rounded">Refresh</button>
+        </div>
+        <div className="text-lg font-black text-gray-800 mt-4">iPixChat</div>
         <a href="https://ipix.my.id" target="_blank" className="text-emerald-700 font-bold text-[10px] underline">ipix.my.id</a>
       </div>
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
