@@ -22,7 +22,7 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Menggunakan localStorage agar ID perangkat permanen dan tidak bisa bypass
+    // Memastikan device_id tersimpan permanen di localStorage
     if (!localStorage.getItem('device_id')) {
       localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
     }
@@ -52,8 +52,9 @@ export default function Home() {
       const myDeviceId = localStorage.getItem('device_id');
       const isBlocked = bData.some(b => b.device_id === myDeviceId);
       
+      // Logika auto-redirect ke ipix.my.id jika terblokir
       if (isBlocked && isAuth) {
-        alert("Maaf, akses Anda telah terblokir dari iPixChat.");
+        alert("Maaf, akses Anda telah terblokir dari iPixChat. Silakan hubungi admin di ipix.my.id.");
         handleLogout();
         window.location.href = "https://ipix.my.id";
         return;
