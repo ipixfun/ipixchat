@@ -21,13 +21,22 @@ export default function Home() {
     window.location.reload();
   };
 
+  // FIX: Memastikan status login tetap terjaga saat refresh
   useEffect(() => {
-    setMounted(true);
-    if (localStorage.getItem('is_auth') === 'true') {
-      setIsAuth(true);
-      setUsername(localStorage.getItem('saved_username') || '');
-      setActiveTab(localStorage.getItem('active_tab') as 'user' | 'admin' || 'user');
-    }
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const savedAuth = localStorage.getItem('is_auth');
+      const savedUser = localStorage.getItem('saved_username');
+      const savedTab = localStorage.getItem('active_tab');
+
+      if (session || savedAuth === 'true') {
+        setIsAuth(true);
+        setUsername(savedUser || '');
+        setActiveTab(savedTab as 'user' | 'admin' || 'user');
+      }
+      setMounted(true);
+    };
+    checkAuth();
   }, []);
 
   const fetchData = async () => {
