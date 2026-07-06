@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
+import EmojiPicker from 'emoji-picker-react';
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -13,6 +14,7 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [isAuth, setIsAuth] = useState(false);
   const [lastSent, setLastSent] = useState(0);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -104,6 +106,7 @@ export default function Home() {
     }]);
     setLastSent(now);
     setInput('');
+    setShowEmojiPicker(false);
   };
 
   const editMsg = async (id: number) => {
@@ -134,12 +137,12 @@ export default function Home() {
           <input type="password" className="w-full p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
         </div>
       )}
-      <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : setIsAuth(true)} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
+      <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : (setIsAuth(true), sessionStorage.setItem('is_auth', 'true'))} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
     </div>
   );
 
   return (
-    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden">
+    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden relative">
       <div className="sticky top-0 z-10 p-3 bg-white border-b border-gray-200 text-center">
         <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full">Keluar</button>
         <div className="text-lg font-black text-gray-800">iPixChat</div>
@@ -176,7 +179,14 @@ export default function Home() {
         </div>
       )}
 
+      {showEmojiPicker && (
+        <div className="absolute bottom-20 left-4 z-20">
+          <EmojiPicker onEmojiClick={(e) => setInput(prev => prev + e.emoji)} />
+        </div>
+      )}
+
       <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-center">
+        <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="text-xl">😊</button>
         <input className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
         <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm shrink-0">Kirim</button>
       </form>
