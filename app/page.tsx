@@ -5,6 +5,7 @@ import { supabase } from './supabaseClient';
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
+  const [blockedList, setBlockedList] = useState<any[]>([]);
   const [username, setUsername] = useState('');
   const [adminPass, setAdminPass] = useState('');
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
@@ -27,8 +28,9 @@ export default function Home() {
   }, []);
 
   const fetchData = async () => {
-    const { data: bData } = await supabase.from('blocked_users').select('device_id');
+    const { data: bData } = await supabase.from('blocked_users').select('*');
     const { data: mData } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+    if (bData) setBlockedList(bData);
     if (mData) {
       const bIds = bData?.map(b => b.device_id) || [];
       setMessages(mData.filter(m => !bIds.includes(m.device_id)));
@@ -42,21 +44,16 @@ export default function Home() {
     return () => { supabase.removeChannel(channel); };
   }, [mounted]);
 
-  // FIX: Fungsi Edit dengan .select() agar sinkronisasi data instan
   const editMsg = async (id: number) => {
     const currentMsg = messages.find(m => m.id === id);
     const newText = prompt("Edit pesan:", currentMsg?.pesan || "");
     if (newText !== null && newText !== currentMsg?.pesan) {
-        const { error } = await supabase
-            .from('messages')
-            .update({ pesan: newText })
-            .eq('id', id)
-            .select(); // Penting untuk sinkronisasi
-        
-        if (error) alert("Error: " + error.message);
-        else fetchData();
+        await supabase.from('messages').update({ pesan: newText }).eq('id', id);
+        fetchData();
     }
   };
+
+  const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
 
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
 
@@ -95,7 +92,16 @@ export default function Home() {
         {messages.map((m) => (
           <div key={m.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full">
             <div className="flex justify-between items-center mb-1">
-              <b className="text-blue-700 text-[10px]">{m.username}</b>
+              {m.username === 'Admin●ipix.my.id' ? (
+                <span className="flex items-center gap-1">
+                  <span className="text-red-600 font-bold text-[10px]">Admin●</span>
+                  <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 font-bold underline text-[10px]">ipix.my.id</a>
+                </span>
+              ) : <b className="text-blue-700 text-[10px]">{m.username}</b>}
+              <span className="text-[9px] text-gray-400 whitespace-nowrap ml-2">
+                {new Date(m.created_at).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })} | 
+                {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
             </div>
             <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
             
@@ -112,9 +118,15 @@ export default function Home() {
         ))}
       </div>
 
+      {activeTab === 'admin' && (
+        <div className="p-3 bg-gray-300 text-[10px] border-t">
+          <strong>User Terblokir:</strong> {blockedList.map(b => <span key={b.device_id} className="mr-2 cursor-pointer text-blue-800 underline" onClick={() => unblock(b.device_id)}>{b.device_id.substring(0,5)} (Unblock)</span>)}
+        </div>
+      )}
+
       <form onSubmit={async (e) => { e.preventDefault(); await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') }]); setInput(''); }} className="p-3 bg-white border-t flex gap-2 items-center">
-        <input className="flex-1 border p-2 rounded-full px-4 text-sm" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
-        <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm">Kirim</button>
+        <input className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
+        <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm shrink-0">Kirim</button>
       </form>
     </div>
   );
