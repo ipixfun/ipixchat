@@ -16,7 +16,6 @@ export default function Home() {
   const [isAdminOnline, setIsAdminOnline] = useState(false);
   const [offlineTime, setOfflineTime] = useState("");
 
-  // Logika Render Pesan: Deteksi Gambar/GIF dan Link
   const renderMessage = (text: string) => {
     const isImg = /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(text) || text.includes('giphy.com/media') || text.includes('giphy.com/gifs/');
     let url = text;
@@ -25,12 +24,7 @@ export default function Home() {
         url = `https://media.giphy.com/media/${id}/giphy.gif`;
     }
     return isImg ? (
-      <img 
-        src={url} 
-        alt="media" 
-        className="max-w-full max-h-60 rounded-lg object-contain mt-1 border" 
-        onError={(e) => { e.currentTarget.style.display = 'none'; }} 
-      />
+      <img src={url} alt="media" className="max-w-full max-h-60 rounded-lg object-contain mt-1 border" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
     ) : <div className="text-sm text-gray-800 break-words">{text}</div>;
   };
 
@@ -167,7 +161,7 @@ export default function Home() {
       </div>
       {activeTab === 'admin' && <div className="p-3 bg-gray-300 text-[10px] border-t"><strong>User Terblokir:</strong> {blockedList.map(b => <span key={b.device_id} className="mr-2 cursor-pointer text-blue-800 underline" onClick={async() => {await supabase.from('blocked_users').delete().eq('device_id', b.device_id); fetchData();}}>{b.device_id.substring(0,5)} (Unblock)</span>)}</div>}
       <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-center">
-        <input maxLength={200} className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan (max 200)..." />
+        <input maxLength={100} className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan (max 100)..." />
         <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm">Kirim</button>
       </form>
     </div>
