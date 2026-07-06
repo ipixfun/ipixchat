@@ -23,10 +23,7 @@ export default function Home() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      // Cek sesi Supabase
       const { data: { session } } = await supabase.auth.getSession();
-      
-      // Ambil data dari sessionStorage
       const savedAuth = sessionStorage.getItem('is_auth');
       const savedUser = sessionStorage.getItem('saved_username');
       const savedTab = sessionStorage.getItem('active_tab');
@@ -46,17 +43,27 @@ export default function Home() {
     const { data: mData } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
     if (bData) setBlockedList(bData);
     if (mData) {
-      const bIds = bData?.map(b => b.device_id) || [];
-      setMessages(mData.filter(m => !bIds.includes(m.device_id)));
+      setMessages(mData);
     }
   };
 
   useEffect(() => {
     if (!mounted) return;
+
+    // Logika Auto-Redirect jika diblokir
+    const myDeviceId = sessionStorage.getItem('device_id');
+    const isBlocked = blockedList.some(b => b.device_id === myDeviceId);
+    
+    if (isBlocked && isAuth) {
+      alert("Akses Anda telah diblokir.");
+      sessionStorage.clear();
+      window.location.href = "https://ipix.my.id";
+    }
+
     fetchData();
     const channel = supabase.channel('chat').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchData).subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [mounted]);
+  }, [mounted, blockedList, isAuth]);
 
   const handleAdminLogin = async () => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -80,6 +87,10 @@ export default function Home() {
     sessionStorage.setItem('is_auth', 'true');
     sessionStorage.setItem('saved_username', username);
     sessionStorage.setItem('active_tab', 'user');
+    // Generate device_id sederhana jika belum ada
+    if (!sessionStorage.getItem('device_id')) {
+        sessionStorage.setItem('device_id', Math.random().toString(36).substring(7));
+    }
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -146,7 +157,6 @@ export default function Home() {
                 </span>
               ) : <b className="text-blue-700 text-[10px]">{m.username}</b>}
               <span className="text-[9px] text-gray-400 whitespace-nowrap ml-2">
-                {new Date(m.created_at).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })} | 
                 {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
