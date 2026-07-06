@@ -18,7 +18,11 @@ export default function Home() {
       const deviceId = localStorage.getItem('device_id') || Math.random().toString(36).substring(7);
       localStorage.setItem('device_id', deviceId);
       const { data } = await supabase.from('blocked_users').select('device_id').eq('device_id', deviceId);
-      if (data && data.length > 0) window.location.href = "about:blank";
+      
+      if (data && data.length > 0) {
+        alert("Maaf yang sopan, anda terblokir dari IpixChat");
+        window.location.href = "https://ipix.my.id";
+      }
     };
     checkAccess();
   }, []);
@@ -40,21 +44,9 @@ export default function Home() {
     return () => { supabase.removeChannel(channel); };
   }, [mounted]);
 
-  // Fungsi Admin
-  const deleteMsg = async (id: number) => { 
-    await supabase.from('messages').delete().eq('id', id); 
-    fetchData(); 
-  };
-  
-  const blockUser = async (deviceId: string) => { 
-    await supabase.from('blocked_users').insert([{ device_id: deviceId }]); 
-    fetchData(); 
-  };
-  
-  const unblock = async (id: string) => { 
-    await supabase.from('blocked_users').delete().eq('device_id', id); 
-    fetchData(); 
-  };
+  const deleteMsg = async (id: number) => { await supabase.from('messages').delete().eq('id', id); fetchData(); };
+  const blockUser = async (deviceId: string) => { await supabase.from('blocked_users').insert([{ device_id: deviceId }]); fetchData(); };
+  const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
 
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
 
@@ -72,23 +64,23 @@ export default function Home() {
   );
 
   return (
-    <div className="max-w-lg mx-auto h-screen flex flex-col bg-white shadow-2xl">
+    <div className="max-w-lg mx-auto h-screen flex flex-col bg-gray-100 shadow-2xl">
       <div className="p-4 bg-gradient-to-r from-emerald-500 to-blue-600 text-white font-bold text-center">
         {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((m) => (
-          <div key={m.id} className="border-b pb-2 group">
-            <div className="text-[10px] text-gray-400 flex justify-between">
-              <b>{m.username}</b>
+          <div key={m.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+            <div className="text-[10px] text-gray-500 flex justify-between">
+              <b className="text-blue-700">{m.username}</b>
               <span>{new Date(m.created_at).toLocaleTimeString()}</span>
             </div>
-            <div className="text-sm">{m.pesan}</div>
+            <div className="text-sm text-gray-800 font-medium py-1">{m.pesan}</div>
             {activeTab === 'admin' && (
-              <div className="flex gap-3 mt-1">
-                <button onClick={() => deleteMsg(m.id)} className="text-[9px] text-red-500 font-bold">HAPUS</button>
-                <button onClick={() => blockUser(m.device_id)} className="text-[9px] text-orange-500 font-bold">BLOKIR</button>
+              <div className="flex gap-3 mt-2 border-t pt-1">
+                <button onClick={() => deleteMsg(m.id)} className="text-[9px] text-red-600 font-bold">HAPUS</button>
+                <button onClick={() => blockUser(m.device_id)} className="text-[9px] text-orange-600 font-bold">BLOKIR</button>
               </div>
             )}
           </div>
@@ -96,14 +88,14 @@ export default function Home() {
       </div>
 
       {activeTab === 'admin' && (
-        <div className="p-2 bg-gray-100 text-[10px]">
-          <strong>User Terblokir:</strong> {blockedList.map(b => <span key={b.device_id} className="mr-2 cursor-pointer text-blue-600" onClick={() => unblock(b.device_id)}>{b.device_id.substring(0,5)} (x)</span>)}
+        <div className="p-3 bg-gray-300 text-[10px] text-gray-800 border-t">
+          <strong>User Terblokir:</strong> {blockedList.map(b => <span key={b.device_id} className="mr-2 cursor-pointer text-blue-800 underline" onClick={() => unblock(b.device_id)}>{b.device_id.substring(0,5)} (Unblock)</span>)}
         </div>
       )}
 
-      <form onSubmit={async (e) => { e.preventDefault(); await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') }]); setInput(''); }} className="p-4 border-t flex gap-2">
-        <input className="flex-1 border p-2 rounded-full px-4" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Tulis pesan..." />
-        <button className="bg-blue-600 text-white px-4 rounded-full">Kirim</button>
+      <form onSubmit={async (e) => { e.preventDefault(); await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') }]); setInput(''); }} className="p-4 bg-white border-t flex gap-2">
+        <input className="flex-1 border p-2 rounded-full px-4 text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Tulis pesan..." />
+        <button className="bg-blue-600 text-white px-4 rounded-full font-bold">Kirim</button>
       </form>
     </div>
   );
