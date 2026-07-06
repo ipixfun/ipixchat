@@ -6,36 +6,61 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [blockedList, setBlockedList] = useState<any[]>([]);
-  const [username, setUsername] = useState('Guest');
-  const [editCount, setEditCount] = useState(0);
+  const [username, setUsername] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPass, setAdminPass] = useState('');
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
   const [input, setInput] = useState('');
   const [isAuth, setIsAuth] = useState(false);
+  const [lastSent, setLastSent] = useState(0);
   const [isAdminOnline, setIsAdminOnline] = useState(false);
   const [offlineTime, setOfflineTime] = useState("");
-  const [lastSent, setLastSent] = useState(0);
 
   const getTimeAgo = (date: Date) => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    if (seconds < 60) return "baru saja";
-    if (seconds < 3600) return Math.floor(seconds/60) + " menit lalu";
-    return Math.floor(seconds/3600) + " jam lalu";
+    let interval = seconds / 3600;
+    if (interval >= 1) return Math.floor(interval) + " jam yang lalu";
+    interval = seconds / 60;
+    if (interval >= 1) return Math.floor(interval) + " menit yang lalu";
+    return "baru saja";
   };
 
-  const fetchData = async () => {
-    const deviceId = localStorage.getItem('device_id');
-    if (!deviceId) return;
-    let { data: pData } = await supabase.from('profiles').select('*').eq('device_id', deviceId).single();
-    if (!pData) {
-      const { data: newP } = await supabase.from('profiles').insert([{ device_id: deviceId, username: 'Guest', edit_count: 0, browser_info: navigator.userAgent }]).select().single();
-      pData = newP;
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    sessionStorage.clear();
+    setIsAuth(false);
+    window.location.reload();
+  };
+
+  useEffect(() => {
+    if (!localStorage.getItem('device_id')) {
+      localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
     }
-    setUsername(pData.username);
-    setEditCount(pData.edit_count);
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const savedAuth = sessionStorage.getItem('is_auth');
+      if (session || savedAuth === 'true') {
+        setIsAuth(true);
+        setUsername(sessionStorage.getItem('saved_username') || '');
+        setActiveTab((sessionStorage.getItem('active_tab') as 'user' | 'admin') || 'user');
+      }
+      setMounted(true);
+    };
+    checkAuth();
+  }, []);
+
+  const fetchData = async () => {
     const { data: bData } = await supabase.from('blocked_users').select('*');
     const { data: mData } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+    
+    if (bData) {
+      setBlockedList(bData);
+      if (bData.some(b => b.device_id === localStorage.getItem('device_id'))) {
+        window.location.replace("https://ipix.my.id");
+        return;
+      }
+    }
+    
     if (mData) {
       setMessages(mData.filter(m => !bData?.map(b => b.device_id).includes(m.device_id)));
       const lastAdminMsg = mData.filter(m => m.username === 'Admin●ipix.my.id').pop();
@@ -46,28 +71,7 @@ export default function Home() {
         if (!isOnline) setOfflineTime(getTimeAgo(lastDate));
       }
     }
-    setBlockedList(bData || []);
   };
-
-  const handleEditUsername = async (isAdminForce = false, targetDeviceId?: string) => {
-    const newName = prompt("Masukkan nama baru:");
-    if (!newName) return;
-    const targetId = isAdminForce ? targetDeviceId : localStorage.getItem('device_id');
-    if (!isAdminForce && editCount >= 2) return alert("Jatah edit nama habis!");
-    await supabase.from('profiles').upsert({ device_id: targetId, username: newName, edit_count: isAdminForce ? editCount : editCount + 1 });
-    await supabase.from('messages').update({ username: newName }).eq('device_id', targetId);
-    fetchData();
-  };
-
-  const handleEditMessage = async (id: string, text: string) => {
-    const newText = prompt("Edit pesan:", text);
-    if (newText) { await supabase.from('messages').update({ pesan: newText }).eq('id', id); fetchData(); }
-  };
-
-  useEffect(() => {
-    if (!localStorage.getItem('device_id')) localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!mounted) return;
@@ -76,52 +80,93 @@ export default function Home() {
     return () => { supabase.removeChannel(channel); };
   }, [mounted]);
 
+  const handleAdminLogin = async () => {
+    const { error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPass });
+    if (error) alert("Login Admin Gagal: " + error.message);
+    else {
+      setIsAuth(true); setActiveTab('admin'); setUsername('Admin●ipix.my.id');
+      sessionStorage.setItem('is_auth', 'true'); sessionStorage.setItem('saved_username', 'Admin●ipix.my.id'); sessionStorage.setItem('active_tab', 'admin');
+    }
+  };
+
+  const handleUserLogin = async () => {
+    if (!username.trim()) return alert("Masukkan nama Anda!");
+    const { data: bData } = await supabase.from('blocked_users').select('*');
+    if (bData?.some(b => b.device_id === localStorage.getItem('device_id'))) {
+      window.location.replace("https://ipix.my.id"); return;
+    }
+    setIsAuth(true); sessionStorage.setItem('is_auth', 'true'); sessionStorage.setItem('saved_username', username); sessionStorage.setItem('active_tab', 'user');
+  };
+
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+    const now = Date.now();
+    if (now - lastSent < 3000) { alert("Jangan spam! Tunggu 3 detik ya."); return; }
+    await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') || 'guest' }]);
+    setLastSent(now); setInput('');
+  };
+
+  const editMsg = async (id: number) => {
+    const newText = prompt("Edit pesan:", messages.find(m => m.id === id)?.pesan || "");
+    if (newText !== null) { await supabase.from('messages').update({ pesan: newText }).eq('id', id); fetchData(); }
+  };
+
+  const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
+
+  if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
+
   if (!isAuth) return (
     <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-emerald-500 to-blue-600 text-white p-6">
-      <h1 className="text-3xl font-bold mb-6">iPixChat Login</h1>
-      <div className="flex gap-4 mb-4 bg-white/20 p-2 rounded-full">
-        <button onClick={() => setActiveTab('user')} className={`px-6 py-2 rounded-full ${activeTab === 'user' ? 'bg-white text-emerald-600' : ''}`}>User</button>
-        <button onClick={() => setActiveTab('admin')} className={`px-6 py-2 rounded-full ${activeTab === 'admin' ? 'bg-white text-emerald-600' : ''}`}>Admin</button>
+      <h1 className="text-3xl font-bold mb-6">IpixChat Login</h1>
+      <div className="flex gap-4 mb-6">
+        <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'user' ? 'bg-blue-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('user')}>User</button>
+        <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'admin' ? 'bg-emerald-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('admin')}>Admin</button>
       </div>
-      {activeTab === 'user' && <input className="w-full max-w-sm p-3 rounded mb-3 text-black" placeholder="Nama Anda" onChange={(e) => setUsername(e.target.value)} />}
-      {activeTab === 'admin' && (
-        <div className="w-full max-w-sm"><input className="w-full p-3 rounded mb-3 text-black" placeholder="Email" onChange={(e) => setAdminEmail(e.target.value)} /><input type="password" className="w-full p-3 rounded mb-3 text-black" placeholder="Password" onChange={(e) => setAdminPass(e.target.value)} /></div>
+      {activeTab === 'user' ? <input className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama Anda" onChange={(e) => setUsername(e.target.value)} /> : (
+        <div className="w-full max-w-sm">
+          <input className="w-full p-3 rounded text-black mb-3" placeholder="Email Admin" type="email" onChange={(e) => setAdminEmail(e.target.value)} />
+          <input type="password" className="w-full p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
+        </div>
       )}
-      <button onClick={async() => { if(activeTab === 'admin') await supabase.auth.signInWithPassword({email:adminEmail, password:adminPass}); setIsAuth(true); }} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
+      <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : handleUserLogin()} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
     </div>
   );
 
   return (
-    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100">
-      <div className="p-3 bg-white border-b flex justify-between items-center text-[10px]">
-        <div className="flex flex-col">
-          <div className="font-bold">{username}</div>
-          {editCount < 2 && <button onClick={() => handleEditUsername()} className="text-blue-500 underline text-left">Ganti Nama</button>}
-        </div>
-        <div className="text-center font-bold">iPixChat<br/><span className="font-normal text-[8px]">ipix.my.id</span></div>
-        <button onClick={() => window.location.reload()} className="bg-red-500 text-white px-3 py-1 rounded">Keluar</button>
+    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden">
+      <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b border-white/20 text-center">
+        <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full">Keluar</button>
+        <div className="text-lg font-black text-gray-800">iPixChat</div>
+        <a href="https://ipix.my.id" target="_blank" className="text-emerald-700 font-bold text-[10px] underline">ipix.my.id</a>
       </div>
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {messages.map(m => (
-          <div key={m.id} className="bg-white p-3 rounded-lg border shadow-sm">
-            <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-              {m.username === 'Admin●ipix.my.id' ? <span className="text-red-600 font-bold">Admin● {isAdminOnline ? 'ONLINE' : `OFFLINE (${offlineTime})`}</span> : <b>{m.username}</b>}
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        {messages.map((m) => (
+          <div key={m.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full">
+            <div className="flex justify-between items-center mb-1">
+              {m.username === 'Admin●ipix.my.id' ? (
+                <span className="flex items-center gap-2">
+                  <span className="text-red-600 font-bold text-[10px]">Admin●</span>
+                  {isAdminOnline ? <span className="flex items-center text-[8px] text-green-600 font-bold animate-pulse"><span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span> ONLINE</span> : <span className="text-[8px] text-gray-400 font-bold">OFFLINE ({offlineTime})</span>}
+                </span>
+              ) : <b className="text-blue-700 text-[10px]">{m.username}</b>}
+              <span className="text-[9px] text-gray-400">{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
-            <div className="text-sm">{m.pesan}</div>
-            {activeTab === 'admin' && m.username !== 'Admin●ipix.my.id' && (
-              <div className="flex gap-2 mt-2">
-                <button onClick={() => handleEditMessage(m.id, m.pesan)} className="text-blue-500 underline">Edit Teks</button>
-                <button onClick={async() => { await supabase.from('messages').delete().eq('id', m.id); fetchData(); }} className="text-red-500 underline">Hapus</button>
-                <button onClick={async() => { await supabase.from('blocked_users').insert([{device_id: m.device_id}]); fetchData(); }} className="text-orange-500 underline">Blokir</button>
-                <button onClick={() => handleEditUsername(true, m.device_id)} className="text-green-500 underline">Edit Nama</button>
+            <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
+            {activeTab === 'admin' && (
+              <div className="flex gap-4 mt-2">
+                <button onClick={() => editMsg(m.id)} className="text-[10px] text-blue-600 font-bold underline">Edit</button>
+                <button onClick={async () => { await supabase.from('messages').delete().eq('id', m.id); fetchData(); }} className="text-[10px] text-red-600 font-bold underline">Hapus</button>
+                {m.username !== 'Admin●ipix.my.id' && <button onClick={async () => { await supabase.from('blocked_users').insert([{ device_id: m.device_id }]); fetchData(); }} className="text-[10px] text-orange-600 font-bold underline">Blokir</button>}
               </div>
             )}
           </div>
         ))}
       </div>
-      <form onSubmit={async(e) => { e.preventDefault(); if(!input.trim()) return; await supabase.from('messages').insert([{ username, pesan: input, device_id: localStorage.getItem('device_id') }]); setInput(''); }} className="p-3 bg-white border-t flex gap-2">
-        <input className="flex-1 border p-2 rounded-full px-4 text-sm" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
-        <button className="bg-emerald-600 text-white px-5 py-2 rounded-full font-bold text-sm">Kirim</button>
+      {activeTab === 'admin' && <div className="p-3 bg-gray-300 text-[10px] border-t"><strong>User Terblokir:</strong> {blockedList.map(b => <span key={b.device_id} className="mr-2 cursor-pointer text-blue-800 underline" onClick={() => unblock(b.device_id)}>{b.device_id.substring(0,5)} (Unblock)</span>)}</div>}
+      <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-center">
+        <input className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." />
+        <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm shrink-0">Kirim</button>
       </form>
     </div>
   );
