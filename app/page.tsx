@@ -14,10 +14,12 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [isAuth, setIsAuth] = useState(false);
   const [lastSent, setLastSent] = useState(0);
+  const [sending, setSending] = useState(false);
+  
+  // Status states
   const [isAdminOnline, setIsAdminOnline] = useState(false);
   const [adminOfflineTime, setAdminOfflineTime] = useState("");
   const [userStatus, setUserStatus] = useState<Record<string, { online: boolean; offlineTime?: string }>>({});
-  const [sending, setSending] = useState(false);
   
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<string | null>(null);
   const [privateUsers, setPrivateUsers] = useState<any[]>([]);
@@ -117,6 +119,7 @@ export default function Home() {
         const filtered = mData.filter(m => !blockedDeviceIds.includes(m.device_id));
         setMessages(filtered);
 
+        // --- Restored Status Logic ---
         const lastAdminMsg = mData.filter(m => m.username === 'Admin●ipix.my.id').pop();
         if (lastAdminMsg) {
           const lastDate = new Date(lastAdminMsg.created_at);
@@ -441,7 +444,21 @@ export default function Home() {
             <div key={m.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full">
               <div className="flex justify-between items-center mb-1">
                 <div className="flex items-center gap-2">
-                  <b className="text-blue-700 text-[10px]">{m.username}</b>
+                  <b className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px]`}>
+                    {m.username}
+                  </b>
+                  {/* Status Indicator */}
+                  {m.username === 'Admin●ipix.my.id' ? (
+                     <span className={`text-[9px] px-1 rounded ${isAdminOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                       {isAdminOnline ? 'Online' : adminOfflineTime}
+                     </span>
+                  ) : (
+                    userStatus[m.username] && (
+                      <span className={`text-[9px] px-1 rounded ${userStatus[m.username].online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}
+                      </span>
+                    )
+                  )}
                   {m.is_private && <span className="text-xs text-emerald-600">🔒 Private</span>}
                 </div>
                 <span className="text-[10px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
@@ -449,7 +466,6 @@ export default function Home() {
               <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
               
               <div className="flex gap-4 mt-2 text-[10px]">
-                {/* Opsi khusus Admin */}
                 {activeTab === 'admin' && (
                   <>
                     <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit</button>
@@ -458,7 +474,6 @@ export default function Home() {
                     {chatMode === 'public' && !m.username.includes('Admin') && (
                       <button onClick={() => { setSelectedPrivateUser(m.device_id); setChatMode('private'); }} className="text-emerald-600 font-bold underline">Private</button>
                     )}
-                    {/* Tombol Blokir HANYA untuk Admin */}
                     {!m.username.includes('Admin') && (
                       <button onClick={() => blockUser(m.device_id, m.username)} className="text-gray-400 font-bold underline">Blokir</button>
                     )}
