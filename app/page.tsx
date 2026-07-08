@@ -16,9 +16,7 @@ export default function Home() {
   const [lastSent, setLastSent] = useState(0);
   const [sending, setSending] = useState(false);
   
-  // State baru untuk notif
   const [privateNotifCount, setPrivateNotifCount] = useState(0);
-  
   const [isAdminOnline, setIsAdminOnline] = useState(false);
   const [adminOfflineTime, setAdminOfflineTime] = useState("");
   const [userStatus, setUserStatus] = useState<Record<string, { online: boolean; offlineTime?: string }>>({});
@@ -86,7 +84,6 @@ export default function Home() {
     try {
       const { data: bData } = await supabase.from('blocked_users').select('*');
 
-      // 1. Fetch Pesan Utama
       let query = supabase.from('messages').select('*').order('created_at', { ascending: true });
 
       if (chatMode === 'private') {
@@ -103,7 +100,6 @@ export default function Home() {
 
       const { data: mData } = await query;
 
-      // 2. Fetch Count untuk Notif
       if (isAuth && currentDeviceId) {
         let countQuery = supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', true);
         if (activeTab === 'user') {
@@ -170,13 +166,23 @@ export default function Home() {
 
         if (allPrivate) {
           const userMap = new Map();
+          const counts: Record<string, number> = {};
+
+          // Hitung jumlah pesan per user
+          allPrivate.forEach(msg => {
+             if (msg.username === 'Admin●ipix.my.id' || msg.device_id === currentDeviceId) return;
+             counts[msg.device_id] = (counts[msg.device_id] || 0) + 1;
+          });
+
+          // Masukkan ke Map untuk list dashboard
           allPrivate.forEach(msg => {
             if (msg.username === 'Admin●ipix.my.id' || msg.device_id === currentDeviceId) return;
             if (!userMap.has(msg.device_id)) {
               userMap.set(msg.device_id, {
                 device_id: msg.device_id,
                 username: msg.username,
-                last_active: msg.created_at
+                last_active: msg.created_at,
+                count: counts[msg.device_id] || 0 // Tambahkan count
               });
             }
           });
@@ -418,6 +424,9 @@ export default function Home() {
                       <div className="text-xs text-gray-500">ID: {user.device_id.substring(0,8)}...</div>
                     </div>
                     <div className="text-right">
+                      {user.count > 0 && (
+                          <div className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mb-1">{user.count} Pesan</div>
+                      )}
                       <div className="text-xs text-emerald-600 font-medium">Terakhir: {formatMessageTime(user.last_active)}</div>
                     </div>
                   </div>
