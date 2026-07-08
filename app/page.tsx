@@ -17,6 +17,7 @@ export default function Home() {
   const [isAdminOnline, setIsAdminOnline] = useState(false);
   const [adminOfflineTime, setAdminOfflineTime] = useState("");
   const [userStatus, setUserStatus] = useState<Record<string, { online: boolean; offlineTime?: string }>>({});
+  const [sending, setSending] = useState(false);
 
   const deviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') || '' : '';
 
@@ -170,15 +171,16 @@ export default function Home() {
 
   useEffect(() => {
     if (!mounted) return;
+
     fetchData();
 
     const channel = supabase.channel('chat')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
-        fetchData();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchData)
       .subscribe();
 
-    return () => supabase.removeChannel(channel);
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [mounted, fetchData]);
 
   const handleAdminLogin = async () => {
@@ -210,13 +212,15 @@ export default function Home() {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || sending) return;
 
     const now = Date.now();
     if (now - lastSent < 3000) {
       alert("Jangan spam! Tunggu 3 detik ya.");
       return;
     }
+
+    setSending(true);
 
     const isPrivate = chatMode === 'private';
     let privateWith = null;
@@ -225,19 +229,27 @@ export default function Home() {
       privateWith = activeTab === 'user' ? 'admin' : deviceId;
     }
 
-    const { error } = await supabase.from('messages').insert([{
+    const payload = {
       username,
-      pesan: input,
+      pesan: input.trim(),
       device_id: localStorage.getItem('device_id') || 'guest',
       user_browser: getBrowserInfo(),
       is_private: isPrivate,
       private_with: privateWith,
-    }]);
+    };
 
-    if (error) alert("Gagal mengirim: " + error.message);
+    const { error } = await supabase.from('messages').insert([payload]);
 
-    setLastSent(now);
-    setInput('');
+    if (error) {
+      console.error("Insert Error:", error);
+      alert("Gagal mengirim pesan: " + error.message);
+    } else {
+      setInput('');
+      setLastSent(now);
+      await fetchData();
+    }
+
+    setSending(false);
   };
 
   const editMsg = async (id: number) => {
@@ -288,18 +300,48 @@ export default function Home() {
       <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-emerald-500 to-blue-600 text-white p-6">
         <h1 className="text-3xl font-bold mb-6">IpixChat Login</h1>
         <div className="flex gap-4 mb-6">
-          <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'user' ? 'bg-blue-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('user')}>User</button>
-          <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'admin' ? 'bg-emerald-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('admin')}>Admin</button>
+          <button 
+            className={`px-6 py-2 rounded-full font-bold ${activeTab === 'user' ? 'bg-blue-600 ring-2 ring-white' : 'bg-gray-400'}`} 
+            onClick={() => setActiveTab('user')}
+          >
+            User
+          </button>
+          <button 
+            className={`px-6 py-2 rounded-full font-bold ${activeTab === 'admin' ? 'bg-emerald-600 ring-2 ring-white' : 'bg-gray-400'}`} 
+            onClick={() => setActiveTab('admin')}
+          >
+            Admin
+          </button>
         </div>
         {activeTab === 'user' ? (
-          <input className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama Anda" value={username} onChange={(e) => setUsername(e.target.value)} />
+          <input 
+            className="w-full max-w-sm p-3 rounded text-black mb-3" 
+            placeholder="Nama Anda" 
+            value={username} 
+            onChange={(e) => setUsername(e.target.value)} 
+          />
         ) : (
           <div className="w-full max-w-sm">
-            <input className="w-full p-3 rounded text-black mb-3" placeholder="Email Admin" type="email" onChange={(e) => setAdminEmail(e.target.value)} />
-            <input type="password" className="w-full p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
+            <input 
+              className="w-full p-3 rounded text-black mb-3" 
+              placeholder="Email Admin" 
+              type="email" 
+              onChange={(e) => setAdminEmail(e.target.value)} 
+            />
+            <input 
+              type="password" 
+              className="w-full p-3 rounded text-black mb-3" 
+              placeholder="Password Admin" 
+              onChange={(e) => setAdminPass(e.target.value)} 
+            />
           </div>
         )}
-        <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : handleUserLogin()} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
+        <button 
+          onClick={() => activeTab === 'admin' ? handleAdminLogin() : handleUserLogin()} 
+          className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold"
+        >
+          Masuk Chat
+        </button>
       </div>
     );
   }
@@ -319,14 +361,11 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Toggle Public / Private - Teks jelas, warna hanya saat aktif */}
         <div className="flex mt-3 bg-gray-100 rounded-full p-1 shadow">
           <button 
             onClick={() => setChatMode('public')}
             className={`flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${
-              chatMode === 'public' 
-                ? 'bg-blue-600 text-white shadow' 
-                : 'text-gray-700 hover:bg-gray-200'
+              chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'
             }`}
           >
             Public Chat
@@ -334,9 +373,7 @@ export default function Home() {
           <button 
             onClick={() => setChatMode('private')}
             className={`flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${
-              chatMode === 'private' 
-                ? 'bg-emerald-600 text-white shadow' 
-                : 'text-gray-700 hover:bg-gray-200'
+              chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'
             }`}
           >
             💬 Chat dengan Admin
@@ -410,8 +447,15 @@ export default function Home() {
           onChange={(e) => setInput(e.target.value)} 
           placeholder={chatMode === 'private' ? "Ketik pesan ke Admin..." : "Ketik pesan..."} 
           maxLength={100} 
+          disabled={sending}
         />
-        <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm shrink-0">Kirim</button>
+        <button 
+          type="submit"
+          disabled={sending || !input.trim()}
+          className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm shrink-0 disabled:opacity-50"
+        >
+          {sending ? 'Mengirim...' : 'Kirim'}
+        </button>
       </form>
     </div>
   );
