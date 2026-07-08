@@ -26,6 +26,12 @@ export default function Home() {
 
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
 
+  // Fungsi helper untuk format angka notifikasi
+  const formatNotif = (num: number) => {
+    if (num >= 1000) return (num / 1000).toFixed(1).replace('.0', '') + 'k';
+    return num.toString();
+  };
+
   const getBrowserInfo = () => {
     const ua = navigator.userAgent;
     let browser = "Unknown";
@@ -168,13 +174,11 @@ export default function Home() {
           const userMap = new Map();
           const counts: Record<string, number> = {};
 
-          // Hitung jumlah pesan per user
           allPrivate.forEach(msg => {
              if (msg.username === 'Admin●ipix.my.id' || msg.device_id === currentDeviceId) return;
              counts[msg.device_id] = (counts[msg.device_id] || 0) + 1;
           });
 
-          // Masukkan ke Map untuk list dashboard
           allPrivate.forEach(msg => {
             if (msg.username === 'Admin●ipix.my.id' || msg.device_id === currentDeviceId) return;
             if (!userMap.has(msg.device_id)) {
@@ -182,7 +186,7 @@ export default function Home() {
                 device_id: msg.device_id,
                 username: msg.username,
                 last_active: msg.created_at,
-                count: counts[msg.device_id] || 0 // Tambahkan count
+                count: counts[msg.device_id] || 0
               });
             }
           });
@@ -390,8 +394,8 @@ export default function Home() {
           <button onClick={() => { setChatMode('private'); setSelectedPrivateUser(null); }} className={`relative flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'}`}>
             💬 Chat Private
             {privateNotifCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full animate-bounce">
-                    {privateNotifCount > 9 ? '9+' : privateNotifCount}
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-5 h-5 px-1 flex items-center justify-center rounded-full animate-bounce">
+                    {formatNotif(privateNotifCount)}
                 </span>
             )}
           </button>
