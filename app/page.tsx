@@ -10,12 +10,15 @@ export default function Home() {
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPass, setAdminPass] = useState('');
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
+  const [chatMode, setChatMode] = useState<'public' | 'private'>('public');
   const [input, setInput] = useState('');
   const [isAuth, setIsAuth] = useState(false);
   const [lastSent, setLastSent] = useState(0);
   const [isAdminOnline, setIsAdminOnline] = useState(false);
   const [adminOfflineTime, setAdminOfflineTime] = useState("");
   const [userStatus, setUserStatus] = useState<Record<string, { online: boolean; offlineTime?: string }>>({});
+
+  const deviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') || '' : '';
 
   const getBrowserInfo = () => {
     const ua = navigator.userAgent;
@@ -74,12 +77,33 @@ export default function Home() {
   const fetchData = useCallback(async () => {
     try {
       const { data: bData } = await supabase.from('blocked_users').select('*');
-      const { data: mData } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+
+      let query = supabase
+        .from('messages')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (chatMode === 'private') {
+        const currentDeviceId = localStorage.getItem('device_id');
+
+        if (activeTab === 'user') {
+          query = query.or(
+            `and(is_private.eq.true,device_id.eq.${currentDeviceId}),` +
+            `and(is_private.eq.true,private_with.eq.${currentDeviceId})`
+          );
+        } else {
+          query = query.eq('is_private', true);
+        }
+      } else {
+        query = query.eq('is_private', false);
+      }
+
+      const { data: mData } = await query;
 
       if (bData) {
         setBlockedList(bData);
-        const deviceId = localStorage.getItem('device_id');
-        if (deviceId && bData.some(b => b.device_id === deviceId)) {
+        const currentDeviceId = localStorage.getItem('device_id');
+        if (currentDeviceId && bData.some(b => b.device_id === currentDeviceId)) {
           window.location.replace("https://ipix.my.id/chat");
           return;
         }
@@ -123,7 +147,7 @@ export default function Home() {
     } catch (err) {
       console.error("Fetch data error:", err);
     }
-  }, []);
+  }, [chatMode, activeTab]);
 
   useEffect(() => {
     if (!localStorage.getItem('device_id')) {
@@ -146,7 +170,6 @@ export default function Home() {
 
   useEffect(() => {
     if (!mounted) return;
-    
     fetchData();
 
     const channel = supabase.channel('chat')
@@ -155,9 +178,7 @@ export default function Home() {
       })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => supabase.removeChannel(channel);
   }, [mounted, fetchData]);
 
   const handleAdminLogin = async () => {
@@ -176,9 +197,10 @@ export default function Home() {
   const handleUserLogin = async () => {
     if (!username.trim()) return alert("Masukkan nama Anda!");
     const { data: bData } = await supabase.from('blocked_users').select('*');
-    const deviceId = localStorage.getItem('device_id');
-    if (bData?.some(b => b.device_id === deviceId)) {
-      window.location.replace("https://ipix.my.id/chat"); return;
+    const currentDeviceId = localStorage.getItem('device_id');
+    if (bData?.some(b => b.device_id === currentDeviceId)) {
+      window.location.replace("https://ipix.my.id/chat"); 
+      return;
     }
     setIsAuth(true);
     sessionStorage.setItem('is_auth', 'true');
@@ -196,12 +218,20 @@ export default function Home() {
       return;
     }
 
-    const browserInfo = getBrowserInfo();
+    const isPrivate = chatMode === 'private';
+    let privateWith = null;
+
+    if (isPrivate) {
+      privateWith = activeTab === 'user' ? 'admin' : deviceId;
+    }
+
     const { error } = await supabase.from('messages').insert([{
       username,
       pesan: input,
       device_id: localStorage.getItem('device_id') || 'guest',
-      user_browser: browserInfo
+      user_browser: getBrowserInfo(),
+      is_private: isPrivate,
+      private_with: privateWith,
     }]);
 
     if (error) alert("Gagal mengirim: " + error.message);
@@ -218,30 +248,18 @@ export default function Home() {
     }
   };
 
-  // Fungsi Edit Nama berdasarkan device_id (mengubah SEMUA pesan user tersebut)
   const editNama = async (id: number) => {
     const message = messages.find(m => m.id === id);
     if (!message || !message.device_id) return alert("Device ID tidak ditemukan!");
 
     const currentName = message.username || "";
-    const deviceId = message.device_id;
-
-    const newName = prompt(`Edit nama untuk device ini (${deviceId.slice(0,8)}...):`, currentName);
+    const newName = prompt(`Edit nama untuk device ini:`, currentName);
     if (newName === null || !newName.trim() || newName === currentName) return;
 
-    if (!confirm(`Ubah nama "\( {currentName}" menjadi " \){newName}" di SEMUA pesan user ini?`)) return;
+    if (!confirm(`Ubah nama "\( {currentName}" menjadi " \){newName}" di SEMUA pesan?`)) return;
 
-    const { error } = await supabase
-      .from('messages')
-      .update({ username: newName })
-      .eq('device_id', deviceId);
-
-    if (error) {
-      alert("Gagal mengubah nama: " + error.message);
-    } else {
-      alert(`✅ Nama berhasil diubah menjadi "${newName}" untuk semua pesan dengan device tersebut.`);
-      fetchData();
-    }
+    await supabase.from('messages').update({ username: newName }).eq('device_id', message.device_id);
+    fetchData();
   };
 
   const deleteMsg = async (id: number) => {
@@ -300,11 +318,37 @@ export default function Home() {
             <a href="https://ipix.my.id" target="_blank" className="text-emerald-700 font-bold text-[10px] underline">ipix.my.id</a>
           </div>
         </div>
+
+        {/* Toggle Public / Private - Teks jelas, warna hanya saat aktif */}
+        <div className="flex mt-3 bg-gray-100 rounded-full p-1 shadow">
+          <button 
+            onClick={() => setChatMode('public')}
+            className={`flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${
+              chatMode === 'public' 
+                ? 'bg-blue-600 text-white shadow' 
+                : 'text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Public Chat
+          </button>
+          <button 
+            onClick={() => setChatMode('private')}
+            className={`flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${
+              chatMode === 'private' 
+                ? 'bg-emerald-600 text-white shadow' 
+                : 'text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            💬 Chat dengan Admin
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-gray-500 italic">Belum ada pesan.</div>
+          <div className="h-full flex items-center justify-center text-gray-500 italic">
+            {chatMode === 'private' ? 'Belum ada pesan chat dengan Admin.' : 'Belum ada pesan.'}
+          </div>
         ) : (
           messages.map((m) => {
             const isAdminMsg = m.username === 'Admin●ipix.my.id';
@@ -321,6 +365,7 @@ export default function Home() {
                     ) : (
                       <b className="text-blue-700 text-[10px]">{m.username}</b>
                     )}
+                    {m.is_private && <span className="text-xs text-emerald-600">🔒 Private</span>}
                     <span className={`text-[10px] font-medium flex items-center gap-1 ${status.online ? 'text-emerald-500' : 'text-gray-500'}`}>
                       <span className={`w-2 h-2 rounded-full ${status.online ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`}></span>
                       {status.online ? 'Online' : `Offline ${status.offlineTime || ''}`}
@@ -359,7 +404,13 @@ export default function Home() {
       )}
 
       <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-center">
-        <input className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." maxLength={100} />
+        <input 
+          className="flex-1 border p-2 rounded-full px-4 text-sm text-black" 
+          value={input} 
+          onChange={(e) => setInput(e.target.value)} 
+          placeholder={chatMode === 'private' ? "Ketik pesan ke Admin..." : "Ketik pesan..."} 
+          maxLength={100} 
+        />
         <button className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm shrink-0">Kirim</button>
       </form>
     </div>
