@@ -50,17 +50,15 @@ export default function Home() {
   };
 
   const getGreeting = () => {
-    // WIB = UTC+7
     const now = new Date();
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     const wibTime = new Date(utc + (7 * 3600000));
     const hour = wibTime.getHours();
 
-    let timeOfDay = "";
+    let timeOfDay = "malam";
     if (hour >= 5 && hour < 12) timeOfDay = "pagi";
     else if (hour >= 12 && hour < 15) timeOfDay = "siang";
     else if (hour >= 15 && hour < 18) timeOfDay = "sore";
-    else timeOfDay = "malam";
 
     return `Selamat ${timeOfDay}, `;
   };
@@ -110,7 +108,6 @@ export default function Home() {
         const filtered = mData.filter(m => !blockedDeviceIds.includes(m.device_id));
         setMessages(filtered);
 
-        // Admin Status
         const lastAdminMsg = mData.filter(m => m.username === 'Admin●ipix.my.id').pop();
         if (lastAdminMsg) {
           const lastDate = new Date(lastAdminMsg.created_at);
@@ -119,7 +116,6 @@ export default function Home() {
           if (!isOnline) setAdminOfflineTime(getTimeAgo(lastDate));
         }
 
-        // User Status
         const statusMap: Record<string, { online: boolean; offlineTime?: string }> = {};
         const userGroups = filtered.reduce((acc: any, msg: any) => {
           if (msg.username !== 'Admin●ipix.my.id') {
@@ -305,7 +301,6 @@ export default function Home() {
 
                 <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
 
-                {/* Tombol Admin: Edit & Hapus untuk SEMUA pesan */}
                 {activeTab === 'admin' && (
                   <div className="flex gap-4 mt-2 text-[10px]">
                     <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit</button>
