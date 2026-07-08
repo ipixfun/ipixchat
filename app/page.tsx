@@ -87,9 +87,11 @@ export default function Home() {
 
       if (chatMode === 'private') {
         if (activeTab === 'user' && currentDeviceId) {
+          // PERBAIKAN: Sintaks .or() yang benar untuk Supabase
           query = query.eq('is_private', true)
             .or(`device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}`);
         } else if (selectedPrivateUser && selectedPrivateUser !== currentDeviceId) {
+          // PERBAIKAN: Sintaks .or() yang benar untuk Supabase
           query = query.eq('is_private', true)
             .or(`device_id.eq.${selectedPrivateUser},private_with.eq.${selectedPrivateUser}`);
         }
@@ -321,6 +323,15 @@ export default function Home() {
     fetchData();
   };
 
+  const inviteToPrivate = (device_id: string) => {
+    if (device_id === currentDeviceId) {
+      alert("Tidak bisa chat private dengan diri sendiri!");
+      return;
+    }
+    setChatMode('private');
+    setSelectedPrivateUser(device_id);
+  };
+
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
 
   if (!isAuth) {
@@ -417,13 +428,24 @@ export default function Home() {
                 </div>
                 <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
                 
-                <div className="flex gap-4 mt-2 text-[10px]">
+                <div className="flex gap-4 mt-2 text-[10px] flex-wrap">
                   {activeTab === 'admin' && (
                     <>
                       <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit</button>
                       <button onClick={() => editNama(m.id)} className="text-purple-600 font-bold underline">Nama</button>
                       <button onClick={() => deleteMsg(m.id)} className="text-red-600 font-bold underline">Hapus</button>
-                      {!m.username.includes('Admin') && <button onClick={() => blockUser(m.device_id, m.username)} className="text-gray-400 font-bold underline">Blokir</button>}
+                      
+                      {!m.username.includes('Admin') && (
+                        <>
+                          <button onClick={() => blockUser(m.device_id, m.username)} className="text-gray-400 font-bold underline">Blokir</button>
+                          <button 
+                            onClick={() => inviteToPrivate(m.device_id)}
+                            className="text-emerald-600 font-bold underline hover:text-emerald-700"
+                          >
+                            💬 Ajak Private
+                          </button>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
