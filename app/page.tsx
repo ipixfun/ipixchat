@@ -71,7 +71,6 @@ export default function Home() {
     window.location.reload();
   };
 
-  // fetchData dibungkus useCallback agar aman digunakan di useEffect
   const fetchData = useCallback(async () => {
     try {
       const { data: bData } = await supabase.from('blocked_users').select('*');
@@ -145,7 +144,6 @@ export default function Home() {
     checkAuth();
   }, []);
 
-  // Perbaikan useEffect (tanpa async langsung di callback)
   useEffect(() => {
     if (!mounted) return;
     
@@ -216,6 +214,32 @@ export default function Home() {
     const newText = prompt("Edit pesan:", messages.find(m => m.id === id)?.pesan || "");
     if (newText !== null && newText.trim()) {
       await supabase.from('messages').update({ pesan: newText }).eq('id', id);
+      fetchData();
+    }
+  };
+
+  // Fungsi Edit Nama berdasarkan device_id (mengubah SEMUA pesan user tersebut)
+  const editNama = async (id: number) => {
+    const message = messages.find(m => m.id === id);
+    if (!message || !message.device_id) return alert("Device ID tidak ditemukan!");
+
+    const currentName = message.username || "";
+    const deviceId = message.device_id;
+
+    const newName = prompt(`Edit nama untuk device ini (${deviceId.slice(0,8)}...):`, currentName);
+    if (newName === null || !newName.trim() || newName === currentName) return;
+
+    if (!confirm(`Ubah nama "\( {currentName}" menjadi " \){newName}" di SEMUA pesan user ini?`)) return;
+
+    const { error } = await supabase
+      .from('messages')
+      .update({ username: newName })
+      .eq('device_id', deviceId);
+
+    if (error) {
+      alert("Gagal mengubah nama: " + error.message);
+    } else {
+      alert(`✅ Nama berhasil diubah menjadi "${newName}" untuk semua pesan dengan device tersebut.`);
       fetchData();
     }
   };
@@ -307,7 +331,8 @@ export default function Home() {
                 <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
                 {activeTab === 'admin' && (
                   <div className="flex gap-4 mt-2 text-[10px]">
-                    <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit</button>
+                    <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit Pesan</button>
+                    <button onClick={() => editNama(m.id)} className="text-purple-600 font-bold underline">Edit Nama</button>
                     <button onClick={() => deleteMsg(m.id)} className="text-red-600 font-bold underline">Hapus</button>
                     {!isAdminMsg && (
                       <button onClick={() => blockUser(m.device_id, m.username)} className="text-orange-600 font-bold underline">Blokir</button>
