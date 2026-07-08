@@ -21,6 +21,8 @@ export default function Home() {
   
   // State baru untuk filter chat privat
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<string | null>(null);
+  // Dashboard Admin Private Chat
+  const [privateUsers, setPrivateUsers] = useState<any[]>([]);
 
   const deviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') || '' : '';
 
@@ -93,12 +95,12 @@ export default function Home() {
         if (activeTab === 'user') {
           // Hanya tampilkan pesan milik user ini atau pesan privat untuk user ini
           query = query.eq('is_private', true)
-            .or(`device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}`);
+            .or(`device_id.eq.\( {currentDeviceId},private_with.eq. \){currentDeviceId}`);
         } else {
           // Admin: Hanya tampilkan pesan untuk user yang dipilih
           if (selectedPrivateUser) {
             query = query.eq('is_private', true)
-              .or(`device_id.eq.${selectedPrivateUser},private_with.eq.${selectedPrivateUser}`);
+              .or(`device_id.eq.\( {selectedPrivateUser},private_with.eq. \){selectedPrivateUser}`);
           } else {
             // Admin belum pilih user = kosongkan agar tidak bocor
             query = query.eq('is_private', true).eq('device_id', 'no_user_selected');
@@ -154,6 +156,32 @@ export default function Home() {
         });
         setUserStatus(statusMap);
       }
+
+      // === FETCH PRIVATE USERS FOR ADMIN DASHBOARD ===
+      if (activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser) {
+        const { data: allPrivate } = await supabase
+          .from('messages')
+          .select('device_id, username, created_at')
+          .eq('is_private', true)
+          .order('created_at', { ascending: false });
+
+        if (allPrivate) {
+          // Group by device_id to get unique users with latest activity
+          const userMap = new Map();
+          allPrivate.forEach(msg => {
+            if (!userMap.has(msg.device_id)) {
+              userMap.set(msg.device_id, {
+                device_id: msg.device_id,
+                username: msg.username,
+                last_active: msg.created_at
+              });
+            }
+          });
+          setPrivateUsers(Array.from(userMap.values()));
+        }
+      } else {
+        setPrivateUsers([]);
+      }
     } catch (err) {
       console.error("Fetch data error:", err);
     }
@@ -202,6 +230,7 @@ export default function Home() {
       sessionStorage.setItem('is_auth', 'true');
       sessionStorage.setItem('saved_username', 'Admin●ipix.my.id');
       sessionStorage.setItem('active_tab', 'admin');
+      setSelectedPrivateUser(null); // Reset saat login admin
     }
   };
 
@@ -278,7 +307,7 @@ export default function Home() {
     const newName = prompt(`Edit nama untuk device ini:`, currentName);
     if (newName === null || !newName.trim() || newName === currentName) return;
 
-    if (!confirm(`Ubah nama "${currentName}" menjadi "${newName}" di SEMUA pesan?`)) return;
+    if (!confirm(`Ubah nama "\( {currentName}" menjadi " \){newName}" di SEMUA pesan?`)) return;
 
     await supabase.from('messages').update({ username: newName }).eq('device_id', message.device_id);
     fetchData();
@@ -381,7 +410,7 @@ export default function Home() {
             Public Chat
           </button>
           <button 
-            onClick={() => setChatMode('private')}
+            onClick={() => { setChatMode('private'); setSelectedPrivateUser(null); }}
             className={`flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${
               chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'
             }`}
@@ -391,6 +420,7 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Header Private Chat dengan User yang dipilih */}
       {activeTab === 'admin' && chatMode === 'private' && selectedPrivateUser && (
         <div className="p-2 bg-yellow-200 text-yellow-800 text-xs text-center border-b font-bold">
           Chat Private dengan: {selectedPrivateUser} 
@@ -399,7 +429,40 @@ export default function Home() {
       )}
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        {messages.length === 0 ? (
+        {/* === DASHBOARD PRIVATE USERS (Admin Only) === */}
+        {activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser ? (
+          <div>
+            <div className="mb-4 text-center">
+              <h2 className="text-xl font-bold text-emerald-700">📋 Dashboard Private Chat</h2>
+              <p className="text-sm text-gray-600">Pilih user untuk memulai chat privat</p>
+            </div>
+            
+            {privateUsers.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-gray-500 italic py-12">
+                Belum ada pesan private dari user manapun.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {privateUsers.map(user => (
+                  <div 
+                    key={user.device_id}
+                    onClick={() => setSelectedPrivateUser(user.device_id)}
+                    className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-emerald-300 cursor-pointer transition-all flex justify-between items-center group"
+                  >
+                    <div>
+                      <div className="font-semibold text-blue-700">{user.username || 'User Tanpa Nama'}</div>
+                      <div className="text-xs text-gray-500">ID: {user.device_id}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-emerald-600 font-medium">Terakhir: {formatMessageTime(user.last_active)}</div>
+                      <div className="text-[10px] text-gray-400 group-hover:text-emerald-600">Klik untuk chat →</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : messages.length === 0 ? (
           <div className="h-full flex items-center justify-center text-gray-500 italic">
             {chatMode === 'private' ? 'Belum ada pesan privat.' : 'Belum ada pesan.'}
           </div>
