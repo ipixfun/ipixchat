@@ -16,6 +16,9 @@ export default function Home() {
   const [lastSent, setLastSent] = useState(0);
   const [sending, setSending] = useState(false);
   
+  // State baru untuk notif
+  const [privateNotifCount, setPrivateNotifCount] = useState(0);
+  
   const [isAdminOnline, setIsAdminOnline] = useState(false);
   const [adminOfflineTime, setAdminOfflineTime] = useState("");
   const [userStatus, setUserStatus] = useState<Record<string, { online: boolean; offlineTime?: string }>>({});
@@ -83,15 +86,14 @@ export default function Home() {
     try {
       const { data: bData } = await supabase.from('blocked_users').select('*');
 
+      // 1. Fetch Pesan Utama
       let query = supabase.from('messages').select('*').order('created_at', { ascending: true });
 
       if (chatMode === 'private') {
         if (activeTab === 'user' && currentDeviceId) {
-          // PERBAIKAN: Sintaks .or() yang benar untuk Supabase
           query = query.eq('is_private', true)
             .or(`device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}`);
         } else if (selectedPrivateUser && selectedPrivateUser !== currentDeviceId) {
-          // PERBAIKAN: Sintaks .or() yang benar untuk Supabase
           query = query.eq('is_private', true)
             .or(`device_id.eq.${selectedPrivateUser},private_with.eq.${selectedPrivateUser}`);
         }
@@ -100,6 +102,16 @@ export default function Home() {
       }
 
       const { data: mData } = await query;
+
+      // 2. Fetch Count untuk Notif
+      if (isAuth && currentDeviceId) {
+        let countQuery = supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', true);
+        if (activeTab === 'user') {
+          countQuery = countQuery.or(`device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}`);
+        }
+        const { count } = await countQuery;
+        setPrivateNotifCount(count || 0);
+      }
 
       if (bData) {
         setBlockedList(bData);
@@ -179,7 +191,7 @@ export default function Home() {
       console.error("Fetch data error:", err);
       setMessages([]);
     }
-  }, [chatMode, activeTab, selectedPrivateUser, currentDeviceId]);
+  }, [chatMode, activeTab, selectedPrivateUser, currentDeviceId, isAuth]);
 
   useEffect(() => {
     if (!localStorage.getItem('device_id')) {
@@ -323,13 +335,11 @@ export default function Home() {
     fetchData();
   };
 
-  const inviteToPrivate = (device_id: string) => {
-    if (device_id === currentDeviceId) {
-      alert("Tidak bisa chat private dengan diri sendiri!");
-      return;
+  const inviteToPrivate = (device_id: string, username: string) => {
+    if (confirm(`Kirim undangan chat private ke ${username}?`)) {
+        setChatMode('private');
+        setSelectedPrivateUser(device_id);
     }
-    setChatMode('private');
-    setSelectedPrivateUser(device_id);
   };
 
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
@@ -371,7 +381,14 @@ export default function Home() {
 
         <div className="flex mt-3 bg-gray-100 rounded-full p-1 shadow">
           <button onClick={() => { setChatMode('public'); setSelectedPrivateUser(null); }} className={`flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'}`}>Public Chat</button>
-          <button onClick={() => { setChatMode('private'); setSelectedPrivateUser(null); }} className={`flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'}`}>💬 Chat Private</button>
+          <button onClick={() => { setChatMode('private'); setSelectedPrivateUser(null); }} className={`relative flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'}`}>
+            💬 Chat Private
+            {privateNotifCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full animate-bounce">
+                    {privateNotifCount > 9 ? '9+' : privateNotifCount}
+                </span>
+            )}
+          </button>
         </div>
       </div>
 
@@ -439,7 +456,7 @@ export default function Home() {
                         <>
                           <button onClick={() => blockUser(m.device_id, m.username)} className="text-gray-400 font-bold underline">Blokir</button>
                           <button 
-                            onClick={() => inviteToPrivate(m.device_id)}
+                            onClick={() => inviteToPrivate(m.device_id, m.username)}
                             className="text-emerald-600 font-bold underline hover:text-emerald-700"
                           >
                             💬 Ajak Private
