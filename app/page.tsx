@@ -19,7 +19,7 @@ export default function Home() {
   const [userStatus, setUserStatus] = useState<Record<string, { online: boolean; offlineTime?: string }>>({});
   const [sending, setSending] = useState(false);
   
-  // State baru untuk admin memilih user
+  // State baru untuk filter chat privat
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<string | null>(null);
 
   const deviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') || '' : '';
@@ -91,16 +91,17 @@ export default function Home() {
         const currentDeviceId = localStorage.getItem('device_id');
 
         if (activeTab === 'user') {
-          query = query.or(
-            `and(is_private.eq.true,device_id.eq.${currentDeviceId}),` +
-            `and(is_private.eq.true,private_with.eq.${currentDeviceId})`
-          );
+          // Hanya tampilkan pesan milik user ini atau pesan privat untuk user ini
+          query = query.eq('is_private', true)
+            .or(`device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}`);
         } else {
-          // Logika baru: Jika admin memilih user, filter berdasarkan user tersebut
+          // Admin: Hanya tampilkan pesan untuk user yang dipilih
           if (selectedPrivateUser) {
-            query = query.eq('is_private', true).or(`device_id.eq.${selectedPrivateUser},private_with.eq.${selectedPrivateUser}`);
+            query = query.eq('is_private', true)
+              .or(`device_id.eq.${selectedPrivateUser},private_with.eq.${selectedPrivateUser}`);
           } else {
-            query = query.eq('is_private', true);
+            // Admin belum pilih user = kosongkan agar tidak bocor
+            query = query.eq('is_private', true).eq('device_id', 'no_user_selected');
           }
         }
       } else {
@@ -234,7 +235,7 @@ export default function Home() {
     let privateWith = null;
 
     if (isPrivate) {
-      // Logic baru: Jika admin, gunakan device_id user yang dipilih
+      // User kirim ke 'admin', Admin kirim ke selectedPrivateUser
       privateWith = activeTab === 'user' ? 'admin' : selectedPrivateUser;
     }
 
@@ -390,18 +391,17 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Indikator Admin saat chat private */}
       {activeTab === 'admin' && chatMode === 'private' && selectedPrivateUser && (
-        <div className="px-4 py-2 bg-yellow-100 text-yellow-800 text-xs flex justify-between items-center border-b border-yellow-200">
-          <span>Chat dengan: <b>{selectedPrivateUser}</b></span>
-          <button onClick={() => setSelectedPrivateUser(null)} className="font-bold underline">Tutup</button>
+        <div className="p-2 bg-yellow-200 text-yellow-800 text-xs text-center border-b font-bold">
+          Chat Private dengan: {selectedPrivateUser} 
+          <button onClick={() => setSelectedPrivateUser(null)} className="ml-4 underline text-red-600">Tutup</button>
         </div>
       )}
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.length === 0 ? (
           <div className="h-full flex items-center justify-center text-gray-500 italic">
-            {chatMode === 'private' ? 'Belum ada pesan private.' : 'Belum ada pesan.'}
+            {chatMode === 'private' ? 'Belum ada pesan privat.' : 'Belum ada pesan.'}
           </div>
         ) : (
           messages.map((m) => {
@@ -420,25 +420,24 @@ export default function Home() {
                       <b className="text-blue-700 text-[10px]">{m.username}</b>
                     )}
                     {m.is_private && <span className="text-xs text-emerald-600">🔒 Private</span>}
-                    <span className={`text-[10px] font-medium flex items-center gap-1 ${status.online ? 'text-emerald-500' : 'text-gray-500'}`}>
-                      <span className={`w-2 h-2 rounded-full ${status.online ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`}></span>
-                      {status.online ? 'Online' : `Offline ${status.offlineTime || ''}`}
-                    </span>
                   </div>
                   <span className="text-[10px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
                 </div>
                 <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
+                
                 {activeTab === 'admin' && (
                   <div className="flex gap-4 mt-2 text-[10px]">
-                    <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit Pesan</button>
-                    <button onClick={() => editNama(m.id)} className="text-purple-600 font-bold underline">Edit Nama</button>
+                    <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit</button>
                     <button onClick={() => deleteMsg(m.id)} className="text-red-600 font-bold underline">Hapus</button>
-                    {!isAdminMsg && (
-                      <button onClick={() => blockUser(m.device_id, m.username)} className="text-orange-600 font-bold underline">Blokir</button>
-                    )}
-                    {/* Tombol Ajak Private */}
+                    
+                    {/* Tombol Ajak Private Khusus Admin di Mode Public */}
                     {chatMode === 'public' && !isAdminMsg && (
-                      <button onClick={() => { setSelectedPrivateUser(m.device_id); setChatMode('private'); }} className="text-emerald-600 font-bold underline">Ajak Private</button>
+                      <button 
+                        onClick={() => { setSelectedPrivateUser(m.device_id); setChatMode('private'); }} 
+                        className="text-emerald-600 font-bold underline"
+                      >
+                        Ajak Private
+                      </button>
                     )}
                   </div>
                 )}
@@ -466,7 +465,7 @@ export default function Home() {
           className="flex-1 border p-2 rounded-full px-4 text-sm text-black" 
           value={input} 
           onChange={(e) => setInput(e.target.value)} 
-          placeholder={chatMode === 'private' ? "Ketik pesan..." : "Ketik pesan..."} 
+          placeholder="Ketik pesan..." 
           maxLength={100} 
           disabled={sending}
         />
