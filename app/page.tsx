@@ -49,6 +49,22 @@ export default function Home() {
     return date.toLocaleDateString('id-ID', options).replace(',', '');
   };
 
+  const getGreeting = () => {
+    // WIB = UTC+7
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const wibTime = new Date(utc + (7 * 3600000));
+    const hour = wibTime.getHours();
+
+    let timeOfDay = "";
+    if (hour >= 5 && hour < 12) timeOfDay = "pagi";
+    else if (hour >= 12 && hour < 15) timeOfDay = "siang";
+    else if (hour >= 15 && hour < 18) timeOfDay = "sore";
+    else timeOfDay = "malam";
+
+    return `Selamat ${timeOfDay}, `;
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     sessionStorage.clear();
@@ -243,10 +259,19 @@ export default function Home() {
 
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden">
-      <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b border-white/20 text-center">
+      <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b border-white/20">
         <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full">Keluar</button>
-        <div className="text-lg font-black text-gray-800">iPixChat</div>
-        <a href="https://ipix.my.id" target="_blank" className="text-emerald-700 font-bold text-[10px] underline">ipix.my.id</a>
+        
+        <div className="flex justify-between items-center">
+          <div className="text-sm font-medium text-gray-700">
+            {getGreeting()}
+            <span className="text-blue-600 font-semibold">{username}</span>
+          </div>
+          <div className="text-center flex-1">
+            <div className="text-lg font-black text-gray-800">iPixChat</div>
+            <a href="https://ipix.my.id" target="_blank" className="text-emerald-700 font-bold text-[10px] underline">ipix.my.id</a>
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
