@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 
 export default function Home() {
@@ -55,10 +55,11 @@ export default function Home() {
     const wibTime = new Date(utc + (7 * 3600000));
     const hour = wibTime.getHours();
 
-    let timeOfDay = "malam";
+    let timeOfDay = "";
     if (hour >= 5 && hour < 12) timeOfDay = "pagi";
     else if (hour >= 12 && hour < 15) timeOfDay = "siang";
     else if (hour >= 15 && hour < 18) timeOfDay = "sore";
+    else timeOfDay = "malam";
 
     return `Selamat ${timeOfDay}, `;
   };
@@ -70,26 +71,8 @@ export default function Home() {
     window.location.reload();
   };
 
-  useEffect(() => {
-    if (!localStorage.getItem('device_id')) {
-      localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
-    }
-
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const savedAuth = sessionStorage.getItem('is_auth');
-      if (session || savedAuth === 'true') {
-        setIsAuth(true);
-        setUsername(sessionStorage.getItem('saved_username') || '');
-        setActiveTab((sessionStorage.getItem('active_tab') as 'user' | 'admin') || 'user');
-      }
-      setMounted(true);
-    };
-
-    checkAuth();
-  }, []);
-
-  const fetchData = async () => {
+  // fetchData dibungkus useCallback agar aman digunakan di useEffect
+  const fetchData = useCallback(async () => {
     try {
       const { data: bData } = await supabase.from('blocked_users').select('*');
       const { data: mData } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
@@ -136,21 +119,48 @@ export default function Home() {
             };
           }
         });
-
         setUserStatus(statusMap);
       }
     } catch (err) {
       console.error("Fetch data error:", err);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    if (!localStorage.getItem('device_id')) {
+      localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
+    }
+
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const savedAuth = sessionStorage.getItem('is_auth');
+      if (session || savedAuth === 'true') {
+        setIsAuth(true);
+        setUsername(sessionStorage.getItem('saved_username') || '');
+        setActiveTab((sessionStorage.getItem('active_tab') as 'user' | 'admin') || 'user');
+      }
+      setMounted(true);
+    };
+
+    checkAuth();
+  }, []);
+
+  // Perbaikan useEffect (tanpa async langsung di callback)
+  useEffect(() => {
     if (!mounted) return;
+    
     fetchData();
 
-    const channel = supabase.channel('chat').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchData).subscribe();
-    return () => supabase.removeChannel(channel);
-  }, [mounted]);
+    const channel = supabase.channel('chat')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [mounted, fetchData]);
 
   const handleAdminLogin = async () => {
     const { error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPass });
@@ -189,7 +199,6 @@ export default function Home() {
     }
 
     const browserInfo = getBrowserInfo();
-
     const { error } = await supabase.from('messages').insert([{
       username,
       pesan: input,
@@ -257,7 +266,6 @@ export default function Home() {
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden">
       <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b border-white/20">
         <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full">Keluar</button>
-        
         <div className="flex justify-between items-center">
           <div className="text-sm font-medium text-gray-700">
             {getGreeting()}
@@ -289,18 +297,14 @@ export default function Home() {
                     ) : (
                       <b className="text-blue-700 text-[10px]">{m.username}</b>
                     )}
-
                     <span className={`text-[10px] font-medium flex items-center gap-1 ${status.online ? 'text-emerald-500' : 'text-gray-500'}`}>
                       <span className={`w-2 h-2 rounded-full ${status.online ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`}></span>
                       {status.online ? 'Online' : `Offline ${status.offlineTime || ''}`}
                     </span>
                   </div>
-
                   <span className="text-[10px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
                 </div>
-
                 <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
-
                 {activeTab === 'admin' && (
                   <div className="flex gap-4 mt-2 text-[10px]">
                     <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit</button>
