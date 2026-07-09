@@ -399,11 +399,11 @@ export default function Home() {
         <div className="flex justify-between items-center">
           <div className="flex flex-col">
   {/* Baris 1: Greeting */}
-  <span className="text-[10px] text-gray-400 uppercase tracking-wider">
+  <span className="text-[10px] text-gray-700 uppercase tracking-wider">
     {getGreeting().replace(',', '')}
   </span>
   {/* Baris 2: Username */}
-  <span className="text-base font-bold text-gray-800 leading-tight">
+  <span className="text-base font-medium text-blue-800 leading-tight">
     {username}
   </span>
 </div>
