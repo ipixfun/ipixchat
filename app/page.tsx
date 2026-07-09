@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { usePathname } from 'next/navigation'; // Ditambahkan untuk membaca path Next.js secara akurat
+import { usePathname } from 'next/navigation';
 import { supabase } from './supabaseClient';
 
 export default function Home() {
-  const pathname = usePathname(); // Mengambil path aktif saat ini (misal: "/admin")
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [blockedList, setBlockedList] = useState<any[]>([]);
@@ -79,7 +79,6 @@ export default function Home() {
     return <div className="text-sm text-gray-800 break-words">{applyCensor(text)}</div>;
   };
 
-  // --- FUNGSI TAG ---
   const handleTag = (targetUsername: string) => {
     const cleanName = targetUsername.split('●')[0];
     setInput(prev => `${prev}@${cleanName} `);
@@ -142,7 +141,6 @@ export default function Home() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
     sessionStorage.clear();
     setIsAuth(false);
     window.location.replace("/");
@@ -193,7 +191,8 @@ export default function Home() {
       }
 
       if (mData) {
-        const lastAdminMsg = mData.filter(m => m.username === 'Admin●ipix.my.id').pop();
+        // Cek status online admin dinamis berdasarkan keberadaan teks mengandung 'Admin'
+        const lastAdminMsg = mData.filter(m => m.username.toLowerCase().includes('admin')).pop();
         if (lastAdminMsg) {
           const lastDate = new Date(lastAdminMsg.created_at);
           const isOnline = Date.now() - lastDate.getTime() < 300000;
@@ -203,7 +202,7 @@ export default function Home() {
         
         const statusMap: Record<string, { online: boolean; offlineTime?: string }> = {};
         const userGroups = mData.reduce((acc: any, msg: any) => {
-          if (msg.username !== 'Admin●ipix.my.id') {
+          if (!msg.username.toLowerCase().includes('admin')) {
             if (!acc[msg.username]) acc[msg.username] = [];
             acc[msg.username].push(msg);
           }
@@ -226,9 +225,9 @@ export default function Home() {
         if (allPrivate) {
           const userMap = new Map();
           const counts: Record<string, number> = {};
-          allPrivate.forEach(msg => { if (msg.username !== 'Admin●ipix.my.id' && msg.device_id !== currentDeviceId) counts[msg.device_id] = (counts[msg.device_id] || 0) + 1; });
+          allPrivate.forEach(msg => { if (!msg.username.toLowerCase().includes('admin') && msg.device_id !== currentDeviceId) counts[msg.device_id] = (counts[msg.device_id] || 0) + 1; });
           allPrivate.forEach(msg => {
-            if (msg.username !== 'Admin●ipix.my.id' && msg.device_id !== currentDeviceId && !userMap.has(msg.device_id)) {
+            if (!msg.username.toLowerCase().includes('admin') && msg.device_id !== currentDeviceId && !userMap.has(msg.device_id)) {
               userMap.set(msg.device_id, { device_id: msg.device_id, username: msg.username, last_active: msg.created_at, count: counts[msg.device_id] || 0 });
             }
           });
@@ -249,10 +248,9 @@ export default function Home() {
     
     const checkAuthAndProfile = async () => {
       const cid = localStorage.getItem('device_id');
-      const { data: { session } } = await supabase.auth.getSession();
       const savedAuth = sessionStorage.getItem('is_auth');
+      const savedTab = sessionStorage.getItem('active_tab');
 
-      // Mengecek kecocokan path via state pathname Next.js atau window hash
       const isUrlAdmin = pathname.endsWith('/admin') || (typeof window !== 'undefined' && window.location.hash === '#admin');
 
       if (cid) {
@@ -269,28 +267,26 @@ export default function Home() {
         }
       }
 
-      // Paksa tab ke admin jika terdeteksi URL admin
       if (isUrlAdmin) {
         setActiveTab('admin');
       } else {
-        const savedTab = sessionStorage.getItem('active_tab');
         setActiveTab((savedTab as 'user' | 'admin') || 'user');
       }
 
-      if (session || savedAuth === 'true') {
+      if (savedAuth === 'true') {
         setIsAuth(true);
-        if (session) {
-          setUsername('Admin●ipix.my.id');
+        const currentSavedUser = sessionStorage.getItem('saved_username') || '';
+        setUsername(currentSavedUser);
+        
+        if (currentSavedUser.toLowerCase().includes('admin')) {
           setActiveTab('admin');
-        } else if (!isExistingUser) {
-          setUsername(sessionStorage.getItem('saved_username') || '');
         }
       }
       setMounted(true);
     };
 
     checkAuthAndProfile();
-  }, [isExistingUser, pathname]); // Ditambahkan dependency pathname agar mendeteksi perpindahan rute langsung
+  }, [isExistingUser, pathname]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -300,27 +296,63 @@ export default function Home() {
   }, [mounted, fetchData]);
 
   const handleAdminLogin = async () => {
-    const { error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPass });
-    if (error) alert("Login Admin Gagal");
-    else {
-      setIsAuth(true); setActiveTab('admin'); setUsername('Admin●ipix.my.id');
-      sessionStorage.setItem('is_auth', 'true'); sessionStorage.setItem('saved_username', 'Admin●ipix.my.id'); sessionStorage.setItem('active_tab', 'admin');
+    if (!adminEmail.trim() || !adminPass.trim()) return alert("Masukkan Email & Password!");
+
+    // Verifikasi menggunakan tabel custom admin_accounts dan ambil username dari database
+    const { data, error } = await supabase
+      .from('admin_accounts')
+      .select('*')
+      .eq('email', adminEmail.trim())
+      .eq('password', adminPass.trim())
+      .maybeSingle();
+
+    if (error || !data) {
+      alert("Login Admin Gagal! Email atau Password salah.");
+    } else {
+      const dbUsername = data.username || 'Admin●ipix.my.id';
+      setIsAuth(true); 
+      setActiveTab('admin'); 
+      setUsername(dbUsername);
+      sessionStorage.setItem('is_auth', 'true'); 
+      sessionStorage.setItem('saved_username', dbUsername); 
+      sessionStorage.setItem('active_tab', 'admin');
     }
   };
 
   const handleUserLogin = async () => {
-    if (!username.trim()) return alert("Masukkan nama Anda!");
+    const cleanName = username.trim();
+    if (!cleanName) return alert("Masukkan nama Anda!");
+    
+    if (cleanName.length > 20) {
+      return alert("Nama terlalu panjang! Maksimal 20 karakter.");
+    }
+
+    if (cleanName.toLowerCase().includes('admin')) {
+      return alert("Nama tidak boleh mengandung kata 'Admin'!");
+    }
+
     const cid = localStorage.getItem('device_id') || 'guest';
     
     const { data: bData } = await supabase.from('blocked_users').select('*').eq('device_id', cid);
     if (bData && bData.length > 0) { window.location.replace("https://ipix.my.id/chat"); return; }
     
+    const { data: duplicateUser } = await supabase
+      .from('profiles')
+      .select('device_id')
+      .eq('username', cleanName)
+      .not('device_id', 'eq', cid)
+      .maybeSingle();
+
+    if (duplicateUser) {
+      return alert("Nama ini sudah digunakan oleh orang lain! Silakan pilih nama lain.");
+    }
+
     if (!isExistingUser) {
       try {
         await supabase
           .from('profiles')
           .upsert(
-            { device_id: cid, username: username.trim() }, 
+            { device_id: cid, username: cleanName }, 
             { onConflict: 'device_id' }
           );
       } catch (err) {
@@ -330,7 +362,7 @@ export default function Home() {
 
     setIsAuth(true);
     sessionStorage.setItem('is_auth', 'true');
-    sessionStorage.setItem('saved_username', username.trim());
+    sessionStorage.setItem('saved_username', cleanName);
     sessionStorage.setItem('active_tab', 'user');
   };
 
@@ -340,7 +372,7 @@ export default function Home() {
     
     setSending(true);
 
-    if (username !== 'Admin●ipix.my.id') {
+    if (!username.toLowerCase().includes('admin')) {
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
         const { count } = await supabase
             .from('messages')
@@ -373,9 +405,18 @@ export default function Home() {
   const editNama = async (id: number) => {
     const msg = messages.find(m => m.id === id);
     if (!msg) return;
-    const newName = prompt("Edit nama untuk device ini:", msg.username);
+    const newName = prompt("Edit nama untuk akun/device ini (Bebas untuk Admin):", msg.username);
     if (newName && newName.trim()) { 
-      await supabase.from('profiles').update({ username: newName.trim() }).eq('device_id', msg.device_id);
+      // Jika yang diedit adalah akun Admin itu sendiri, perbarui tabel admin_accounts juga
+      if (msg.username.toLowerCase().includes('admin')) {
+        await supabase.from('admin_accounts').update({ username: newName.trim() }).eq('username', msg.username);
+        setUsername(newName.trim());
+        sessionStorage.setItem('saved_username', newName.trim());
+      } else {
+        await supabase.from('profiles').update({ username: newName.trim() }).eq('device_id', msg.device_id);
+      }
+      
+      // Update sisa seluruh riwayat pesan dengan device_id tersebut
       await supabase.from('messages').update({ username: newName.trim() }).eq('device_id', msg.device_id); 
       fetchData(); 
     }
@@ -400,11 +441,14 @@ export default function Home() {
                           className="w-full p-3 rounded text-black mb-1 disabled:bg-gray-200 disabled:text-gray-500 shadow-lg" 
                           placeholder="Masukkan Nama Anda..." 
                           value={username || ""} 
+                          maxLength={20} 
                           onChange={(e) => setUsername(e.target.value)} 
                           disabled={isExistingUser} 
                         />
-                        {isExistingUser && <span className="text-xs text-blue-100 mb-4 italic text-center px-2">Nama Anda telah tertanam di sistem.</span>}
-                        <button onClick={handleUserLogin} className="w-full bg-white text-blue-600 px-8 py-3 rounded-full font-bold shadow-md hover:bg-gray-100 transition-all mt-2">Masuk Chat</button>
+                        <span className="text-[10px] text-blue-100 mb-4 text-center px-2 block">
+                          {isExistingUser ? "Nama Anda telah tertanam di sistem." : "Maksimal nama 20 huruf & harus unik."}
+                        </span>
+                        <button onClick={handleUserLogin} className="w-full bg-white text-blue-600 px-8 py-3 rounded-full font-bold shadow-md hover:bg-gray-100 transition-all">Masuk Chat</button>
                     </div>
                 ) : (
                     <div className="w-full max-w-sm flex flex-col items-center">
@@ -475,11 +519,11 @@ export default function Home() {
                                     <div className="flex items-center gap-2">
                                         <b 
                                             onClick={() => handleTag(m.username)} 
-                                            className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px] cursor-pointer hover:underline`}
+                                            className={`${m.username.toLowerCase().includes('admin') ? 'text-red-600' : 'text-blue-700'} text-[10px] cursor-pointer hover:underline`}
                                         >
                                             {m.username}
                                         </b>
-                                        {m.username === 'Admin●ipix.my.id' ? (
+                                        {m.username.toLowerCase().includes('admin') ? (
                                             <span className={`text-[9px] px-1 rounded ${isAdminOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span>
                                         ) : userStatus[m.username] && (
                                             <span className={`text-[9px] px-1 rounded ${userStatus[m.username].online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>
@@ -498,7 +542,7 @@ export default function Home() {
                                             <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit</button>
                                             <button onClick={() => editNama(m.id)} className="text-purple-600 font-bold underline">Nama</button>
                                             <button onClick={() => deleteMsg(m.id)} className="text-red-600 font-bold underline">Hapus</button>
-                                            {!m.username.includes('Admin') && (
+                                            {!m.username.toLowerCase().includes('admin') && (
                                                 <>
                                                     <button onClick={() => blockUser(m.device_id, m.username)} className="text-gray-400 font-bold underline">Blokir</button>
                                                     <button onClick={() => inviteToPrivate(m.device_id, m.username)} className="text-emerald-600 font-bold underline hover:text-emerald-700">💬 Ajak Private</button>
