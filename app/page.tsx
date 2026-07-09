@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 
 export default function Home() {
@@ -7,6 +7,7 @@ export default function Home() {
   const [messages, setMessages] = useState<any[]>([]);
   const [blockedList, setBlockedList] = useState<any[]>([]);
   const [username, setUsername] = useState('');
+  const [isExistingUser, setIsExistingUser] = useState(false); 
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPass, setAdminPass] = useState('');
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
@@ -76,7 +77,7 @@ export default function Home() {
     return <div className="text-sm text-gray-800 break-words">{applyCensor(text)}</div>;
   };
 
-  // --- FUNGSI TAG (DIPERBAIKI) ---
+  // --- FUNGSI TAG ---
   const handleTag = (targetUsername: string) => {
     const cleanName = targetUsername.split('●')[0];
     setInput(prev => `${prev}@${cleanName} `);
@@ -240,19 +241,44 @@ export default function Home() {
   }, [chatMode, activeTab, selectedPrivateUser, currentDeviceId, isAuth]);
 
   useEffect(() => {
-    if (!localStorage.getItem('device_id')) localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
-    const checkAuth = async () => {
+    if (!localStorage.getItem('device_id')) {
+      localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
+    }
+    
+    const checkAuthAndProfile = async () => {
+      const cid = localStorage.getItem('device_id');
       const { data: { session } } = await supabase.auth.getSession();
       const savedAuth = sessionStorage.getItem('is_auth');
+
+      if (cid) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('device_id', cid)
+          .single();
+
+        if (profileData && profileData.username) {
+          setUsername(profileData.username);
+          setIsExistingUser(true);
+          setIsAuth(true); 
+          sessionStorage.setItem('is_auth', 'true');
+          sessionStorage.setItem('saved_username', profileData.username);
+          sessionStorage.setItem('active_tab', 'user');
+        }
+      }
+
       if (session || savedAuth === 'true') {
         setIsAuth(true);
-        setUsername(sessionStorage.getItem('saved_username') || '');
+        if (!isExistingUser) {
+          setUsername(sessionStorage.getItem('saved_username') || '');
+        }
         setActiveTab((sessionStorage.getItem('active_tab') as 'user' | 'admin') || 'user');
       }
       setMounted(true);
     };
-    checkAuth();
-  }, []);
+
+    checkAuthAndProfile();
+  }, [isExistingUser]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -272,12 +298,27 @@ export default function Home() {
 
   const handleUserLogin = async () => {
     if (!username.trim()) return alert("Masukkan nama Anda!");
-    const cid = localStorage.getItem('device_id');
+    const cid = localStorage.getItem('device_id') || 'guest';
+    
     const { data: bData } = await supabase.from('blocked_users').select('*').eq('device_id', cid);
     if (bData && bData.length > 0) { window.location.replace("https://ipix.my.id/chat"); return; }
+    
+    if (!isExistingUser) {
+      try {
+        await supabase
+          .from('profiles')
+          .upsert(
+            { device_id: cid, username: username.trim() }, 
+            { onConflict: 'device_id' }
+          );
+      } catch (err) {
+        console.log("Gagal menyimpan ke database, melanjutkan sesi lokal:", err);
+      }
+    }
+
     setIsAuth(true);
     sessionStorage.setItem('is_auth', 'true');
-    sessionStorage.setItem('saved_username', username);
+    sessionStorage.setItem('saved_username', username.trim());
     sessionStorage.setItem('active_tab', 'user');
   };
 
@@ -316,12 +357,18 @@ export default function Home() {
     const newText = prompt("Edit pesan:", messages.find(m => m.id === id)?.pesan || "");
     if (newText !== null && newText.trim()) { await supabase.from('messages').update({ pesan: newText }).eq('id', id); fetchData(); }
   };
+
   const editNama = async (id: number) => {
     const msg = messages.find(m => m.id === id);
     if (!msg) return;
-    const newName = prompt("Edit nama:", msg.username);
-    if (newName) { await supabase.from('messages').update({ username: newName }).eq('device_id', msg.device_id); fetchData(); }
+    const newName = prompt("Edit nama untuk device ini:", msg.username);
+    if (newName && newName.trim()) { 
+      await supabase.from('profiles').update({ username: newName.trim() }).eq('device_id', msg.device_id);
+      await supabase.from('messages').update({ username: newName.trim() }).eq('device_id', msg.device_id); 
+      fetchData(); 
+    }
   };
+
   const deleteMsg = async (id: number) => { if(confirm("Hapus?")) { await supabase.from('messages').delete().eq('id', id); fetchData(); } };
   const blockUser = async (id: string, name: string) => { if(confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: name }]); fetchData(); } };
   const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); }
@@ -339,9 +386,32 @@ export default function Home() {
                     <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'admin' ? 'bg-emerald-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('admin')}>Admin</button>
                 </div>
                 {activeTab === 'user' ? (
-                    <input className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama Anda" value={username} onChange={(e) => setUsername(e.target.value)} />
+                    <div className="w-full max-w-sm flex flex-col items-center">
+                        <input 
+                          className="w-full p-3 rounded text-black mb-1 disabled:bg-gray-200 disabled:text-gray-500" 
+                          placeholder="Nama Anda" 
+                          value={username || ""} 
+                          onChange={(e) => setUsername(e.target.value)} 
+                          disabled={isExistingUser} 
+                        />
+                        {isExistingUser && <span className="text-xs text-blue-100 mb-3 italic text-center">Nama Anda telah tertanam sistem. Hubungi admin untuk ubah nama.</span>}
+                    </div>
                 ) : (
-                    <div className="w-full max-w-sm"><input className="w-full p-3 rounded text-black mb-3" placeholder="Email Admin" onChange={(e) => setAdminEmail(e.target.value)} /><input type="password" className="w-full p-3 rounded text-black mb-3" placeholder="Pass Admin" onChange={(e) => setAdminPass(e.target.value)} /></div>
+                    <div className="w-full max-w-sm">
+                        <input 
+                          className="w-full p-3 rounded text-black mb-3" 
+                          placeholder="Email Admin" 
+                          value={adminEmail || ""}
+                          onChange={(e) => setAdminEmail(e.target.value)} 
+                        />
+                        <input 
+                          type="password" 
+                          className="w-full p-3 rounded text-black mb-3" 
+                          placeholder="Pass Admin" 
+                          value={adminPass || ""}
+                          onChange={(e) => setAdminPass(e.target.value)} 
+                        />
+                    </div>
                 )}
                 <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : handleUserLogin()} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
              </div>
@@ -393,7 +463,6 @@ export default function Home() {
                             <div key={m.id} id={`msg-${m.id}`} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none">
                                 <div className="flex justify-between items-center mb-1">
                                     <div className="flex items-center gap-2">
-                                        {/* NAMA USER KLIK UNTUK TAG */}
                                         <b 
                                             onClick={() => handleTag(m.username)} 
                                             className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px] cursor-pointer hover:underline`}
