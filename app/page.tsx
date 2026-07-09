@@ -30,7 +30,18 @@ export default function Home() {
   const [blockedWords, setBlockedWords] = useState<string[]>([]);
   const [newBadWord, setNewBadWord] = useState('');
 
+  // Hash untuk #block
+  const [currentHash, setCurrentHash] = useState('');
+
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
+
+  // --- HASH LISTENER ---
+  useEffect(() => {
+    const handleHash = () => setCurrentHash(window.location.hash);
+    window.addEventListener('hashchange', handleHash);
+    handleHash();
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   // --- SENSOR & VALIDATION ---
   const containsBlockedWord = (text: string) => {
@@ -427,25 +438,15 @@ export default function Home() {
             </div>
           ) : (
             <div className="w-full max-w-sm flex flex-col items-center">
-              <input
-                className="w-full p-3 rounded text-black mb-3 shadow-lg"
-                placeholder="Email Admin"
-                value={adminEmail || ""}
-                onChange={(e) => setAdminEmail(e.target.value)}
-              />
-              <input
-                type="password"
-                className="w-full p-3 rounded text-black mb-4 shadow-lg"
-                placeholder="Password Admin"
-                value={adminPass || ""}
-                onChange={(e) => setAdminPass(e.target.value)}
-              />
+              <input className="w-full p-3 rounded text-black mb-3 shadow-lg" placeholder="Email Admin" value={adminEmail || ""} onChange={(e) => setAdminEmail(e.target.value)} />
+              <input type="password" className="w-full p-3 rounded text-black mb-4 shadow-lg" placeholder="Password Admin" value={adminPass || ""} onChange={(e) => setAdminPass(e.target.value)} />
               <button onClick={handleAdminLogin} className="w-full bg-white text-emerald-600 px-8 py-3 rounded-full font-bold shadow-md hover:bg-gray-100 transition-all">Verifikasi Admin</button>
             </div>
           )}
         </div>
       ) : (
         <>
+          {/* HEADER */}
           <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b border-white/20">
             <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full shadow">Keluar</button>
             <div className="flex justify-between items-center">
@@ -471,108 +472,192 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
-            {activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser ? (
-              <div className="space-y-3">
-                {privateUsers.map(user => (
-                  <div key={user.device_id} onClick={() => setSelectedPrivateUser(user.device_id)} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-emerald-300 cursor-pointer transition-all flex justify-between items-center group">
+          {/* MAIN CONTENT */}
+          <div className="flex-1 overflow-y-auto">
+            {activeTab === 'admin' && currentHash === '#block' ? (
+              <div className="p-6 bg-gray-50 min-h-full">
+                <div className="max-w-2xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
                     <div>
-                      <div className="font-semibold text-blue-700">{user.username || 'User Tanpa Nama'}</div>
-                      <div className="text-xs text-gray-500">ID: {user.device_id.substring(0, 8)}...</div>
+                      <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                        ⚙️ Manajemen Blokir
+                      </h2>
+                      <p className="text-gray-500 text-sm mt-1">Kelola user dan kata terlarang</p>
                     </div>
-                    <div className="text-right">
-                      {user.count > 0 && <div className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mb-1">{user.count} Pesan</div>}
-                      <div className="text-xs text-emerald-600 font-medium">Terakhir: {formatMessageTime(user.last_active)}</div>
-                    </div>
+                    <button 
+                      onClick={() => window.history.back()} 
+                      className="px-5 py-2 bg-white border border-gray-300 rounded-full text-sm font-medium hover:bg-gray-100 transition-all"
+                    >
+                      ← Kembali
+                    </button>
                   </div>
-                ))}
-              </div>
-            ) : (
-              messages.map((m) => (
-                <div key={m.id} id={`msg-${m.id}`} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none">
-                  <div className="flex justify-between items-center mb-1">
-                    <div className="flex items-center gap-2">
-                      <b
-                        onClick={() => handleTag(m.username)}
-                        className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px] cursor-pointer hover:underline`}
-                      >
-                        {m.username}
-                      </b>
-                      {m.username === 'Admin●ipix.my.id' ? (
-                        <span className={`text-[9px] px-1 rounded ${isAdminOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span>
-                      ) : userStatus[m.username] && (
-                        <span className={`text-[9px] px-1 rounded ${userStatus[m.username].online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>
+                  <div className="space-y-8">
+                    <section className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+                      <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                        👤 User Terblokir 
+                        <span className="text-sm font-normal text-gray-400">({blockedList.length})</span>
+                      </h3>
+                      {blockedList.length === 0 ? (
+                        <p className="text-gray-400 italic py-8 text-center">Belum ada user yang diblokir.</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-3">
+                          {blockedList
+                            .sort((a, b) => (a.username || '').localeCompare(b.username || ''))
+                            .map(b => (
+                              <div 
+                                key={b.device_id} 
+                                onClick={() => unblock(b.device_id)}
+                                className="group flex items-center gap-2 bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300 text-red-700 px-4 py-2.5 rounded-2xl cursor-pointer transition-all active:scale-95"
+                              >
+                                <span className="font-medium">{b.username || b.device_id.substring(0, 8)}</span>
+                                <span className="text-red-400 group-hover:text-red-600 text-lg leading-none">×</span>
+                              </div>
+                            ))}
+                        </div>
                       )}
-                      {m.is_private && <span className="text-xs text-emerald-600">🔒 Private</span>}
-                    </div>
-                    <span className="text-[10px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
-                  </div>
-
-                  {renderMessageContent(m.pesan)}
-
-                  <div className="flex gap-4 mt-2 text-[10px] flex-wrap">
-                    {chatMode === 'public' && <button onClick={() => handleReply(m.username, m.pesan)} className="text-emerald-600 font-bold underline">Balas</button>}
-                    {activeTab === 'admin' && (
-                      <>
-                        <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit</button>
-                        <button onClick={() => editNama(m.id)} className="text-purple-600 font-bold underline">Nama</button>
-                        <button onClick={() => deleteMsg(m.id)} className="text-red-600 font-bold underline">Hapus</button>
-                        {!m.username.includes('Admin') && (
-                          <>
-                            <button onClick={() => blockUser(m.device_id, m.username)} className="text-gray-400 font-bold underline">Blokir</button>
-                            <button onClick={() => inviteToPrivate(m.device_id, m.username)} className="text-emerald-600 font-bold underline hover:text-emerald-700">💬 Ajak Private</button>
-                          </>
+                    </section>
+                    <section className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+                      <h3 className="text-lg font-semibold text-gray-700 mb-5">🚫 Filter Kata Kasar</h3>
+                      <div className="flex gap-3 mb-6">
+                        <input 
+                          className="flex-1 border border-gray-300 focus:border-red-400 focus:ring-red-200 rounded-2xl px-5 py-3 text-sm outline-none transition-all"
+                          placeholder="Tambahkan kata yang dilarang..."
+                          value={newBadWord}
+                          onChange={(e) => setNewBadWord(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && addBlockedWord()}
+                        />
+                        <button 
+                          onClick={addBlockedWord}
+                          className="bg-red-600 hover:bg-red-700 text-white px-8 rounded-2xl font-semibold transition-all active:scale-95"
+                        >
+                          Tambah
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {blockedWords.length === 0 ? (
+                          <p className="text-gray-400 italic py-6">Belum ada kata yang diblokir.</p>
+                        ) : (
+                          blockedWords
+                            .sort((a, b) => a.localeCompare(b))
+                            .map((word, idx) => (
+                              <div 
+                                key={idx}
+                                className="group flex items-center gap-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 px-4 py-2 rounded-2xl text-sm transition-all"
+                              >
+                                <span className="font-medium text-gray-700">{word}</span>
+                                <button 
+                                  onClick={() => removeBlockedWord(word)}
+                                  className="text-gray-400 hover:text-red-600 font-bold text-lg leading-none transition-colors"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))
                         )}
-                      </>
-                    )}
+                      </div>
+                    </section>
                   </div>
                 </div>
-              ))
+              </div>
+            ) : (
+              /* CHAT AREA YANG DIPERBAIKI */
+              <div className="flex-1 overflow-y-auto">
+                {activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser ? (
+                  /* Daftar List User */
+                  <div className="space-y-3 p-3">
+                    {privateUsers.map(user => (
+                      <div key={user.device_id} onClick={() => setSelectedPrivateUser(user.device_id)} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-emerald-300 cursor-pointer transition-all flex justify-between items-center group">
+                        <div>
+                          <div className="font-semibold text-blue-700">{user.username || 'User Tanpa Nama'}</div>
+                          <div className="text-xs text-gray-500">ID: {user.device_id.substring(0, 8)}...</div>
+                        </div>
+                        <div className="text-right">
+                          {user.count > 0 && <div className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mb-1">{user.count} Pesan</div>}
+                          <div className="text-xs text-emerald-600 font-medium">Terakhir: {formatMessageTime(user.last_active)}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  /* Tampilan Pesan (Sudah diperbaiki dengan tombol kembali) */
+                  <div className="flex flex-col h-full">
+                    {chatMode === 'private' && selectedPrivateUser && (
+                      <div className="p-3 border-b bg-white">
+                        <button 
+                          onClick={() => setSelectedPrivateUser(null)} 
+                          className="text-xs text-blue-600 font-bold hover:underline"
+                        >
+                          ← Kembali ke Daftar Chat
+                        </button>
+                      </div>
+                    )}
+                    
+                    <div className="p-3 space-y-3">
+                      {messages.length > 0 ? (
+                        messages.map((m) => (
+                          <div key={m.id} id={`msg-${m.id}`} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none">
+                            <div className="flex justify-between items-center mb-1">
+                              <div className="flex items-center gap-2">
+                                <b onClick={() => handleTag(m.username)} className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px] cursor-pointer hover:underline`}>
+                                  {m.username}
+                                </b>
+                                {m.username === 'Admin●ipix.my.id' ? (
+                                  <span className={`text-[9px] px-1 rounded ${isAdminOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span>
+                                ) : userStatus[m.username] && (
+                                  <span className={`text-[9px] px-1 rounded ${userStatus[m.username].online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>
+                                )}
+                                {m.is_private && <span className="text-xs text-emerald-600">🔒 Private</span>}
+                              </div>
+                              <span className="text-[10px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
+                            </div>
+
+                            {renderMessageContent(m.pesan)}
+
+                            <div className="flex gap-4 mt-2 text-[10px] flex-wrap">
+                              {chatMode === 'public' && <button onClick={() => handleReply(m.username, m.pesan)} className="text-emerald-600 font-bold underline">Balas</button>}
+                              {activeTab === 'admin' && (
+                                <>
+                                  <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit</button>
+                                  <button onClick={() => editNama(m.id)} className="text-purple-600 font-bold underline">Nama</button>
+                                  <button onClick={() => deleteMsg(m.id)} className="text-red-600 font-bold underline">Hapus</button>
+                                  {!m.username.includes('Admin') && (
+                                    <>
+                                      <button onClick={() => blockUser(m.device_id, m.username)} className="text-gray-400 font-bold underline">Blokir</button>
+                                      <button onClick={() => inviteToPrivate(m.device_id, m.username)} className="text-emerald-600 font-bold underline hover:text-emerald-700">💬 Ajak Private</button>
+                                    </>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center text-gray-400 italic mt-10">Belum ada pesan di ruang ini.</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
-          {activeTab === 'admin' && (
-            <div className="p-3 bg-gray-200 border-t grid grid-cols-2 gap-4">
-              <div>
-                <strong className="text-black text-[10px]">User Terblokir: {blockedList.length}</strong>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {blockedList.map(b => (
-                    <span key={b.device_id} className="cursor-pointer text-blue-800 underline hover:text-blue-600 text-[10px]" onClick={() => unblock(b.device_id)}>
-                      {b.username || b.device_id.substring(0, 5)} (x)
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-[10px] text-gray-700 mb-2">Daftar Kata Terblokir:</h3>
-                <div className="flex gap-2 mb-3">
-                  <input
-                    className="flex-1 p-2.5 rounded-lg text-sm border border-gray-400 text-black bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                    placeholder="Tambah kata..."
-                    value={newBadWord}
-                    onChange={(e) => setNewBadWord(e.target.value)}
-                  />
-                  <button
-                    onClick={addBlockedWord}
-                    className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-red-700 transition-all"
-                  >
-                    Tambah
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {blockedWords.map((word, idx) => (
-                    <span key={idx} className="bg-white px-2 py-1 rounded-full text-[10px] border border-red-200 text-red-600 flex items-center gap-1 shadow-sm">
-                      {word} <button onClick={() => removeBlockedWord(word)} className="font-bold hover:text-red-800">x</button>
-                    </span>
-                  ))}
-                </div>
-              </div>
+          {/* LINK KE #BLOCK */}
+          {activeTab === 'admin' && currentHash !== '#block' && (
+            <div className="p-3 bg-gray-200 border-t text-center">
+              <a href="#block" className="text-xs text-blue-600 underline font-bold">⚙️ Kelola Blokir User & Kata</a>
             </div>
           )}
 
+          {/* FORM INPUT */}
           <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-center">
-            <input className="flex-1 border p-2 rounded-full px-4 text-sm bg-gray-800 text-white border-gray-700 placeholder-gray-400" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." maxLength={100} disabled={sending} />
+            <input 
+              className="flex-1 border p-2 rounded-full px-4 text-sm bg-gray-800 text-white border-gray-700 placeholder-gray-400" 
+              value={input} 
+              onChange={(e) => setInput(e.target.value)} 
+              placeholder="Ketik pesan..." 
+              maxLength={100} 
+              disabled={sending} 
+            />
             <button type="submit" disabled={sending || !input.trim()} className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm shrink-0 disabled:opacity-50">
               {sending ? 'Mengirim...' : 'Kirim'}
             </button>
