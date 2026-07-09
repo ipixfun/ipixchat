@@ -28,14 +28,51 @@ export default function Home() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
 
-  // 1. Fungsi untuk Balas dengan kutipan
+  // --- FUNGSI NAVIGASI PESAN ---
+  const scrollToMessage = (quotedText: string) => {
+    const targetMsg = messages.find(m => m.pesan.includes(quotedText));
+    if (targetMsg) {
+      const el = document.getElementById(`msg-${targetMsg.id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('bg-yellow-100');
+        setTimeout(() => el.classList.remove('bg-yellow-100'), 2000);
+      }
+    } else {
+      alert("Pesan asli tidak ditemukan (mungkin sudah dihapus).");
+    }
+  };
+
+  // --- RENDERER PESAN (DETEKSI REPLY) ---
+  const renderMessageContent = (text: string) => {
+    // Regex untuk mendeteksi format: @User ("Pesan") SisaPesan
+    const regex = /^@(\w+)\s\("(.*?)"\)\s?(.*)$/;
+    const match = text.match(regex);
+
+    if (match) {
+      const [_, user, quotedText, replyText] = match;
+      return (
+        <>
+          <div 
+            className="text-[10px] text-gray-500 italic bg-gray-100 p-2 rounded cursor-pointer hover:bg-gray-200 border-l-2 border-blue-500 mb-1"
+            onClick={() => scrollToMessage(quotedText)}
+          >
+            <span className="font-bold">@{user}</span>: "{quotedText}"
+          </div>
+          <div className="text-sm text-gray-800 break-words">{replyText}</div>
+        </>
+      );
+    }
+    return <div className="text-sm text-gray-800 break-words">{text}</div>;
+  };
+
+  // --- FUNGSI LOGIKA CHAT ---
   const handleReply = (targetUsername: string, targetMessage: string) => {
     const cleanName = targetUsername.split('●')[0];
     const quotedMessage = targetMessage.length > 30 ? targetMessage.substring(0, 30) + "..." : targetMessage;
     setInput(prev => `${prev}@${cleanName} ("${quotedMessage}") `);
   };
 
-  // 2. Fungsi untuk Tahan/Hold hanya @User
   const handleTagHold = (targetUsername: string) => {
     const cleanName = targetUsername.split('●')[0];
     setInput(prev => `${prev}@${cleanName} `);
@@ -52,6 +89,7 @@ export default function Home() {
     if (timerRef.current) clearTimeout(timerRef.current);
   };
 
+  // --- UTILS & SUPABASE ---
   const formatNotif = (num: number) => {
     if (num >= 1000) return (num / 1000).toFixed(1).replace('.0', '') + 'k';
     return num.toString();
@@ -389,72 +427,65 @@ export default function Home() {
 
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
 
-  if (!isAuth) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-emerald-500 to-blue-600 text-white p-6">
-        <h1 className="text-3xl font-bold mb-6">IpixChat Login</h1>
-        <div className="flex gap-4 mb-6">
-          <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'user' ? 'bg-blue-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('user')}>User</button>
-          <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'admin' ? 'bg-emerald-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('admin')}>Admin</button>
-        </div>
-        {activeTab === 'user' ? (
-          <input className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama Anda" value={username} onChange={(e) => setUsername(e.target.value)} />
-        ) : (
-          <div className="w-full max-w-sm">
-            <input className="w-full p-3 rounded text-black mb-3" placeholder="Email Admin" type="email" onChange={(e) => setAdminEmail(e.target.value)} />
-            <input type="password" className="w-full p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
-          </div>
-        )}
-        <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : handleUserLogin()} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden">
-      <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b border-white/20">
-        <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full">Keluar</button>
-        <div className="flex justify-between items-center">
-          <div className="flex flex-col">
-            <span className="text-[10px] text-gray-800 uppercase tracking-wider">{getGreeting().replace(',', '')}</span>
-            <span className="text-[9px] font-medium text-blue-800 leading-tight">{username}</span>
+      {!isAuth ? (
+        <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-emerald-500 to-blue-600 text-white p-6">
+          <h1 className="text-3xl font-bold mb-6">IpixChat Login</h1>
+          <div className="flex gap-4 mb-6">
+            <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'user' ? 'bg-blue-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('user')}>User</button>
+            <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'admin' ? 'bg-emerald-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('admin')}>Admin</button>
           </div>
-          <div className="text-center flex-1 flex flex-col items-center">
-            <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-bold text-sm underline flex items-center gap-1">
-              ipix.my.id
-            </a>
-            {activeTab === 'user' && (
-              <div className="text-[10px] text-gray-500 mt-0.5">
-                <span className={`inline-block w-2 h-2 rounded-full ${isAdminOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>   
-                {isAdminOnline ? ' Admin Online' : ` Admin Offline • ${adminOfflineTime}`}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex mt-3 bg-gray-100 rounded-full p-1 shadow">
-          <button onClick={() => { setChatMode('public'); setSelectedPrivateUser(null); }} className={`flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'}`}>Public Chat</button>
-          <button onClick={() => { setChatMode('private'); setSelectedPrivateUser(null); }} className={`relative flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'}`}>
-            💬 Chat Private
-            {privateNotifCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-5 h-5 px-1 flex items-center justify-center rounded-full animate-bounce">
-                    {formatNotif(privateNotifCount)}
-                </span>
-            )}
-          </button>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        {activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser ? (
-          <div>
-            <div className="mb-4 text-center">
-              <h2 className="text-xl font-bold text-emerald-700">📋 Dashboard Private Chat</h2>
-              <p className="text-sm text-gray-600">Pilih user untuk memulai chat privat</p>
+          {activeTab === 'user' ? (
+            <input className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama Anda" value={username} onChange={(e) => setUsername(e.target.value)} />
+          ) : (
+            <div className="w-full max-w-sm">
+              <input className="w-full p-3 rounded text-black mb-3" placeholder="Email Admin" type="email" onChange={(e) => setAdminEmail(e.target.value)} />
+              <input type="password" className="w-full p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
             </div>
-            {privateUsers.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-gray-500 italic py-12">Belum ada pesan private dari user.</div>
-            ) : (
+          )}
+          <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : handleUserLogin()} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
+        </div>
+      ) : (
+        <>
+          {/* HEADER */}
+          <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b border-white/20">
+            <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full">Keluar</button>
+            <div className="flex justify-between items-center">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-gray-800 uppercase tracking-wider">{getGreeting().replace(',', '')}</span>
+                <span className="text-[9px] font-medium text-blue-800 leading-tight">{username}</span>
+              </div>
+              <div className="text-center flex-1 flex flex-col items-center">
+                <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-bold text-sm underline flex items-center gap-1">
+                  ipix.my.id
+                </a>
+                {activeTab === 'user' && (
+                  <div className="text-[10px] text-gray-500 mt-0.5">
+                    <span className={`inline-block w-2 h-2 rounded-full ${isAdminOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>   
+                    {isAdminOnline ? ' Admin Online' : ` Admin Offline • ${adminOfflineTime}`}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex mt-3 bg-gray-100 rounded-full p-1 shadow">
+              <button onClick={() => { setChatMode('public'); setSelectedPrivateUser(null); }} className={`flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'}`}>Public Chat</button>
+              <button onClick={() => { setChatMode('private'); setSelectedPrivateUser(null); }} className={`relative flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'}`}>
+                💬 Chat Private
+                {privateNotifCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-5 h-5 px-1 flex items-center justify-center rounded-full animate-bounce">
+                        {formatNotif(privateNotifCount)}
+                    </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* CHAT AREA */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            {activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser ? (
+              // ADMIN DASHBOARD
               <div className="space-y-3">
                 {privateUsers.map(user => (
                   <div key={user.device_id} onClick={() => setSelectedPrivateUser(user.device_id)}
@@ -464,90 +495,73 @@ export default function Home() {
                       <div className="text-xs text-gray-500">ID: {user.device_id.substring(0,8)}...</div>
                     </div>
                     <div className="text-right">
-                      {user.count > 0 && (
-                          <div className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mb-1">{user.count} Pesan</div>
-                      )}
+                      {user.count > 0 && <div className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mb-1">{user.count} Pesan</div>}
                       <div className="text-xs text-emerald-600 font-medium">Terakhir: {formatMessageTime(user.last_active)}</div>
                     </div>
                   </div>
                 ))}
               </div>
+            ) : (
+              // MESSAGE LIST
+              messages.map((m) => (
+                <div 
+                  key={m.id} 
+                  id={`msg-${m.id}`}
+                  className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none transition-colors duration-500"
+                  onMouseDown={() => handleHoldStart(m.username)}
+                  onMouseUp={handleHoldEnd}
+                  onMouseLeave={handleHoldEnd}
+                  onTouchStart={() => handleHoldStart(m.username)}
+                  onTouchEnd={handleHoldEnd}
+                  onContextMenu={(e) => e.preventDefault()}
+                >
+                  <div className="flex justify-between items-center mb-1">
+                    <div className="flex items-center gap-2">
+                      <b className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px]`}>{m.username}</b>
+                      {m.username === 'Admin●ipix.my.id' ? (
+                        <span className={`text-[9px] px-1 rounded ${isAdminOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span>
+                      ) : userStatus[m.username] && (
+                        <span className={`text-[9px] px-1 rounded ${userStatus[m.username].online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>
+                      )}
+                      {m.is_private && <span className="text-xs text-emerald-600">🔒 Private</span>}
+                    </div>
+                    <span className="text-[10px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
+                  </div>
+
+                  {renderMessageContent(m.pesan)}
+                  
+                  <div className="flex gap-4 mt-2 text-[10px] flex-wrap">
+                    {chatMode === 'public' && (
+                      <button onClick={() => handleReply(m.username, m.pesan)} className="text-emerald-600 font-bold underline">Balas</button>
+                    )}
+                    {activeTab === 'admin' && (
+                      <>
+                        <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit</button>
+                        <button onClick={() => editNama(m.id)} className="text-purple-600 font-bold underline">Nama</button>
+                        <button onClick={() => deleteMsg(m.id)} className="text-red-600 font-bold underline">Hapus</button>
+                        {!m.username.includes('Admin') && (
+                          <>
+                            <button onClick={() => blockUser(m.device_id, m.username)} className="text-gray-400 font-bold underline">Blokir</button>
+                            <button onClick={() => inviteToPrivate(m.device_id, m.username)} className="text-emerald-600 font-bold underline hover:text-emerald-700">💬 Ajak Private</button>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))
             )}
           </div>
-        ) : (
-          messages.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-gray-500 italic py-20">Belum ada pesan di chat ini.</div>
-          ) : (
-            messages.map((m) => (
-              <div 
-                key={m.id} 
-                className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none"
-                onMouseDown={() => handleHoldStart(m.username)}
-                onMouseUp={handleHoldEnd}
-                onMouseLeave={handleHoldEnd}
-                onTouchStart={() => handleHoldStart(m.username)}
-                onTouchEnd={handleHoldEnd}
-                onContextMenu={(e) => e.preventDefault()}
-              >
-                <div className="flex justify-between items-center mb-1">
-                  <div className="flex items-center gap-2">
-                    <b className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px]`}>{m.username}</b>
-                    {m.username === 'Admin●ipix.my.id' ? (
-                      <span className={`text-[9px] px-1 rounded ${isAdminOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span>
-                    ) : userStatus[m.username] && (
-                      <span className={`text-[9px] px-1 rounded ${userStatus[m.username].online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>
-                    )}
-                    {m.is_private && <span className="text-xs text-emerald-600">🔒 Private</span>}
-                  </div>
-                  <span className="text-[10px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
-                </div>
-                <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
-                
-                <div className="flex gap-4 mt-2 text-[10px] flex-wrap">
-                  {/* Tombol Balas (dengan Kutipan) */}
-                  {chatMode === 'public' && (
-                    <button onClick={() => handleReply(m.username, m.pesan)} className="text-emerald-600 font-bold underline">Balas</button>
-                  )}
-                  {/* Tombol Admin */}
-                  {activeTab === 'admin' && (
-                    <>
-                      <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit</button>
-                      <button onClick={() => editNama(m.id)} className="text-purple-600 font-bold underline">Nama</button>
-                      <button onClick={() => deleteMsg(m.id)} className="text-red-600 font-bold underline">Hapus</button>
-                      {!m.username.includes('Admin') && (
-                        <>
-                          <button onClick={() => blockUser(m.device_id, m.username)} className="text-gray-400 font-bold underline">Blokir</button>
-                          <button onClick={() => inviteToPrivate(m.device_id, m.username)} className="text-emerald-600 font-bold underline hover:text-emerald-700">💬 Ajak Private</button>
-                        </>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            ))
-          )
-        )}
-      </div>
 
-      {activeTab === 'admin' && (
-        <div className="p-3 bg-gray-300 text-[10px] border-t">
-          <strong className="text-black">User Terblokir: {blockedList.length}</strong>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {blockedList.map(b => (
-              <span key={b.device_id} className="cursor-pointer text-blue-800 underline hover:text-blue-600" onClick={() => unblock(b.device_id)}>
-                {b.username || b.device_id.substring(0,5)} (Unblock)
-              </span>
-            ))}
-          </div>
-        </div>
+          {/* FOOTER */}
+          <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-center">
+            <input className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." maxLength={100} disabled={sending} />
+            <button type="submit" disabled={sending || !input.trim()} className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm shrink-0 disabled:opacity-50">
+              {sending ? 'Mengirim...' : 'Kirim'}
+            </button>
+          </form>
+        </>
       )}
-
-      <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-center">
-        <input className="flex-1 border p-2 rounded-full px-4 text-sm text-black" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ketik pesan..." maxLength={100} disabled={sending} />
-        <button type="submit" disabled={sending || !input.trim()} className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm shrink-0 disabled:opacity-50">
-          {sending ? 'Mengirim...' : 'Kirim'}
-        </button>
-      </form>
     </div>
   );
 }
