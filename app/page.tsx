@@ -15,6 +15,7 @@ export default function Home() {
   const [isAuth, setIsAuth] = useState(false);
   const [lastSent, setLastSent] = useState(0);
   const [sending, setSending] = useState(false);
+  const [userMessageTimes, setUserMessageTimes] = useState<number[]>([]);
   
   const [privateNotifCount, setPrivateNotifCount] = useState(0);
   const [isAdminOnline, setIsAdminOnline] = useState(false);
@@ -26,7 +27,6 @@ export default function Home() {
 
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
 
-  // Fungsi helper untuk format angka notifikasi
   const formatNotif = (num: number) => {
     if (num >= 1000) return (num / 1000).toFixed(1).replace('.0', '') + 'k';
     return num.toString();
@@ -69,13 +69,11 @@ export default function Home() {
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     const wibTime = new Date(utc + (7 * 3600000));
     const hour = wibTime.getHours();
-
     let timeOfDay = "";
     if (hour >= 5 && hour < 12) timeOfDay = "pagi";
     else if (hour >= 12 && hour < 15) timeOfDay = "siang";
     else if (hour >= 15 && hour < 18) timeOfDay = "sore";
     else timeOfDay = "malam";
-
     return `Selamat ${timeOfDay}, `;
   };
 
@@ -92,13 +90,17 @@ export default function Home() {
 
       let query = supabase.from('messages').select('*').order('created_at', { ascending: true });
 
+      // PERBAIKAN LOGIKA QUERY PRIVATE
       if (chatMode === 'private') {
         if (activeTab === 'user' && currentDeviceId) {
           query = query.eq('is_private', true)
             .or(`device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}`);
-        } else if (selectedPrivateUser && selectedPrivateUser !== currentDeviceId) {
+        } else if (selectedPrivateUser) {
           query = query.eq('is_private', true)
             .or(`device_id.eq.${selectedPrivateUser},private_with.eq.${selectedPrivateUser}`);
+        } else {
+            // Default untuk admin yang belum pilih user
+            query = query.eq('is_private', true).eq('device_id', 'none'); 
         }
       } else {
         query = query.eq('is_private', false);
@@ -224,11 +226,9 @@ export default function Home() {
   useEffect(() => {
     if (!mounted) return;
     fetchData();
-
     const channel = supabase.channel('chat')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchData)
       .subscribe();
-
     return () => { void supabase.removeChannel(channel); };
   }, [mounted, fetchData]);
 
@@ -270,6 +270,15 @@ export default function Home() {
     }
 
     const now = Date.now();
+    if (activeTab === 'user') {
+      const fiveMinutesAgo = now - 5 * 60 * 1000;
+      const recentMessages = userMessageTimes.filter(time => time > fiveMinutesAgo);
+      if (recentMessages.length >= 5) {
+        alert("Batas maksimal 5 pesan per 5 menit.");
+        return;
+      }
+    }
+
     if (now - lastSent < 3000) {
       alert("Jangan spam! Tunggu 3 detik ya.");
       return;
@@ -280,6 +289,8 @@ export default function Home() {
     const isPrivate = chatMode === 'private';
     let privateWith = null;
     if (isPrivate) {
+      // PERBAIKAN LOGIKA PRIVATE_WITH
+      // User selalu kirim ke 'admin', Admin kirim ke 'device_id' user yang dipilih
       privateWith = activeTab === 'user' ? 'admin' : selectedPrivateUser;
     }
 
@@ -300,6 +311,13 @@ export default function Home() {
     } else {
       setInput('');
       setLastSent(now);
+      if (activeTab === 'user') {
+        setUserMessageTimes(prev => {
+          const fiveMinutesAgo = now - 5 * 60 * 1000;
+          const updated = [...prev.filter(time => time > fiveMinutesAgo), now];
+          return updated;
+        });
+      }
       await fetchData();
     }
     setSending(false);
@@ -336,7 +354,6 @@ export default function Home() {
     if (confirm(`Blokir user ${username}?`)) {
         await supabase.from('blocked_users').insert([{ device_id, username }]);
         fetchData();
-        alert(`User "${username}" telah diblokir.`);
     }
   };
 
@@ -383,9 +400,16 @@ export default function Home() {
           <div className="text-sm font-medium text-gray-700">
             {getGreeting()}<span className="text-blue-600 font-semibold">{username}</span>
           </div>
-          <div className="text-center flex-1">
-            <div className="text-lg font-black text-gray-800">iPixChat</div>
-            <a href="https://ipix.my.id" target="_blank" className="text-emerald-700 font-bold text-[10px] underline">ipix.my.id</a>
+          <div className="text-center flex-1 flex flex-col items-center">
+            <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-bold text-sm underline flex items-center gap-1">
+              ipix.my.id
+              <span className={`inline-block w-2 h-2 rounded-full ${isAdminOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+            </a>
+            {activeTab === 'user' && (
+              <div className="text-[10px] text-gray-500 mt-0.5">
+                {isAdminOnline ? 'Admin Online' : `Admin Offline • ${adminOfflineTime}`}
+              </div>
+            )}
           </div>
         </div>
 
@@ -464,16 +488,10 @@ export default function Home() {
                       <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit</button>
                       <button onClick={() => editNama(m.id)} className="text-purple-600 font-bold underline">Nama</button>
                       <button onClick={() => deleteMsg(m.id)} className="text-red-600 font-bold underline">Hapus</button>
-                      
                       {!m.username.includes('Admin') && (
                         <>
                           <button onClick={() => blockUser(m.device_id, m.username)} className="text-gray-400 font-bold underline">Blokir</button>
-                          <button 
-                            onClick={() => inviteToPrivate(m.device_id, m.username)}
-                            className="text-emerald-600 font-bold underline hover:text-emerald-700"
-                          >
-                            💬 Ajak Private
-                          </button>
+                          <button onClick={() => inviteToPrivate(m.device_id, m.username)} className="text-emerald-600 font-bold underline hover:text-emerald-700">💬 Ajak Private</button>
                         </>
                       )}
                     </>
