@@ -1,8 +1,10 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
+import { usePathname } from 'next/navigation'; // Ditambahkan untuk membaca path Next.js secara akurat
 import { supabase } from './supabaseClient';
 
 export default function Home() {
+  const pathname = usePathname(); // Mengambil path aktif saat ini (misal: "/admin")
   const [mounted, setMounted] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [blockedList, setBlockedList] = useState<any[]>([]);
@@ -143,7 +145,7 @@ export default function Home() {
     await supabase.auth.signOut();
     sessionStorage.clear();
     setIsAuth(false);
-    window.location.reload();
+    window.location.replace("/");
   };
 
   const fetchData = useCallback(async () => {
@@ -250,6 +252,9 @@ export default function Home() {
       const { data: { session } } = await supabase.auth.getSession();
       const savedAuth = sessionStorage.getItem('is_auth');
 
+      // Mengecek kecocokan path via state pathname Next.js atau window hash
+      const isUrlAdmin = pathname.endsWith('/admin') || (typeof window !== 'undefined' && window.location.hash === '#admin');
+
       if (cid) {
         const { data: profileData } = await supabase
           .from('profiles')
@@ -260,24 +265,32 @@ export default function Home() {
         if (profileData && profileData.username) {
           setUsername(profileData.username);
           setIsExistingUser(true);
-          // Berhenti memaksa auto-bypass login di sini agar tertahan di menu login awal
           sessionStorage.setItem('saved_username', profileData.username);
-          sessionStorage.setItem('active_tab', 'user');
         }
+      }
+
+      // Paksa tab ke admin jika terdeteksi URL admin
+      if (isUrlAdmin) {
+        setActiveTab('admin');
+      } else {
+        const savedTab = sessionStorage.getItem('active_tab');
+        setActiveTab((savedTab as 'user' | 'admin') || 'user');
       }
 
       if (session || savedAuth === 'true') {
         setIsAuth(true);
-        if (!isExistingUser) {
+        if (session) {
+          setUsername('Admin●ipix.my.id');
+          setActiveTab('admin');
+        } else if (!isExistingUser) {
           setUsername(sessionStorage.getItem('saved_username') || '');
         }
-        setActiveTab((sessionStorage.getItem('active_tab') as 'user' | 'admin') || 'user');
       }
       setMounted(true);
     };
 
     checkAuthAndProfile();
-  }, [isExistingUser]);
+  }, [isExistingUser, pathname]); // Ditambahkan dependency pathname agar mendeteksi perpindahan rute langsung
 
   useEffect(() => {
     if (!mounted) return;
@@ -379,45 +392,43 @@ export default function Home() {
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden">
         {!isAuth ? (
              <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-emerald-500 to-blue-600 text-white p-6">
-                <h1 className="text-3xl font-bold mb-6">IpixChat Login</h1>
-                <div className="flex gap-4 mb-6">
-                    <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'user' ? 'bg-blue-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('user')}>User</button>
-                    <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'admin' ? 'bg-emerald-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('admin')}>Admin</button>
-                </div>
+                <h1 className="text-3xl font-bold mb-6">{activeTab === 'admin' ? 'IpixChat Admin' : 'IpixChat Login'}</h1>
+                
                 {activeTab === 'user' ? (
                     <div className="w-full max-w-sm flex flex-col items-center">
                         <input 
-                          className="w-full p-3 rounded text-black mb-1 disabled:bg-gray-200 disabled:text-gray-500" 
-                          placeholder="Nama Anda" 
+                          className="w-full p-3 rounded text-black mb-1 disabled:bg-gray-200 disabled:text-gray-500 shadow-lg" 
+                          placeholder="Masukkan Nama Anda..." 
                           value={username || ""} 
                           onChange={(e) => setUsername(e.target.value)} 
                           disabled={isExistingUser} 
                         />
-                        {isExistingUser && <span className="text-xs text-blue-100 mb-3 italic text-center">Nama Anda telah tertanam sistem. Hubungi admin untuk ubah nama.</span>}
+                        {isExistingUser && <span className="text-xs text-blue-100 mb-4 italic text-center px-2">Nama Anda telah tertanam di sistem.</span>}
+                        <button onClick={handleUserLogin} className="w-full bg-white text-blue-600 px-8 py-3 rounded-full font-bold shadow-md hover:bg-gray-100 transition-all mt-2">Masuk Chat</button>
                     </div>
                 ) : (
-                    <div className="w-full max-w-sm">
+                    <div className="w-full max-w-sm flex flex-col items-center">
                         <input 
-                          className="w-full p-3 rounded text-black mb-3" 
+                          className="w-full p-3 rounded text-black mb-3 shadow-lg" 
                           placeholder="Email Admin" 
                           value={adminEmail || ""}
                           onChange={(e) => setAdminEmail(e.target.value)} 
                         />
                         <input 
                           type="password" 
-                          className="w-full p-3 rounded text-black mb-3" 
-                          placeholder="Pass Admin" 
+                          className="w-full p-3 rounded text-black mb-4 shadow-lg" 
+                          placeholder="Password Admin" 
                           value={adminPass || ""}
                           onChange={(e) => setAdminPass(e.target.value)} 
                         />
+                        <button onClick={handleAdminLogin} className="w-full bg-white text-emerald-600 px-8 py-3 rounded-full font-bold shadow-md hover:bg-gray-100 transition-all">Verifikasi Admin</button>
                     </div>
                 )}
-                <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : handleUserLogin()} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold mt-2">Masuk Chat</button>
              </div>
         ) : (
             <>
                 <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b border-white/20">
-                    <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full">Keluar</button>
+                    <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full shadow">Keluar</button>
                     <div className="flex justify-between items-center">
                         <div className="flex flex-col">
                             <span className="text-[10px] text-gray-800 uppercase tracking-wider">{getGreeting().replace(',', '')}</span>
