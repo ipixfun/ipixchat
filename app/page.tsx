@@ -399,22 +399,22 @@ export default function Home() {
         <div className="flex justify-between items-center">
           <div className="flex flex-col">
   {/* Baris 1: Greeting */}
-  <span className="text-[10px] text-gray-700 uppercase tracking-wider">
+  <span className="text-[10px] text-gray-800 uppercase tracking-wider">
     {getGreeting().replace(',', '')}
   </span>
   {/* Baris 2: Username */}
-  <span className="text-base font-medium text-blue-800 leading-tight">
+  <span className="text-[9px] font-medium text-blue-800 leading-tight">
     {username}
   </span>
 </div>
           <div className="text-center flex-1 flex flex-col items-center">
             <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-bold text-sm underline flex items-center gap-1">
               ipix.my.id
-              <span className={`inline-block w-2 h-2 rounded-full ${isAdminOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
             </a>
             {activeTab === 'user' && (
               <div className="text-[10px] text-gray-500 mt-0.5">
-                {isAdminOnline ? 'Admin Online' : `Admin Offline • ${adminOfflineTime}`}
+			  <span className={`inline-block w-2 h-2 rounded-full ${isAdminOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>   
+                {isAdminOnline ? ' Admin Online' : ` Admin Offline • ${adminOfflineTime}`}
               </div>
             )}
           </div>
