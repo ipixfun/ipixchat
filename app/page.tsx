@@ -294,12 +294,31 @@ export default function Home() {
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || sending) return;
+    
     setSending(true);
+
+    // LOGIKA LIMIT 5 CHAT / 5 MENIT (Kecuali Admin)
+    if (username !== 'Admin●ipix.my.id') {
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        const { count } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('device_id', localStorage.getItem('device_id') || 'guest')
+            .gte('created_at', fiveMinutesAgo);
+
+        if (count && count >= 5) {
+            alert("Anda mencapai batas 5 pesan per 5 menit. Harap tunggu sebentar.");
+            setSending(false);
+            return;
+        }
+    }
+
     const { error } = await supabase.from('messages').insert([{ 
         username, pesan: input.trim(), device_id: localStorage.getItem('device_id') || 'guest', 
         user_browser: getBrowserInfo(), is_private: chatMode === 'private', 
         private_with: chatMode === 'private' ? (activeTab === 'user' ? 'admin' : selectedPrivateUser) : null 
     }]);
+    
     if (!error) { setInput(''); fetchData(); }
     setSending(false);
   };
@@ -421,7 +440,6 @@ export default function Home() {
 
                 {activeTab === 'admin' && (
                     <div className="p-3 bg-gray-200 border-t grid grid-cols-2 gap-4">
-                        {/* Kiri: User Terblokir */}
                         <div>
                             <strong className="text-black text-[10px]">User Terblokir: {blockedList.length}</strong>
                             <div className="mt-2 flex flex-wrap gap-2">
@@ -433,7 +451,6 @@ export default function Home() {
                             </div>
                         </div>
                         
-                        {/* Kanan: Kata Terlarang */}
                         <div>
                             <h3 className="font-bold text-[10px] text-gray-700 mb-2">Daftar Kata Terblokir:</h3>
                             <div className="flex gap-2 mb-3">
