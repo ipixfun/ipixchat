@@ -1,10 +1,14 @@
 'use client';
+
+// --- IMPORTS ---
 import { useEffect, useState, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { supabase } from './supabaseClient';
 
 export default function Home() {
   const pathname = usePathname();
+
+  // --- STATE MANAGEMENT ---
   const [mounted, setMounted] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [blockedList, setBlockedList] = useState<any[]>([]);
@@ -17,29 +21,24 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [isAuth, setIsAuth] = useState(false);
   const [sending, setSending] = useState(false);
-
   const [privateNotifCount, setPrivateNotifCount] = useState(0);
   const [isAdminOnline, setIsAdminOnline] = useState(false);
   const [adminOfflineTime, setAdminOfflineTime] = useState("");
   const [userStatus, setUserStatus] = useState<Record<string, { online: boolean; offlineTime?: string }>>({});
-
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<string | null>(null);
   const [privateUsers, setPrivateUsers] = useState<any[]>([]);
-
-  // --- SENSOR STATE ---
   const [blockedWords, setBlockedWords] = useState<string[]>([]);
   const [newBadWord, setNewBadWord] = useState('');
 
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
 
-  // --- FUNGSI VALIDASI KATA ---
+  // --- SENSOR & VALIDATION ---
   const containsBlockedWord = (text: string) => {
     return blockedWords.some(word =>
       word.trim() !== "" && text.toLowerCase().includes(word.toLowerCase())
     );
   };
 
-  // --- FUNGSI SENSOR & RENDER ---
   const applyCensor = (text: string) => {
     let result = text;
     blockedWords.forEach(word => {
@@ -51,6 +50,7 @@ export default function Home() {
     return result;
   };
 
+  // --- UI HELPERS ---
   const scrollToMessage = (quotedText: string) => {
     const targetMsg = messages.find(m => m.pesan.includes(quotedText));
     if (targetMsg) {
@@ -84,30 +84,6 @@ export default function Home() {
       );
     }
     return <div className="text-sm text-gray-800 break-words">{applyCensor(text)}</div>;
-  };
-
-  // --- FUNGSI TAG & ADMIN ---
-  const handleTag = (targetUsername: string) => {
-    const cleanName = targetUsername.split('●')[0];
-    setInput(prev => `${prev}@${cleanName} `);
-  };
-
-  const addBlockedWord = async () => {
-    if (!newBadWord.trim()) return;
-    await supabase.from('blocked_words').insert([{ word: newBadWord.trim() }]);
-    setNewBadWord('');
-    fetchData();
-  };
-
-  const removeBlockedWord = async (word: string) => {
-    await supabase.from('blocked_words').delete().eq('word', word);
-    fetchData();
-  };
-
-  const handleReply = (targetUsername: string, targetMessage: string) => {
-    const cleanName = targetUsername.split('●')[0];
-    const quotedMessage = targetMessage.length > 30 ? targetMessage.substring(0, 30) + "..." : targetMessage;
-    setInput(prev => `${prev}@${cleanName} ("${quotedMessage}") `);
   };
 
   const formatNotif = (num: number) => {
@@ -148,6 +124,31 @@ export default function Home() {
     return `Selamat ${timeOfDay}, `;
   };
 
+  // --- ADMIN & TAG ACTIONS ---
+  const handleTag = (targetUsername: string) => {
+    const cleanName = targetUsername.split('●')[0];
+    setInput(prev => `${prev}@${cleanName} `);
+  };
+
+  const addBlockedWord = async () => {
+    if (!newBadWord.trim()) return;
+    await supabase.from('blocked_words').insert([{ word: newBadWord.trim() }]);
+    setNewBadWord('');
+    fetchData();
+  };
+
+  const removeBlockedWord = async (word: string) => {
+    await supabase.from('blocked_words').delete().eq('word', word);
+    fetchData();
+  };
+
+  const handleReply = (targetUsername: string, targetMessage: string) => {
+    const cleanName = targetUsername.split('●')[0];
+    const quotedMessage = targetMessage.length > 30 ? targetMessage.substring(0, 30) + "..." : targetMessage;
+    setInput(prev => `${prev}@${cleanName} ("${quotedMessage}") `);
+  };
+
+  // --- AUTH & DATA FETCHING ---
   const handleLogout = async () => {
     await supabase.auth.signOut();
     sessionStorage.clear();
@@ -249,6 +250,7 @@ export default function Home() {
     } catch (err) { console.error("Fetch data error:", err); setMessages([]); }
   }, [chatMode, activeTab, selectedPrivateUser, currentDeviceId, isAuth]);
 
+  // --- LIFECYCLE HOOKS ---
   useEffect(() => {
     if (!localStorage.getItem('device_id')) {
       localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
@@ -304,6 +306,7 @@ export default function Home() {
     return () => { void supabase.removeChannel(channel); };
   }, [mounted, fetchData]);
 
+  // --- HANDLERS ---
   const handleAdminLogin = async () => {
     const { error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPass });
     if (error) alert("Login Admin Gagal");
@@ -316,7 +319,6 @@ export default function Home() {
   const handleUserLogin = async () => {
     if (!username.trim()) return alert("Masukkan nama Anda!");
 
-    // --- LOGIKA VALIDASI ---
     if (containsBlockedWord(username)) {
       return alert("Nama Anda mengandung kata yang dilarang. Silakan gunakan nama lain.");
     }
@@ -386,7 +388,6 @@ export default function Home() {
     if (!msg) return;
     const newName = prompt("Edit nama untuk device ini:", msg.username);
     
-    // --- LOGIKA VALIDASI EDIT NAMA ---
     if (newName && containsBlockedWord(newName)) {
       return alert("Nama mengandung kata terlarang!");
     }
@@ -403,6 +404,7 @@ export default function Home() {
   const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); }
   const inviteToPrivate = (id: string, name: string) => { setChatMode('private'); setSelectedPrivateUser(id); }
 
+  // --- RENDER ---
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
 
   return (
@@ -545,8 +547,18 @@ export default function Home() {
               <div>
                 <h3 className="font-bold text-[10px] text-gray-700 mb-2">Daftar Kata Terblokir:</h3>
                 <div className="flex gap-2 mb-3">
-                  <input className="flex-1 p-2 rounded-lg text-xs border border-gray-300" placeholder="Tambah kata..." value={newBadWord} onChange={(e) => setNewBadWord(e.target.value)} />
-                  <button onClick={addBlockedWord} className="bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-bold">Tambah</button>
+                  <input
+                    className="flex-1 p-2.5 rounded-lg text-sm border border-gray-400 text-black bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                    placeholder="Tambah kata..."
+                    value={newBadWord}
+                    onChange={(e) => setNewBadWord(e.target.value)}
+                  />
+                  <button
+                    onClick={addBlockedWord}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-red-700 transition-all"
+                  >
+                    Tambah
+                  </button>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {blockedWords.map((word, idx) => (
