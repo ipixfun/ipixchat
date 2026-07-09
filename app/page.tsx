@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from './supabaseClient';
 
 export default function Home() {
@@ -24,8 +24,33 @@ export default function Home() {
   
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<string | null>(null);
   const [privateUsers, setPrivateUsers] = useState<any[]>([]);
-
+  
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
+
+  // 1. Fungsi untuk Balas dengan kutipan
+  const handleReply = (targetUsername: string, targetMessage: string) => {
+    const cleanName = targetUsername.split('●')[0];
+    const quotedMessage = targetMessage.length > 30 ? targetMessage.substring(0, 30) + "..." : targetMessage;
+    setInput(prev => `${prev}@${cleanName} ("${quotedMessage}") `);
+  };
+
+  // 2. Fungsi untuk Tahan/Hold hanya @User
+  const handleTagHold = (targetUsername: string) => {
+    const cleanName = targetUsername.split('●')[0];
+    setInput(prev => `${prev}@${cleanName} `);
+  };
+
+  const handleHoldStart = (targetUsername: string) => {
+    timerRef.current = setTimeout(() => {
+      handleTagHold(targetUsername);
+      if (window.navigator.vibrate) window.navigator.vibrate(100);
+    }, 500);
+  };
+
+  const handleHoldEnd = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  };
 
   const formatNotif = (num: number) => {
     if (num >= 1000) return (num / 1000).toFixed(1).replace('.0', '') + 'k';
@@ -87,10 +112,8 @@ export default function Home() {
   const fetchData = useCallback(async () => {
     try {
       const { data: bData } = await supabase.from('blocked_users').select('*');
-
       let query = supabase.from('messages').select('*').order('created_at', { ascending: true });
 
-      // PERBAIKAN LOGIKA QUERY PRIVATE
       if (chatMode === 'private') {
         if (activeTab === 'user' && currentDeviceId) {
           query = query.eq('is_private', true)
@@ -99,7 +122,6 @@ export default function Home() {
           query = query.eq('is_private', true)
             .or(`device_id.eq.${selectedPrivateUser},private_with.eq.${selectedPrivateUser}`);
         } else {
-            // Default untuk admin yang belum pilih user
             query = query.eq('is_private', true).eq('device_id', 'none'); 
         }
       } else {
@@ -107,7 +129,6 @@ export default function Home() {
       }
 
       const { data: mData } = await query;
-
       if (isAuth && currentDeviceId) {
         let countQuery = supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', true);
         if (activeTab === 'user') {
@@ -285,12 +306,9 @@ export default function Home() {
     }
 
     setSending(true);
-
     const isPrivate = chatMode === 'private';
     let privateWith = null;
     if (isPrivate) {
-      // PERBAIKAN LOGIKA PRIVATE_WITH
-      // User selalu kirim ke 'admin', Admin kirim ke 'device_id' user yang dipilih
       privateWith = activeTab === 'user' ? 'admin' : selectedPrivateUser;
     }
 
@@ -398,22 +416,16 @@ export default function Home() {
         <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full">Keluar</button>
         <div className="flex justify-between items-center">
           <div className="flex flex-col">
-  {/* Baris 1: Greeting */}
-  <span className="text-[10px] text-gray-800 uppercase tracking-wider">
-    {getGreeting().replace(',', '')}
-  </span>
-  {/* Baris 2: Username */}
-  <span className="text-[9px] font-medium text-blue-800 leading-tight">
-    {username}
-  </span>
-</div>
+            <span className="text-[10px] text-gray-800 uppercase tracking-wider">{getGreeting().replace(',', '')}</span>
+            <span className="text-[9px] font-medium text-blue-800 leading-tight">{username}</span>
+          </div>
           <div className="text-center flex-1 flex flex-col items-center">
             <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-bold text-sm underline flex items-center gap-1">
               ipix.my.id
             </a>
             {activeTab === 'user' && (
               <div className="text-[10px] text-gray-500 mt-0.5">
-			  <span className={`inline-block w-2 h-2 rounded-full ${isAdminOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>   
+                <span className={`inline-block w-2 h-2 rounded-full ${isAdminOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>   
                 {isAdminOnline ? ' Admin Online' : ` Admin Offline • ${adminOfflineTime}`}
               </div>
             )}
@@ -432,13 +444,6 @@ export default function Home() {
           </button>
         </div>
       </div>
-
-      {activeTab === 'admin' && chatMode === 'private' && selectedPrivateUser && (
-        <div className="p-2 bg-yellow-200 text-yellow-800 text-xs text-center border-b font-bold">
-          Chat Private dengan: {selectedPrivateUser.substring(0,8)}...
-          <button onClick={() => setSelectedPrivateUser(null)} className="ml-4 underline text-red-600">Tutup</button>
-        </div>
-      )}
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser ? (
@@ -474,7 +479,16 @@ export default function Home() {
             <div className="h-full flex items-center justify-center text-gray-500 italic py-20">Belum ada pesan di chat ini.</div>
           ) : (
             messages.map((m) => (
-              <div key={m.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full">
+              <div 
+                key={m.id} 
+                className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none"
+                onMouseDown={() => handleHoldStart(m.username)}
+                onMouseUp={handleHoldEnd}
+                onMouseLeave={handleHoldEnd}
+                onTouchStart={() => handleHoldStart(m.username)}
+                onTouchEnd={handleHoldEnd}
+                onContextMenu={(e) => e.preventDefault()}
+              >
                 <div className="flex justify-between items-center mb-1">
                   <div className="flex items-center gap-2">
                     <b className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px]`}>{m.username}</b>
@@ -490,6 +504,11 @@ export default function Home() {
                 <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
                 
                 <div className="flex gap-4 mt-2 text-[10px] flex-wrap">
+                  {/* Tombol Balas (dengan Kutipan) */}
+                  {chatMode === 'public' && (
+                    <button onClick={() => handleReply(m.username, m.pesan)} className="text-emerald-600 font-bold underline">Balas</button>
+                  )}
+                  {/* Tombol Admin */}
                   {activeTab === 'admin' && (
                     <>
                       <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit</button>
