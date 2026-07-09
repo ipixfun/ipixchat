@@ -26,7 +26,7 @@ export default function Home() {
 
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
 
-  // Fungsi helper untuk format angka notifikasi
+  // --- FUNGSI FORMAT & LOGIKA ---
   const formatNotif = (num: number) => {
     if (num >= 1000) return (num / 1000).toFixed(1).replace('.0', '') + 'k';
     return num.toString();
@@ -83,6 +83,7 @@ export default function Home() {
     await supabase.auth.signOut();
     sessionStorage.clear();
     setIsAuth(false);
+    // Kita tidak hapus saved_username dari localStorage agar tetap persisten saat login kembali
     window.location.reload();
   };
 
@@ -208,12 +209,15 @@ export default function Home() {
       localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
     }
 
+    // Ambil username dari localStorage jika ada
+    const savedName = localStorage.getItem('saved_username');
+    if (savedName) setUsername(savedName);
+
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const savedAuth = sessionStorage.getItem('is_auth');
       if (session || savedAuth === 'true') {
         setIsAuth(true);
-        setUsername(sessionStorage.getItem('saved_username') || '');
         setActiveTab((sessionStorage.getItem('active_tab') as 'user' | 'admin') || 'user');
       }
       setMounted(true);
@@ -240,7 +244,6 @@ export default function Home() {
       setActiveTab('admin');
       setUsername('Admin●ipix.my.id');
       sessionStorage.setItem('is_auth', 'true');
-      sessionStorage.setItem('saved_username', 'Admin●ipix.my.id');
       sessionStorage.setItem('active_tab', 'admin');
       setSelectedPrivateUser(null);
     }
@@ -248,6 +251,10 @@ export default function Home() {
 
   const handleUserLogin = async () => {
     if (!username.trim()) return alert("Masukkan nama Anda!");
+    
+    // Simpan ke localStorage agar permanen
+    localStorage.setItem('saved_username', username);
+    
     const cid = localStorage.getItem('device_id');
     const { data: bData } = await supabase.from('blocked_users').select('*').eq('device_id', cid);
     if (bData && bData.length > 0) {
@@ -256,7 +263,6 @@ export default function Home() {
     }
     setIsAuth(true);
     sessionStorage.setItem('is_auth', 'true');
-    sessionStorage.setItem('saved_username', username);
     sessionStorage.setItem('active_tab', 'user');
   };
 
@@ -363,7 +369,13 @@ export default function Home() {
           <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'admin' ? 'bg-emerald-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('admin')}>Admin</button>
         </div>
         {activeTab === 'user' ? (
-          <input className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama Anda" value={username} onChange={(e) => setUsername(e.target.value)} />
+          <input 
+            className="w-full max-w-sm p-3 rounded text-black mb-3" 
+            placeholder="Nama Anda (Max 20)" 
+            value={username} 
+            onChange={(e) => setUsername(e.target.value.substring(0, 20))} 
+            maxLength={20}
+          />
         ) : (
           <div className="w-full max-w-sm">
             <input className="w-full p-3 rounded text-black mb-3" placeholder="Email Admin" type="email" onChange={(e) => setAdminEmail(e.target.value)} />
@@ -377,6 +389,7 @@ export default function Home() {
 
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden">
+      {/* ... (bagian render bawah tetap sama) ... */}
       <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b border-white/20">
         <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full">Keluar</button>
         <div className="flex justify-between items-center">
