@@ -53,16 +53,29 @@ export default function Home() {
 
   const formatMessageTime = (dateStr: string) => {
     const date = new Date(dateStr);
-    const options: Intl.DateTimeFormatOptions = { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' };
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    };
     return date.toLocaleDateString('id-ID', options).replace(',', '');
   };
 
   const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return "Selamat pagi, ";
-    if (hour >= 12 && hour < 15) return "Selamat siang, ";
-    if (hour >= 15 && hour < 18) return "Selamat sore, ";
-    return "Selamat malam, ";
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const wibTime = new Date(utc + (7 * 3600000));
+    const hour = wibTime.getHours();
+
+    let timeOfDay = "";
+    if (hour >= 5 && hour < 12) timeOfDay = "pagi";
+    else if (hour >= 12 && hour < 15) timeOfDay = "siang";
+    else if (hour >= 15 && hour < 18) timeOfDay = "sore";
+    else timeOfDay = "malam";
+
+    return `Selamat ${timeOfDay}, `;
   };
 
   const handleLogout = async () => {
@@ -88,6 +101,7 @@ export default function Home() {
       }
 
       const { data: mData } = await query;
+
       if (isAuth && currentDeviceId) {
         let countQuery = supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', true);
         if (activeTab === 'user') countQuery = countQuery.or(`device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}`);
@@ -95,10 +109,19 @@ export default function Home() {
         setPrivateNotifCount(count || 0);
       }
 
+      if (bData) {
+        setBlockedList(bData);
+        if (currentDeviceId && bData.some(b => b.device_id === currentDeviceId)) {
+          window.location.replace("https://ipix.my.id/chat");
+          return;
+        }
+      }
+
       if (mData) {
         const blockedDeviceIds = bData?.map(b => b.device_id) || [];
         setMessages(mData.filter(m => !blockedDeviceIds.includes(m.device_id)));
-        
+
+        // Logika Status Admin
         const lastAdminMsg = mData.filter(m => m.username === 'Admin●ipix.my.id').pop();
         if (lastAdminMsg) {
           const lastDate = new Date(lastAdminMsg.created_at);
@@ -109,11 +132,11 @@ export default function Home() {
 
         const statusMap: Record<string, { online: boolean; offlineTime?: string }> = {};
         mData.forEach((msg: any) => {
-            if (msg.username !== 'Admin●ipix.my.id') {
-                const lastDate = new Date(msg.created_at);
-                const isOnline = Date.now() - lastDate.getTime() < 300000;
-                statusMap[msg.username] = { online: isOnline, offlineTime: !isOnline ? getTimeAgo(lastDate) : undefined };
-            }
+          if (msg.username !== 'Admin●ipix.my.id') {
+            const lastDate = new Date(msg.created_at);
+            const isOnline = Date.now() - lastDate.getTime() < 300000;
+            statusMap[msg.username] = { online: isOnline, offlineTime: !isOnline ? getTimeAgo(lastDate) : undefined };
+          }
         });
         setUserStatus(statusMap);
       }
@@ -123,7 +146,9 @@ export default function Home() {
         if (allPrivate) {
           const userMap = new Map();
           const counts: Record<string, number> = {};
-          allPrivate.forEach(msg => { if (msg.username !== 'Admin●ipix.my.id' && msg.device_id !== currentDeviceId) counts[msg.device_id] = (counts[msg.device_id] || 0) + 1; });
+          allPrivate.forEach(msg => {
+            if (msg.username !== 'Admin●ipix.my.id' && msg.device_id !== currentDeviceId) counts[msg.device_id] = (counts[msg.device_id] || 0) + 1;
+          });
           allPrivate.forEach(msg => {
             if (msg.username !== 'Admin●ipix.my.id' && msg.device_id !== currentDeviceId && !userMap.has(msg.device_id)) {
               userMap.set(msg.device_id, { device_id: msg.device_id, username: msg.username, last_active: msg.created_at, count: counts[msg.device_id] || 0 });
@@ -157,34 +182,63 @@ export default function Home() {
     return () => { void supabase.removeChannel(channel); };
   }, [mounted, fetchData]);
 
+  const handleAdminLogin = async () => {
+    const { error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPass });
+    if (error) alert("Login Admin Gagal: " + error.message);
+    else {
+      setIsAuth(true); setActiveTab('admin'); setUsername('Admin●ipix.my.id');
+      sessionStorage.setItem('is_auth', 'true'); sessionStorage.setItem('active_tab', 'admin');
+    }
+  };
+
+  const handleUserLogin = async () => {
+    if (!username.trim()) return alert("Masukkan nama Anda!");
+    localStorage.setItem('saved_username', username);
+    const cid = localStorage.getItem('device_id');
+    const { data: bData } = await supabase.from('blocked_users').select('*').eq('device_id', cid);
+    if (bData && bData.length > 0) { window.location.replace("https://ipix.my.id/chat"); return; }
+    setIsAuth(true); sessionStorage.setItem('is_auth', 'true'); sessionStorage.setItem('active_tab', 'user');
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || sending) return;
 
+    // Batasan 5 chat / 30 menit (kecuali admin)
     if (username !== 'Admin●ipix.my.id') {
-        const now = Date.now();
-        const raw = localStorage.getItem('msg_timestamps');
-        const timestamps = raw ? JSON.parse(raw) : [];
-        const valid = timestamps.filter((t: number) => now - t < 1800000);
-        if (valid.length >= 5) { alert("⚠️ Limit: Maksimal 5 chat per 30 menit."); return; }
-        localStorage.setItem('msg_timestamps', JSON.stringify([...valid, now]));
+      const now = Date.now();
+      const rawData = localStorage.getItem('msg_timestamps');
+      const timestamps = rawData ? JSON.parse(rawData) : [];
+      // Filter 30 menit (30 * 60 * 1000 = 1.800.000 ms)
+      const validTimestamps = timestamps.filter((t: number) => now - t < 1800000);
+      
+      if (validTimestamps.length >= 5) {
+        alert("⚠️ Limit chat: Maksimal 5 pesan per 30 menit. Harap bersabar.");
+        return;
+      }
+      localStorage.setItem('msg_timestamps', JSON.stringify([...validTimestamps, now]));
     }
+
+    if (activeTab === 'admin' && chatMode === 'private' && selectedPrivateUser === currentDeviceId) {
+      alert("Tidak bisa chat dengan diri sendiri!"); return;
+    }
+
+    const now = Date.now();
+    if (now - lastSent < 3000) { alert("Jangan spam! Tunggu 3 detik ya."); return; }
 
     setSending(true);
     const isPrivate = chatMode === 'private';
-    const payload = { username, pesan: input.trim(), device_id: localStorage.getItem('device_id') || 'guest', user_browser: getBrowserInfo(), is_private: isPrivate, private_with: isPrivate ? (activeTab === 'user' ? 'admin' : selectedPrivateUser) : null };
+    const payload = {
+      username, pesan: input.trim(), device_id: localStorage.getItem('device_id') || 'guest',
+      user_browser: getBrowserInfo(), is_private: isPrivate,
+      private_with: isPrivate ? (activeTab === 'user' ? 'admin' : selectedPrivateUser) : null,
+    };
+
     const { error } = await supabase.from('messages').insert([payload]);
     if (error) alert("Gagal: " + error.message);
-    else { setInput(''); setLastSent(Date.now()); await fetchData(); }
+    else { setInput(''); setLastSent(now); await fetchData(); }
     setSending(false);
   };
-
-  const editMsg = async (id: number) => { const newText = prompt("Edit pesan:", messages.find(m => m.id === id)?.pesan || ""); if (newText) { await supabase.from('messages').update({ pesan: newText }).eq('id', id); fetchData(); } };
-  const editNama = async (id: number) => { const m = messages.find(m => m.id === id); if (!m) return; const newName = prompt("Ubah nama user:", m.username); if (newName) { await supabase.from('messages').update({ username: newName }).eq('device_id', m.device_id); fetchData(); } };
-  const deleteMsg = async (id: number) => { if (confirm("Hapus pesan?")) { await supabase.from('messages').delete().eq('id', id); fetchData(); } };
-  const blockUser = async (device_id: string, username: string) => { if (confirm(`Blokir ${username}?`)) { await supabase.from('blocked_users').insert([{ device_id, username }]); fetchData(); } };
-  const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
-  const inviteToPrivate = (device_id: string, username: string) => { if (confirm(`Ajak ${username} ke private chat?`)) { setChatMode('private'); setSelectedPrivateUser(device_id); } };
 
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
 
@@ -197,14 +251,14 @@ export default function Home() {
           <button className={`px-6 py-2 rounded-full font-bold ${activeTab === 'admin' ? 'bg-emerald-600 ring-2 ring-white' : 'bg-gray-400'}`} onClick={() => setActiveTab('admin')}>Admin</button>
         </div>
         {activeTab === 'user' ? (
-          <input className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama Anda" value={username} onChange={(e) => setUsername(e.target.value.substring(0, 20))} maxLength={20} />
+          <input className="w-full max-w-sm p-3 rounded text-black mb-3" placeholder="Nama (max 20 huruf) ya sayang ..." value={username} onChange={(e) => setUsername(e.target.value.substring(0, 20))} maxLength={20} />
         ) : (
           <div className="w-full max-w-sm">
             <input className="w-full p-3 rounded text-black mb-3" placeholder="Email Admin" type="email" onChange={(e) => setAdminEmail(e.target.value)} />
             <input type="password" className="w-full p-3 rounded text-black mb-3" placeholder="Password Admin" onChange={(e) => setAdminPass(e.target.value)} />
           </div>
         )}
-        <button onClick={() => activeTab === 'admin' ? (async() => { const { error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPass }); if (!error) { setIsAuth(true); setActiveTab('admin'); setUsername('Admin●ipix.my.id'); } else alert("Login Gagal");})() : (setIsAuth(true) || localStorage.setItem('saved_username', username))} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
+        <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : handleUserLogin()} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
       </div>
     );
   }
@@ -216,49 +270,48 @@ export default function Home() {
         <div className="flex justify-between items-center">
           <div className="text-sm font-medium text-gray-700">
             {getGreeting()}<span className="text-blue-600 font-semibold">{username}</span>
-            <div className="text-[10px] mt-0.5">Admin: {isAdminOnline ? <span className="text-green-600 font-bold">Online</span> : <span className="text-gray-500">Offline ({adminOfflineTime || "..."})</span>}</div>
+            <div className="text-[10px] mt-0.5">
+              Admin: {isAdminOnline ? <span className="text-green-600 font-bold">Online</span> : <span className="text-gray-500">Offline ({adminOfflineTime || "..."})</span>}
+            </div>
           </div>
           <div className="text-center flex-1">
-            <div className="text-lg font-black text-gray-800">iPixChat</div>
+            <a href="https://ipix.my.id" target="_blank" className="text-emerald-700 font-bold text-[10px] underline">ipix.my.id</a>
           </div>
         </div>
+
         <div className="flex mt-3 bg-gray-100 rounded-full p-1 shadow">
-          <button onClick={() => { setChatMode('public'); setSelectedPrivateUser(null); }} className={`flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'}`}>Public Chat</button>
+          <button onClick={() => { setChatMode('public'); setSelectedPrivateUser(null); }} className={`flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'}`}>😎 Public Chat</button>
           <button onClick={() => { setChatMode('private'); setSelectedPrivateUser(null); }} className={`relative flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'}`}>
-            {chatMode === 'private' ? '🔒 Private ' : ''} Chat dengan Admin {privateNotifCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-5 h-5 px-1 flex items-center justify-center rounded-full animate-bounce">{formatNotif(privateNotifCount)}</span>}
+           🔐 Chat dengan admin {privateNotifCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-5 h-5 px-1 flex items-center justify-center rounded-full animate-bounce">{formatNotif(privateNotifCount)}</span>}
           </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser ? (
-            <div className="space-y-3">
+             <div className="space-y-3">
                 {privateUsers.map(user => (
                   <div key={user.device_id} onClick={() => setSelectedPrivateUser(user.device_id)} className="bg-white p-4 rounded-2xl border flex justify-between items-center cursor-pointer">
                     <div><div className="font-semibold text-blue-700">{user.username}</div><div className="text-xs text-gray-500">ID: {user.device_id.substring(0,8)}...</div></div>
                     <div className="text-right">{user.count > 0 && <div className="bg-red-500 text-white text-[10px] font-bold px-2 rounded-full">{user.count} Pesan</div>}</div>
                   </div>
                 ))}
-            </div>
+             </div>
         ) : (
             messages.map((m) => (
               <div key={m.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full">
                 <div className="flex justify-between items-center mb-1">
                   <div className="flex items-center gap-2">
                     <b className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px]`}>{m.username}</b>
-                    <span className="text-[9px] px-1 bg-gray-100 text-gray-500 rounded">{formatMessageTime(m.created_at)}</span>
+                    {m.username === 'Admin●ipix.my.id' ? (
+                      <span className={`text-[9px] px-1 rounded ${isAdminOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span>
+                    ) : userStatus[m.username] && (
+                      <span className={`text-[9px] px-1 rounded ${userStatus[m.username].online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>
+                    )}
                   </div>
+                  <span className="text-[10px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
                 </div>
                 <div className="text-sm text-gray-800 break-words">{m.pesan}</div>
-                {activeTab === 'admin' && (
-                  <div className="flex gap-4 mt-2 text-[10px] flex-wrap">
-                    <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit</button>
-                    <button onClick={() => editNama(m.id)} className="text-purple-600 font-bold underline">Nama</button>
-                    <button onClick={() => deleteMsg(m.id)} className="text-red-600 font-bold underline">Hapus</button>
-                    <button onClick={() => blockUser(m.device_id, m.username)} className="text-gray-400 font-bold underline">Blok</button>
-                    <button onClick={() => inviteToPrivate(m.device_id, m.username)} className="text-emerald-600 font-bold underline">Ajak Private</button>
-                  </div>
-                )}
               </div>
             ))
         )}
