@@ -29,6 +29,15 @@ export default function Home() {
   // --- SENSOR STATE ---
   const [blockedWords, setBlockedWords] = useState<string[]>([]);
   const [newBadWord, setNewBadWord] = useState('');
+
+  // --- TAMBAH ADMIN STATE ---
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminUser, setNewAdminUser] = useState('');
+  const [newAdminPass, setNewAdminPass] = useState('');
+
+  // --- SHOW/HIDE PASSWORD STATE ---
+  const [showAdminPass, setShowAdminPass] = useState(false);
+  const [showNewAdminPass, setShowNewAdminPass] = useState(false);
   
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
 
@@ -191,7 +200,6 @@ export default function Home() {
       }
 
       if (mData) {
-        // Cek status online admin dinamis berdasarkan keberadaan teks mengandung 'Admin'
         const lastAdminMsg = mData.filter(m => m.username.toLowerCase().includes('admin')).pop();
         if (lastAdminMsg) {
           const lastDate = new Date(lastAdminMsg.created_at);
@@ -295,14 +303,14 @@ export default function Home() {
     return () => { void supabase.removeChannel(channel); };
   }, [mounted, fetchData]);
 
+  // --- LOGIN KEMBALI KE TABEL MANUAl (CASE-INSENSITIVE) ---
   const handleAdminLogin = async () => {
     if (!adminEmail.trim() || !adminPass.trim()) return alert("Masukkan Email & Password!");
 
-    // Verifikasi menggunakan tabel custom admin_accounts dan ambil username dari database
     const { data, error } = await supabase
       .from('admin_accounts')
       .select('*')
-      .eq('email', adminEmail.trim())
+      .eq('email', adminEmail.trim().toLowerCase())
       .eq('password', adminPass.trim())
       .maybeSingle();
 
@@ -366,6 +374,30 @@ export default function Home() {
     sessionStorage.setItem('active_tab', 'user');
   };
 
+  // --- TAMBAH ADMIN KEMBALI KE TABEL MANUAL ---
+  const handleCreateAdmin = async () => {
+    if (!newAdminEmail.trim() || !newAdminUser.trim() || !newAdminPass.trim()) {
+      return alert("Semua kolom Tambah Admin wajib diisi!");
+    }
+
+    const { error } = await supabase
+      .from('admin_accounts')
+      .insert([{
+        email: newAdminEmail.trim().toLowerCase(),
+        username: newAdminUser.trim(),
+        password: newAdminPass.trim()
+      }]);
+
+    if (error) {
+      alert("Gagal menambah admin! Kemungkinan email sudah digunakan.");
+    } else {
+      alert(`Berhasil menambahkan Admin baru: ${newAdminUser}`);
+      setNewAdminEmail('');
+      setNewAdminUser('');
+      setNewAdminPass('');
+    }
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || sending) return;
@@ -405,9 +437,8 @@ export default function Home() {
   const editNama = async (id: number) => {
     const msg = messages.find(m => m.id === id);
     if (!msg) return;
-    const newName = prompt("Edit nama untuk akun/device ini (Bebas untuk Admin):", msg.username);
+    const newName = prompt("Edit nama untuk akun/device ini:", msg.username);
     if (newName && newName.trim()) { 
-      // Jika yang diedit adalah akun Admin itu sendiri, perbarui tabel admin_accounts juga
       if (msg.username.toLowerCase().includes('admin')) {
         await supabase.from('admin_accounts').update({ username: newName.trim() }).eq('username', msg.username);
         setUsername(newName.trim());
@@ -415,8 +446,6 @@ export default function Home() {
       } else {
         await supabase.from('profiles').update({ username: newName.trim() }).eq('device_id', msg.device_id);
       }
-      
-      // Update sisa seluruh riwayat pesan dengan device_id tersebut
       await supabase.from('messages').update({ username: newName.trim() }).eq('device_id', msg.device_id); 
       fetchData(); 
     }
@@ -458,13 +487,22 @@ export default function Home() {
                           value={adminEmail || ""}
                           onChange={(e) => setAdminEmail(e.target.value)} 
                         />
-                        <input 
-                          type="password" 
-                          className="w-full p-3 rounded text-black mb-4 shadow-lg" 
-                          placeholder="Password Admin" 
-                          value={adminPass || ""}
-                          onChange={(e) => setAdminPass(e.target.value)} 
-                        />
+                        <div className="w-full relative mb-4">
+                            <input 
+                              type={showAdminPass ? "text" : "password"} 
+                              className="w-full p-3 pr-24 rounded text-black shadow-lg bg-white" 
+                              placeholder="Password Admin" 
+                              value={adminPass || ""}
+                              onChange={(e) => setAdminPass(e.target.value)} 
+                            />
+                            <button 
+                              type="button" 
+                              onClick={() => setShowAdminPass(!showAdminPass)} 
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500 hover:text-gray-800 bg-gray-200 px-2 py-1 rounded"
+                            >
+                              {showAdminPass ? "Sembunyikan" : "Lihat"}
+                            </button>
+                        </div>
                         <button onClick={handleAdminLogin} className="w-full bg-white text-emerald-600 px-8 py-3 rounded-full font-bold shadow-md hover:bg-gray-100 transition-all">Verifikasi Admin</button>
                     </div>
                 )}
@@ -476,7 +514,7 @@ export default function Home() {
                     <div className="flex justify-between items-center">
                         <div className="flex flex-col">
                             <span className="text-[10px] text-gray-800 uppercase tracking-wider">{getGreeting().replace(',', '')}</span>
-                            <span className="text-[9px] font-medium text-blue-800 leading-tight">{username}</span>
+                            <span className="text-[9px] font-medium text-blue-800 leading-tight">{username || ""}</span>
                         </div>
                         <div className="text-center flex-1 flex flex-col items-center">
                             <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-bold text-sm underline flex items-center gap-1">ipix.my.id</a>
@@ -557,15 +595,41 @@ export default function Home() {
                 </div>
 
                 {activeTab === 'admin' && (
-                    <div className="p-3 bg-gray-200 border-t grid grid-cols-2 gap-4">
-                        <div>
-                            <strong className="text-black text-[10px]">User Terblokir: {blockedList.length}</strong>
-                            <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="p-3 bg-gray-200 border-t grid grid-cols-2 gap-4 max-h-56 overflow-y-auto">
+                        <div className="space-y-2">
+                            <strong className="text-black text-[10px] block">User Terblokir: {blockedList.length}</strong>
+                            <div className="flex flex-wrap gap-2">
                                 {blockedList.map(b => (
                                     <span key={b.device_id} className="cursor-pointer text-blue-800 underline hover:text-blue-600 text-[10px]" onClick={() => unblock(b.device_id)}>
                                         {b.username || b.device_id.substring(0,5)} (x)
                                     </span>
                                 ))}
+                            </div>
+                            
+                            <hr className="border-gray-300 my-1" />
+                            
+                            {/* --- INPUT TAMBAH ADMIN MANUAL --- */}
+                            <div className="bg-white p-2 rounded-lg border border-gray-300 space-y-1">
+                                <h3 className="font-bold text-[10px] text-gray-700">➕ Tambah Admin Baru</h3>
+                                <input className="w-full p-1 rounded border text-[10px]" placeholder="Email Baru" value={newAdminEmail} onChange={(e) => setNewAdminEmail(e.target.value)} />
+                                <input className="w-full p-1 rounded border text-[10px]" placeholder="Username (misal: Admin2)" value={newAdminUser} onChange={(e) => setNewAdminUser(e.target.value)} />
+                                <div className="relative w-full">
+                                    <input 
+                                      type={showNewAdminPass ? "text" : "password"} 
+                                      className="w-full p-1 pr-14 rounded border text-[10px] bg-white" 
+                                      placeholder="Password" 
+                                      value={newAdminPass} 
+                                      onChange={(e) => setNewAdminPass(e.target.value)} 
+                                    />
+                                    <button 
+                                      type="button" 
+                                      onClick={() => setShowNewAdminPass(!showNewAdminPass)} 
+                                      className="absolute right-1 top-1/2 -translate-y-1/2 text-[8px] font-bold bg-gray-200 px-1 rounded text-gray-600"
+                                    >
+                                      {showNewAdminPass ? "Sembunyikan" : "Lihat"}
+                                    </button>
+                                </div>
+                                <button onClick={handleCreateAdmin} className="w-full bg-emerald-600 text-white py-1 rounded text-[10px] font-bold shadow hover:bg-emerald-700">Simpan Admin</button>
                             </div>
                         </div>
                         
