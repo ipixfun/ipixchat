@@ -260,8 +260,7 @@ export default function Home() {
         if (profileData && profileData.username) {
           setUsername(profileData.username);
           setIsExistingUser(true);
-          setIsAuth(true); 
-          sessionStorage.setItem('is_auth', 'true');
+          // Berhenti memaksa auto-bypass login di sini agar tertahan di menu login awal
           sessionStorage.setItem('saved_username', profileData.username);
           sessionStorage.setItem('active_tab', 'user');
         }
@@ -413,7 +412,7 @@ export default function Home() {
                         />
                     </div>
                 )}
-                <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : handleUserLogin()} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold">Masuk Chat</button>
+                <button onClick={() => activeTab === 'admin' ? handleAdminLogin() : handleUserLogin()} className="bg-white text-emerald-600 px-8 py-3 rounded-full font-bold mt-2">Masuk Chat</button>
              </div>
         ) : (
             <>
