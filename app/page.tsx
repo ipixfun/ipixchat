@@ -26,7 +26,7 @@ export default function Home() {
   const [selectedPrivateUser, setSelectedPrivateUser] = useState<string | null>(null);
   const [privateUsers, setPrivateUsers] = useState<any[]>([]);
 
-  // --- SENSOR STATE ---
+  // --- SENSOR & BLOCKED USERNAME STATE ---
   const [blockedWords, setBlockedWords] = useState<string[]>([]);
   const [newBadWord, setNewBadWord] = useState('');
 
@@ -303,7 +303,6 @@ export default function Home() {
     return () => { void supabase.removeChannel(channel); };
   }, [mounted, fetchData]);
 
-  // --- LOGIN KEMBALI KE TABEL MANUAl (CASE-INSENSITIVE) ---
   const handleAdminLogin = async () => {
     if (!adminEmail.trim() || !adminPass.trim()) return alert("Masukkan Email & Password!");
 
@@ -327,6 +326,7 @@ export default function Home() {
     }
   };
 
+  // --- LOGIKA LOGIN USER DENGAN VALIDASI KATA TERBLOKIR ---
   const handleUserLogin = async () => {
     const cleanName = username.trim();
     if (!cleanName) return alert("Masukkan nama Anda!");
@@ -335,8 +335,18 @@ export default function Home() {
       return alert("Nama terlalu panjang! Maksimal 20 karakter.");
     }
 
+    // 1. Cek proteksi kata 'admin' bawaan
     if (cleanName.toLowerCase().includes('admin')) {
       return alert("Nama tidak boleh mengandung kata 'Admin'!");
+    }
+
+    // 2. Cek apakah nama mengandung salah satu kata dari tabel blocked_words
+    const isBlockedName = blockedWords.some(word => 
+      word.trim() !== "" && cleanName.toLowerCase().includes(word.toLowerCase())
+    );
+
+    if (isBlockedName) {
+      return alert("Nama ini dilarang atau diblokir oleh Admin! Silakan gunakan nama lain.");
     }
 
     const cid = localStorage.getItem('device_id') || 'guest';
@@ -374,7 +384,6 @@ export default function Home() {
     sessionStorage.setItem('active_tab', 'user');
   };
 
-  // --- TAMBAH ADMIN KEMBALI KE TABEL MANUAL ---
   const handleCreateAdmin = async () => {
     if (!newAdminEmail.trim() || !newAdminUser.trim() || !newAdminPass.trim()) {
       return alert("Semua kolom Tambah Admin wajib diisi!");
@@ -634,9 +643,10 @@ export default function Home() {
                         </div>
                         
                         <div>
-                            <h3 className="font-bold text-[10px] text-gray-700 mb-2">Daftar Kata Terblokir:</h3>
+                            {/* --- JUDUL DIPERJELAS MENJADI KATA & USERNAME TERBLOKIR --- */}
+                            <h3 className="font-bold text-[10px] text-gray-700 mb-2">Daftar Kata & Nama Terblokir:</h3>
                             <div className="flex gap-2 mb-3">
-                                <input className="flex-1 p-2 rounded-lg text-xs border border-gray-300" placeholder="Tambah kata..." value={newBadWord} onChange={(e) => setNewBadWord(e.target.value)} />
+                                <input className="flex-1 p-2 rounded-lg text-xs border border-gray-300" placeholder="Blokir kata / nama..." value={newBadWord} onChange={(e) => setNewBadWord(e.target.value)} />
                                 <button onClick={addBlockedWord} className="bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-bold">Tambah</button>
                             </div>
                             <div className="flex flex-wrap gap-1">
