@@ -27,7 +27,6 @@ export default function Home() {
   const [blockedWords, setBlockedWords] = useState<string[]>([]);
   const [newBadWord, setNewBadWord] = useState('');
   
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
 
   // --- FUNGSI SENSOR & RENDER ---
@@ -77,6 +76,12 @@ export default function Home() {
     return <div className="text-sm text-gray-800 break-words">{applyCensor(text)}</div>;
   };
 
+  // --- FUNGSI TAG (DIPERBAIKI) ---
+  const handleTag = (targetUsername: string) => {
+    const cleanName = targetUsername.split('●')[0];
+    setInput(prev => `${prev}@${cleanName} `);
+  };
+
   const addBlockedWord = async () => {
     if (!newBadWord.trim()) return;
     await supabase.from('blocked_words').insert([{ word: newBadWord.trim() }]);
@@ -89,26 +94,11 @@ export default function Home() {
     fetchData();
   };
 
-  // --- FUNGSI ASLI ---
   const handleReply = (targetUsername: string, targetMessage: string) => {
     const cleanName = targetUsername.split('●')[0];
     const quotedMessage = targetMessage.length > 30 ? targetMessage.substring(0, 30) + "..." : targetMessage;
     setInput(prev => `${prev}@${cleanName} ("${quotedMessage}") `);
   };
-
-  const handleTagHold = (targetUsername: string) => {
-    const cleanName = targetUsername.split('●')[0];
-    setInput(prev => `${prev}@${cleanName} `);
-  };
-
-  const handleHoldStart = (targetUsername: string) => {
-    timerRef.current = setTimeout(() => {
-      handleTagHold(targetUsername);
-      if (window.navigator.vibrate) window.navigator.vibrate(100);
-    }, 500);
-  };
-
-  const handleHoldEnd = () => { if (timerRef.current) clearTimeout(timerRef.current); };
 
   const formatNotif = (num: number) => {
     if (num >= 1000) return (num / 1000).toFixed(1).replace('.0', '') + 'k';
@@ -297,7 +287,6 @@ export default function Home() {
     
     setSending(true);
 
-    // LOGIKA LIMIT 5 CHAT / 5 MENIT (Kecuali Admin)
     if (username !== 'Admin●ipix.my.id') {
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
         const { count } = await supabase
@@ -401,10 +390,16 @@ export default function Home() {
                         </div>
                     ) : (
                         messages.map((m) => (
-                            <div key={m.id} id={`msg-${m.id}`} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none" onMouseDown={() => handleHoldStart(m.username)} onMouseUp={handleHoldEnd} onMouseLeave={handleHoldEnd} onTouchStart={() => handleHoldStart(m.username)} onTouchEnd={handleHoldEnd} onContextMenu={(e) => e.preventDefault()}>
+                            <div key={m.id} id={`msg-${m.id}`} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none">
                                 <div className="flex justify-between items-center mb-1">
                                     <div className="flex items-center gap-2">
-                                        <b className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px]`}>{m.username}</b>
+                                        {/* NAMA USER KLIK UNTUK TAG */}
+                                        <b 
+                                            onClick={() => handleTag(m.username)} 
+                                            className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px] cursor-pointer hover:underline`}
+                                        >
+                                            {m.username}
+                                        </b>
                                         {m.username === 'Admin●ipix.my.id' ? (
                                             <span className={`text-[9px] px-1 rounded ${isAdminOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span>
                                         ) : userStatus[m.username] && (
