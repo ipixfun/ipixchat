@@ -397,9 +397,16 @@ export default function Home() {
       <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b border-white/20">
         <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full">Keluar</button>
         <div className="flex justify-between items-center">
-          <div className="text-sm font-medium text-gray-700">
-            {getGreeting()}<span className="text-blue-600 font-semibold">{username}</span>
-          </div>
+          <div className="flex flex-col">
+  {/* Baris 1: Greeting */}
+  <span className="text-[10px] text-gray-400 uppercase tracking-wider">
+    {getGreeting().replace(',', '')}
+  </span>
+  {/* Baris 2: Username */}
+  <span className="text-base font-bold text-gray-800 leading-tight">
+    {username}
+  </span>
+</div>
           <div className="text-center flex-1 flex flex-col items-center">
             <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-bold text-sm underline flex items-center gap-1">
               ipix.my.id
