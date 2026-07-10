@@ -47,27 +47,24 @@ export default function Home() {
   // State menu pop-up tindakan admin pesan
   const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
 
-  // --- STATE KAPSUL TOLERANSI (DURASI 5 DETIK) ---
-  const [showCapsule, setShowCapsule] = useState(true); // Default true agar muncul saat awal masuk
+  // --- STATE KAPSUL DUAL-TIMER KONTINU (5 DETIK) ---
+  const [capsuleIndex, setCapsuleIndex] = useState<0 | 1>(0);
+  const [isCapsulePaused, setIsCapsulePaused] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartYRef = useRef<number>(0);
 
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
 
-  // Timout Handler untuk menghilangkan kapsul setelah 5 detik
-  const triggerCapsuleTimeout = () => {
-    setShowCapsule(true);
-    setTimeout(() => {
-      setShowCapsule(false);
-    }, 5000);
-  };
-
-  // Efek memicu hilangnya kapsul 5 detik saat pertama kali masuk/render data
+  // Efek interval untuk memutar pesan setiap 5 detik (kecuali jika sedang di-pause/ditap)
   useEffect(() => {
-    if (isAuth) {
-      triggerCapsuleTimeout();
-    }
-  }, [isAuth]);
+    if (isCapsulePaused) return;
+
+    const interval = setInterval(() => {
+      setCapsuleIndex((prev) => (prev === 0 ? 1 : 0));
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isCapsulePaused]);
 
   // --- HASH LISTENER ---
   useEffect(() => {
@@ -187,27 +184,13 @@ export default function Home() {
     }
   }, [messages, chatMode]);
 
-  // --- DETEKSI PULL-UP TO REFRESH (PAGES BAWAH KE ATAS) UNTUK EMIT KAPSUL ---
+  // --- DETEKSI SCROLL CONTAINER ---
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartYRef.current = e.touches[0].clientY;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!containerRef.current) return;
-    
-    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    // Cek apakah user berada di posisi paling bawah scrollbar
-    const isAtBottom = scrollHeight - scrollTop <= clientHeight + 5;
-    
-    if (isAtBottom) {
-      const currentY = e.touches[0].clientY;
-      const pullDistance = touchStartYRef.current - currentY; // Menarik dari bawah ke atas nilai positif
-      
-      // Jika ditarik ke atas melampaui threshold (misal 40px), picu kapsul
-      if (pullDistance > 40 && !showCapsule) {
-        triggerCapsuleTimeout();
-      }
-    }
   };
 
   // --- ADMIN & TAG ACTIONS ---
@@ -815,22 +798,65 @@ export default function Home() {
                         <div className="text-center text-gray-400 italic mt-10">Belum ada pesan di ruang ini.</div>
                       )}
 
-                      {/* --- KAPSUL BANNER MINIMALIS TEMPORER (5 DETIK) --- */}
-                      <div className={`w-full flex justify-center pt-2 pb-1 transition-all duration-500 ease-in-out ${
-                        showCapsule ? 'opacity-100 max-h-12 scale-100' : 'opacity-0 max-h-0 scale-95 pointer-events-none overflow-hidden'
-                      }`}>
-                        <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold text-gray-700 border shadow-xs text-center tracking-wide transition-colors duration-300 ${
-                          chatMode === 'private' ? 'bg-emerald-50/80 border-emerald-200/60' : 'bg-blue-50/80 border-blue-200/60'
+                      {/* --- KAPSUL BANNER DUAL-TIMER KONTINU (5 DETIK) --- */}
+                      <div 
+                        className="w-full flex justify-center pt-2 pb-1 transition-all duration-500 ease-in-out opacity-100 max-h-12 scale-100"
+                        onMouseEnter={() => setIsCapsulePaused(true)}
+                        onMouseLeave={() => setIsCapsulePaused(false)}
+                        onTouchStart={() => setIsCapsulePaused(true)}
+                        onTouchEnd={() => setIsCapsulePaused(false)}
+                      >
+                        <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold text-gray-700 border shadow-xs text-center tracking-wide transition-colors duration-300 relative overflow-hidden flex items-center justify-center min-w-[310px] h-[34px] cursor-pointer ${
+                          chatMode === 'private' ? 'bg-emerald-50/90 border-emerald-300/80' : 'bg-blue-50/90 border-blue-300/80'
                         }`}>
-                          Bijaklah dalam berinteraksi salam toleransi - best regards | {' '}
-                          <a 
-                            href="https://ipix.my.id" 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="text-red-500 hover:text-red-600 underline font-black"
+                          
+                          {/* Injeksi CSS Khusus Animasi Panah Geser Mulus */}
+                          <style dangerouslySetInnerHTML={{ __html: `
+                            @keyframes slideLeftSmooth { 
+                              0%, 100% { transform: translateX(0); opacity: 0.6; } 
+                              50% { transform: translateX(-4px); opacity: 1; } 
+                            }
+                            @keyframes slideRightSmooth { 
+                              0%, 100% { transform: translateX(0); opacity: 0.6; } 
+                              50% { transform: translateX(4px); opacity: 1; } 
+                            }
+                            .anim-slide-left { animation: slideLeftSmooth 1.4s ease-in-out infinite; }
+                            .anim-slide-right { animation: slideRightSmooth 1.4s ease-in-out infinite; }
+                          `}} />
+
+                          {/* PESAN PERTAMA */}
+                          <div 
+                            className={`absolute flex items-center gap-1 transition-all duration-500 w-full justify-center ${
+                              capsuleIndex === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+                            }`}
                           >
-                            ipix.my.id
-                          </a>
+                            <span>Bijaklah dalam berinteraksi salam toleransi |</span>
+                            <a 
+                              href="https://ipix.my.id" 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-red-600 hover:text-red-700 underline font-black"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              ipix.my.id
+                            </a>
+                          </div>
+
+                          {/* PESAN KEDUA */}
+                          <div 
+                            className={`absolute flex items-center gap-2 transition-all duration-500 w-full justify-center ${
+                              capsuleIndex === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
+                            }`}
+                          >
+                            <span className={`inline-block anim-slide-left font-black text-sm leading-none ${chatMode === 'private' ? 'text-emerald-500' : 'text-blue-500'}`}>
+                              &lt;
+                            </span>
+                            <span>geser ke kiri untuk membalas chat geser ke kanan</span>
+                            <span className={`inline-block anim-slide-right font-black text-sm leading-none ${chatMode === 'private' ? 'text-emerald-500' : 'text-blue-500'}`}>
+                              &gt;
+                            </span>
+                          </div>
+
                         </div>
                       </div>
 
