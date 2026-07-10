@@ -14,10 +14,16 @@ export default function Home() {
   const [adminPass, setAdminPass] = useState('');
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
   const [chatMode, setChatMode] = useState<'public' | 'private'>('public');
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [input, setInput] = useState('');
   const [isAuth, setIsAuth] = useState(false);
   const [sending, setSending] = useState(false);
-  const [privateNotifCount, setPrivateNotifCount] = useState(0);
+  
+  const [totalPublic, setTotalPublic] = useState(0);
+  const [totalPrivate, setTotalPrivate] = useState(0);
+  const prevPubRef = useRef(0);
+  const prevPrivRef = useRef(0);
+
   const [isAdminOnline, setIsAdminOnline] = useState(false);
   const [adminOfflineTime, setAdminOfflineTime] = useState("");
   const [userStatus, setUserStatus] = useState<Record<string, { online: boolean; offlineTime?: string }>>({});
@@ -37,23 +43,19 @@ export default function Home() {
   const [capsuleIndex, setCapsuleIndex] = useState<0 | 1>(0);
   const [isCapsulePaused, setIsCapsulePaused] = useState(false);
   
-  // State Baru: Fitur Menghapus Pill/Kapsul
   const [isPillVisible, setIsPillVisible] = useState(true);
   const [showPillClose, setShowPillClose] = useState(false);
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const touchStartYRef = useRef<number>(0);
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
 
-  // --- INTERVAL CAPSULE ---
   useEffect(() => {
     if (isCapsulePaused) return;
     const interval = setInterval(() => setCapsuleIndex((prev) => (prev === 0 ? 1 : 0)), 5000);
     return () => clearInterval(interval);
   }, [isCapsulePaused]);
 
-  // --- HASH LISTENER ---
   useEffect(() => {
     const handleHash = () => setCurrentHash(window.location.hash);
     window.addEventListener('hashchange', handleHash);
@@ -61,16 +63,8 @@ export default function Home() {
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
-  // --- FUNGSI HOLD PILL ---
-  const handlePillStart = () => {
-    setIsCapsulePaused(true);
-    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-    holdTimerRef.current = setTimeout(() => setShowPillClose(true), 500); // Muncul X setelah ditahan 500ms
-  };
-  const handlePillEnd = () => {
-    setIsCapsulePaused(false);
-    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-  };
+  const handlePillStart = () => { setIsCapsulePaused(true); if (holdTimerRef.current) clearTimeout(holdTimerRef.current); holdTimerRef.current = setTimeout(() => setShowPillClose(true), 500); };
+  const handlePillEnd = () => { setIsCapsulePaused(false); if (holdTimerRef.current) clearTimeout(holdTimerRef.current); };
 
   const containsBlockedWord = (text: string) => blockedWords.some(word => word.trim() !== "" && text.toLowerCase().includes(word.toLowerCase()));
   const applyCensor = (text: string) => {
@@ -112,7 +106,6 @@ export default function Home() {
   };
 
   const formatNotif = (num: number) => num >= 1000 ? (num / 1000).toFixed(1).replace('.0', '') + 'k' : num.toString();
-  
   const getTimeAgo = (date: Date) => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
     let interval = seconds / 3600;
@@ -121,9 +114,7 @@ export default function Home() {
     if (interval >= 1) return Math.floor(interval) + " menit lalu";
     return "baru saja";
   };
-  
   const formatMessageTime = (dateStr: string) => new Date(dateStr).toLocaleDateString('id-ID', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', '');
-  
   const getGreeting = () => {
     const hour = new Date().getHours();
     return `Selamat ${hour >= 5 && hour < 12 ? "pagi" : hour >= 12 && hour < 15 ? "siang" : hour >= 15 && hour < 18 ? "sore" : "malam"}, `;
@@ -133,30 +124,34 @@ export default function Home() {
     if (messages.length > 0) document.getElementById('messages-end')?.scrollIntoView({ behavior: 'auto' });
   }, [messages, chatMode, isPillVisible]);
 
-  const handleTouchStart = (e: React.TouchEvent) => { touchStartYRef.current = e.touches[0].clientY; };
+  const handleTouchStart = (e: React.TouchEvent) => { setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); };
   const handleTouchMove = (e: React.TouchEvent) => { if (!containerRef.current) return; };
   const handleTag = (targetUsername: string) => setInput(prev => `${prev} @${targetUsername.split('●')[0]} `);
   
-  const addBlockedWord = async () => {
-    if (!newBadWord.trim()) return;
-    await supabase.from('blocked_words').insert([{ word: newBadWord.trim().charAt(0).toUpperCase() + newBadWord.trim().slice(1).toLowerCase() }]);
-    setNewBadWord(''); fetchData();
-  };
+  const addBlockedWord = async () => { if (!newBadWord.trim()) return; await supabase.from('blocked_words').insert([{ word: newBadWord.trim().charAt(0).toUpperCase() + newBadWord.trim().slice(1).toLowerCase() }]); setNewBadWord(''); fetchData(); };
   const removeBlockedWord = async (word: string) => { await supabase.from('blocked_words').delete().eq('word', word); fetchData(); };
-  const handleReply = (msgMessage: any) => {
-    setReplyingTo(msgMessage); setInputBlink(true);
-    setTimeout(() => setInputBlink(false), 800);
-    setTimeout(() => document.getElementById(`msg-${msgMessage.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
-  };
-  
+  const handleReply = (msgMessage: any) => { setReplyingTo(msgMessage); setInputBlink(true); setTimeout(() => setInputBlink(false), 800); setTimeout(() => document.getElementById(`msg-${msgMessage.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100); };
   const handleLogout = async () => { await supabase.auth.signOut(); sessionStorage.clear(); setIsAuth(false); window.location.replace("/"); };
   
+  const handleTabSwitch = (mode: 'public' | 'private') => {
+    if (mode === chatMode) return;
+    setIsTransitioning(true);
+    // Timeout untuk membiarkan layar menjadi transparan sesaat (blank) sebelum mengganti isi DOM
+    setTimeout(() => {
+      setChatMode(mode);
+      setSelectedPrivateUser(null);
+      setReplyingTo(null);
+      setIsTransitioning(false);
+    }, 200);
+  };
+
   const fetchData = useCallback(async () => {
     if (!currentDeviceId) return;
     try {
       const { data: bData } = await supabase.from('blocked_users').select('*');
       const { data: bWordsData } = await supabase.from('blocked_words').select('word');
       if (bWordsData) setBlockedWords(bWordsData.map(w => w.word));
+      
       let query = supabase.from('messages').select('*').order('created_at', { ascending: true });
       if (chatMode === 'private') {
         if (activeTab === 'user') query = query.eq('is_private', true).or(`device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}`);
@@ -164,15 +159,26 @@ export default function Home() {
         else query = query.eq('is_private', true).eq('device_id', 'none');
       } else query = query.eq('is_private', false);
       const { data: mData } = await query;
+      
       if (isAuth) {
-        let countQuery = supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', true);
-        if (activeTab === 'user') countQuery = countQuery.or(`device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}`);
-        const { count } = await countQuery; setPrivateNotifCount(count || 0);
+        const { count: pubCount } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', false);
+        const currentTotalPub = pubCount || 0;
+        let privQuery = supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', true);
+        if (activeTab === 'user') privQuery = privQuery.or(`device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}`);
+        const { count: privCount } = await privQuery;
+        const currentTotalPriv = privCount || 0;
+
+        setTotalPublic(currentTotalPub); 
+        setTotalPrivate(currentTotalPriv);
+        prevPubRef.current = currentTotalPub; 
+        prevPrivRef.current = currentTotalPriv;
       }
+
       if (bData) {
         setBlockedList(bData);
         if (bData.some(b => b.device_id === currentDeviceId)) return window.location.replace("https://ipix.my.id/chat");
       }
+      
       if (mData) {
         setMessages(mData.filter(m => !(bData?.map(b => b.device_id) || []).includes(m.device_id)));
         const lastAdminMsg = mData.filter(m => m.username === 'Admin●ipix.my.id').pop();
@@ -191,6 +197,7 @@ export default function Home() {
         });
         setUserStatus(statusMap);
       } else setMessages([]);
+      
       if (activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser) {
         const { data: allPrivate } = await supabase.from('messages').select('device_id, username, created_at').eq('is_private', true).order('created_at', { ascending: false });
         if (allPrivate) {
@@ -214,10 +221,7 @@ export default function Home() {
         if (profileData && profileData.username) { setUsername(profileData.username); setIsExistingUser(true); sessionStorage.setItem('saved_username', profileData.username); }
       }
       if (isUrlAdmin) setActiveTab('admin'); else setActiveTab((sessionStorage.getItem('active_tab') as 'user' | 'admin') || 'user');
-      if (session || sessionStorage.getItem('is_auth') === 'true') {
-        setIsAuth(true);
-        if (session) { setUsername('Admin●ipix.my.id'); setActiveTab('admin'); } else if (!isExistingUser) setUsername(sessionStorage.getItem('saved_username') || '');
-      }
+      if (session || sessionStorage.getItem('is_auth') === 'true') { setIsAuth(true); if (session) { setUsername('Admin●ipix.my.id'); setActiveTab('admin'); } else if (!isExistingUser) setUsername(sessionStorage.getItem('saved_username') || ''); }
       setMounted(true);
     };
     checkAuthAndProfile();
@@ -253,7 +257,10 @@ export default function Home() {
       if (count && count >= 5) { alert("Batas 5 pesan per 5 menit."); setSending(false); return; }
     }
     const { error } = await supabase.from('messages').insert([{ username, pesan: finalPesan, device_id: localStorage.getItem('device_id') || 'guest', is_private: chatMode === 'private', private_with: chatMode === 'private' ? (activeTab === 'user' ? 'admin' : selectedPrivateUser) : null, user_browser: typeof window !== 'undefined' ? navigator.userAgent : 'Unknown' }]);
-    if (error) alert("Gagal kirim: " + error.message); else { setInput(''); setReplyingTo(null); const txtArea = document.getElementById('chat-input'); if (txtArea) txtArea.style.height = 'auto'; fetchData(); }
+    if (error) alert("Gagal kirim: " + error.message); else { 
+      setInput(''); setReplyingTo(null); const txtArea = document.getElementById('chat-input'); if (txtArea) txtArea.style.height = 'auto'; 
+      fetchData(); 
+    }
     setSending(false);
   };
   
@@ -262,23 +269,21 @@ export default function Home() {
   const deleteMsg = async (id: number) => { if (confirm("Hapus?")) { await supabase.from('messages').delete().eq('id', id); fetchData(); } };
   const blockUser = async (id: string, name: string) => { if (confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: name }]); fetchData(); } };
   const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
-  const inviteToPrivate = (id: string, name: string) => { setChatMode('private'); setSelectedPrivateUser(id); };
+  const inviteToPrivate = (id: string, name: string) => { handleTabSwitch('private'); setSelectedPrivateUser(id); };
 
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans" onClick={() => setActiveMenuId(null)}>
-      {/* INJEKSI STYLE ANIMASI */}
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes slideLeftSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(-4px); opacity: 1; } } 
         @keyframes slideRightSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(4px); opacity: 1; } } 
         .anim-slide-left { animation: slideLeftSmooth 1.4s ease-in-out infinite; } 
         .anim-slide-right { animation: slideRightSmooth 1.4s ease-in-out infinite; }
         
-        /* Animasi Pintu Digeser (Slide Mode Chat) */
-        @keyframes slideInLeft { 0% { transform: translateX(40px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
-        @keyframes slideInRight { 0% { transform: translateX(-40px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
-        .slide-from-left { animation: slideInLeft 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
-        .slide-from-right { animation: slideInRight 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
+        @keyframes glassBlurBlue { 0% { opacity: 0; filter: blur(12px); background: rgba(59, 130, 246, 0.2); } 100% { opacity: 1; filter: blur(0px); background: transparent; } }
+        @keyframes glassBlurGreen { 0% { opacity: 0; filter: blur(12px); background: rgba(16, 185, 129, 0.2); } 100% { opacity: 1; filter: blur(0px); background: transparent; } }
+        .anim-glass-public { animation: glassBlurBlue 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        .anim-glass-private { animation: glassBlurGreen 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
       `}} />
 
       {!isAuth ? (
@@ -316,15 +321,33 @@ export default function Home() {
                   {activeTab === 'user' && <div className="text-[10px] text-gray-500 mt-0.5"><span className={`inline-block w-2 h-2 rounded-full ${isAdminOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>{isAdminOnline ? ' Admin Online' : ` Admin Offline • ${adminOfflineTime}`}</div>}
                 </div>
               </div>
-              <div className="flex mt-3 bg-gray-200/70 rounded-full p-1 shadow-sm w-full">
-                <button onClick={() => { setChatMode('public'); setSelectedPrivateUser(null); setReplyingTo(null); }} className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'text-gray-700 hover:bg-gray-300/50'}`}>Public Chat</button>
-                <button onClick={() => { setChatMode('private'); setSelectedPrivateUser(null); setReplyingTo(null); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-300/50'}`}>💬 Chat Private {privateNotifCount > 0 && <span className="absolute -top-1 right-2 bg-red-500 text-white text-[9px] font-bold min-w-4 h-4 px-1 flex items-center justify-center rounded-full animate-bounce">{formatNotif(privateNotifCount)}</span>}</button>
+              <div className="flex mt-3 bg-white border border-gray-200 rounded-full p-1 shadow-sm w-full">
+                {/* TAB PUBLIC - Bulatan di Pojok Kiri */}
+                <button onClick={() => handleTabSwitch('public')} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 flex items-center justify-center gap-2 ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
+                  <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center">
+                    <span className={`${chatMode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-200`}>
+                      {formatNotif(totalPublic)}
+                    </span>
+                  </div>
+                  <span className="ml-5">Public Chat</span>
+                </button>
+
+                {/* TAB PRIVATE - Bulatan di Pojok Kanan */}
+                <button onClick={() => handleTabSwitch('private')} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 flex items-center justify-center gap-2 ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
+                  <span className="mr-5">💬 Chat Private</span>
+                  <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center">
+                    <span className={`${chatMode === 'private' ? 'bg-white text-emerald-600' : 'bg-emerald-600 text-white'} text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-200`}>
+                      {formatNotif(totalPrivate)}
+                    </span>
+                  </div>
+                </button>
               </div>
             </div>
           )}
           
-          {/* KEY DIPASANG DI SINI UNTUK TRIGGER ANIMASI PINTU DIGESER KETIKA CHATMODE BERUBAH */}
-          <div key={chatMode} ref={containerRef} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} className={`flex-1 overflow-y-auto overflow-x-hidden ${chatMode === 'public' ? 'slide-from-right' : 'slide-from-left'}`}>
+          <div key={chatMode} ref={containerRef} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} 
+            className={`flex-1 overflow-y-auto overflow-x-hidden transition-all duration-200 ${isTransitioning ? 'opacity-0 bg-gray-50' : 'opacity-100'} ${chatMode === 'public' ? 'anim-glass-public' : 'anim-glass-private'}`}>
+            
             {activeTab === 'admin' && currentHash === '#block' ? (
               <div className="min-h-full bg-gradient-to-br from-emerald-950 via-blue-950 to-emerald-950 text-white">
                 <div className="sticky top-0 bg-gradient-to-br from-emerald-950 to-blue-950 border-b border-white/10 z-20 p-6">
@@ -367,8 +390,23 @@ export default function Home() {
                   <div className="space-y-3 p-3">
                     {privateUsers.map(user => (
                       <div key={user.device_id} onClick={() => setSelectedPrivateUser(user.device_id)} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-emerald-300 cursor-pointer transition-all flex justify-between items-center group">
-                        <div><div className="font-semibold text-blue-700">{user.username || 'User Tanpa Nama'}</div><div className="text-xs text-gray-500">ID: {user.device_id.substring(0, 8)}...</div></div>
-                        <div className="text-right">{user.count > 0 && <div className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mb-1">{user.count} Pesan</div>}<div className="text-xs text-emerald-600 font-medium">Terakhir: {formatMessageTime(user.last_active)}</div></div>
+                        <div>
+                          <div className="font-semibold text-blue-700 text-base">{user.username || 'User Tanpa Nama'}</div>
+                          <div className="text-xs text-gray-500 font-mono mt-0.5">ID: {user.device_id.substring(0, 8)}...</div>
+                        </div>
+                        {/* Status Pesan Baru & Terbaca */}
+                        <div className="text-right flex flex-col items-end gap-1.5">
+                          {user.count > 0 ? (
+                            <div className="bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">
+                              {user.count} Pesan Baru
+                            </div>
+                          ) : (
+                            <div className="bg-gray-400 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm opacity-90 whitespace-nowrap">
+                              Terbaca
+                            </div>
+                          )}
+                          <div className="text-[10px] text-emerald-600 font-medium">Terakhir: {formatMessageTime(user.last_active)}</div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -378,7 +416,7 @@ export default function Home() {
                       {messages.length > 0 ? messages.map((m) => {
                         const shortBrowser = m.user_browser ? m.user_browser.split('(')[0].trim() + (m.user_browser.includes('(') ? ` (${m.user_browser.split('(')[1].split(')')[0]})` : '') : 'Unknown Browser';
                         return (
-                          <div key={m.id} id={`msg-${m.id}`} className={`bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none relative ${activeTab === 'admin' ? 'pb-9' : ''}`}
+                          <div key={m.id} id={`msg-${m.id}`} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none relative"
                             onTouchStart={(e) => { setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); setSwipingId(m.id); setSwipeDelta(0); setIsHorizontalSwipe(false); }}
                             onTouchMove={(e) => {
                               if (swipingId !== m.id) return;
@@ -389,6 +427,7 @@ export default function Home() {
                             onTouchEnd={() => { if (swipingId === m.id && isHorizontalSwipe && Math.abs(swipeDelta) > 50) handleReply(m); setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false); }}
                             style={{ transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)', transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
                             {swipingId === m.id && Math.abs(swipeDelta) > 15 && <div className={`absolute top-1/2 -translate-y-1/2 font-bold text-xs pointer-events-none transition-opacity ${swipeDelta > 0 ? '-left-6 text-blue-500' : '-right-6 text-emerald-500'}`}>↩</div>}
+                            
                             <div className="flex justify-between items-start mb-1">
                               <div className="flex items-center gap-2">
                                 <b onClick={() => handleTag(m.username)} className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px] cursor-pointer hover:underline`}>{m.username}</b>
@@ -397,69 +436,66 @@ export default function Home() {
                               </div>
                               <span className="text-[10px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
                             </div>
+                            
                             {renderMessageContent(m.pesan)}
-                            {activeTab === 'admin' && (
-                              <div className="absolute bottom-2 left-3 flex flex-col gap-0.5 text-[9px] text-gray-400 font-sans max-w-[60%]">
-                                <span className="text-orange-600 truncate font-medium" title={m.user_browser || ''}>🌐 {shortBrowser}</span>
-                                <span className="text-blue-600 font-mono cursor-pointer hover:underline truncate" onClick={() => copyToClipboard(m.device_id, 'Device ID')}>ID: {m.device_id}</span>
+                            
+                            {/* Metadata Admin dan Tombol Aksi diatur menggunakan flexbox */}
+                            <div className={`mt-2 pt-2 border-t border-gray-100 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
+                              <div className="flex-1 overflow-hidden">
+                                {activeTab === 'admin' && (
+                                  <div className="flex flex-col gap-1 text-[9px] text-gray-400 font-sans w-full">
+                                    {/* Device ID Full / Ter-break */}
+                                    <span className="text-blue-600 font-mono cursor-pointer hover:underline break-all leading-tight" onClick={() => copyToClipboard(m.device_id, 'Device ID')}>
+                                      ID: {m.device_id}
+                                    </span>
+                                    {/* Browser Info Minimalis / Ter-truncate */}
+                                    <span className="text-orange-600 truncate font-medium max-w-[200px]" title={m.user_browser || ''}>
+                                      🌐 {shortBrowser}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                            <div className="absolute bottom-2 right-3 flex items-center gap-2 text-[10px]">
-                              <button onClick={() => handleReply(m)} className={`font-bold underline mr-1 transition-colors ${chatMode === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'}`}>Balas</button>
-                              {activeTab === 'admin' && (
-                                <div className="relative flex items-center">
-                                  {activeMenuId === m.id && (
-                                    <div className="absolute right-6 bg-white border border-gray-200 shadow-lg rounded-full px-3 py-1 flex items-center gap-2.5 z-30 animate-fade-in whitespace-nowrap bg-opacity-95 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
-                                      <button onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="text-blue-600 font-bold hover:underline">Edit</button>
-                                      <button onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="text-purple-600 font-bold hover:underline">Nama</button>
-                                      <button onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="text-red-600 font-bold hover:underline">Hapus</button>
-                                      {!m.username.includes('Admin') && (
-                                        <><button onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="text-gray-500 font-bold hover:underline">Blokir</button><button onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="text-emerald-600 font-bold hover:underline">Private</button></>
-                                      )}
-                                    </div>
-                                  )}
-                                  <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === m.id ? null : m.id); }} className="text-gray-500 hover:text-gray-800 text-base font-bold px-1 rounded hover:bg-gray-100 transition-colors">⋮</button>
-                                </div>
-                              )}
+                              
+                              <div className="flex items-center gap-2 text-[10px] shrink-0 pb-0.5">
+                                <button onClick={() => handleReply(m)} className={`font-bold underline mr-1 transition-colors ${chatMode === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'}`}>Balas</button>
+                                {activeTab === 'admin' && (
+                                  <div className="relative flex items-center">
+                                    {activeMenuId === m.id && (
+                                      <div className="absolute right-6 bottom-0 bg-white border border-gray-200 shadow-lg rounded-full px-3 py-1.5 flex items-center gap-2.5 z-30 animate-fade-in whitespace-nowrap bg-opacity-95 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
+                                        <button onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="text-blue-600 font-bold hover:underline">Edit</button>
+                                        <button onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="text-purple-600 font-bold hover:underline">Nama</button>
+                                        <button onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="text-red-600 font-bold hover:underline">Hapus</button>
+                                        {!m.username.includes('Admin') && (
+                                          <><button onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="text-gray-500 font-bold hover:underline">Blokir</button><button onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="text-emerald-600 font-bold hover:underline">Private</button></>
+                                        )}
+                                      </div>
+                                    )}
+                                    <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === m.id ? null : m.id); }} className="text-gray-500 hover:text-gray-800 text-base font-bold px-1 rounded hover:bg-gray-100 transition-colors">⋮</button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         );
                       }) : <div className="text-center text-gray-400 italic mt-10">Belum ada pesan di ruang ini.</div>}
                       
-                      {/* RENDER KAPSUL/PILL HANYA JIKA VISIBLE */}
                       {isPillVisible && (
                         <div className="w-full flex justify-center pt-2 pb-2 transition-all duration-500 ease-in-out opacity-100 scale-100 select-none">
-                          <div 
-                            className={`px-4 py-1.5 rounded-full text-[10px] font-bold text-gray-700 border shadow-xs text-center tracking-wide transition-colors duration-300 relative overflow-hidden flex items-center justify-center min-w-[310px] h-[34px] cursor-pointer ${chatMode === 'private' ? 'bg-emerald-50/90 border-emerald-300/80' : 'bg-blue-50/90 border-blue-300/80'}`}
-                            onMouseDown={handlePillStart} onMouseUp={handlePillEnd} onMouseLeave={handlePillEnd}
-                            onTouchStart={handlePillStart} onTouchEnd={handlePillEnd}
-                          >
-                            {/* PESAN PERTAMA */}
+                          <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold text-gray-700 border shadow-xs text-center tracking-wide transition-colors duration-300 relative overflow-hidden flex items-center justify-center min-w-[310px] h-[34px] cursor-pointer ${chatMode === 'private' ? 'bg-emerald-50/90 border-emerald-300/80' : 'bg-blue-50/90 border-blue-300/80'}`} onMouseDown={handlePillStart} onMouseUp={handlePillEnd} onMouseLeave={handlePillEnd} onTouchStart={handlePillStart} onTouchEnd={handlePillEnd}>
                             <div className={`absolute flex items-center gap-1 transition-all duration-500 w-full justify-center ${capsuleIndex === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                               <span>Bijaklah dalam berinteraksi salam toleransi |</span><a href="https://ipix.my.id" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-700 underline font-black" onClick={(e) => e.stopPropagation()}>ipix.my.id</a>
                             </div>
-                            
-                            {/* PESAN KEDUA */}
                             <div className={`absolute flex items-center gap-2 transition-all duration-500 w-full justify-center ${capsuleIndex === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
                               <span className={`inline-block anim-slide-left font-black text-sm leading-none ${chatMode === 'private' ? 'text-emerald-500' : 'text-blue-500'}`}>&lt;</span><span>geser ke kiri untuk membalas chat geser ke kanan</span><span className={`inline-block anim-slide-right font-black text-sm leading-none ${chatMode === 'private' ? 'text-emerald-500' : 'text-blue-500'}`}>&gt;</span>
                             </div>
-
-                            {/* OVERLAY X MERAH KETIKA DITAHAN LAMA */}
                             {showPillClose && (
-                              <div 
-                                className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-10 animate-fade-in"
-                                onMouseDown={(e) => { e.stopPropagation(); setIsPillVisible(false); }}
-                                onTouchStart={(e) => { e.stopPropagation(); setIsPillVisible(false); }}
-                              >
-                                <div className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg active:scale-75 transition-transform text-sm leading-none">
-                                  ✕
-                                </div>
+                              <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-10 animate-fade-in" onMouseDown={(e) => { e.stopPropagation(); setIsPillVisible(false); }} onTouchStart={(e) => { e.stopPropagation(); setIsPillVisible(false); }}>
+                                <div className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg active:scale-75 transition-transform text-sm leading-none">✕</div>
                               </div>
                             )}
                           </div>
                         </div>
                       )}
-                      
                       <div id="messages-end" className="h-0" />
                     </div>
                   </div>
@@ -468,7 +504,6 @@ export default function Home() {
             )}
           </div>
           
-          {/* AREA BAWAH PRESISI (INPUT) */}
           {currentHash !== '#block' && (
             <div className="bg-white sticky bottom-0 z-10 w-full flex flex-col">
               {replyingTo && (
