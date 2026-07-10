@@ -19,7 +19,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
   const [chatMode, setChatMode] = useState<'public' | 'private'>('public');
   const [input, setInput] = useState('');
-  const [isAuth, setIsAuth] = useState(false); // <-- SUDAH DIPERBAIKI DI SINI
+  const [isAuth, setIsAuth] = useState(false);
   const [sending, setSending] = useState(false);
   const [privateNotifCount, setPrivateNotifCount] = useState(0);
   const [isAdminOnline, setIsAdminOnline] = useState(false);
@@ -396,6 +396,9 @@ export default function Home() {
         alert("Gagal kirim: " + error.message);
     } else { 
         setInput(''); 
+        // Reset tinggi textarea ke ukuran semula setelah sukses kirim
+        const txtArea = document.getElementById('chat-input');
+        if (txtArea) txtArea.style.height = 'auto';
         fetchData(); 
     }
     setSending(false);
@@ -477,10 +480,11 @@ export default function Home() {
                   )}
                 </div>
               </div>
-              <div className="flex mt-3 bg-gray-100 rounded-full p-1 shadow">
-                <button onClick={() => { setChatMode('public'); setSelectedPrivateUser(null); }} className={`flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'}`}>Public Chat</button>
-                <button onClick={() => { setChatMode('private'); setSelectedPrivateUser(null); }} className={`relative flex-1 py-2.5 text-sm font-medium rounded-full transition-all ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200'}`}>
-                  💬 Chat Private {privateNotifCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-5 h-5 px-1 flex items-center justify-center rounded-full animate-bounce">{formatNotif(privateNotifCount)}</span>}
+              {/* MODIFIKASI: Kapsul Tab Atas Lebih Presisi & Responsif */}
+              <div className="flex mt-3 bg-gray-200/70 rounded-full p-1 shadow-sm w-full">
+                <button onClick={() => { setChatMode('public'); setSelectedPrivateUser(null); }} className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'text-gray-700 hover:bg-gray-300/50'}`}>Public Chat</button>
+                <button onClick={() => { setChatMode('private'); setSelectedPrivateUser(null); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-300/50'}`}>
+                  💬 Chat Private {privateNotifCount > 0 && <span className="absolute -top-1 right-2 bg-red-500 text-white text-[9px] font-bold min-w-4 h-4 px-1 flex items-center justify-center rounded-full animate-bounce">{formatNotif(privateNotifCount)}</span>}
                 </button>
               </div>
             </div>
@@ -669,26 +673,57 @@ export default function Home() {
             )}
           </div>
 
+          {/* MODIFIKASI: Input Kapsul Bawah & Tombol Kirim Responsif / Transparan */}
           {currentHash !== '#block' && (
-            <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-center">
-              <input 
-                className="flex-1 border p-2 rounded-full px-4 text-sm bg-gray-800 text-white border-gray-700 placeholder-gray-400" 
+            <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-end sticky bottom-0 z-10 w-full">
+              <textarea 
+                id="chat-input"
+                className={`flex-1 border p-2.5 rounded-2xl px-4 text-sm resize-none focus:outline-none transition-all min-h-[42px] max-h-[120px] font-sans leading-relaxed ${
+                  chatMode === 'private' 
+                    ? 'bg-emerald-600/10 border-emerald-500/20 text-emerald-950 placeholder-emerald-600/50 focus:border-emerald-500 focus:bg-emerald-600/15' 
+                    : 'bg-blue-600/10 border-blue-500/20 text-blue-950 placeholder-blue-600/50 focus:border-blue-500 focus:bg-blue-600/15'
+                }`}
                 value={input} 
-                onChange={(e) => setInput(e.target.value)} 
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  // Logika otomatis tinggi kotak input ke bawah
+                  e.target.style.height = 'auto';
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                }}
+                onKeyDown={(e) => {
+                  // Kirim pesan saat tekan Enter (tanpa Shift) agar terasa seperti aplikasi native
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage(e);
+                  }
+                }}
                 placeholder="Ketik pesan..." 
-                maxLength={100} 
+                maxLength={500} 
+                rows={1}
                 disabled={sending} 
               />
               <button 
                 type="submit" 
                 disabled={sending || !input.trim()} 
-                className={`px-6 py-2 rounded-full font-bold text-sm shrink-0 transition-all disabled:opacity-50 ${
+                className={`px-4 sm:px-6 h-[42px] rounded-2xl font-bold text-xs sm:text-sm shrink-0 transition-all duration-200 active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${
                   chatMode === 'private' 
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
                     : 'bg-blue-600 hover:bg-blue-700 text-white'
                 }`}
               >
-                {sending ? 'Mengirim...' : (chatMode === 'private' ? 'Kirim ke Private Chat' : 'Kirim ke Public Chat')}
+                {sending ? '...' : (
+                  chatMode === 'private' ? (
+                    <>
+                      <span className="hidden sm:inline">Kirim ke Private Chat</span>
+                      <span className="inline sm:hidden">Kirim admin</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline">Kirim ke Public Chat</span>
+                      <span className="inline sm:hidden">Kirim publik</span>
+                    </>
+                  )
+                )}
               </button>
             </form>
           )}
