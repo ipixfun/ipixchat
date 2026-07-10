@@ -128,7 +128,7 @@ export default function Home() {
   // --- ADMIN & TAG ACTIONS ---
   const handleTag = (targetUsername: string) => {
     const cleanName = targetUsername.split('●')[0];
-    setInput(prev => `\( {prev}@ \){cleanName} `);
+    setInput(prev => `${prev} @${cleanName} `);
   };
 
   const addBlockedWord = async () => {
@@ -147,7 +147,7 @@ export default function Home() {
   const handleReply = (targetUsername: string, targetMessage: string) => {
     const cleanName = targetUsername.split('●')[0];
     const quotedMessage = targetMessage.length > 30 ? targetMessage.substring(0, 30) + "..." : targetMessage;
-    setInput(prev => `\( {prev}@ \){cleanName} ("${quotedMessage}") `);
+    setInput(prev => `${prev} @${cleanName} ("${quotedMessage}") `);
   };
 
   // --- AUTH & DATA FETCHING ---
@@ -159,6 +159,7 @@ export default function Home() {
   };
 
   const fetchData = useCallback(async () => {
+    if (!currentDeviceId) return;
     try {
       const { data: bData } = await supabase.from('blocked_users').select('*');
       const { data: bWordsData } = await supabase.from('blocked_words').select('word');
@@ -167,10 +168,10 @@ export default function Home() {
       let query = supabase.from('messages').select('*').order('created_at', { ascending: true });
 
       if (chatMode === 'private') {
-        if (activeTab === 'user' && currentDeviceId) {
-          query = query.eq('is_private', true).or(`device_id.eq.\( {currentDeviceId},private_with.eq. \){currentDeviceId}`);
+        if (activeTab === 'user') {
+          query = query.eq('is_private', true).or(`device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}`);
         } else if (selectedPrivateUser) {
-          query = query.eq('is_private', true).or(`device_id.eq.\( {selectedPrivateUser},private_with.eq. \){selectedPrivateUser}`);
+          query = query.eq('is_private', true).or(`device_id.eq.${selectedPrivateUser},private_with.eq.${selectedPrivateUser}`);
         } else {
           query = query.eq('is_private', true).eq('device_id', 'none');
         }
@@ -180,16 +181,18 @@ export default function Home() {
 
       const { data: mData } = await query;
       
-      if (isAuth && currentDeviceId) {
+      if (isAuth) {
         let countQuery = supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', true);
-        if (activeTab === 'user') countQuery = countQuery.or(`device_id.eq.\( {currentDeviceId},private_with.eq. \){currentDeviceId}`);
+        if (activeTab === 'user') {
+           countQuery = countQuery.or(`device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}`);
+        }
         const { count } = await countQuery;
         setPrivateNotifCount(count || 0);
       }
 
       if (bData) {
         setBlockedList(bData);
-        if (currentDeviceId && bData.some(b => b.device_id === currentDeviceId)) {
+        if (bData.some(b => b.device_id === currentDeviceId)) {
           window.location.replace("https://ipix.my.id/chat");
           return;
         }
