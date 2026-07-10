@@ -396,7 +396,6 @@ export default function Home() {
         alert("Gagal kirim: " + error.message);
     } else { 
         setInput(''); 
-        // Reset tinggi textarea ke ukuran semula setelah sukses kirim
         const txtArea = document.getElementById('chat-input');
         if (txtArea) txtArea.style.height = 'auto';
         fetchData(); 
@@ -480,7 +479,6 @@ export default function Home() {
                   )}
                 </div>
               </div>
-              {/* MODIFIKASI: Kapsul Tab Atas Lebih Presisi & Responsif */}
               <div className="flex mt-3 bg-gray-200/70 rounded-full p-1 shadow-sm w-full">
                 <button onClick={() => { setChatMode('public'); setSelectedPrivateUser(null); }} className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'text-gray-700 hover:bg-gray-300/50'}`}>Public Chat</button>
                 <button onClick={() => { setChatMode('private'); setSelectedPrivateUser(null); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-300/50'}`}>
@@ -673,12 +671,15 @@ export default function Home() {
             )}
           </div>
 
-          {/* MODIFIKASI: Input Kapsul Bawah & Tombol Kirim Responsif / Transparan */}
+          {/* INPUT DENGAN KURSOR SCROLLBAR YANG SUDAH DIHILANGKAN */}
           {currentHash !== '#block' && (
             <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-end sticky bottom-0 z-10 w-full">
               <textarea 
                 id="chat-input"
-                className={`flex-1 border p-2.5 rounded-2xl px-4 text-sm resize-none focus:outline-none transition-all min-h-[42px] max-h-[120px] font-sans leading-relaxed ${
+                /* Kunci perbaikan: Menambahkan [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden 
+                  agar scrollbar abu-abu hilang sepenuhnya di seluruh platform browser.
+                */
+                className={`flex-1 border p-2.5 rounded-2xl px-4 text-sm resize-none focus:outline-none transition-all min-h-[42px] max-h-[120px] font-sans leading-relaxed [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
                   chatMode === 'private' 
                     ? 'bg-emerald-600/10 border-emerald-500/20 text-emerald-950 placeholder-emerald-600/50 focus:border-emerald-500 focus:bg-emerald-600/15' 
                     : 'bg-blue-600/10 border-blue-500/20 text-blue-950 placeholder-blue-600/50 focus:border-blue-500 focus:bg-blue-600/15'
@@ -686,12 +687,10 @@ export default function Home() {
                 value={input} 
                 onChange={(e) => {
                   setInput(e.target.value);
-                  // Logika otomatis tinggi kotak input ke bawah
                   e.target.style.height = 'auto';
                   e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
                 }}
                 onKeyDown={(e) => {
-                  // Kirim pesan saat tekan Enter (tanpa Shift) agar terasa seperti aplikasi native
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     sendMessage(e);
