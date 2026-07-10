@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { supabase } from './supabaseClient';
+
 export default function Home() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -35,29 +36,50 @@ export default function Home() {
   const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
   const [capsuleIndex, setCapsuleIndex] = useState<0 | 1>(0);
   const [isCapsulePaused, setIsCapsulePaused] = useState(false);
+  
+  // State Baru: Fitur Menghapus Pill/Kapsul
+  const [isPillVisible, setIsPillVisible] = useState(true);
+  const [showPillClose, setShowPillClose] = useState(false);
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartYRef = useRef<number>(0);
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
+
+  // --- INTERVAL CAPSULE ---
   useEffect(() => {
     if (isCapsulePaused) return;
     const interval = setInterval(() => setCapsuleIndex((prev) => (prev === 0 ? 1 : 0)), 5000);
     return () => clearInterval(interval);
   }, [isCapsulePaused]);
+
+  // --- HASH LISTENER ---
   useEffect(() => {
     const handleHash = () => setCurrentHash(window.location.hash);
     window.addEventListener('hashchange', handleHash);
     handleHash();
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
+
+  // --- FUNGSI HOLD PILL ---
+  const handlePillStart = () => {
+    setIsCapsulePaused(true);
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    holdTimerRef.current = setTimeout(() => setShowPillClose(true), 500); // Muncul X setelah ditahan 500ms
+  };
+  const handlePillEnd = () => {
+    setIsCapsulePaused(false);
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+  };
+
   const containsBlockedWord = (text: string) => blockedWords.some(word => word.trim() !== "" && text.toLowerCase().includes(word.toLowerCase()));
   const applyCensor = (text: string) => {
     let result = text;
-    blockedWords.forEach(word => {
-      if (word.trim() !== "") result = result.replace(new RegExp(`\\b${word}\\b`, 'gi'), '***');
-    });
+    blockedWords.forEach(word => { if (word.trim() !== "") result = result.replace(new RegExp(`\\b${word}\\b`, 'gi'), '***'); });
     return result;
   };
   const copyToClipboard = (text: string, label: string) => { navigator.clipboard.writeText(text); alert(`${label} berhasil disalin!`); };
+  
   const scrollToMessageId = (msgId: number) => {
     const el = document.getElementById(`msg-${msgId}`);
     if (el) {
@@ -67,10 +89,12 @@ export default function Home() {
       setTimeout(() => el.classList.remove(...blinkClasses), 1500);
     }
   };
+  
   const scrollToMessage = (quotedText: string) => {
     const targetMsg = messages.find(m => m.pesan.includes(quotedText));
     if (targetMsg) scrollToMessageId(targetMsg.id);
   };
+
   const renderMessageContent = (text: string) => {
     const match = text.match(/^@(\w+)\s\("(.*?)"\)\s?(.*)$/);
     if (match) {
@@ -86,7 +110,9 @@ export default function Home() {
     }
     return <div className="text-sm text-gray-800 break-words">{applyCensor(text)}</div>;
   };
+
   const formatNotif = (num: number) => num >= 1000 ? (num / 1000).toFixed(1).replace('.0', '') + 'k' : num.toString();
+  
   const getTimeAgo = (date: Date) => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
     let interval = seconds / 3600;
@@ -95,17 +121,22 @@ export default function Home() {
     if (interval >= 1) return Math.floor(interval) + " menit lalu";
     return "baru saja";
   };
+  
   const formatMessageTime = (dateStr: string) => new Date(dateStr).toLocaleDateString('id-ID', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', '');
+  
   const getGreeting = () => {
     const hour = new Date().getHours();
     return `Selamat ${hour >= 5 && hour < 12 ? "pagi" : hour >= 12 && hour < 15 ? "siang" : hour >= 15 && hour < 18 ? "sore" : "malam"}, `;
   };
+  
   useEffect(() => {
     if (messages.length > 0) document.getElementById('messages-end')?.scrollIntoView({ behavior: 'auto' });
-  }, [messages, chatMode]);
+  }, [messages, chatMode, isPillVisible]);
+
   const handleTouchStart = (e: React.TouchEvent) => { touchStartYRef.current = e.touches[0].clientY; };
   const handleTouchMove = (e: React.TouchEvent) => { if (!containerRef.current) return; };
   const handleTag = (targetUsername: string) => setInput(prev => `${prev} @${targetUsername.split('●')[0]} `);
+  
   const addBlockedWord = async () => {
     if (!newBadWord.trim()) return;
     await supabase.from('blocked_words').insert([{ word: newBadWord.trim().charAt(0).toUpperCase() + newBadWord.trim().slice(1).toLowerCase() }]);
@@ -117,7 +148,9 @@ export default function Home() {
     setTimeout(() => setInputBlink(false), 800);
     setTimeout(() => document.getElementById(`msg-${msgMessage.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
   };
+  
   const handleLogout = async () => { await supabase.auth.signOut(); sessionStorage.clear(); setIsAuth(false); window.location.replace("/"); };
+  
   const fetchData = useCallback(async () => {
     if (!currentDeviceId) return;
     try {
@@ -169,6 +202,7 @@ export default function Home() {
       } else setPrivateUsers([]);
     } catch (err) { setMessages([]); }
   }, [chatMode, activeTab, selectedPrivateUser, currentDeviceId, isAuth]);
+
   useEffect(() => {
     if (!localStorage.getItem('device_id')) localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
     const checkAuthAndProfile = async () => {
@@ -188,15 +222,18 @@ export default function Home() {
     };
     checkAuthAndProfile();
   }, [isExistingUser, pathname]);
+
   useEffect(() => {
     if (!mounted) return; fetchData();
     const channel = supabase.channel('chat').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchData).subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [mounted, fetchData]);
+
   const handleAdminLogin = async () => {
     const { error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPass });
     if (error) alert("Login Admin Gagal"); else { setIsAuth(true); setActiveTab('admin'); setUsername('Admin●ipix.my.id'); sessionStorage.setItem('is_auth', 'true'); sessionStorage.setItem('saved_username', 'Admin●ipix.my.id'); sessionStorage.setItem('active_tab', 'admin'); }
   };
+  
   const handleUserLogin = async () => {
     if (!username.trim()) return alert("Masukkan nama Anda!");
     if (containsBlockedWord(username)) return alert("Nama mengandung kata terlarang.");
@@ -206,6 +243,7 @@ export default function Home() {
     try { await supabase.from('profiles').upsert({ device_id: cid, username: username.trim(), user_browser: typeof window !== 'undefined' ? navigator.userAgent : 'Unknown' }, { onConflict: 'device_id' }); } catch (err) {}
     setIsAuth(true); sessionStorage.setItem('is_auth', 'true'); sessionStorage.setItem('saved_username', username.trim()); sessionStorage.setItem('active_tab', 'user');
   };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault(); if (!input.trim() || sending) return;
     setSending(true); let finalPesan = input.trim();
@@ -218,15 +256,31 @@ export default function Home() {
     if (error) alert("Gagal kirim: " + error.message); else { setInput(''); setReplyingTo(null); const txtArea = document.getElementById('chat-input'); if (txtArea) txtArea.style.height = 'auto'; fetchData(); }
     setSending(false);
   };
+  
   const editMsg = async (id: number) => { const newText = prompt("Edit pesan:", messages.find(m => m.id === id)?.pesan || ""); if (newText !== null && newText.trim()) { await supabase.from('messages').update({ pesan: newText }).eq('id', id); fetchData(); } };
   const editNama = async (id: number) => { const msg = messages.find(m => m.id === id); if (!msg) return; const newName = prompt("Edit nama:", msg.username); if (newName && containsBlockedWord(newName)) return alert("Nama mengandung kata terlarang!"); if (newName && newName.trim()) { await supabase.from('profiles').update({ username: newName.trim() }).eq('device_id', msg.device_id); await supabase.from('messages').update({ username: newName.trim() }).eq('device_id', msg.device_id); fetchData(); } };
   const deleteMsg = async (id: number) => { if (confirm("Hapus?")) { await supabase.from('messages').delete().eq('id', id); fetchData(); } };
   const blockUser = async (id: string, name: string) => { if (confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: name }]); fetchData(); } };
   const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
   const inviteToPrivate = (id: string, name: string) => { setChatMode('private'); setSelectedPrivateUser(id); };
+
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans" onClick={() => setActiveMenuId(null)}>
+      {/* INJEKSI STYLE ANIMASI */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes slideLeftSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(-4px); opacity: 1; } } 
+        @keyframes slideRightSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(4px); opacity: 1; } } 
+        .anim-slide-left { animation: slideLeftSmooth 1.4s ease-in-out infinite; } 
+        .anim-slide-right { animation: slideRightSmooth 1.4s ease-in-out infinite; }
+        
+        /* Animasi Pintu Digeser (Slide Mode Chat) */
+        @keyframes slideInLeft { 0% { transform: translateX(40px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+        @keyframes slideInRight { 0% { transform: translateX(-40px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+        .slide-from-left { animation: slideInLeft 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
+        .slide-from-right { animation: slideInRight 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
+      `}} />
+
       {!isAuth ? (
         <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-emerald-500 to-blue-600 text-white p-6">
           <h1 className="text-3xl font-bold mb-6">{activeTab === 'admin' ? 'IpixChat Admin' : 'IpixChat Login'}</h1>
@@ -263,12 +317,14 @@ export default function Home() {
                 </div>
               </div>
               <div className="flex mt-3 bg-gray-200/70 rounded-full p-1 shadow-sm w-full">
-                <button onClick={() => { setChatMode('public'); setSelectedPrivateUser(null); setReplyingTo(null); }} className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'text-gray-700 hover:bg-gray-300/50'}`}>Public Chat</button>
-                <button onClick={() => { setChatMode('private'); setSelectedPrivateUser(null); setReplyingTo(null); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-300/50'}`}>💬 Chat Private {privateNotifCount > 0 && <span className="absolute -top-1 right-2 bg-red-500 text-white text-[9px] font-bold min-w-4 h-4 px-1 flex items-center justify-center rounded-full animate-bounce">{formatNotif(privateNotifCount)}</span>}</button>
+                <button onClick={() => { setChatMode('public'); setSelectedPrivateUser(null); setReplyingTo(null); }} className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'text-gray-700 hover:bg-gray-300/50'}`}>Public Chat</button>
+                <button onClick={() => { setChatMode('private'); setSelectedPrivateUser(null); setReplyingTo(null); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-300/50'}`}>💬 Chat Private {privateNotifCount > 0 && <span className="absolute -top-1 right-2 bg-red-500 text-white text-[9px] font-bold min-w-4 h-4 px-1 flex items-center justify-center rounded-full animate-bounce">{formatNotif(privateNotifCount)}</span>}</button>
               </div>
             </div>
           )}
-          <div ref={containerRef} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} className="flex-1 overflow-y-auto overflow-x-hidden">
+          
+          {/* KEY DIPASANG DI SINI UNTUK TRIGGER ANIMASI PINTU DIGESER KETIKA CHATMODE BERUBAH */}
+          <div key={chatMode} ref={containerRef} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} className={`flex-1 overflow-y-auto overflow-x-hidden ${chatMode === 'public' ? 'slide-from-right' : 'slide-from-left'}`}>
             {activeTab === 'admin' && currentHash === '#block' ? (
               <div className="min-h-full bg-gradient-to-br from-emerald-950 via-blue-950 to-emerald-950 text-white">
                 <div className="sticky top-0 bg-gradient-to-br from-emerald-950 to-blue-950 border-b border-white/10 z-20 p-6">
@@ -317,8 +373,8 @@ export default function Home() {
                     ))}
                   </div>
                 ) : (
-                  <div className="flex flex-col h-full">
-                    <div className="p-3 space-y-3 overflow-x-hidden">
+                  <div className="flex flex-col h-full relative">
+                    <div className="p-3 space-y-3 overflow-x-hidden flex-1">
                       {messages.length > 0 ? messages.map((m) => {
                         const shortBrowser = m.user_browser ? m.user_browser.split('(')[0].trim() + (m.user_browser.includes('(') ? ` (${m.user_browser.split('(')[1].split(')')[0]})` : '') : 'Unknown Browser';
                         return (
@@ -369,24 +425,50 @@ export default function Home() {
                           </div>
                         );
                       }) : <div className="text-center text-gray-400 italic mt-10">Belum ada pesan di ruang ini.</div>}
-                      <div className="w-full flex justify-center pt-2 pb-1 transition-all duration-500 ease-in-out opacity-100 max-h-12 scale-100" onMouseEnter={() => setIsCapsulePaused(true)} onMouseLeave={() => setIsCapsulePaused(false)} onTouchStart={() => setIsCapsulePaused(true)} onTouchEnd={() => setIsCapsulePaused(false)}>
-                        <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold text-gray-700 border shadow-xs text-center tracking-wide transition-colors duration-300 relative overflow-hidden flex items-center justify-center min-w-[310px] h-[34px] cursor-pointer ${chatMode === 'private' ? 'bg-emerald-50/90 border-emerald-300/80' : 'bg-blue-50/90 border-blue-300/80'}`}>
-                          <style dangerouslySetInnerHTML={{ __html: `@keyframes slideLeftSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(-4px); opacity: 1; } } @keyframes slideRightSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(4px); opacity: 1; } } .anim-slide-left { animation: slideLeftSmooth 1.4s ease-in-out infinite; } .anim-slide-right { animation: slideRightSmooth 1.4s ease-in-out infinite; }`}} />
-                          <div className={`absolute flex items-center gap-1 transition-all duration-500 w-full justify-center ${capsuleIndex === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                            <span>Bijaklah dalam berinteraksi salam toleransi |</span><a href="https://ipix.my.id" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-700 underline font-black" onClick={(e) => e.stopPropagation()}>ipix.my.id</a>
-                          </div>
-                          <div className={`absolute flex items-center gap-2 transition-all duration-500 w-full justify-center ${capsuleIndex === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
-                            <span className={`inline-block anim-slide-left font-black text-sm leading-none ${chatMode === 'private' ? 'text-emerald-500' : 'text-blue-500'}`}>&lt;</span><span>geser ke kiri untuk membalas chat geser ke kanan</span><span className={`inline-block anim-slide-right font-black text-sm leading-none ${chatMode === 'private' ? 'text-emerald-500' : 'text-blue-500'}`}>&gt;</span>
+                      
+                      {/* RENDER KAPSUL/PILL HANYA JIKA VISIBLE */}
+                      {isPillVisible && (
+                        <div className="w-full flex justify-center pt-2 pb-2 transition-all duration-500 ease-in-out opacity-100 scale-100 select-none">
+                          <div 
+                            className={`px-4 py-1.5 rounded-full text-[10px] font-bold text-gray-700 border shadow-xs text-center tracking-wide transition-colors duration-300 relative overflow-hidden flex items-center justify-center min-w-[310px] h-[34px] cursor-pointer ${chatMode === 'private' ? 'bg-emerald-50/90 border-emerald-300/80' : 'bg-blue-50/90 border-blue-300/80'}`}
+                            onMouseDown={handlePillStart} onMouseUp={handlePillEnd} onMouseLeave={handlePillEnd}
+                            onTouchStart={handlePillStart} onTouchEnd={handlePillEnd}
+                          >
+                            {/* PESAN PERTAMA */}
+                            <div className={`absolute flex items-center gap-1 transition-all duration-500 w-full justify-center ${capsuleIndex === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                              <span>Bijaklah dalam berinteraksi salam toleransi |</span><a href="https://ipix.my.id" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-700 underline font-black" onClick={(e) => e.stopPropagation()}>ipix.my.id</a>
+                            </div>
+                            
+                            {/* PESAN KEDUA */}
+                            <div className={`absolute flex items-center gap-2 transition-all duration-500 w-full justify-center ${capsuleIndex === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+                              <span className={`inline-block anim-slide-left font-black text-sm leading-none ${chatMode === 'private' ? 'text-emerald-500' : 'text-blue-500'}`}>&lt;</span><span>geser ke kiri untuk membalas chat geser ke kanan</span><span className={`inline-block anim-slide-right font-black text-sm leading-none ${chatMode === 'private' ? 'text-emerald-500' : 'text-blue-500'}`}>&gt;</span>
+                            </div>
+
+                            {/* OVERLAY X MERAH KETIKA DITAHAN LAMA */}
+                            {showPillClose && (
+                              <div 
+                                className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-10 animate-fade-in"
+                                onMouseDown={(e) => { e.stopPropagation(); setIsPillVisible(false); }}
+                                onTouchStart={(e) => { e.stopPropagation(); setIsPillVisible(false); }}
+                              >
+                                <div className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg active:scale-75 transition-transform text-sm leading-none">
+                                  ✕
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </div>
-                      <div id="messages-end" className="h-1" />
+                      )}
+                      
+                      <div id="messages-end" className="h-0" />
                     </div>
                   </div>
                 )}
               </div>
             )}
           </div>
+          
+          {/* AREA BAWAH PRESISI (INPUT) */}
           {currentHash !== '#block' && (
             <div className="bg-white sticky bottom-0 z-10 w-full flex flex-col">
               {replyingTo && (
