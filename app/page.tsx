@@ -31,7 +31,15 @@ export default function Home() {
   const [newBadWord, setNewBadWord] = useState('');
   const [currentHash, setCurrentHash] = useState('');
   
-  // State untuk melacak menu pop-up pesan mana yang sedang terbuka
+  // Efek Kedip Input & Deteksi Sentuhan Layar
+  const [inputBlink, setInputBlink] = useState(false);
+  const [touchStartY, setTouchStartY] = useState(0);
+  const [isScrolledToBottom, setIsScrolledToBottom] = useState(false);
+
+  // State melacak data pesan asli yang sedang dibalas untuk tab preview di bawah
+  const [replyingTo, setReplyingTo] = useState<any | null>(null);
+
+  // State untuk melacak menu pop-up tindakan admin pesan mana yang sedang terbuka
   const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
 
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
@@ -68,15 +76,31 @@ export default function Home() {
   };
 
   // --- UI HELPERS ---
+  // Fungsi Scroll ke Kotak Asli dengan efek Blink Biru/Ijo Tipis (1.5 detik)
+  const scrollToMessageId = (msgId: number) => {
+    const el = document.getElementById(`msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Deteksi kelas warna ring tipis berdasarkan tipe chat aktif
+      const blinkClasses = chatMode === 'private'
+        ? ['ring-2', 'ring-emerald-400', 'bg-emerald-50/50']
+        : ['ring-2', 'ring-blue-400', 'bg-blue-50/50'];
+      
+      el.classList.add(...blinkClasses);
+      
+      // Hapus kelas efek secara halus setelah durasi transisi selesai
+      setTimeout(() => {
+        el.classList.remove(...blinkClasses);
+      }, 1500);
+    }
+  };
+
+  // Fungsi scroll cadangan untuk format pesan teks kutipan konvensional
   const scrollToMessage = (quotedText: string) => {
     const targetMsg = messages.find(m => m.pesan.includes(quotedText));
     if (targetMsg) {
-      const el = document.getElementById(`msg-${targetMsg.id}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.classList.add('bg-yellow-100');
-        setTimeout(() => el.classList.remove('bg-yellow-100'), 2000);
-      }
+      scrollToMessageId(targetMsg.id);
     }
   };
 
@@ -90,7 +114,12 @@ export default function Home() {
       const censoredReply = applyCensor(replyText);
       return (
         <>
-          <div className="text-[10px] text-gray-500 italic bg-gray-100 p-2 rounded cursor-pointer hover:bg-gray-200 border-l-2 border-blue-500 mb-1" onClick={() => scrollToMessage(quotedText)}>
+          <div 
+            className={`text-[10px] text-gray-500 italic bg-gray-100 p-2 rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 ${
+              chatMode === 'private' ? 'border-emerald-500' : 'border-blue-500'
+            }`} 
+            onClick={() => scrollToMessage(quotedText)}
+          >
             <span className="font-bold">@{user}</span>: "{censoredQuote}"
           </div>
           <div className="text-sm text-gray-800 break-words">{censoredReply}</div>
@@ -127,6 +156,24 @@ export default function Home() {
     return `Selamat ${timeOfDay}, `;
   };
 
+  // --- HANDLERS TOUCH GESTURE (PULL UP TO REFRESH) ---
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const container = e.currentTarget;
+    const atBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight) < 8;
+    setIsScrolledToBottom(atBottom);
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isScrolledToBottom) return;
+    const currentY = e.touches[0].clientY;
+    const pullDistance = touchStartY - currentY;
+
+    if (pullDistance > 160) {
+      window.location.reload();
+    }
+  };
+
   // --- ADMIN & TAG ACTIONS ---
   const handleTag = (targetUsername: string) => {
     const cleanName = targetUsername.split('●')[0];
@@ -146,10 +193,22 @@ export default function Home() {
     fetchData();
   };
 
-  const handleReply = (targetUsername: string, targetMessage: string) => {
-    const cleanName = targetUsername.split('●')[0];
-    const quotedMessage = targetMessage.length > 30 ? targetMessage.substring(0, 30) + "..." : targetMessage;
-    setInput(prev => `${prev} @${cleanName} ("${quotedMessage}") `);
+  // Handler Tombol Balas diklik -> Mengaktifkan Tab Banner Balasan di atas input teks
+  const handleReply = (msgMessage: any) => {
+    setReplyingTo(msgMessage);
+    
+    setInputBlink(true);
+    setTimeout(() => setInputBlink(false), 800);
+
+    const txtArea = document.getElementById('chat-input');
+    if (txtArea) txtArea.focus();
+
+    setTimeout(() => {
+      const messageEl = document.getElementById(`msg-${msgMessage.id}`);
+      if (messageEl) {
+        messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 150);
   };
 
   // --- AUTH & DATA FETCHING ---
@@ -363,16 +422,22 @@ export default function Home() {
 
     setSending(true);
 
+    // Format string pesan untuk database menggunakan penanda kutipan chat
+    let finalPesan = input.trim();
+    if (replyingTo) {
+      const cleanName = replyingTo.username.split('●')[0];
+      const quotedMessage = replyingTo.pesan.length > 30 ? replyingTo.pesan.substring(0, 30) + "..." : replyingTo.pesan;
+      finalPesan = `@${cleanName} ("${quotedMessage}") ${input.trim()}`;
+    }
+
     const payload = {
         username, 
-        pesan: input.trim(), 
+        pesan: finalPesan, 
         device_id: localStorage.getItem('device_id') || 'guest',
         is_private: chatMode === 'private',
         private_with: chatMode === 'private' ? (activeTab === 'user' ? 'admin' : selectedPrivateUser) : null,
         user_browser: typeof window !== 'undefined' ? navigator.userAgent : 'Unknown'
     };
-    
-    console.log("DEBUG: Payload yang dikirim:", payload);
 
     if (username !== 'Admin●ipix.my.id') {
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -392,10 +457,10 @@ export default function Home() {
     const { error } = await supabase.from('messages').insert([payload]);
 
     if (error) {
-        console.error("DEBUG: Error Supabase:", error);
         alert("Gagal kirim: " + error.message);
     } else { 
         setInput(''); 
+        setReplyingTo(null); // Bersihkan banner preview kutipan setelah pesan berhasil dikirim
         const txtArea = document.getElementById('chat-input');
         if (txtArea) txtArea.style.height = 'auto';
         fetchData(); 
@@ -480,16 +545,20 @@ export default function Home() {
                 </div>
               </div>
               <div className="flex mt-3 bg-gray-200/70 rounded-full p-1 shadow-sm w-full">
-                <button onClick={() => { setChatMode('public'); setSelectedPrivateUser(null); }} className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'text-gray-700 hover:bg-gray-300/50'}`}>Public Chat</button>
-                <button onClick={() => { setChatMode('private'); setSelectedPrivateUser(null); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-300/50'}`}>
+                <button onClick={() => { setChatMode('public'); setSelectedPrivateUser(null); setReplyingTo(null); }} className={`flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'text-gray-700 hover:bg-gray-300/50'}`}>Public Chat</button>
+                <button onClick={() => { setChatMode('private'); setSelectedPrivateUser(null); setReplyingTo(null); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'text-gray-700 hover:bg-gray-300/50'}`}>
                   💬 Chat Private {privateNotifCount > 0 && <span className="absolute -top-1 right-2 bg-red-500 text-white text-[9px] font-bold min-w-4 h-4 px-1 flex items-center justify-center rounded-full animate-bounce">{formatNotif(privateNotifCount)}</span>}
                 </button>
               </div>
             </div>
           )}
 
-          {/* MAIN CONTENT */}
-          <div className="flex-1 overflow-y-auto">
+          {/* MAIN CONTENT AREA */}
+          <div 
+            className="flex-1 overflow-y-auto"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+          >
             {activeTab === 'admin' && currentHash === '#block' ? (
               <div className="min-h-full bg-gradient-to-br from-emerald-950 via-blue-950 to-emerald-950 text-white">
                 <div className="sticky top-0 bg-gradient-to-br from-emerald-950 to-blue-950 border-b border-white/10 z-20 p-6">
@@ -584,7 +653,7 @@ export default function Home() {
                             : 'Unknown Browser';
 
                           return (
-                            <div key={m.id} id={`msg-${m.id}`} className={`bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none relative ${activeTab === 'admin' ? 'pb-9' : ''}`}>
+                            <div key={m.id} id={`msg-${m.id}`} className={`bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none relative transition-all duration-300 ${activeTab === 'admin' ? 'pb-9' : ''}`}>
                               <div className="flex justify-between items-start mb-1">
                                 <div className="flex items-center gap-2">
                                   <b onClick={() => handleTag(m.username)} className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px] cursor-pointer hover:underline`}>
@@ -619,7 +688,7 @@ export default function Home() {
 
                               <div className="absolute bottom-2 right-3 flex items-center gap-2 text-[10px]">
                                 <button 
-                                  onClick={() => handleReply(m.username, m.pesan)} 
+                                  onClick={() => handleReply(m)} 
                                   className={`font-bold underline mr-1 transition-colors ${
                                     chatMode === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'
                                   }`}
@@ -671,60 +740,93 @@ export default function Home() {
             )}
           </div>
 
-          {/* INPUT DENGAN KURSOR SCROLLBAR YANG SUDAH DIHILANGKAN */}
+          {/* AREA FORM INPUT UTAMA */}
           {currentHash !== '#block' && (
-            <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-end sticky bottom-0 z-10 w-full">
-              <textarea 
-                id="chat-input"
-                /* Kunci perbaikan: Menambahkan [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden 
-                  agar scrollbar abu-abu hilang sepenuhnya di seluruh platform browser.
-                */
-                className={`flex-1 border p-2.5 rounded-2xl px-4 text-sm resize-none focus:outline-none transition-all min-h-[42px] max-h-[120px] font-sans leading-relaxed [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
-                  chatMode === 'private' 
-                    ? 'bg-emerald-600/10 border-emerald-500/20 text-emerald-950 placeholder-emerald-600/50 focus:border-emerald-500 focus:bg-emerald-600/15' 
-                    : 'bg-blue-600/10 border-blue-500/20 text-blue-950 placeholder-blue-600/50 focus:border-blue-500 focus:bg-blue-600/15'
-                }`}
-                value={input} 
-                onChange={(e) => {
-                  setInput(e.target.value);
-                  e.target.style.height = 'auto';
-                  e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage(e);
-                  }
-                }}
-                placeholder="Ketik pesan..." 
-                maxLength={500} 
-                rows={1}
-                disabled={sending} 
-              />
-              <button 
-                type="submit" 
-                disabled={sending || !input.trim()} 
-                className={`px-4 sm:px-6 h-[42px] rounded-2xl font-bold text-xs sm:text-sm shrink-0 transition-all duration-200 active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${
-                  chatMode === 'private' 
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
-              >
-                {sending ? '...' : (
-                  chatMode === 'private' ? (
-                    <>
-                      <span className="hidden sm:inline">Kirim ke Private Chat</span>
-                      <span className="inline sm:hidden">Kirim admin</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="hidden sm:inline">Kirim ke Public Chat</span>
-                      <span className="inline sm:hidden">Kirim publik</span>
-                    </>
-                  )
-                )}
-              </button>
-            </form>
+            <div className="bg-white sticky bottom-0 z-10 w-full flex flex-col">
+              
+              {/* TAB / PREVIEW BANNER BALASAN YANG AKAN MUNCUL SAAT KLIK TOMBOL BALAS */}
+              {replyingTo && (
+                <div 
+                  className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x transition-all duration-300 cursor-pointer ${
+                    chatMode === 'private' 
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100/70' 
+                      : 'bg-blue-50 border-blue-300 text-blue-900 hover:bg-blue-100/70'
+                  }`}
+                  onClick={() => scrollToMessageId(replyingTo.id)}
+                  title="Klik untuk melompat kembali ke pesan asli"
+                >
+                  <div className="truncate flex-1 pr-2">
+                    <span className="font-bold">Membalas @{replyingTo.username.split('●')[0]}:</span>{' '}
+                    <span className="italic opacity-80">"{replyingTo.pesan}"</span>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Stop propagation agar tidak memicu scroll saat ditutup
+                      setReplyingTo(null);
+                    }}
+                    className="text-gray-400 hover:text-gray-700 text-base font-bold leading-none px-1"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+
+              {/* DOCK UTAMA KAPSUL TEXTAREA CHAT INPUT */}
+              <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-end w-full">
+                <textarea 
+                  id="chat-input"
+                  className={`flex-1 border p-2.5 rounded-2xl px-4 text-sm resize-none focus:outline-none transition-all duration-300 min-h-[42px] max-h-[120px] font-sans leading-relaxed [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
+                    chatMode === 'private' 
+                      ? inputBlink
+                        ? 'bg-emerald-600/30 border-emerald-500 ring-2 ring-emerald-400 text-emerald-950 placeholder-emerald-600/50'
+                        : 'bg-emerald-600/10 border-emerald-500/20 text-emerald-950 placeholder-emerald-600/50 focus:border-emerald-500 focus:bg-emerald-600/15' 
+                      : inputBlink
+                        ? 'bg-blue-600/30 border-blue-500 ring-2 ring-blue-400 text-blue-950 placeholder-blue-600/50'
+                        : 'bg-blue-600/10 border-blue-500/20 text-blue-950 placeholder-blue-600/50 focus:border-blue-500 focus:bg-blue-600/15'
+                  }`}
+                  value={input} 
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage(e);
+                    }
+                  }}
+                  placeholder="Ketik pesan..." 
+                  maxLength={500} 
+                  rows={1}
+                  disabled={sending} 
+                />
+                <button 
+                  type="submit" 
+                  disabled={sending || !input.trim()} 
+                  className={`px-4 sm:px-6 h-[42px] rounded-2xl font-bold text-xs sm:text-sm shrink-0 transition-all duration-200 active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${
+                    chatMode === 'private' 
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
+                >
+                  {sending ? '...' : (
+                    chatMode === 'private' ? (
+                      <>
+                        <span className="hidden sm:inline">Kirim ke Private Chat</span>
+                        <span className="inline sm:hidden">Kirim admin</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="hidden sm:inline">Kirim ke Public Chat</span>
+                        <span className="inline sm:hidden">Kirim publik</span>
+                      </>
+                    )
+                  )}
+                </button>
+              </form>
+            </div>
           )}
         </>
       )}
