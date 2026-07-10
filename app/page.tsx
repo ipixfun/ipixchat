@@ -1,7 +1,7 @@
 'use client';
 
 // --- IMPORTS ---
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { supabase } from './supabaseClient';
 
@@ -47,7 +47,27 @@ export default function Home() {
   // State menu pop-up tindakan admin pesan
   const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
 
+  // --- STATE KAPSUL TOLERANSI (DURASI 5 DETIK) ---
+  const [showCapsule, setShowCapsule] = useState(true); // Default true agar muncul saat awal masuk
+  const containerRef = useRef<HTMLDivElement>(null);
+  const touchStartYRef = useRef<number>(0);
+
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
+
+  // Timout Handler untuk menghilangkan kapsul setelah 5 detik
+  const triggerCapsuleTimeout = () => {
+    setShowCapsule(true);
+    setTimeout(() => {
+      setShowCapsule(false);
+    }, 5000);
+  };
+
+  // Efek memicu hilangnya kapsul 5 detik saat pertama kali masuk/render data
+  useEffect(() => {
+    if (isAuth) {
+      triggerCapsuleTimeout();
+    }
+  }, [isAuth]);
 
   // --- HASH LISTENER ---
   useEffect(() => {
@@ -166,6 +186,29 @@ export default function Home() {
       }
     }
   }, [messages, chatMode]);
+
+  // --- DETEKSI PULL-UP TO REFRESH (PAGES BAWAH KE ATAS) UNTUK EMIT KAPSUL ---
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!containerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    // Cek apakah user berada di posisi paling bawah scrollbar
+    const isAtBottom = scrollHeight - scrollTop <= clientHeight + 5;
+    
+    if (isAtBottom) {
+      const currentY = e.touches[0].clientY;
+      const pullDistance = touchStartYRef.current - currentY; // Menarik dari bawah ke atas nilai positif
+      
+      // Jika ditarik ke atas melampaui threshold (misal 40px), picu kapsul
+      if (pullDistance > 40 && !showCapsule) {
+        triggerCapsuleTimeout();
+      }
+    }
+  };
 
   // --- ADMIN & TAG ACTIONS ---
   const handleTag = (targetUsername: string) => {
@@ -542,7 +585,12 @@ export default function Home() {
           )}
 
           {/* MAIN CONTENT AREA */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div 
+            ref={containerRef}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            className="flex-1 overflow-y-auto overflow-x-hidden"
+          >
             {activeTab === 'admin' && currentHash === '#block' ? (
               <div className="min-h-full bg-gradient-to-br from-emerald-950 via-blue-950 to-emerald-950 text-white">
                 <div className="sticky top-0 bg-gradient-to-br from-emerald-950 to-blue-950 border-b border-white/10 z-20 p-6">
@@ -767,17 +815,19 @@ export default function Home() {
                         <div className="text-center text-gray-400 italic mt-10">Belum ada pesan di ruang ini.</div>
                       )}
 
-                      {/* CAPSULE BANNER HEDON DI BAGIAN AKHIR PAGES CHAT */}
-                      <div className="flex justify-center pt-4 pb-2">
-                        <div className={`px-4 py-2 rounded-full text-[11px] font-bold text-black border shadow-sm text-center tracking-wide max-w-[92%] sm:max-w-none transition-colors duration-300 ${
-                          chatMode === 'private' ? 'bg-emerald-50 border-emerald-200' : 'bg-blue-50 border-blue-200'
+                      {/* --- KAPSUL BANNER MINIMALIS TEMPORER (5 DETIK) --- */}
+                      <div className={`w-full flex justify-center pt-2 pb-1 transition-all duration-500 ease-in-out ${
+                        showCapsule ? 'opacity-100 max-h-12 scale-100' : 'opacity-0 max-h-0 scale-95 pointer-events-none overflow-hidden'
+                      }`}>
+                        <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold text-gray-700 border shadow-xs text-center tracking-wide transition-colors duration-300 ${
+                          chatMode === 'private' ? 'bg-emerald-50/80 border-emerald-200/60' : 'bg-blue-50/80 border-blue-200/60'
                         }`}>
                           Bijaklah dalam berinteraksi salam toleransi - best regards | {' '}
                           <a 
                             href="https://ipix.my.id" 
                             target="_blank" 
                             rel="noopener noreferrer" 
-                            className="text-red-500 hover:text-red-600 underline font-extrabold"
+                            className="text-red-500 hover:text-red-600 underline font-black"
                           >
                             ipix.my.id
                           </a>
