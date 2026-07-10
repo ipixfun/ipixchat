@@ -31,15 +31,22 @@ export default function Home() {
   const [newBadWord, setNewBadWord] = useState('');
   const [currentHash, setCurrentHash] = useState('');
   
-  // Efek Kedip Input & Deteksi Sentuhan Layar
+  // Efek Kedip Input & Deteksi Sentuhan Layar (Refresh)
   const [inputBlink, setInputBlink] = useState(false);
   const [touchStartY, setTouchStartY] = useState(0);
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(false);
 
-  // State melacak data pesan asli yang sedang dibalas untuk tab preview
+  // State Pelacakan Swipe-to-Reply ala WhatsApp
+  const [swipingId, setSwipingId] = useState<number | null>(null);
+  const [swipeDelta, setSwipeDelta] = useState<number>(0);
+  const [touchStartX, setTouchStartX] = useState<number>(0);
+  const [touchInitialY, setTouchInitialY] = useState<number>(0);
+  const [isHorizontalSwipe, setIsHorizontalSwipe] = useState<boolean>(false);
+
+  // State data pesan asli yang sedang dibalas untuk tab preview
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
 
-  // State untuk melacak menu pop-up tindakan admin pesan mana yang sedang terbuka
+  // State menu pop-up tindakan admin pesan
   const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
 
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
@@ -76,7 +83,6 @@ export default function Home() {
   };
 
   // --- UI HELPERS ---
-  // PERUBAHAN: Menggunakan block: 'end' agar pesan nempel pas di atas dock input/keyboard
   const scrollToMessageId = (msgId: number) => {
     const el = document.getElementById(`msg-${msgId}`);
     if (el) {
@@ -190,25 +196,20 @@ export default function Home() {
     fetchData();
   };
 
-  // PERUBAHAN BESAR: UX Fokus Teks area -> Membuka Keyboard -> Menggulung Chat Asli tepat di atas papan ketik
+  // PEMBARUAN: Handler Balas Tanpa Memaksa Papan Ketik Keyboard Muncul
   const handleReply = (msgMessage: any) => {
     setReplyingTo(msgMessage);
     
     setInputBlink(true);
     setTimeout(() => setInputBlink(false), 800);
 
-    // 1. Arahkan fokus ke textarea pesan agar Papan Ketik (Keyboard Mobile) langsung menyembul keluar
-    const txtArea = document.getElementById('chat-input');
-    if (txtArea) txtArea.focus();
-
-    // 2. Beri jeda 350ms agar keyboard selesai naik dan mengecilkan ukuran viewport flex-1 kontainer.
-    // Kemudian gulung elemen asli menggunakan block: 'end' agar presisi nempel di atas tab replay.
+    // Langsung gulung target ke ujung bawah layar tepat di atas tab replay baru
     setTimeout(() => {
       const messageEl = document.getElementById(`msg-${msgMessage.id}`);
       if (messageEl) {
         messageEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
       }
-    }, 350);
+    }, 100);
   };
 
   // --- AUTH & DATA FETCHING ---
@@ -554,7 +555,7 @@ export default function Home() {
 
           {/* MAIN CONTENT AREA */}
           <div 
-            className="flex-1 overflow-y-auto"
+            className="flex-1 overflow-y-auto overflow-x-hidden"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
           >
@@ -643,7 +644,7 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className="flex flex-col h-full">
-                    <div className="p-3 space-y-3">
+                    <div className="p-3 space-y-3 overflow-x-hidden">
                       {messages.length > 0 ? (
                         messages.map((m) => {
                           const shortBrowser = m.user_browser ? 
@@ -652,7 +653,60 @@ export default function Home() {
                             : 'Unknown Browser';
 
                           return (
-                            <div key={m.id} id={`msg-${m.id}`} className={`bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none relative transition-all duration-300 ${activeTab === 'admin' ? 'pb-9' : ''}`}>
+                            <div 
+                              key={m.id} 
+                              id={`msg-${m.id}`} 
+                              className={`bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none relative ${activeTab === 'admin' ? 'pb-9' : ''}`}
+                              
+                              // --- EVENT DETEKSI SWIPE TO REPLY KIRI & KANAN ---
+                              onTouchStart={(e) => {
+                                setTouchStartX(e.touches[0].clientX);
+                                setTouchInitialY(e.touches[0].clientY);
+                                setSwipingId(m.id);
+                                setSwipeDelta(0);
+                                setIsHorizontalSwipe(false);
+                              }}
+                              onTouchMove={(e) => {
+                                if (swipingId !== m.id) return;
+                                const currentX = e.touches[0].clientX;
+                                const currentY = e.touches[0].clientY;
+                                const deltaX = currentX - touchStartX;
+                                const deltaY = currentY - touchInitialY;
+
+                                // Validasi jika murni geser layar ke samping, bukan scroll ke atas-bawah
+                                if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+                                  setIsHorizontalSwipe(true);
+                                }
+
+                                if (isHorizontalSwipe) {
+                                  // Batasi tarikan pegas maksimal 75 piksel kiri/kanan
+                                  const limitedDelta = Math.max(-75, Math.min(75, deltaX));
+                                  setSwipeDelta(limitedDelta);
+                                }
+                              }}
+                              onTouchEnd={() => {
+                                if (swipingId === m.id && isHorizontalSwipe) {
+                                  // Jika geseran melampaui 50px, picu fungsi reply
+                                  if (Math.abs(swipeDelta) > 50) {
+                                    handleReply(m);
+                                  }
+                                }
+                                setSwipingId(null);
+                                setSwipeDelta(0);
+                                setIsHorizontalSwipe(false);
+                              }}
+                              style={{
+                                transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)',
+                                transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                              }}
+                            >
+                              {/* Indikator visual kecil saat melakukan geser (Swipe Hint) */}
+                              {swipingId === m.id && Math.abs(swipeDelta) > 15 && (
+                                <div className={`absolute top-1/2 -translate-y-1/2 font-bold text-xs pointer-events-none transition-opacity ${swipeDelta > 0 ? '-left-6 text-blue-500' : '-right-6 text-emerald-500'}`}>
+                                  ↩
+                                </div>
+                              )}
+
                               <div className="flex justify-between items-start mb-1">
                                 <div className="flex items-center gap-2">
                                   <b onClick={() => handleTag(m.username)} className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px] cursor-pointer hover:underline`}>
