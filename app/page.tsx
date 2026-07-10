@@ -36,7 +36,7 @@ export default function Home() {
   const [touchStartY, setTouchStartY] = useState(0);
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(false);
 
-  // State melacak data pesan asli yang sedang dibalas untuk tab preview di bawah
+  // State melacak data pesan asli yang sedang dibalas untuk tab preview
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
 
   // State untuk melacak menu pop-up tindakan admin pesan mana yang sedang terbuka
@@ -76,27 +76,24 @@ export default function Home() {
   };
 
   // --- UI HELPERS ---
-  // Fungsi Scroll ke Kotak Asli dengan efek Blink Biru/Ijo Tipis (1.5 detik)
+  // PERUBAHAN: Menggunakan block: 'end' agar pesan nempel pas di atas dock input/keyboard
   const scrollToMessageId = (msgId: number) => {
     const el = document.getElementById(`msg-${msgId}`);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.scrollIntoView({ behavior: 'smooth', block: 'end' });
       
-      // Deteksi kelas warna ring tipis berdasarkan tipe chat aktif
       const blinkClasses = chatMode === 'private'
         ? ['ring-2', 'ring-emerald-400', 'bg-emerald-50/50']
         : ['ring-2', 'ring-blue-400', 'bg-blue-50/50'];
       
       el.classList.add(...blinkClasses);
       
-      // Hapus kelas efek secara halus setelah durasi transisi selesai
       setTimeout(() => {
         el.classList.remove(...blinkClasses);
       }, 1500);
     }
   };
 
-  // Fungsi scroll cadangan untuk format pesan teks kutipan konvensional
   const scrollToMessage = (quotedText: string) => {
     const targetMsg = messages.find(m => m.pesan.includes(quotedText));
     if (targetMsg) {
@@ -193,22 +190,25 @@ export default function Home() {
     fetchData();
   };
 
-  // Handler Tombol Balas diklik -> Mengaktifkan Tab Banner Balasan di atas input teks
+  // PERUBAHAN BESAR: UX Fokus Teks area -> Membuka Keyboard -> Menggulung Chat Asli tepat di atas papan ketik
   const handleReply = (msgMessage: any) => {
     setReplyingTo(msgMessage);
     
     setInputBlink(true);
     setTimeout(() => setInputBlink(false), 800);
 
+    // 1. Arahkan fokus ke textarea pesan agar Papan Ketik (Keyboard Mobile) langsung menyembul keluar
     const txtArea = document.getElementById('chat-input');
     if (txtArea) txtArea.focus();
 
+    // 2. Beri jeda 350ms agar keyboard selesai naik dan mengecilkan ukuran viewport flex-1 kontainer.
+    // Kemudian gulung elemen asli menggunakan block: 'end' agar presisi nempel di atas tab replay.
     setTimeout(() => {
       const messageEl = document.getElementById(`msg-${msgMessage.id}`);
       if (messageEl) {
-        messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        messageEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
       }
-    }, 150);
+    }, 350);
   };
 
   // --- AUTH & DATA FETCHING ---
@@ -422,7 +422,6 @@ export default function Home() {
 
     setSending(true);
 
-    // Format string pesan untuk database menggunakan penanda kutipan chat
     let finalPesan = input.trim();
     if (replyingTo) {
       const cleanName = replyingTo.username.split('●')[0];
@@ -460,7 +459,7 @@ export default function Home() {
         alert("Gagal kirim: " + error.message);
     } else { 
         setInput(''); 
-        setReplyingTo(null); // Bersihkan banner preview kutipan setelah pesan berhasil dikirim
+        setReplyingTo(null); 
         const txtArea = document.getElementById('chat-input');
         if (txtArea) txtArea.style.height = 'auto';
         fetchData(); 
@@ -744,7 +743,7 @@ export default function Home() {
           {currentHash !== '#block' && (
             <div className="bg-white sticky bottom-0 z-10 w-full flex flex-col">
               
-              {/* TAB / PREVIEW BANNER BALASAN YANG AKAN MUNCUL SAAT KLIK TOMBOL BALAS */}
+              {/* TAB BANNER PREVIEW BALASAN */}
               {replyingTo && (
                 <div 
                   className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x transition-all duration-300 cursor-pointer ${
@@ -762,7 +761,7 @@ export default function Home() {
                   <button 
                     type="button"
                     onClick={(e) => {
-                      e.stopPropagation(); // Stop propagation agar tidak memicu scroll saat ditutup
+                      e.stopPropagation(); 
                       setReplyingTo(null);
                     }}
                     className="text-gray-400 hover:text-gray-700 text-base font-bold leading-none px-1"
@@ -772,7 +771,7 @@ export default function Home() {
                 </div>
               )}
 
-              {/* DOCK UTAMA KAPSUL TEXTAREA CHAT INPUT */}
+              {/* DOCK UTAMA KAPSUL CHAT INPUT */}
               <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-end w-full">
                 <textarea 
                   id="chat-input"
