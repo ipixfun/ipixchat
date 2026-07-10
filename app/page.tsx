@@ -31,10 +31,8 @@ export default function Home() {
   const [newBadWord, setNewBadWord] = useState('');
   const [currentHash, setCurrentHash] = useState('');
   
-  // Efek Kedip Input & Deteksi Sentuhan Layar (Refresh)
+  // Efek Kedip Input
   const [inputBlink, setInputBlink] = useState(false);
-  const [touchStartY, setTouchStartY] = useState(0);
-  const [isScrolledToBottom, setIsScrolledToBottom] = useState(false);
 
   // State Pelacakan Swipe-to-Reply ala WhatsApp
   const [swipingId, setSwipingId] = useState<number | null>(null);
@@ -159,23 +157,15 @@ export default function Home() {
     return `Selamat ${timeOfDay}, `;
   };
 
-  // --- HANDLERS TOUCH GESTURE (PULL UP TO REFRESH) ---
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const container = e.currentTarget;
-    const atBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight) < 8;
-    setIsScrolledToBottom(atBottom);
-    setTouchStartY(e.touches[0].clientY);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isScrolledToBottom) return;
-    const currentY = e.touches[0].clientY;
-    const pullDistance = touchStartY - currentY;
-
-    if (pullDistance > 160) {
-      window.location.reload();
+  // --- AUTOMATIC SCROLL TO BOTTOM EFFECT ---
+  useEffect(() => {
+    if (messages.length > 0) {
+      const endEl = document.getElementById('messages-end');
+      if (endEl) {
+        endEl.scrollIntoView({ behavior: 'auto' });
+      }
     }
-  };
+  }, [messages, chatMode]);
 
   // --- ADMIN & TAG ACTIONS ---
   const handleTag = (targetUsername: string) => {
@@ -196,14 +186,12 @@ export default function Home() {
     fetchData();
   };
 
-  // PEMBARUAN: Handler Balas Tanpa Memaksa Papan Ketik Keyboard Muncul
   const handleReply = (msgMessage: any) => {
     setReplyingTo(msgMessage);
     
     setInputBlink(true);
     setTimeout(() => setInputBlink(false), 800);
 
-    // Langsung gulung target ke ujung bawah layar tepat di atas tab replay baru
     setTimeout(() => {
       const messageEl = document.getElementById(`msg-${msgMessage.id}`);
       if (messageEl) {
@@ -554,11 +542,7 @@ export default function Home() {
           )}
 
           {/* MAIN CONTENT AREA */}
-          <div 
-            className="flex-1 overflow-y-auto overflow-x-hidden"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-          >
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
             {activeTab === 'admin' && currentHash === '#block' ? (
               <div className="min-h-full bg-gradient-to-br from-emerald-950 via-blue-950 to-emerald-950 text-white">
                 <div className="sticky top-0 bg-gradient-to-br from-emerald-950 to-blue-950 border-b border-white/10 z-20 p-6">
@@ -658,7 +642,7 @@ export default function Home() {
                               id={`msg-${m.id}`} 
                               className={`bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none relative ${activeTab === 'admin' ? 'pb-9' : ''}`}
                               
-                              // --- EVENT DETEKSI SWIPE TO REPLY KIRI & KANAN ---
+                              // --- DETEKSI SWIPE TO REPLY KIRI & KANAN ---
                               onTouchStart={(e) => {
                                 setTouchStartX(e.touches[0].clientX);
                                 setTouchInitialY(e.touches[0].clientY);
@@ -673,20 +657,17 @@ export default function Home() {
                                 const deltaX = currentX - touchStartX;
                                 const deltaY = currentY - touchInitialY;
 
-                                // Validasi jika murni geser layar ke samping, bukan scroll ke atas-bawah
                                 if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
                                   setIsHorizontalSwipe(true);
                                 }
 
                                 if (isHorizontalSwipe) {
-                                  // Batasi tarikan pegas maksimal 75 piksel kiri/kanan
                                   const limitedDelta = Math.max(-75, Math.min(75, deltaX));
                                   setSwipeDelta(limitedDelta);
                                 }
                               }}
                               onTouchEnd={() => {
                                 if (swipingId === m.id && isHorizontalSwipe) {
-                                  // Jika geseran melampaui 50px, picu fungsi reply
                                   if (Math.abs(swipeDelta) > 50) {
                                     handleReply(m);
                                   }
@@ -700,7 +681,6 @@ export default function Home() {
                                 transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                               }}
                             >
-                              {/* Indikator visual kecil saat melakukan geser (Swipe Hint) */}
                               {swipingId === m.id && Math.abs(swipeDelta) > 15 && (
                                 <div className={`absolute top-1/2 -translate-y-1/2 font-bold text-xs pointer-events-none transition-opacity ${swipeDelta > 0 ? '-left-6 text-blue-500' : '-right-6 text-emerald-500'}`}>
                                   ↩
@@ -786,6 +766,26 @@ export default function Home() {
                       ) : (
                         <div className="text-center text-gray-400 italic mt-10">Belum ada pesan di ruang ini.</div>
                       )}
+
+                      {/* CAPSULE BANNER HEDON DI BAGIAN AKHIR PAGES CHAT */}
+                      <div className="flex justify-center pt-4 pb-2">
+                        <div className={`px-4 py-2 rounded-full text-[11px] font-bold text-black border shadow-sm text-center tracking-wide max-w-[92%] sm:max-w-none transition-colors duration-300 ${
+                          chatMode === 'private' ? 'bg-emerald-50 border-emerald-200' : 'bg-blue-50 border-blue-200'
+                        }`}>
+                          Bijaklah dalam berinteraksi salam toleransi - best regards | {' '}
+                          <a 
+                            href="https://ipix.my.id" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-red-500 hover:text-red-600 underline font-extrabold"
+                          >
+                            ipix.my.id
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* ANCHOR AUTO-SCROLL */}
+                      <div id="messages-end" className="h-1" />
                     </div>
                   </div>
                 )}
