@@ -19,7 +19,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
   const [chatMode, setChatMode] = useState<'public' | 'private'>('public');
   const [input, setInput] = useState('');
-  const [isAuth, setIsAuth] = useState(false);
+  const [isAuth, setIsAuth] = useState(false); // <-- SUDAH DIPERBAIKI DI SINI
   const [sending, setSending] = useState(false);
   const [privateNotifCount, setPrivateNotifCount] = useState(0);
   const [isAdminOnline, setIsAdminOnline] = useState(false);
@@ -29,8 +29,10 @@ export default function Home() {
   const [privateUsers, setPrivateUsers] = useState<any[]>([]);
   const [blockedWords, setBlockedWords] = useState<string[]>([]);
   const [newBadWord, setNewBadWord] = useState('');
-
   const [currentHash, setCurrentHash] = useState('');
+  
+  // State untuk melacak menu pop-up pesan mana yang sedang terbuka
+  const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
 
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
 
@@ -334,17 +336,19 @@ export default function Home() {
     const { data: bData } = await supabase.from('blocked_users').select('*').eq('device_id', cid);
     if (bData && bData.length > 0) { window.location.replace("https://ipix.my.id/chat"); return; }
 
-    if (!isExistingUser) {
-      try {
-        await supabase
-          .from('profiles')
-          .upsert(
-            { device_id: cid, username: username.trim() },
-            { onConflict: 'device_id' }
-          );
-      } catch (err) {
-        console.log("Gagal menyimpan ke database, melanjutkan sesi lokal:", err);
-      }
+    try {
+      await supabase
+        .from('profiles')
+        .upsert(
+          { 
+            device_id: cid, 
+            username: username.trim(),
+            user_browser: typeof window !== 'undefined' ? navigator.userAgent : 'Unknown'
+          },
+          { onConflict: 'device_id' }
+        );
+    } catch (err) {
+      console.log("Gagal menyimpan ke database, melanjutkan sesi lokal:", err);
     }
 
     setIsAuth(true);
@@ -358,6 +362,17 @@ export default function Home() {
     if (!input.trim() || sending) return;
 
     setSending(true);
+
+    const payload = {
+        username, 
+        pesan: input.trim(), 
+        device_id: localStorage.getItem('device_id') || 'guest',
+        is_private: chatMode === 'private',
+        private_with: chatMode === 'private' ? (activeTab === 'user' ? 'admin' : selectedPrivateUser) : null,
+        user_browser: typeof window !== 'undefined' ? navigator.userAgent : 'Unknown'
+    };
+    
+    console.log("DEBUG: Payload yang dikirim:", payload);
 
     if (username !== 'Admin●ipix.my.id') {
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -374,13 +389,15 @@ export default function Home() {
       }
     }
 
-    const { error } = await supabase.from('messages').insert([{
-      username, pesan: input.trim(), device_id: localStorage.getItem('device_id') || 'guest',
-      is_private: chatMode === 'private',
-      private_with: chatMode === 'private' ? (activeTab === 'user' ? 'admin' : selectedPrivateUser) : null
-    }]);
+    const { error } = await supabase.from('messages').insert([payload]);
 
-    if (!error) { setInput(''); fetchData(); }
+    if (error) {
+        console.error("DEBUG: Error Supabase:", error);
+        alert("Gagal kirim: " + error.message);
+    } else { 
+        setInput(''); 
+        fetchData(); 
+    }
     setSending(false);
   };
 
@@ -414,7 +431,7 @@ export default function Home() {
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
 
   return (
-    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans">
+    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans" onClick={() => setActiveMenuId(null)}>
       {!isAuth ? (
         <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-emerald-500 to-blue-600 text-white p-6">
           <h1 className="text-3xl font-bold mb-6">{activeTab === 'admin' ? 'IpixChat Admin' : 'IpixChat Login'}</h1>
@@ -439,11 +456,18 @@ export default function Home() {
             <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b border-white/20">
               <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full shadow">Keluar</button>
               <div className="flex justify-between items-center">
-                <div className="flex flex-col">
+                <div className="flex flex-col max-w-[65%]">
                   <span className="text-[10px] text-gray-800 uppercase tracking-wider">{getGreeting().replace(',', '')}</span>
-                  <span className="text-[9px] font-medium text-blue-800 leading-tight">{username}</span>
+                  <div className="flex flex-wrap items-center gap-1.5 leading-tight">
+                    <span className="text-[11px] font-bold text-blue-800">{username}</span>
+                    {activeTab === 'admin' && (
+                      <span className="text-[9px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-mono truncate" title={currentDeviceId || ''}>
+                        ID: {currentDeviceId}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="text-center flex-1 flex flex-col items-center">
+                <div className="text-center flex-1 flex flex-col items-end mr-16">
                   <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-bold text-sm underline flex items-center gap-1">ipix.my.id</a>
                   {activeTab === 'user' && (
                     <div className="text-[10px] text-gray-500 mt-0.5">
@@ -555,10 +579,10 @@ export default function Home() {
                           const shortBrowser = m.user_browser ? 
                             m.user_browser.split('(')[0].trim() + 
                             (m.user_browser.includes('(') ? ` (${m.user_browser.split('(')[1].split(')')[0]})` : '') 
-                            : '';
+                            : 'Unknown Browser';
 
                           return (
-                            <div key={m.id} id={`msg-${m.id}`} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none relative">
+                            <div key={m.id} id={`msg-${m.id}`} className={`bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none relative ${activeTab === 'admin' ? 'pb-9' : ''}`}>
                               <div className="flex justify-between items-start mb-1">
                                 <div className="flex items-center gap-2">
                                   <b onClick={() => handleTag(m.username)} className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px] cursor-pointer hover:underline`}>
@@ -572,44 +596,64 @@ export default function Home() {
                                   {m.is_private && <span className="text-xs text-emerald-600">🔒 Private</span>}
                                 </div>
 
-                                {/* Browser di atas tengah */}
-                                {activeTab === 'admin' && shortBrowser && (
-                                  <div className="text-[10px] text-orange-600 text-center flex-1 px-3">
-                                    {shortBrowser}
-                                  </div>
-                                )}
-
                                 <span className="text-[10px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
                               </div>
 
                               {renderMessageContent(m.pesan)}
 
-                              {/* ID di pojok kiri bawah - sejajar tombol aksi */}
                               {activeTab === 'admin' && (
-                                <div className="absolute bottom-3 left-3">
-                                  <div 
-                                    className="text-[10px] text-blue-600 font-mono cursor-pointer hover:underline" 
+                                <div className="absolute bottom-2 left-3 flex flex-col gap-0.5 text-[9px] text-gray-400 font-sans max-w-[60%]">
+                                  <span className="text-orange-600 truncate font-medium" title={m.user_browser || ''}>
+                                    🌐 {shortBrowser}
+                                  </span>
+                                  <span 
+                                    className="text-blue-600 font-mono cursor-pointer hover:underline truncate" 
                                     onClick={() => copyToClipboard(m.device_id, 'Device ID')}
                                   >
                                     ID: {m.device_id}
-                                  </div>
+                                  </span>
                                 </div>
                               )}
 
-                              <div className="flex justify-end gap-4 mt-2 text-[10px] pt-6">
-                                {chatMode === 'public' && <button onClick={() => handleReply(m.username, m.pesan)} className="text-emerald-600 font-bold underline">Balas</button>}
+                              <div className="absolute bottom-2 right-3 flex items-center gap-2 text-[10px]">
+                                <button 
+                                  onClick={() => handleReply(m.username, m.pesan)} 
+                                  className={`font-bold underline mr-1 transition-colors ${
+                                    chatMode === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'
+                                  }`}
+                                >
+                                  Balas
+                                </button>
+                                
                                 {activeTab === 'admin' && (
-                                  <>
-                                    <button onClick={() => editMsg(m.id)} className="text-blue-600 font-bold underline">Edit</button>
-                                    <button onClick={() => editNama(m.id)} className="text-purple-600 font-bold underline">Nama</button>
-                                    <button onClick={() => deleteMsg(m.id)} className="text-red-600 font-bold underline">Hapus</button>
-                                    {!m.username.includes('Admin') && (
-                                      <>
-                                        <button onClick={() => blockUser(m.device_id, m.username)} className="text-gray-400 font-bold underline">Blokir</button>
-                                        <button onClick={() => inviteToPrivate(m.device_id, m.username)} className="text-emerald-600 font-bold underline hover:text-emerald-700">💬 Ajak Private</button>
-                                      </>
+                                  <div className="relative flex items-center">
+                                    {activeMenuId === m.id && (
+                                      <div 
+                                        className="absolute right-6 bg-white border border-gray-200 shadow-lg rounded-full px-3 py-1 flex items-center gap-2.5 z-30 animate-fade-in whitespace-nowrap bg-opacity-95 backdrop-blur-sm"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <button onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="text-blue-600 font-bold hover:underline">Edit</button>
+                                        <button onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="text-purple-600 font-bold hover:underline">Nama</button>
+                                        <button onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="text-red-600 font-bold hover:underline">Hapus</button>
+                                        {!m.username.includes('Admin') && (
+                                          <>
+                                            <button onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="text-gray-500 font-bold hover:underline">Blokir</button>
+                                            <button onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="text-emerald-600 font-bold hover:underline">Private</button>
+                                          </>
+                                        )}
+                                      </div>
                                     )}
-                                  </>
+
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveMenuId(activeMenuId === m.id ? null : m.id);
+                                      }}
+                                      className="text-gray-500 hover:text-gray-800 text-base font-bold px-1 rounded hover:bg-gray-100 transition-colors"
+                                    >
+                                      ⋮
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             </div>
@@ -625,7 +669,6 @@ export default function Home() {
             )}
           </div>
 
-          {/* FORM INPUT DENGAN TOMBOL DINAMIS */}
           {currentHash !== '#block' && (
             <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-center">
               <input 
