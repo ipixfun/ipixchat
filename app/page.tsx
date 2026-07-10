@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { supabase } from './supabaseClient';
+import { motion } from 'framer-motion';
 
 export default function Home() {
   const pathname = usePathname();
@@ -40,6 +41,10 @@ export default function Home() {
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState<boolean>(false);
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
+  
+  const [longPressId, setLongPressId] = useState<number | null>(null);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+
   const [capsuleIndex, setCapsuleIndex] = useState<0 | 1>(0);
   const [isCapsulePaused, setIsCapsulePaused] = useState(false);
   
@@ -136,7 +141,6 @@ export default function Home() {
   const handleTabSwitch = (mode: 'public' | 'private') => {
     if (mode === chatMode) return;
     setIsTransitioning(true);
-    // Timeout untuk membiarkan layar menjadi transparan sesaat (blank) sebelum mengganti isi DOM
     setTimeout(() => {
       setChatMode(mode);
       setSelectedPrivateUser(null);
@@ -244,6 +248,17 @@ export default function Home() {
     const cid = localStorage.getItem('device_id') || 'guest';
     const { data: bData } = await supabase.from('blocked_users').select('*').eq('device_id', cid);
     if (bData && bData.length > 0) return window.location.replace("https://ipix.my.id/chat");
+    
+    if (!isExistingUser) {
+      const { data: existingProfiles } = await supabase.from('profiles').select('device_id, username').ilike('username', username.trim());
+      if (existingProfiles && existingProfiles.length > 0) {
+        const isTaken = existingProfiles.some(p => p.device_id !== cid && p.username.toLowerCase() === username.trim().toLowerCase());
+        if (isTaken) {
+          return alert("Username sudah digunakan oleh pengguna lain. Silakan buat nama lain yang unik.");
+        }
+      }
+    }
+
     try { await supabase.from('profiles').upsert({ device_id: cid, username: username.trim(), user_browser: typeof window !== 'undefined' ? navigator.userAgent : 'Unknown' }, { onConflict: 'device_id' }); } catch (err) {}
     setIsAuth(true); sessionStorage.setItem('is_auth', 'true'); sessionStorage.setItem('saved_username', username.trim()); sessionStorage.setItem('active_tab', 'user');
   };
@@ -264,16 +279,29 @@ export default function Home() {
     setSending(false);
   };
   
+  const handleEditLimit = async (msg: any) => {
+    const key = `edit_count_${msg.id}`;
+    const currentEdits = parseInt(localStorage.getItem(key) || '0');
+    if (currentEdits >= 2) return alert("Batas edit maksimal 2x untuk pesan ini.");
+    
+    const newText = prompt("Edit pesan:", msg.pesan);
+    if (newText !== null && newText.trim() && newText.trim() !== msg.pesan) {
+      await supabase.from('messages').update({ pesan: newText.trim() }).eq('id', msg.id);
+      localStorage.setItem(key, (currentEdits + 1).toString());
+      fetchData();
+    }
+  };
+
   const editMsg = async (id: number) => { const newText = prompt("Edit pesan:", messages.find(m => m.id === id)?.pesan || ""); if (newText !== null && newText.trim()) { await supabase.from('messages').update({ pesan: newText }).eq('id', id); fetchData(); } };
   const editNama = async (id: number) => { const msg = messages.find(m => m.id === id); if (!msg) return; const newName = prompt("Edit nama:", msg.username); if (newName && containsBlockedWord(newName)) return alert("Nama mengandung kata terlarang!"); if (newName && newName.trim()) { await supabase.from('profiles').update({ username: newName.trim() }).eq('device_id', msg.device_id); await supabase.from('messages').update({ username: newName.trim() }).eq('device_id', msg.device_id); fetchData(); } };
-  const deleteMsg = async (id: number) => { if (confirm("Hapus?")) { await supabase.from('messages').delete().eq('id', id); fetchData(); } };
+  const deleteMsg = async (id: number) => { await supabase.from('messages').delete().eq('id', id); fetchData(); };
   const blockUser = async (id: string, name: string) => { if (confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: name }]); fetchData(); } };
   const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
   const inviteToPrivate = (id: string, name: string) => { handleTabSwitch('private'); setSelectedPrivateUser(id); };
 
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
   return (
-    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans" onClick={() => setActiveMenuId(null)}>
+    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans" onClick={() => { setActiveMenuId(null); setLongPressId(null); }}>
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes slideLeftSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(-4px); opacity: 1; } } 
         @keyframes slideRightSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(4px); opacity: 1; } } 
@@ -287,21 +315,64 @@ export default function Home() {
       `}} />
 
       {!isAuth ? (
-        <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-emerald-500 to-blue-600 text-white p-6">
-          <h1 className="text-3xl font-bold mb-6">{activeTab === 'admin' ? 'IpixChat Admin' : 'IpixChat Login'}</h1>
-          {activeTab === 'user' ? (
-            <div className="w-full max-w-sm flex flex-col items-center">
-              <input className="w-full p-3 rounded text-black mb-1 disabled:bg-gray-200 disabled:text-gray-500 shadow-lg" placeholder="Masukkan Nama Anda..." value={username || ""} onChange={(e) => setUsername(e.target.value)} disabled={isExistingUser} />
-              {isExistingUser && <span className="text-xs text-blue-100 mb-4 italic text-center px-2">Nama Anda telah tertanam di sistem.</span>}
-              <button onClick={handleUserLogin} className="w-full bg-white text-blue-600 px-8 py-3 rounded-full font-bold shadow-md hover:bg-gray-100 transition-all mt-2">Masuk Chat</button>
-            </div>
-          ) : (
-            <div className="w-full max-w-sm flex flex-col items-center">
-              <input className="w-full p-3 rounded text-black mb-3 shadow-lg" placeholder="Email Admin" value={adminEmail || ""} onChange={(e) => setAdminEmail(e.target.value)} />
-              <input type="password" className="w-full p-3 rounded text-black mb-4 shadow-lg" placeholder="Password Admin" value={adminPass || ""} onChange={(e) => setAdminPass(e.target.value)} />
-              <button onClick={handleAdminLogin} className="w-full bg-white text-emerald-600 px-8 py-3 rounded-full font-bold shadow-md hover:bg-gray-100 transition-all">Verifikasi Admin</button>
-            </div>
-          )}
+        <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-emerald-500 to-blue-600 p-6 relative overflow-hidden w-full">
+          <div className="w-full max-w-sm flex flex-col items-center bg-white/10 backdrop-blur-md p-8 rounded-[2rem] border border-white/20 shadow-2xl z-10">
+            <h1 className="w-full text-center text-4xl sm:text-5xl font-black mb-8 text-white/95 tracking-tighter drop-shadow-[0_2px_15px_rgba(255,255,255,0.4)] pb-1" style={{ fontFamily: "'Nunito', 'Segoe UI', sans-serif" }}>
+              iPixChaT
+            </h1>
+            {activeTab === 'user' ? (
+              <div className="w-full flex flex-col items-center">
+                <input 
+                  className="w-full p-4 rounded-2xl bg-white/20 text-white placeholder-white/70 border border-white/20 focus:border-white focus:bg-white/30 transition-all outline-none font-medium shadow-inner text-center" 
+                  placeholder="Masukkan Nama Anda..." 
+                  value={username || ""} 
+                  onChange={(e) => setUsername(e.target.value)} 
+                  disabled={isExistingUser} 
+                />
+                {!isExistingUser ? (
+                  <div className="bg-white/20 px-5 py-2 rounded-full mt-4 mb-6 text-[10px] text-white/90 shadow-sm border border-white/10 backdrop-blur-sm font-medium tracking-wide">
+                    buat username yang baik dan benar
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-white/90 mt-4 mb-6 text-center leading-relaxed bg-black/10 px-4 py-2.5 rounded-xl backdrop-blur-sm border border-white/10 w-full shadow-inner">
+                    Nama Anda telah tertanam di sistem chat.<br/>Hubungi admin untuk merubahnya.
+                  </div>
+                )}
+                <button 
+                  onClick={handleUserLogin} 
+                  className="w-full bg-gradient-to-r from-emerald-400 to-blue-500 text-white px-8 py-3.5 rounded-2xl font-bold shadow-[0_4px_15px_rgba(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-95 transition-all mt-2 text-sm tracking-wide">
+                  {isExistingUser ? 'Masuk Chat' : 'Login'}
+                </button>
+              </div>
+            ) : (
+              <div className="w-full flex flex-col items-center">
+                <input className="w-full p-4 rounded-2xl bg-white/20 text-white placeholder-white/70 border border-white/20 focus:border-white focus:bg-white/30 transition-all outline-none font-medium shadow-inner text-center mb-4" placeholder="Email Admin" value={adminEmail || ""} onChange={(e) => setAdminEmail(e.target.value)} />
+                <input type="password" className="w-full p-4 rounded-2xl bg-white/20 text-white placeholder-white/70 border border-white/20 focus:border-white focus:bg-white/30 transition-all outline-none font-medium shadow-inner text-center mb-6" placeholder="Password Admin" value={adminPass || ""} onChange={(e) => setAdminPass(e.target.value)} />
+                <button onClick={handleAdminLogin} className="w-full bg-gradient-to-r from-emerald-400 to-blue-500 text-white px-8 py-3.5 rounded-2xl font-bold shadow-[0_4px_15px_rgba(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-95 transition-all text-sm tracking-wide">
+                  Verifikasi Admin
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="absolute bottom-6 text-[11px] text-white/80 flex items-center gap-1.5 z-10 font-medium">
+            created by 
+            <motion.a 
+              href="https://ipix.my.id" 
+              target="_blank" 
+              className="text-emerald-300 font-black hover:text-emerald-100 px-0.5" 
+              animate={{ y: [0, -4, 0] }} 
+              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}>
+              ipix.my.id
+            </motion.a>
+            with 
+            <motion.span 
+              animate={{ scale: [1, 1.3, 1] }} 
+              transition={{ repeat: Infinity, duration: 0.8, ease: "easeInOut" }} 
+              className="text-red-500 text-sm drop-shadow-md">
+              ❤️
+            </motion.span>
+          </div>
         </div>
       ) : (
         <>
@@ -322,7 +393,6 @@ export default function Home() {
                 </div>
               </div>
               <div className="flex mt-3 bg-white border border-gray-200 rounded-full p-1 shadow-sm w-full">
-                {/* TAB PUBLIC - Bulatan di Pojok Kiri */}
                 <button onClick={() => handleTabSwitch('public')} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 flex items-center justify-center gap-2 ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
                   <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center">
                     <span className={`${chatMode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-200`}>
@@ -332,7 +402,6 @@ export default function Home() {
                   <span className="ml-5">Public Chat</span>
                 </button>
 
-                {/* TAB PRIVATE - Bulatan di Pojok Kanan */}
                 <button onClick={() => handleTabSwitch('private')} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 flex items-center justify-center gap-2 ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
                   <span className="mr-5">💬 Chat Private</span>
                   <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center">
@@ -394,7 +463,6 @@ export default function Home() {
                           <div className="font-semibold text-blue-700 text-base">{user.username || 'User Tanpa Nama'}</div>
                           <div className="text-xs text-gray-500 font-mono mt-0.5">ID: {user.device_id.substring(0, 8)}...</div>
                         </div>
-                        {/* Status Pesan Baru & Terbaca */}
                         <div className="text-right flex flex-col items-end gap-1.5">
                           {user.count > 0 ? (
                             <div className="bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">
@@ -417,17 +485,66 @@ export default function Home() {
                         const shortBrowser = m.user_browser ? m.user_browser.split('(')[0].trim() + (m.user_browser.includes('(') ? ` (${m.user_browser.split('(')[1].split(')')[0]})` : '') : 'Unknown Browser';
                         return (
                           <div key={m.id} id={`msg-${m.id}`} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none relative"
-                            onTouchStart={(e) => { setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); setSwipingId(m.id); setSwipeDelta(0); setIsHorizontalSwipe(false); }}
+                            onMouseDown={(e) => {
+                              longPressTimer.current = setTimeout(() => { setLongPressId(m.id); if (navigator.vibrate) navigator.vibrate(50); }, 500);
+                            }}
+                            onMouseMove={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
+                            onMouseUp={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
+                            onTouchStart={(e) => { 
+                              setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); 
+                              setSwipingId(m.id); setSwipeDelta(0); setIsHorizontalSwipe(false); 
+                              longPressTimer.current = setTimeout(() => { setLongPressId(m.id); if (navigator.vibrate) navigator.vibrate(50); }, 500);
+                            }}
                             onTouchMove={(e) => {
+                              if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
                               if (swipingId !== m.id) return;
                               const deltaX = e.touches[0].clientX - touchStartX, deltaY = e.touches[0].clientY - touchInitialY;
                               if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) setIsHorizontalSwipe(true);
                               if (isHorizontalSwipe) setSwipeDelta(Math.max(-75, Math.min(75, deltaX)));
                             }}
-                            onTouchEnd={() => { if (swipingId === m.id && isHorizontalSwipe && Math.abs(swipeDelta) > 50) handleReply(m); setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false); }}
+                            onTouchEnd={() => { 
+                              if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+                              if (swipingId === m.id && isHorizontalSwipe) {
+                                if (swipeDelta > 50) {
+                                  handleReply(m);
+                                } else if (swipeDelta < -50) {
+                                  const isMyMsg = m.device_id === currentDeviceId;
+                                  const isUnder24h = Date.now() - new Date(m.created_at).getTime() < 24 * 60 * 60 * 1000;
+                                  
+                                  if (activeTab === 'admin') {
+                                    if (window.confirm("Apakah benar mau menghapus pesan ini?")) deleteMsg(m.id);
+                                  } else if (isMyMsg) {
+                                    if (isUnder24h) {
+                                      if (window.confirm("Apakah benar mau menghapus pesan ini?")) deleteMsg(m.id);
+                                    } else {
+                                      alert("Pesan lebih dari 24 jam hanya dapat dihapus oleh admin.");
+                                    }
+                                  }
+                                }
+                              }
+                              setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false); 
+                            }}
                             style={{ transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)', transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
-                            {swipingId === m.id && Math.abs(swipeDelta) > 15 && <div className={`absolute top-1/2 -translate-y-1/2 font-bold text-xs pointer-events-none transition-opacity ${swipeDelta > 0 ? '-left-6 text-blue-500' : '-right-6 text-emerald-500'}`}>↩</div>}
                             
+                            {swipingId === m.id && Math.abs(swipeDelta) > 15 && (
+                              <div className={`absolute top-1/2 -translate-y-1/2 font-bold text-xs pointer-events-none transition-opacity flex items-center justify-center ${swipeDelta > 0 ? '-left-6 text-blue-500' : '-right-8 text-red-500'}`}>
+                                {swipeDelta > 0 ? '↩' : (
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 stroke-current opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                )}
+                              </div>
+                            )}
+                            
+                            {longPressId === m.id && (
+                              <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 rounded-xl flex items-center justify-center gap-3 shadow-sm border border-gray-200 animate-fade-in" onClick={(e) => { e.stopPropagation(); setLongPressId(null); }}>
+                                <button className="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); copyToClipboard(m.pesan, 'Pesan'); setLongPressId(null); }}>Salin Teks</button>
+                                {(activeTab !== 'admin' && m.device_id === currentDeviceId) && (
+                                   <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); handleEditLimit(m); setLongPressId(null); }}>Edit Teks</button>
+                                )}
+                              </div>
+                            )}
+
                             <div className="flex justify-between items-start mb-1">
                               <div className="flex items-center gap-2">
                                 <b onClick={() => handleTag(m.username)} className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px] cursor-pointer hover:underline`}>{m.username}</b>
@@ -439,16 +556,13 @@ export default function Home() {
                             
                             {renderMessageContent(m.pesan)}
                             
-                            {/* Metadata Admin dan Tombol Aksi diatur menggunakan flexbox */}
                             <div className={`mt-2 pt-2 border-t border-gray-100 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
                               <div className="flex-1 overflow-hidden">
                                 {activeTab === 'admin' && (
                                   <div className="flex flex-col gap-1 text-[9px] text-gray-400 font-sans w-full">
-                                    {/* Device ID Full / Ter-break */}
                                     <span className="text-blue-600 font-mono cursor-pointer hover:underline break-all leading-tight" onClick={() => copyToClipboard(m.device_id, 'Device ID')}>
                                       ID: {m.device_id}
                                     </span>
-                                    {/* Browser Info Minimalis / Ter-truncate */}
                                     <span className="text-orange-600 truncate font-medium max-w-[200px]" title={m.user_browser || ''}>
                                       🌐 {shortBrowser}
                                     </span>
@@ -512,8 +626,13 @@ export default function Home() {
                   <button type="button" onClick={(e) => { e.stopPropagation(); setReplyingTo(null); }} className="text-gray-400 hover:text-gray-700 text-base font-bold leading-none px-1">×</button>
                 </div>
               )}
-              <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-end w-full">
-                <textarea id="chat-input" className={`flex-1 border p-2.5 rounded-2xl px-4 text-sm resize-none focus:outline-none transition-all duration-300 min-h-[42px] max-h-[120px] font-sans leading-relaxed [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${chatMode === 'private' ? inputBlink ? 'bg-emerald-600/30 border-emerald-500 ring-2 ring-emerald-400 text-emerald-950 placeholder-emerald-600/50' : 'bg-emerald-600/10 border-emerald-500/20 text-emerald-950 placeholder-emerald-600/50 focus:border-emerald-500 focus:bg-emerald-600/15' : inputBlink ? 'bg-blue-600/30 border-blue-500 ring-2 ring-blue-400 text-blue-950 placeholder-blue-600/50' : 'bg-blue-600/10 border-blue-500/20 text-blue-950 placeholder-blue-600/50 focus:border-blue-500 focus:bg-blue-600/15'}`} value={input} onChange={(e) => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`; }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e); } }} placeholder="Ketik pesan..." maxLength={500} rows={1} disabled={sending} />
+              <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-end w-full relative">
+                <div className="relative flex-1">
+                  <textarea id="chat-input" className={`w-full border p-2.5 rounded-2xl px-4 pb-7 text-sm resize-none focus:outline-none transition-all duration-300 min-h-[42px] max-h-[120px] font-sans leading-relaxed [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${chatMode === 'private' ? inputBlink ? 'bg-emerald-600/30 border-emerald-500 ring-2 ring-emerald-400 text-emerald-950 placeholder-emerald-600/50' : 'bg-emerald-600/10 border-emerald-500/20 text-emerald-950 placeholder-emerald-600/50 focus:border-emerald-500 focus:bg-emerald-600/15' : inputBlink ? 'bg-blue-600/30 border-blue-500 ring-2 ring-blue-400 text-blue-950 placeholder-blue-600/50' : 'bg-blue-600/10 border-blue-500/20 text-blue-950 placeholder-blue-600/50 focus:border-blue-500 focus:bg-blue-600/15'}`} value={input} onChange={(e) => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`; }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e); } }} placeholder="Ketik pesan..." maxLength={200} rows={1} disabled={sending} />
+                  <div className="absolute right-4 bottom-2.5 text-[10px] text-gray-400 font-mono pointer-events-none select-none opacity-80 bg-white/40 px-1 rounded">
+                    {200 - input.length}
+                  </div>
+                </div>
                 <button type="submit" disabled={sending || !input.trim()} className={`px-4 sm:px-6 h-[42px] rounded-2xl font-bold text-xs sm:text-sm shrink-0 transition-all duration-200 active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${chatMode === 'private' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}>
                   {sending ? '...' : (chatMode === 'private' ? <><span className="hidden sm:inline">Kirim ke Private Chat</span><span className="inline sm:hidden">Kirim admin</span></> : <><span className="hidden sm:inline">Kirim ke Public Chat</span><span className="inline sm:hidden">Kirim publik</span></>)}
                 </button>
