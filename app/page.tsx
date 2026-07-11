@@ -1,8 +1,10 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
-import { supabase } from './supabaseClient';
-import { motion } from 'framer-motion';
+import { supabase } from './supabaseClient'; // Pastikan path ini benar di proyekmu
+import Login from '../components/Login';
+import Admin from '../components/Admin';
+import Block from '../components/Block';
 
 export default function Home() {
   const pathname = usePathname();
@@ -315,65 +317,21 @@ export default function Home() {
       `}} />
 
       {!isAuth ? (
-        <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-emerald-500 to-blue-600 p-6 relative overflow-hidden w-full">
-          <div className="w-full max-w-sm flex flex-col items-center bg-white/10 backdrop-blur-md p-8 rounded-[2rem] border border-white/20 shadow-2xl z-10">
-            <h1 className="w-full text-center text-4xl sm:text-5xl font-black mb-8 text-white/95 tracking-tighter drop-shadow-[0_2px_15px_rgba(255,255,255,0.4)] pb-1" style={{ fontFamily: "'Nunito', 'Segoe UI', sans-serif" }}>
-              iPixChaT
-            </h1>
-            {activeTab === 'user' ? (
-              <div className="w-full flex flex-col items-center">
-                <input 
-                  className="w-full p-4 rounded-2xl bg-white/20 text-white placeholder-white/70 border border-white/20 focus:border-white focus:bg-white/30 transition-all outline-none font-medium shadow-inner text-center" 
-                  placeholder="Masukkan Nama Anda..." 
-                  value={username || ""} 
-                  onChange={(e) => setUsername(e.target.value)} 
-                  disabled={isExistingUser} 
-                />
-                {!isExistingUser ? (
-                  <div className="bg-white/20 px-5 py-2 rounded-full mt-4 mb-6 text-[10px] text-white/90 shadow-sm border border-white/10 backdrop-blur-sm font-medium tracking-wide">
-                    buat username yang baik dan benar
-                  </div>
-                ) : (
-                  <div className="text-[10px] text-white/90 mt-4 mb-6 text-center leading-relaxed bg-black/10 px-4 py-2.5 rounded-xl backdrop-blur-sm border border-white/10 w-full shadow-inner">
-                    Nama Anda telah tertanam di sistem chat.<br/>Hubungi admin untuk merubahnya.
-                  </div>
-                )}
-                <button 
-                  onClick={handleUserLogin} 
-                  className="w-full bg-gradient-to-r from-emerald-400 to-blue-500 text-white px-8 py-3.5 rounded-2xl font-bold shadow-[0_4px_15px_rgba(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-95 transition-all mt-2 text-sm tracking-wide">
-                  {isExistingUser ? 'Masuk Chat' : 'Login'}
-                </button>
-              </div>
-            ) : (
-              <div className="w-full flex flex-col items-center">
-                <input className="w-full p-4 rounded-2xl bg-white/20 text-white placeholder-white/70 border border-white/20 focus:border-white focus:bg-white/30 transition-all outline-none font-medium shadow-inner text-center mb-4" placeholder="Email Admin" value={adminEmail || ""} onChange={(e) => setAdminEmail(e.target.value)} />
-                <input type="password" className="w-full p-4 rounded-2xl bg-white/20 text-white placeholder-white/70 border border-white/20 focus:border-white focus:bg-white/30 transition-all outline-none font-medium shadow-inner text-center mb-6" placeholder="Password Admin" value={adminPass || ""} onChange={(e) => setAdminPass(e.target.value)} />
-                <button onClick={handleAdminLogin} className="w-full bg-gradient-to-r from-emerald-400 to-blue-500 text-white px-8 py-3.5 rounded-2xl font-bold shadow-[0_4px_15px_rgba(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-95 transition-all text-sm tracking-wide">
-                  Verifikasi Admin
-                </button>
-              </div>
-            )}
-          </div>
+        
+        // KOMPONEN LOGIN DIPANGGIL DI SINI
+        <Login 
+          activeTab={activeTab} 
+          username={username} 
+          setUsername={setUsername} 
+          isExistingUser={isExistingUser} 
+          adminEmail={adminEmail} 
+          setAdminEmail={setAdminEmail} 
+          adminPass={adminPass} 
+          setAdminPass={setAdminPass} 
+          handleUserLogin={handleUserLogin} 
+          handleAdminLogin={handleAdminLogin} 
+        />
 
-          <div className="absolute bottom-6 text-[11px] text-white/80 flex items-center gap-1.5 z-10 font-medium">
-            created by 
-            <motion.a 
-              href="https://ipix.my.id" 
-              target="_blank" 
-              className="text-emerald-300 font-black hover:text-emerald-100 px-0.5" 
-              animate={{ y: [0, -4, 0] }} 
-              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}>
-              ipix.my.id
-            </motion.a>
-            with 
-            <motion.span 
-              animate={{ scale: [1, 1.3, 1] }} 
-              transition={{ repeat: Infinity, duration: 0.8, ease: "easeInOut" }} 
-              className="text-red-500 text-sm drop-shadow-md">
-              ❤️
-            </motion.span>
-          </div>
-        </div>
       ) : (
         <>
           {currentHash !== '#block' && (
@@ -418,66 +376,30 @@ export default function Home() {
             className={`flex-1 overflow-y-auto overflow-x-hidden transition-all duration-200 ${isTransitioning ? 'opacity-0 bg-gray-50' : 'opacity-100'} ${chatMode === 'public' ? 'anim-glass-public' : 'anim-glass-private'}`}>
             
             {activeTab === 'admin' && currentHash === '#block' ? (
-              <div className="min-h-full bg-gradient-to-br from-emerald-950 via-blue-950 to-emerald-950 text-white">
-                <div className="sticky top-0 bg-gradient-to-br from-emerald-950 to-blue-950 border-b border-white/10 z-20 p-6">
-                  <div className="max-w-5xl mx-auto flex justify-between items-center">
-                    <div><h2 className="text-3xl font-bold flex items-center gap-3">⚙️ Manajemen Blokir</h2><p className="text-white/70 text-sm mt-1">Kelola user dan kata terlarang</p></div>
-                    <button onClick={() => window.history.back()} className="px-6 py-2.5 bg-white/10 hover:bg-white/20 border border-white/30 rounded-full text-sm font-medium transition-all">← Kembali</button>
-                  </div>
-                </div>
-                <div className="p-6 max-w-5xl mx-auto space-y-8 pb-20">
-                  <section className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-6">
-                    <h3 className="text-xl font-semibold mb-5 flex items-center gap-3">👤 User Terblokir <span className="text-sm font-normal text-white/50">({blockedList.length})</span></h3>
-                    {blockedList.length === 0 ? <p className="text-white/50 italic py-12 text-center">Belum ada user yang diblokir.</p> : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {blockedList.map(b => (
-                          <div key={b.device_id} onClick={() => unblock(b.device_id)} className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-red-500/50 p-5 rounded-2xl cursor-pointer transition-all flex justify-between items-start">
-                            <div><div className="font-semibold text-lg">{b.username || 'Tanpa Nama'}</div><div className="text-xs text-white/60 mt-1 font-mono">ID: {b.device_id}</div></div>
-                            <div className="text-right text-xs text-white/50">{formatMessageTime(b.created_at || new Date().toISOString())}<span className="block text-red-400 text-3xl group-hover:text-red-300 mt-2">×</span></div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-                  <section className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-6">
-                    <h3 className="text-xl font-semibold mb-5">🚫 Filter Kata Kasar</h3>
-                    <div className="flex gap-3 mb-6">
-                      <input className="flex-1 border border-white/30 focus:border-red-400 bg-white/5 text-white rounded-2xl px-5 py-4 text-sm outline-none transition-all placeholder:text-white/50" placeholder="Tambahkan kata yang dilarang..." value={newBadWord} onChange={(e) => setNewBadWord(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addBlockedWord()} />
-                      <button onClick={addBlockedWord} className="bg-red-600 hover:bg-red-700 text-white px-10 rounded-2xl font-semibold transition-all active:scale-95">Tambah</button>
-                    </div>
-                    <div className="flex flex-wrap gap-3">
-                      {blockedWords.length === 0 ? <p className="text-white/50 italic py-8">Belum ada kata yang diblokir.</p> : blockedWords.sort((a, b) => a.localeCompare(b)).map((word, idx) => (
-                        <div key={idx} className="group flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/30 px-5 py-2.5 rounded-2xl text-sm transition-all"><span className="font-medium text-white">{word}</span><button onClick={() => removeBlockedWord(word)} className="text-white/50 hover:text-red-400 text-xl leading-none">×</button></div>
-                      ))}
-                    </div>
-                  </section>
-                </div>
-              </div>
+              
+              // KOMPONEN BLOCK DIPANGGIL DI SINI
+              <Block 
+                blockedList={blockedList} 
+                unblock={unblock} 
+                blockedWords={blockedWords} 
+                newBadWord={newBadWord} 
+                setNewBadWord={setNewBadWord} 
+                addBlockedWord={addBlockedWord} 
+                removeBlockedWord={removeBlockedWord} 
+                formatMessageTime={formatMessageTime} 
+              />
+
             ) : (
               <div className="flex-1 overflow-y-auto">
                 {activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser ? (
-                  <div className="space-y-3 p-3">
-                    {privateUsers.map(user => (
-                      <div key={user.device_id} onClick={() => setSelectedPrivateUser(user.device_id)} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-emerald-300 cursor-pointer transition-all flex justify-between items-center group">
-                        <div>
-                          <div className="font-semibold text-blue-700 text-base">{user.username || 'User Tanpa Nama'}</div>
-                          <div className="text-xs text-gray-500 font-mono mt-0.5">ID: {user.device_id.substring(0, 8)}...</div>
-                        </div>
-                        <div className="text-right flex flex-col items-end gap-1.5">
-                          {user.count > 0 ? (
-                            <div className="bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">
-                              {user.count} Pesan Baru
-                            </div>
-                          ) : (
-                            <div className="bg-gray-400 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm opacity-90 whitespace-nowrap">
-                              Terbaca
-                            </div>
-                          )}
-                          <div className="text-[10px] text-emerald-600 font-medium">Terakhir: {formatMessageTime(user.last_active)}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  
+                  // KOMPONEN ADMIN DIPANGGIL DI SINI
+                  <Admin 
+                    privateUsers={privateUsers} 
+                    setSelectedPrivateUser={setSelectedPrivateUser} 
+                    formatMessageTime={formatMessageTime} 
+                  />
+
                 ) : (
                   <div className="flex flex-col h-full relative">
                     <div className="p-3 space-y-3 overflow-x-hidden flex-1">
