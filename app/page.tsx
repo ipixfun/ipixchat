@@ -60,7 +60,12 @@ export default function Home() {
   // Dynamic Expansion & Mode States
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isChatExpanded, setIsChatExpanded] = useState(false);
-  const [isTwoColumnMode, setIsTwoColumnMode] = useState(false); // State Mode 2 Kolom
+  
+  // Fitur Baru: Layout Mode & Kosong
+  const [layoutMode, setLayoutMode] = useState<'auto' | 'empty' | 'split' | 'public-only' | 'private-only'>('auto');
+  const [isLayoutMenuOpen, setIsLayoutMenuOpen] = useState(false);
+  const [emptyNotes, setEmptyNotes] = useState('');
+  const [selectedMessagePopup, setSelectedMessagePopup] = useState<any | null>(null);
   
   const expandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTyping = isInputFocused || input.trim().length > 0;
@@ -68,9 +73,11 @@ export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
 
-  // Handle Dynamic Column Expansion
+  // Handle Dynamic Column Expansion (Hanya berjalan di mode auto)
   const handleInteraction = useCallback((mode: 'public' | 'private') => {
     setChatMode(mode);
+    if (layoutMode !== 'auto') return; // Abaikan ekspansi otomatis jika mode layout dikunci
+
     setIsChatExpanded(true);
     if (expandTimeoutRef.current) clearTimeout(expandTimeoutRef.current);
     
@@ -79,7 +86,7 @@ export default function Home() {
         setIsChatExpanded(false);
       }, 3000);
     }
-  }, [isTyping]);
+  }, [isTyping, layoutMode]);
 
   useEffect(() => {
     if (isTyping) {
@@ -88,7 +95,7 @@ export default function Home() {
     } else {
       handleInteraction(chatMode);
     }
-  }, [isTyping]);
+  }, [isTyping, handleInteraction, chatMode]);
 
   useEffect(() => {
     if (isCapsulePaused) return;
@@ -131,22 +138,22 @@ export default function Home() {
     if (targetMsg) scrollToMessageId(targetMsg.id);
   };
 
-  const renderMessageContent = (text: string, isMinimized: boolean) => {
+  const renderMessageContent = (text: string, isMinimized: boolean, isMinimalistPublic: boolean) => {
     const match = text.match(/^@(\w+)\s\("(.*?)"\)\s?(.*)$/);
-    const textSize = isMinimized ? 'text-xs' : 'text-sm';
+    const textSize = isMinimalistPublic ? 'text-[11px] leading-snug text-gray-700' : (isMinimized ? 'text-xs text-gray-800' : 'text-sm text-gray-800');
     
     if (match) {
       const [_, user, quotedText, replyText] = match;
       return (
         <>
-          <div className={`text-[9px] text-gray-500 italic bg-gray-100 p-2 rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 ${chatMode === 'private' ? 'border-emerald-500' : 'border-blue-500'}`} onClick={() => scrollToMessage(quotedText)}>
+          <div className={`text-[9px] text-gray-500 italic bg-gray-100 p-1.5 rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 ${chatMode === 'private' ? 'border-emerald-500' : 'border-blue-500'}`} onClick={(e) => { e.stopPropagation(); scrollToMessage(quotedText); }}>
             <span className="font-bold">@{user}</span>: "{applyCensor(quotedText)}"
           </div>
-          <div className={`${textSize} text-gray-800 break-words`}>{applyCensor(replyText)}</div>
+          <div className={`${textSize} break-words`}>{applyCensor(replyText)}</div>
         </>
       );
     }
-    return <div className={`${textSize} text-gray-800 break-words`}>{applyCensor(text)}</div>;
+    return <div className={`${textSize} break-words`}>{applyCensor(text)}</div>;
   };
 
   const formatNotif = (num: number) => num >= 1000 ? (num / 1000).toFixed(1).replace('.0', '') + 'k' : num.toString();
@@ -167,7 +174,7 @@ export default function Home() {
   useEffect(() => {
     document.getElementById('messages-end-public')?.scrollIntoView({ behavior: 'auto' });
     document.getElementById('messages-end-private')?.scrollIntoView({ behavior: 'auto' });
-  }, [publicMessages, privateMessages, isChatExpanded]);
+  }, [publicMessages, privateMessages, isChatExpanded, layoutMode]);
 
   const handleTouchStart = (e: React.TouchEvent) => { setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); };
   const handleTouchMove = (e: React.TouchEvent) => { if (!containerRef.current) return; };
@@ -179,8 +186,9 @@ export default function Home() {
   const handleLogout = async () => { await supabase.auth.signOut(); sessionStorage.clear(); setIsAuth(false); window.location.replace("/"); };
   
   const handleTabSwitch = (mode: 'public' | 'private') => {
-    if (mode === chatMode && isChatExpanded && !isTwoColumnMode) return;
-    handleInteraction(mode);
+    if (mode === chatMode && isChatExpanded && layoutMode === 'auto') return;
+    setChatMode(mode);
+    if (layoutMode === 'auto') handleInteraction(mode);
     setSelectedPrivateUser(null);
     setReplyingTo(null);
   };
@@ -203,7 +211,6 @@ export default function Home() {
       if (isAuth) {
         const { count: pubCount } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', false);
         const { count: privCount } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', true).or(activeTab === 'user' ? `device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}` : `id.gt.0`);
-
         setTotalPublic(pubCount || 0); setTotalPrivate(privCount || 0);
       }
 
@@ -319,13 +326,17 @@ export default function Home() {
   const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
   const inviteToPrivate = (id: string, name: string) => { handleInteraction('private'); setSelectedPrivateUser(id); };
 
-  // Renderer Berulang Untuk Pesan
+  // ==========================================
+  // RENDERER LOGIC UTAMA: PESAN & UI
+  // ==========================================
   const renderMessageList = (msgArray: any[], colType: 'public' | 'private', isMinimized: boolean) => {
     if (msgArray.length === 0) return <div className="text-center text-gray-400 italic mt-10">Belum ada pesan di ruang ini.</div>;
+    
     return msgArray.map((m) => {
       const shortBrowser = m.user_browser ? m.user_browser.split('(')[0].trim() + (m.user_browser.includes('(') ? ` (${m.user_browser.split('(')[1].split(')')[0]})` : '') : 'Unknown Browser';
       const isMsgAdmin = m.username === 'Admin●ipix.my.id';
       const isMsgMine = m.device_id === currentDeviceId;
+      
       let borderColorClass = '';
       let borderThicknessClass = 'border-b-[2.5px] border-r-[2.5px]';
 
@@ -338,8 +349,53 @@ export default function Home() {
         borderColorClass = 'border-gray-300';
       }
 
+      // Logika untuk tampilan minimalis di Mode 2 Kolom Publik
+      const isMinimalistPublic = layoutMode === 'split' && colType === 'public';
+
+      // --- STRUKTUR KOMPONEN KHUSUS ADMIN ---
+      const renderAdminUIMeta = () => (
+        <div className="flex flex-col gap-1 text-[8px] text-gray-400 font-sans w-full">
+          <span className="text-blue-600 font-mono cursor-pointer hover:underline break-all leading-tight" onClick={(e) => { e.stopPropagation(); copyToClipboard(m.device_id, 'Device ID'); }}>ID: {m.device_id}</span>
+          <span className="text-orange-600 truncate font-medium max-w-[200px]" title={m.user_browser || ''}>🌐 {shortBrowser}</span>
+        </div>
+      );
+
+      const renderAdminActionsDropdown = () => (
+        <div className="relative flex items-center">
+          {activeMenuId === m.id && (
+            <div className="absolute right-6 bottom-0 bg-white border border-gray-200 shadow-lg rounded-full px-3 py-1.5 flex items-center gap-2.5 z-30 animate-fade-in whitespace-nowrap bg-opacity-95 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="text-blue-600 font-bold hover:underline">Edit</button>
+              <button onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="text-purple-600 font-bold hover:underline">Nama</button>
+              <button onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="text-red-600 font-bold hover:underline">Hapus</button>
+              {!m.username.includes('Admin') && (
+                <><button onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="text-gray-500 font-bold hover:underline">Blokir</button><button onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="text-emerald-600 font-bold hover:underline">Private</button></>
+              )}
+            </div>
+          )}
+          <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === m.id ? null : m.id); }} className="text-gray-500 hover:text-gray-800 text-base font-bold px-1 rounded hover:bg-gray-100 transition-colors">⋮</button>
+        </div>
+      );
+
+      // --- STRUKTUR KOMPONEN KHUSUS USER ---
+      const renderUserLongPressActions = () => (
+        <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 rounded-xl flex items-center justify-center gap-3 shadow-sm border border-gray-200 animate-fade-in" onClick={(e) => { e.stopPropagation(); setLongPressId(null); }}>
+          <button className="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); copyToClipboard(m.pesan, 'Pesan'); setLongPressId(null); }}>Salin Teks</button>
+          {(activeTab !== 'admin' && isMsgMine) && (
+              <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); handleEditLimit(m); setLongPressId(null); }}>Edit Teks</button>
+          )}
+        </div>
+      );
+
       return (
-        <div key={m.id} id={`msg-${m.id}`} className={`bg-white ${isMinimized ? 'p-2 rounded-lg' : 'p-3 rounded-xl'} ${borderThicknessClass} shadow-sm w-full select-none relative ${borderColorClass}`}
+        <div key={m.id} id={`msg-${m.id}`} 
+          className={`bg-white ${isMinimized ? 'p-2 rounded-lg' : 'p-3 rounded-xl'} ${borderThicknessClass} shadow-sm w-full select-none relative ${borderColorClass} ${layoutMode === 'split' ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+          
+          // Fitur Pop-Up 2 Kolom saat Diklik
+          onClick={(e) => {
+            if (Math.abs(swipeDelta) > 5 || longPressTimer.current) return;
+            if (layoutMode === 'split') { setSelectedMessagePopup(m); }
+          }}
+
           onMouseDown={(e) => { longPressTimer.current = setTimeout(() => { setLongPressId(m.id); if (navigator.vibrate) navigator.vibrate(50); }, 500); }}
           onMouseMove={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
           onMouseUp={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
@@ -378,56 +434,30 @@ export default function Home() {
             </div>
           )}
           
-          {longPressId === m.id && (
-            <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 rounded-xl flex items-center justify-center gap-3 shadow-sm border border-gray-200 animate-fade-in" onClick={(e) => { e.stopPropagation(); setLongPressId(null); }}>
-              <button className="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); copyToClipboard(m.pesan, 'Pesan'); setLongPressId(null); }}>Salin Teks</button>
-              {(activeTab !== 'admin' && m.device_id === currentDeviceId) && (
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); handleEditLimit(m); setLongPressId(null); }}>Edit Teks</button>
-              )}
-            </div>
-          )}
+          {longPressId === m.id && renderUserLongPressActions()}
 
           <div className="flex justify-between items-start mb-1">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <b onClick={() => handleTag(m.username)} className={`${isMsgAdmin ? 'text-red-600' : 'text-blue-700'} ${isMinimized ? 'text-[9px]' : 'text-[10px]'} cursor-pointer hover:underline`}>{m.username}</b>
+              <b onClick={(e) => { e.stopPropagation(); handleTag(m.username); }} className={`${isMsgAdmin ? 'text-red-600' : 'text-blue-700'} ${isMinimized ? 'text-[9px]' : 'text-[10px]'} cursor-pointer hover:underline`}>{m.username}</b>
               {isMsgAdmin ? <span className={`text-[8px] px-1 rounded ${isAdminOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span> : userStatus[m.username] && <span className={`text-[8px] px-1 rounded ${userStatus[m.username].online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>}
               {m.is_private && !isMinimized && <span className={`text-[10px] ${isMsgAdmin ? 'text-red-500' : 'text-emerald-500'}`}>🔒 Private</span>}
             </div>
             <span className="text-[9px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
           </div>
           
-          {renderMessageContent(m.pesan, isMinimized)}
+          {renderMessageContent(m.pesan, isMinimized, isMinimalistPublic)}
           
           <div className={`mt-2 ${isMinimized ? 'pt-1' : 'pt-2'} border-t border-gray-100 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
             <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end">
-              {/* Posisi logo Private pindah ke bawah-kiri saat tampilan diminimalkan */}
               {m.is_private && isMinimized && <span className={`text-[9px] font-bold ${isMsgAdmin ? 'text-red-500' : 'text-emerald-500'}`}>🔒 Private</span>}
-              
-              {activeTab === 'admin' && (
-                <div className="flex flex-col gap-1 text-[8px] text-gray-400 font-sans w-full">
-                  <span className="text-blue-600 font-mono cursor-pointer hover:underline break-all leading-tight" onClick={() => copyToClipboard(m.device_id, 'Device ID')}>ID: {m.device_id}</span>
-                  <span className="text-orange-600 truncate font-medium max-w-[200px]" title={m.user_browser || ''}>🌐 {shortBrowser}</span>
-                </div>
-              )}
+              {activeTab === 'admin' && renderAdminUIMeta()}
             </div>
             
             <div className="flex items-center gap-2 text-[10px] shrink-0 pb-0.5">
-              <button onClick={() => handleReply(m)} className={`font-bold underline mr-1 transition-colors ${colType === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'}`}>Balas</button>
-              {activeTab === 'admin' && (
-                <div className="relative flex items-center">
-                  {activeMenuId === m.id && (
-                    <div className="absolute right-6 bottom-0 bg-white border border-gray-200 shadow-lg rounded-full px-3 py-1.5 flex items-center gap-2.5 z-30 animate-fade-in whitespace-nowrap bg-opacity-95 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="text-blue-600 font-bold hover:underline">Edit</button>
-                      <button onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="text-purple-600 font-bold hover:underline">Nama</button>
-                      <button onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="text-red-600 font-bold hover:underline">Hapus</button>
-                      {!m.username.includes('Admin') && (
-                        <><button onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="text-gray-500 font-bold hover:underline">Blokir</button><button onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="text-emerald-600 font-bold hover:underline">Private</button></>
-                      )}
-                    </div>
-                  )}
-                  <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === m.id ? null : m.id); }} className="text-gray-500 hover:text-gray-800 text-base font-bold px-1 rounded hover:bg-gray-100 transition-colors">⋮</button>
-                </div>
+              {!isMinimalistPublic && (
+                <button onClick={(e) => { e.stopPropagation(); handleReply(m); }} className={`font-bold underline mr-1 transition-colors ${colType === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'}`}>Balas</button>
               )}
+              {activeTab === 'admin' && renderAdminActionsDropdown()}
             </div>
           </div>
         </div>
@@ -435,9 +465,22 @@ export default function Home() {
     });
   };
 
+  // Dinamis Classes untuk Kolom
+  const publicColClass = `h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'public' ? 'bg-gradient-to-b from-blue-200 via-blue-50 to-white' : 'bg-blue-50/30'} ` + 
+      (layoutMode === 'empty' ? 'hidden' : layoutMode === 'split' ? 'w-1/2' : layoutMode === 'public-only' ? 'w-full' : layoutMode === 'private-only' ? 'hidden' : 
+      (isChatExpanded && chatMode === 'private' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'public' ? 'w-full' : 'w-1/2'));
+
+  const privateColClass = `h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'private' ? 'bg-gradient-to-b from-emerald-200 via-emerald-50 to-white' : 'bg-emerald-50/30'} ` + 
+      (layoutMode === 'empty' ? 'hidden' : layoutMode === 'split' ? 'w-1/2' : layoutMode === 'public-only' ? 'hidden' : layoutMode === 'private-only' ? 'w-full' : 
+      (isChatExpanded && chatMode === 'public' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'private' ? 'w-full' : 'w-1/2'));
+  
+  const isMinimized = layoutMode === 'split' ? true : !isChatExpanded;
+  const showDivider = layoutMode === 'split' || (layoutMode === 'auto' && !isChatExpanded);
+
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
+  
   return (
-    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans" onClick={() => { setActiveMenuId(null); setLongPressId(null); }}>
+    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans" onClick={() => { setActiveMenuId(null); setLongPressId(null); setIsLayoutMenuOpen(false); }}>
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes slideLeftSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(-4px); opacity: 1; } } 
         @keyframes slideRightSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(4px); opacity: 1; } } 
@@ -452,17 +495,38 @@ export default function Home() {
         @keyframes textBlinkWhite { 0%, 100% { color: #ffffff; text-shadow: 0 0 5px rgba(255,255,255,0.8); } 50% { color: rgba(255,255,255,0.6); text-shadow: none; } }
         .anim-text-blink-white { animation: textBlinkWhite 1.5s ease-in-out infinite; }
         
-        /* Animasi Garis Turun untuk Sekat 2 Kolom */
         @keyframes dropLine { 0% { top: -50%; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
         .animate-drop-line { animation: dropLine 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
       `}} />
+
+      {/* Pop-Up Pesan Mode 2 Kolom */}
+      {selectedMessagePopup && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedMessagePopup(null)}>
+          <div className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-sm shadow-2xl relative animate-fade-in border border-gray-100" onClick={(e) => e.stopPropagation()}>
+            <button className="absolute top-4 right-5 text-gray-400 hover:text-red-500 text-2xl font-black leading-none transition-colors" onClick={() => setSelectedMessagePopup(null)}>×</button>
+            <div className="flex items-center gap-2.5 mb-4 border-b border-gray-100 pb-3 pr-6">
+              <span className={`font-extrabold text-sm ${selectedMessagePopup.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'}`}>{selectedMessagePopup.username}</span>
+              <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">{formatMessageTime(selectedMessagePopup.created_at)}</span>
+            </div>
+            <div className="text-sm text-gray-800 break-words max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+              {renderMessageContent(selectedMessagePopup.pesan, false, false)}
+            </div>
+            <div className="mt-5 pt-4 border-t border-gray-100 flex justify-end">
+              <button onClick={() => { handleReply(selectedMessagePopup); setSelectedMessagePopup(null); }} className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white px-5 py-2 rounded-full text-xs font-bold transition-all shadow-md active:scale-95">Balas Pesan Ini</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {!isAuth ? (
         <Login activeTab={activeTab} username={username} setUsername={setUsername} isExistingUser={isExistingUser} adminEmail={adminEmail} setAdminEmail={setAdminEmail} adminPass={adminPass} setAdminPass={setAdminPass} handleUserLogin={handleUserLogin} handleAdminLogin={handleAdminLogin} />
       ) : (
         <>
           {currentHash !== '#block' && (
-            // Background gradasi dinamis dari biru/hijau ke putih ke bawah sesuai tab
             <div className={`sticky top-0 z-20 p-3 transition-colors duration-500 border-b border-white/40 ${chatMode === 'public' ? 'bg-gradient-to-b from-blue-100 to-white' : 'bg-gradient-to-b from-emerald-100 to-white'}`}>
               <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full shadow">Keluar</button>
               <div className="flex justify-between items-center">
@@ -487,16 +551,26 @@ export default function Home() {
                   <span className="ml-2 sm:ml-4">🌐 Public Chat</span>
                 </button>
 
-                {/* Tombol 2D Dinamis Mode 2 Kolom di Tengah */}
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
+                {/* Tombol Dinamis Layout Mode (Menu Dropdown 4 Pill) */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-40">
                   <button 
-                    onClick={(e) => { e.stopPropagation(); setIsTwoColumnMode(!isTwoColumnMode); }}
-                    className="bg-white border border-gray-200 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.1)] rounded-full px-3 py-1 active:scale-95 transition-transform"
+                    onClick={(e) => { e.stopPropagation(); setIsLayoutMenuOpen(!isLayoutMenuOpen); }}
+                    className="bg-white border border-gray-200 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.1)] rounded-full px-3 py-1.5 active:scale-95 transition-transform flex items-center gap-1.5"
                   >
-                    <span className="text-[9px] font-bold uppercase tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-blue-500">
-                      {isTwoColumnMode ? 'Mode 1 Kolom' : 'Mode 2 Kolom'}
+                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-blue-500">
+                      {layoutMode === 'auto' ? 'Mode Layout' : layoutMode === 'empty' ? 'Kolom Kosong' : layoutMode === 'split' ? '2 Kolom' : layoutMode === 'public-only' ? 'Kolom Publik' : 'Kolom Private'}
                     </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 text-gray-500 transition-transform ${isLayoutMenuOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                   </button>
+
+                  {isLayoutMenuOpen && (
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-2xl p-2 flex flex-col gap-1.5 w-[160px] animate-fade-in z-50">
+                      <button onClick={(e) => { e.stopPropagation(); setLayoutMode(layoutMode === 'empty' ? 'auto' : 'empty'); setIsLayoutMenuOpen(false); }} className={`w-full text-left px-3 py-2 text-[11px] font-bold rounded-xl transition-all ${layoutMode === 'empty' ? 'bg-gray-800 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}>⬜ Kolom Kosong</button>
+                      <button onClick={(e) => { e.stopPropagation(); setLayoutMode(layoutMode === 'split' ? 'auto' : 'split'); setIsLayoutMenuOpen(false); }} className={`w-full text-left px-3 py-2 text-[11px] font-bold rounded-xl transition-all ${layoutMode === 'split' ? 'bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}>🗂️ 2 Kolom</button>
+                      <button onClick={(e) => { e.stopPropagation(); setLayoutMode(layoutMode === 'public-only' ? 'auto' : 'public-only'); setIsLayoutMenuOpen(false); }} className={`w-full text-left px-3 py-2 text-[11px] font-bold rounded-xl transition-all ${layoutMode === 'public-only' ? 'bg-blue-500 text-white shadow-md' : 'text-gray-600 hover:bg-blue-50'}`}>🌐 Kolom Publik</button>
+                      <button onClick={(e) => { e.stopPropagation(); setLayoutMode(layoutMode === 'private-only' ? 'auto' : 'private-only'); setIsLayoutMenuOpen(false); }} className={`w-full text-left px-3 py-2 text-[11px] font-bold rounded-xl transition-all ${layoutMode === 'private-only' ? 'bg-emerald-500 text-white shadow-md' : 'text-gray-600 hover:bg-emerald-50'}`}>🔒 Kolom Private</button>
+                    </div>
+                  )}
                 </div>
 
                 <button onClick={() => handleTabSwitch('private')} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 flex items-center justify-center gap-2 ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
@@ -517,47 +591,63 @@ export default function Home() {
             ) : (
               <div className="flex w-full h-full relative transition-all duration-500 ease-in-out">
                 
-                {/* 1. Kolom Kiri: Public Chat (Width disesuaikan berdasarkan isTwoColumnMode) */}
+                {/* 1. View: Kolom Kosong Full Pages */}
+                {layoutMode === 'empty' && (
+                  <div className="absolute inset-0 z-40 bg-white flex flex-col p-4 sm:p-6 animate-fade-in">
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-gray-700 font-black tracking-widest uppercase text-xs sm:text-sm">📝 Halaman Kosong</h2>
+                      <button onClick={() => setEmptyNotes('')} className="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-3 py-1.5 text-[10px] rounded-lg transition-colors border border-red-100">Bersihkan Teks</button>
+                    </div>
+                    <textarea 
+                      value={emptyNotes}
+                      onChange={(e) => setEmptyNotes(e.target.value)}
+                      placeholder="Halaman kosong bebas hambatan, ketik catatan atau ide Anda di sini..."
+                      className="flex-1 w-full bg-gray-50/50 border border-gray-200 rounded-3xl p-5 resize-none focus:outline-none focus:ring-2 focus:ring-gray-300 text-sm text-gray-800 leading-relaxed shadow-inner"
+                    />
+                  </div>
+                )}
+
+                {/* 2. Kolom Kiri: Public Chat */}
                 <div 
-                  className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'public' ? 'bg-gradient-to-b from-blue-200 via-blue-50 to-white' : 'bg-blue-50/30'} ${isTwoColumnMode ? 'w-1/2' : (isChatExpanded && chatMode === 'private' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'public' ? 'w-full' : 'w-1/2')}`}
-                  onClick={() => handleInteraction('public')}
-                  onTouchStart={() => handleInteraction('public')}
-                  onWheel={() => handleInteraction('public')}
+                  className={publicColClass}
+                  onClick={() => {if (layoutMode === 'auto') handleInteraction('public')}}
+                  onTouchStart={() => {if (layoutMode === 'auto') handleInteraction('public')}}
+                  onWheel={() => {if (layoutMode === 'auto') handleInteraction('public')}}
                 >
                   <div onScroll={handleScroll} className="p-2 space-y-3 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                     <div className="text-center text-[9px] font-bold text-blue-500 mb-2 tracking-widest uppercase opacity-70">Ruang Publik</div>
-                    {renderMessageList(publicMessages, 'public', isTwoColumnMode ? true : !isChatExpanded)}
+                    {renderMessageList(publicMessages, 'public', isMinimized)}
                     <div id="messages-end-public" className="h-0" />
                   </div>
                 </div>
 
-                {/* 2. Sekat Animasi Garis Turun Tengah */}
-                {(!isChatExpanded || isTwoColumnMode) && (
+                {/* 3. Sekat Animasi Garis Turun Tengah */}
+                {showDivider && layoutMode !== 'empty' && (
                   <div className="w-[1.5px] bg-gray-200 relative z-10 shrink-0 overflow-hidden shadow-[0_0_5px_rgba(0,0,0,0.05)]">
                     <div className={`absolute w-full h-1/2 animate-drop-line ${chatMode === 'public' ? 'bg-gradient-to-b from-transparent via-blue-500 to-blue-700' : 'bg-gradient-to-b from-transparent via-emerald-500 to-emerald-700'}`}></div>
                   </div>
                 )}
 
-                {/* 3. Kolom Kanan: Private Chat (Width disesuaikan berdasarkan isTwoColumnMode) */}
+                {/* 4. Kolom Kanan: Private Chat */}
                 <div 
-                  className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'private' ? 'bg-gradient-to-b from-emerald-200 via-emerald-50 to-white' : 'bg-emerald-50/30'} ${isTwoColumnMode ? 'w-1/2' : (isChatExpanded && chatMode === 'public' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'private' ? 'w-full' : 'w-1/2')}`}
-                  onClick={() => handleInteraction('private')}
-                  onTouchStart={() => handleInteraction('private')}
-                  onWheel={() => handleInteraction('private')}
+                  className={privateColClass}
+                  onClick={() => {if (layoutMode === 'auto') handleInteraction('private')}}
+                  onTouchStart={() => {if (layoutMode === 'auto') handleInteraction('private')}}
+                  onWheel={() => {if (layoutMode === 'auto') handleInteraction('private')}}
                 >
                   <div onScroll={handleScroll} className="p-2 space-y-3 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                     <div className="text-center text-[9px] font-bold text-emerald-500 mb-2 tracking-widest uppercase opacity-70">Ruang Private</div>
                     {activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser ? (
                       <Admin privateUsers={privateUsers} setSelectedPrivateUser={setSelectedPrivateUser} formatMessageTime={formatMessageTime} />
                     ) : (
-                      renderMessageList(privateMessages, 'private', isTwoColumnMode ? true : !isChatExpanded)
+                      renderMessageList(privateMessages, 'private', isMinimized)
                     )}
                     <div id="messages-end-private" className="h-0" />
                   </div>
                 </div>
 
-                {/* 4. Pill Floating (Bisa di-swipe untuk hilangkan) */}
-                {isPillVisible && (
+                {/* Pill Floating (Bisa di-swipe untuk hilangkan) */}
+                {isPillVisible && layoutMode !== 'empty' && (
                   <div 
                     className="absolute bottom-4 left-1/2 z-30 flex justify-center select-none shadow-lg rounded-full"
                     style={{
@@ -565,20 +655,9 @@ export default function Home() {
                       transition: pillSwipeDelta === 0 ? 'transform 0.3s ease-out, opacity 0.5s' : 'none',
                       opacity: Math.abs(pillSwipeDelta) > 100 ? 0 : 1
                     }}
-                    onTouchStart={(e) => {
-                      setIsCapsulePaused(true);
-                      setPillTouchStartX(e.touches[0].clientX);
-                    }}
-                    onTouchMove={(e) => {
-                      setPillSwipeDelta(e.touches[0].clientX - pillTouchStartX);
-                    }}
-                    onTouchEnd={() => {
-                      setIsCapsulePaused(false);
-                      if (Math.abs(pillSwipeDelta) > 70) {
-                        setIsPillVisible(false);
-                      }
-                      setPillSwipeDelta(0);
-                    }}
+                    onTouchStart={(e) => { setIsCapsulePaused(true); setPillTouchStartX(e.touches[0].clientX); }}
+                    onTouchMove={(e) => { setPillSwipeDelta(e.touches[0].clientX - pillTouchStartX); }}
+                    onTouchEnd={() => { setIsCapsulePaused(false); if (Math.abs(pillSwipeDelta) > 70) setIsPillVisible(false); setPillSwipeDelta(0); }}
                   >
                     <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold text-gray-700 border shadow-sm text-center tracking-wide relative overflow-hidden flex items-center justify-center w-[300px] sm:min-w-[310px] h-[34px] cursor-grab active:cursor-grabbing bg-white/95 backdrop-blur ${chatMode === 'private' ? 'border-emerald-300' : 'border-blue-300'}`}>
                       <div className={`absolute flex items-center gap-1 transition-all duration-500 w-full justify-center ${capsuleIndex === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
@@ -594,7 +673,7 @@ export default function Home() {
             )}
           </div>
           
-          {currentHash !== '#block' && (
+          {currentHash !== '#block' && layoutMode !== 'empty' && (
             <div className="bg-white sticky bottom-0 z-20 w-full flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
               {replyingTo && (
                 <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x transition-all duration-300 cursor-pointer ${chatMode === 'private' ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100/70' : 'bg-blue-50 border-blue-300 text-blue-900 hover:bg-blue-100/70'}`} onClick={() => scrollToMessageId(replyingTo.id)}>
@@ -603,7 +682,6 @@ export default function Home() {
                 </div>
               )}
               
-              {/* Form Input Dinamis */}
               <form onSubmit={sendMessage} className="p-3 bg-white border-t border-gray-100 flex gap-2 items-end w-full relative transition-all duration-300">
                 <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
                   <div className="text-[10px] text-gray-400 mb-1.5 font-medium px-1 leading-tight w-full text-left">
