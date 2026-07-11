@@ -20,9 +20,7 @@ export default function Home() {
   const [isAuth, setIsAuth] = useState(false);
   const [sending, setSending] = useState(false);
   
-  const [totalPublic, setTotalPublic] = useState(0);
   const [totalPrivate, setTotalPrivate] = useState(0);
-  const prevPubRef = useRef(0);
   const prevPrivRef = useRef(0);
 
   const [isAdminOnline, setIsAdminOnline] = useState(false);
@@ -34,32 +32,27 @@ export default function Home() {
   const [newBadWord, setNewBadWord] = useState('');
   const [currentHash, setCurrentHash] = useState('');
   const [inputBlink, setInputBlink] = useState(false);
-  const [swipingId, setSwipingId] = useState<number | null>(null);
-  const [swipeDelta, setSwipeDelta] = useState<number>(0);
-  const [touchStartX, setTouchStartX] = useState<number>(0);
-  const [touchInitialY, setTouchInitialY] = useState<number>(0);
-  const [isHorizontalSwipe, setIsHorizontalSwipe] = useState<boolean>(false);
+  
+  // Game States (Gartic Style)
+  const [gameWords, setGameWords] = useState<any[]>([]);
+  const [newGameWord, setNewGameWord] = useState('');
+  const [newGameHint, setNewGameHint] = useState('');
+  const [gameState, setGameState] = useState<any>({ is_active: false, word: '', hint: '', drawer_id: '', drawer_name: '' });
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [brushColor, setBrushColor] = useState('#000000');
+  const [brushSize, setBrushSize] = useState(3);
+  
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const contextRef = useRef<CanvasRenderingContextAction | any>(null);
+  const broadcastChannel = useRef<any>(null);
+
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
-  
   const [longPressId, setLongPressId] = useState<number | null>(null);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const [capsuleIndex, setCapsuleIndex] = useState<0 | 1>(0);
-  const [isCapsulePaused, setIsCapsulePaused] = useState(false);
-  
-  const [isPillVisible, setIsPillVisible] = useState(true);
-  const [showPillClose, setShowPillClose] = useState(false);
-  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
-
   const containerRef = useRef<HTMLDivElement>(null);
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
-
-  useEffect(() => {
-    if (isCapsulePaused) return;
-    const interval = setInterval(() => setCapsuleIndex((prev) => (prev === 0 ? 1 : 0)), 5000);
-    return () => clearInterval(interval);
-  }, [isCapsulePaused]);
 
   useEffect(() => {
     const handleHash = () => setCurrentHash(window.location.hash);
@@ -67,9 +60,6 @@ export default function Home() {
     handleHash();
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
-
-  const handlePillStart = () => { setIsCapsulePaused(true); if (holdTimerRef.current) clearTimeout(holdTimerRef.current); holdTimerRef.current = setTimeout(() => setShowPillClose(true), 500); };
-  const handlePillEnd = () => { setIsCapsulePaused(false); if (holdTimerRef.current) clearTimeout(holdTimerRef.current); };
 
   const containsBlockedWord = (text: string) => blockedWords.some(word => word.trim() !== "" && text.toLowerCase().includes(word.toLowerCase()));
   const applyCensor = (text: string) => {
@@ -83,31 +73,9 @@ export default function Home() {
     const el = document.getElementById(`msg-${msgId}`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      const blinkClasses = chatMode === 'private' ? ['ring-2', 'ring-emerald-400', 'bg-emerald-50/50'] : ['ring-2', 'ring-blue-400', 'bg-blue-50/50'];
-      el.classList.add(...blinkClasses);
-      setTimeout(() => el.classList.remove(...blinkClasses), 1500);
+      el.classList.add('ring-2', 'ring-emerald-400', 'bg-emerald-50/50');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-emerald-400', 'bg-emerald-50/50'), 1500);
     }
-  };
-  
-  const scrollToMessage = (quotedText: string) => {
-    const targetMsg = messages.find(m => m.pesan.includes(quotedText));
-    if (targetMsg) scrollToMessageId(targetMsg.id);
-  };
-
-  const renderMessageContent = (text: string) => {
-    const match = text.match(/^@(\w+)\s\("(.*?)"\)\s?(.*)$/);
-    if (match) {
-      const [_, user, quotedText, replyText] = match;
-      return (
-        <>
-          <div className={`text-[10px] text-gray-500 italic bg-gray-100 p-2 rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 ${chatMode === 'private' ? 'border-emerald-500' : 'border-blue-500'}`} onClick={() => scrollToMessage(quotedText)}>
-            <span className="font-bold">@{user}</span>: "{applyCensor(quotedText)}"
-          </div>
-          <div className="text-sm text-gray-800 break-words">{applyCensor(replyText)}</div>
-        </>
-      );
-    }
-    return <div className="text-sm text-gray-800 break-words">{applyCensor(text)}</div>;
   };
 
   const formatNotif = (num: number) => num >= 1000 ? (num / 1000).toFixed(1).replace('.0', '') + 'k' : num.toString();
@@ -127,15 +95,21 @@ export default function Home() {
   
   useEffect(() => {
     if (messages.length > 0) document.getElementById('messages-end')?.scrollIntoView({ behavior: 'auto' });
-  }, [messages, chatMode, isPillVisible]);
+  }, [messages, chatMode]);
 
-  const handleTouchStart = (e: React.TouchEvent) => { setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); };
-  const handleTouchMove = (e: React.TouchEvent) => { if (!containerRef.current) return; };
-  const handleTag = (targetUsername: string) => setInput(prev => `${prev} @${targetUsername.split('●')[0]} `);
-  
   const addBlockedWord = async () => { if (!newBadWord.trim()) return; await supabase.from('blocked_words').insert([{ word: newBadWord.trim().charAt(0).toUpperCase() + newBadWord.trim().slice(1).toLowerCase() }]); setNewBadWord(''); fetchData(); };
   const removeBlockedWord = async (word: string) => { await supabase.from('blocked_words').delete().eq('word', word); fetchData(); };
-  const handleReply = (msgMessage: any) => { setReplyingTo(msgMessage); setInputBlink(true); setTimeout(() => setInputBlink(false), 800); setTimeout(() => document.getElementById(`msg-${msgMessage.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100); };
+  
+  // Admin Game Functions
+  const addGameWord = async () => { if (!newGameWord.trim() || !newGameHint.trim()) return; await supabase.from('game_words').insert([{ word: newGameWord.trim().toLowerCase(), hint: newGameHint.trim() }]); setNewGameWord(''); setNewGameHint(''); fetchGameData(); };
+  const removeGameWord = async (id: number) => { await supabase.from('game_words').delete().eq('id', id); fetchGameData(); };
+  const startGame = async (wordData: any, drawerId: string, drawerName: string) => {
+    await supabase.from('game_state').upsert({ id: 1, word: wordData.word, hint: wordData.hint, drawer_id: drawerId, drawer_name: drawerName, is_active: true });
+    await supabase.from('messages').insert([{ username: 'System', pesan: `🎮 Game Dimulai! ${drawerName} sedang menggambar. Clue: ${wordData.hint}`, device_id: 'system', is_private: false }]);
+    broadcastClear();
+  };
+  const stopGame = async () => { await supabase.from('game_state').upsert({ id: 1, is_active: false }); broadcastClear(); };
+
   const handleLogout = async () => { await supabase.auth.signOut(); sessionStorage.clear(); setIsAuth(false); window.location.replace("/"); };
   
   const handleTabSwitch = (mode: 'public' | 'private') => {
@@ -148,6 +122,13 @@ export default function Home() {
       setIsTransitioning(false);
     }, 200);
   };
+
+  const fetchGameData = useCallback(async () => {
+    const { data: wData } = await supabase.from('game_words').select('*');
+    if (wData) setGameWords(wData);
+    const { data: sData } = await supabase.from('game_state').select('*').eq('id', 1).single();
+    if (sData) setGameState(sData);
+  }, []);
 
   const fetchData = useCallback(async () => {
     if (!currentDeviceId) return;
@@ -165,17 +146,10 @@ export default function Home() {
       const { data: mData } = await query;
       
       if (isAuth) {
-        const { count: pubCount } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', false);
-        const currentTotalPub = pubCount || 0;
         let privQuery = supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', true);
         if (activeTab === 'user') privQuery = privQuery.or(`device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}`);
         const { count: privCount } = await privQuery;
-        const currentTotalPriv = privCount || 0;
-
-        setTotalPublic(currentTotalPub); 
-        setTotalPrivate(currentTotalPriv);
-        prevPubRef.current = currentTotalPub; 
-        prevPrivRef.current = currentTotalPriv;
+        setTotalPrivate(privCount || 0);
       }
 
       if (bData) {
@@ -191,7 +165,7 @@ export default function Home() {
           setIsAdminOnline(isOnline); if (!isOnline) setAdminOfflineTime(getTimeAgo(new Date(lastAdminMsg.created_at)));
         }
         const statusMap: Record<string, { online: boolean; offlineTime?: string }> = {};
-        const userGroups = mData.reduce((acc: any, msg: any) => { if (msg.username !== 'Admin●ipix.my.id') { if (!acc[msg.username]) acc[msg.username] = []; acc[msg.username].push(msg); } return acc; }, {});
+        const userGroups = mData.reduce((acc: any, msg: any) => { if (msg.username !== 'Admin●ipix.my.id' && msg.username !== 'System') { if (!acc[msg.username]) acc[msg.username] = []; acc[msg.username].push(msg); } return acc; }, {});
         Object.keys(userGroups).forEach(user => {
           const lastMsg = userGroups[user].pop();
           if (lastMsg) {
@@ -211,8 +185,125 @@ export default function Home() {
           setPrivateUsers(Array.from(userMap.values()));
         } else setPrivateUsers([]);
       } else setPrivateUsers([]);
+
+      fetchGameData();
     } catch (err) { setMessages([]); }
-  }, [chatMode, activeTab, selectedPrivateUser, currentDeviceId, isAuth]);
+  }, [chatMode, activeTab, selectedPrivateUser, currentDeviceId, isAuth, fetchGameData]);
+
+  // CANVAS DRAWING LOGIC (Gartic)
+  useEffect(() => {
+    if (chatMode === 'public' && canvasRef.current) {
+      const canvas = canvasRef.current;
+      // Fixed internal resolution for consistent coordinate syncing
+      canvas.width = 800;
+      canvas.height = 600;
+      const context = canvas.getContext("2d");
+      if (context) {
+        context.lineCap = "round";
+        context.lineJoin = "round";
+        contextRef.current = context;
+      }
+
+      // Initialize Supabase Realtime Broadcast for Drawing
+      if (!broadcastChannel.current) {
+        broadcastChannel.current = supabase.channel('drawing_room', {
+          config: { broadcast: { self: false } },
+        });
+
+        broadcastChannel.current
+          .on('broadcast', { event: 'draw' }, ({ payload }: any) => {
+             if(contextRef.current) {
+                const ctx = contextRef.current;
+                ctx.beginPath();
+                ctx.moveTo(payload.x0, payload.y0);
+                ctx.lineTo(payload.x1, payload.y1);
+                ctx.strokeStyle = payload.color;
+                ctx.lineWidth = payload.size;
+                ctx.stroke();
+                ctx.closePath();
+             }
+          })
+          .on('broadcast', { event: 'clear' }, () => {
+             if(contextRef.current && canvasRef.current) {
+                contextRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+             }
+          })
+          .subscribe();
+      }
+    }
+
+    return () => {
+      if (broadcastChannel.current && chatMode !== 'public') {
+        supabase.removeChannel(broadcastChannel.current);
+        broadcastChannel.current = null;
+      }
+    }
+  }, [chatMode]);
+
+  const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
+
+  const getCoordinates = (e: any) => {
+    if (!canvasRef.current) return { x: 0, y: 0 };
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    let clientX = e.clientX;
+    let clientY = e.clientY;
+    
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    }
+    
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  };
+
+  const startDrawing = (e: any) => {
+    if (gameState.drawer_id !== currentDeviceId) return;
+    const { x, y } = getCoordinates(e);
+    setLastPos({ x, y });
+    setIsDrawing(true);
+  };
+
+  const draw = (e: any) => {
+    if (!isDrawing || gameState.drawer_id !== currentDeviceId || !contextRef.current) return;
+    const { x, y } = getCoordinates(e);
+    
+    const ctx = contextRef.current;
+    ctx.beginPath();
+    ctx.moveTo(lastPos.x, lastPos.y);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = brushColor;
+    ctx.lineWidth = brushSize;
+    ctx.stroke();
+    ctx.closePath();
+    
+    if (broadcastChannel.current) {
+      broadcastChannel.current.send({
+        type: 'broadcast',
+        event: 'draw',
+        payload: { x0: lastPos.x, y0: lastPos.y, x1: x, y1: y, color: brushColor, size: brushSize }
+      });
+    }
+    
+    setLastPos({ x, y });
+  };
+
+  const stopDrawing = () => { setIsDrawing(false); };
+  
+  const broadcastClear = () => {
+    if (contextRef.current && canvasRef.current) {
+      contextRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    }
+    if (broadcastChannel.current) {
+      broadcastChannel.current.send({ type: 'broadcast', event: 'clear' });
+    }
+  };
 
   useEffect(() => {
     if (!localStorage.getItem('device_id')) localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
@@ -233,9 +324,12 @@ export default function Home() {
 
   useEffect(() => {
     if (!mounted) return; fetchData();
-    const channel = supabase.channel('chat').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchData).subscribe();
+    const channel = supabase.channel('chat_and_game')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_state' }, fetchGameData)
+      .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [mounted, fetchData]);
+  }, [mounted, fetchData, fetchGameData]);
 
   const handleAdminLogin = async () => {
     const { error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPass });
@@ -253,9 +347,7 @@ export default function Home() {
       const { data: existingProfiles } = await supabase.from('profiles').select('device_id, username').ilike('username', username.trim());
       if (existingProfiles && existingProfiles.length > 0) {
         const isTaken = existingProfiles.some(p => p.device_id !== cid && p.username.toLowerCase() === username.trim().toLowerCase());
-        if (isTaken) {
-          return alert("Username sudah digunakan oleh pengguna lain. Silakan buat nama lain yang unik.");
-        }
+        if (isTaken) return alert("Username sudah digunakan oleh pengguna lain. Silakan buat nama lain yang unik.");
       }
     }
 
@@ -265,7 +357,20 @@ export default function Home() {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault(); if (!input.trim() || sending) return;
-    setSending(true); let finalPesan = input.trim();
+    setSending(true); 
+    
+    // GAME LOGIC: Check Guess
+    if (chatMode === 'public' && gameState.is_active && currentDeviceId !== gameState.drawer_id) {
+       if (input.trim().toLowerCase() === gameState.word.toLowerCase()) {
+         // Correct guess!
+         await supabase.from('messages').insert([{ username: 'System', pesan: `🎉 ${username} berhasil menebak kata: ${gameState.word.toUpperCase()}!`, device_id: 'system', is_private: false }]);
+         await supabase.from('game_state').upsert({ id: 1, is_active: false });
+         setInput(''); setSending(false);
+         return;
+       }
+    }
+
+    let finalPesan = input.trim();
     if (replyingTo) finalPesan = `@${replyingTo.username.split('●')[0]} ("${replyingTo.pesan.length > 30 ? replyingTo.pesan.substring(0, 30) + "..." : replyingTo.pesan}") ${input.trim()}`;
     if (username !== 'Admin●ipix.my.id') {
       const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('device_id', localStorage.getItem('device_id') || 'guest').gte('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString());
@@ -283,7 +388,6 @@ export default function Home() {
     const key = `edit_count_${msg.id}`;
     const currentEdits = parseInt(localStorage.getItem(key) || '0');
     if (currentEdits >= 2) return alert("Batas edit maksimal 2x untuk pesan ini.");
-    
     const newText = prompt("Edit pesan:", msg.pesan);
     if (newText !== null && newText.trim() && newText.trim() !== msg.pesan) {
       await supabase.from('messages').update({ pesan: newText.trim() }).eq('id', msg.id);
@@ -292,22 +396,15 @@ export default function Home() {
     }
   };
 
-  const editMsg = async (id: number) => { const newText = prompt("Edit pesan:", messages.find(m => m.id === id)?.pesan || ""); if (newText !== null && newText.trim()) { await supabase.from('messages').update({ pesan: newText }).eq('id', id); fetchData(); } };
-  const editNama = async (id: number) => { const msg = messages.find(m => m.id === id); if (!msg) return; const newName = prompt("Edit nama:", msg.username); if (newName && containsBlockedWord(newName)) return alert("Nama mengandung kata terlarang!"); if (newName && newName.trim()) { await supabase.from('profiles').update({ username: newName.trim() }).eq('device_id', msg.device_id); await supabase.from('messages').update({ username: newName.trim() }).eq('device_id', msg.device_id); fetchData(); } };
   const deleteMsg = async (id: number) => { await supabase.from('messages').delete().eq('id', id); fetchData(); };
   const blockUser = async (id: string, name: string) => { if (confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: name }]); fetchData(); } };
   const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
-  const inviteToPrivate = (id: string, name: string) => { handleTabSwitch('private'); setSelectedPrivateUser(id); };
+  const inviteToPrivate = (id: string) => { handleTabSwitch('private'); setSelectedPrivateUser(id); };
 
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans" onClick={() => { setActiveMenuId(null); setLongPressId(null); }}>
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes slideLeftSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(-4px); opacity: 1; } } 
-        @keyframes slideRightSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(4px); opacity: 1; } } 
-        .anim-slide-left { animation: slideLeftSmooth 1.4s ease-in-out infinite; } 
-        .anim-slide-right { animation: slideRightSmooth 1.4s ease-in-out infinite; }
-        
         @keyframes glassBlurBlue { 0% { opacity: 0; filter: blur(12px); background: rgba(59, 130, 246, 0.2); } 100% { opacity: 1; filter: blur(0px); background: transparent; } }
         @keyframes glassBlurGreen { 0% { opacity: 0; filter: blur(12px); background: rgba(16, 185, 129, 0.2); } 100% { opacity: 1; filter: blur(0px); background: transparent; } }
         .anim-glass-public { animation: glassBlurBlue 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
@@ -376,7 +473,8 @@ export default function Home() {
         </div>
       ) : (
         <>
-          {currentHash !== '#block' && (
+          {/* HEADER CHAT */}
+          {currentHash !== '#block' && currentHash !== '#gameadmin' && (
             <div className="sticky top-0 z-10 p-3 bg-white/30 backdrop-blur-md border-b border-white/20">
               <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full shadow">Keluar</button>
               <div className="flex justify-between items-center">
@@ -388,18 +486,18 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="text-center flex-1 flex flex-col items-end mr-16">
-                  <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-bold text-sm underline flex items-center gap-1">ipix.my.id</a>
-                  {activeTab === 'user' && <div className="text-[10px] text-gray-500 mt-0.5"><span className={`inline-block w-2 h-2 rounded-full ${isAdminOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>{isAdminOnline ? ' Admin Online' : ` Admin Offline • ${adminOfflineTime}`}</div>}
+                  {activeTab === 'admin' && (
+                    <div className="flex gap-1 mb-1">
+                      <a href="#block" className="text-[10px] font-bold bg-gray-800 text-white px-2 py-0.5 rounded">Blokir</a>
+                      <a href="#gameadmin" className="text-[10px] font-bold bg-blue-600 text-white px-2 py-0.5 rounded">Set Game</a>
+                    </div>
+                  )}
+                  {activeTab === 'user' && <div className="text-[10px] text-gray-500 mt-0.5"><span className={`inline-block w-2 h-2 rounded-full ${isAdminOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>{isAdminOnline ? ' Admin Online' : ` Admin Offline`}</div>}
                 </div>
               </div>
               <div className="flex mt-3 bg-white border border-gray-200 rounded-full p-1 shadow-sm w-full">
                 <button onClick={() => handleTabSwitch('public')} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 flex items-center justify-center gap-2 ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
-                  <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center">
-                    <span className={`${chatMode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-200`}>
-                      {formatNotif(totalPublic)}
-                    </span>
-                  </div>
-                  <span className="ml-5">Public Chat</span>
+                  <span className="mr-2">🎨 Tebak Gambar</span>
                 </button>
 
                 <button onClick={() => handleTabSwitch('private')} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 flex items-center justify-center gap-2 ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
@@ -414,14 +512,14 @@ export default function Home() {
             </div>
           )}
           
-          <div key={chatMode} ref={containerRef} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} 
-            className={`flex-1 overflow-y-auto overflow-x-hidden transition-all duration-200 ${isTransitioning ? 'opacity-0 bg-gray-50' : 'opacity-100'} ${chatMode === 'public' ? 'anim-glass-public' : 'anim-glass-private'}`}>
+          <div key={chatMode} ref={containerRef} className={`flex-1 overflow-y-auto overflow-x-hidden transition-all duration-200 ${isTransitioning ? 'opacity-0 bg-gray-50' : 'opacity-100'} ${chatMode === 'public' ? 'anim-glass-public flex flex-col' : 'anim-glass-private'}`}>
             
+            {/* ADMIN PANEL BLOKIR */}
             {activeTab === 'admin' && currentHash === '#block' ? (
               <div className="min-h-full bg-gradient-to-br from-emerald-950 via-blue-950 to-emerald-950 text-white">
                 <div className="sticky top-0 bg-gradient-to-br from-emerald-950 to-blue-950 border-b border-white/10 z-20 p-6">
                   <div className="max-w-5xl mx-auto flex justify-between items-center">
-                    <div><h2 className="text-3xl font-bold flex items-center gap-3">⚙️ Manajemen Blokir</h2><p className="text-white/70 text-sm mt-1">Kelola user dan kata terlarang</p></div>
+                    <div><h2 className="text-3xl font-bold flex items-center gap-3">⚙️ Manajemen Blokir</h2></div>
                     <button onClick={() => window.history.back()} className="px-6 py-2.5 bg-white/10 hover:bg-white/20 border border-white/30 rounded-full text-sm font-medium transition-all">← Kembali</button>
                   </div>
                 </div>
@@ -429,11 +527,11 @@ export default function Home() {
                   <section className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-6">
                     <h3 className="text-xl font-semibold mb-5 flex items-center gap-3">👤 User Terblokir <span className="text-sm font-normal text-white/50">({blockedList.length})</span></h3>
                     {blockedList.length === 0 ? <p className="text-white/50 italic py-12 text-center">Belum ada user yang diblokir.</p> : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-4">
                         {blockedList.map(b => (
-                          <div key={b.device_id} onClick={() => unblock(b.device_id)} className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-red-500/50 p-5 rounded-2xl cursor-pointer transition-all flex justify-between items-start">
-                            <div><div className="font-semibold text-lg">{b.username || 'Tanpa Nama'}</div><div className="text-xs text-white/60 mt-1 font-mono">ID: {b.device_id}</div></div>
-                            <div className="text-right text-xs text-white/50">{formatMessageTime(b.created_at || new Date().toISOString())}<span className="block text-red-400 text-3xl group-hover:text-red-300 mt-2">×</span></div>
+                          <div key={b.device_id} onClick={() => unblock(b.device_id)} className="group bg-white/5 hover:bg-white/10 border border-white/10 p-5 rounded-2xl cursor-pointer flex justify-between items-start">
+                            <div><div className="font-semibold">{b.username || 'Tanpa Nama'}</div><div className="text-xs text-white/60 font-mono">ID: {b.device_id}</div></div>
+                            <div className="text-right text-xs text-white/50"><span className="block text-red-400 text-3xl mt-2">×</span></div>
                           </div>
                         ))}
                       </div>
@@ -442,38 +540,193 @@ export default function Home() {
                   <section className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-6">
                     <h3 className="text-xl font-semibold mb-5">🚫 Filter Kata Kasar</h3>
                     <div className="flex gap-3 mb-6">
-                      <input className="flex-1 border border-white/30 focus:border-red-400 bg-white/5 text-white rounded-2xl px-5 py-4 text-sm outline-none transition-all placeholder:text-white/50" placeholder="Tambahkan kata yang dilarang..." value={newBadWord} onChange={(e) => setNewBadWord(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addBlockedWord()} />
-                      <button onClick={addBlockedWord} className="bg-red-600 hover:bg-red-700 text-white px-10 rounded-2xl font-semibold transition-all active:scale-95">Tambah</button>
+                      <input className="flex-1 border border-white/30 bg-white/5 text-white rounded-2xl px-5 py-4 text-sm outline-none placeholder:text-white/50" placeholder="Tambah kata dilarang..." value={newBadWord} onChange={(e) => setNewBadWord(e.target.value)} />
+                      <button onClick={addBlockedWord} className="bg-red-600 text-white px-8 rounded-2xl font-semibold">Tambah</button>
                     </div>
                     <div className="flex flex-wrap gap-3">
-                      {blockedWords.length === 0 ? <p className="text-white/50 italic py-8">Belum ada kata yang diblokir.</p> : blockedWords.sort((a, b) => a.localeCompare(b)).map((word, idx) => (
-                        <div key={idx} className="group flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/30 px-5 py-2.5 rounded-2xl text-sm transition-all"><span className="font-medium text-white">{word}</span><button onClick={() => removeBlockedWord(word)} className="text-white/50 hover:text-red-400 text-xl leading-none">×</button></div>
+                      {blockedWords.map((word, idx) => (
+                        <div key={idx} className="flex items-center gap-2 bg-white/10 border border-white/30 px-5 py-2.5 rounded-2xl text-sm"><span className="font-medium">{word}</span><button onClick={() => removeBlockedWord(word)} className="text-white/50 hover:text-red-400 text-xl">×</button></div>
                       ))}
                     </div>
                   </section>
                 </div>
               </div>
-            ) : (
+            ) : 
+            /* ADMIN PANEL GAME */
+            activeTab === 'admin' && currentHash === '#gameadmin' ? (
+              <div className="min-h-full bg-gradient-to-br from-indigo-950 via-purple-950 to-indigo-950 text-white">
+                <div className="sticky top-0 bg-gradient-to-br from-indigo-950 to-purple-950 border-b border-white/10 z-20 p-6">
+                  <div className="max-w-5xl mx-auto flex justify-between items-center">
+                    <div><h2 className="text-2xl font-bold flex items-center gap-3">🎮 Setting Game</h2></div>
+                    <button onClick={() => window.history.back()} className="px-6 py-2.5 bg-white/10 hover:bg-white/20 border border-white/30 rounded-full text-sm font-medium transition-all">← Kembali</button>
+                  </div>
+                </div>
+                <div className="p-6 max-w-5xl mx-auto space-y-6 pb-20">
+                  <section className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-6">
+                    <h3 className="text-xl font-semibold mb-4">Status Game Saat Ini</h3>
+                    <div className="bg-black/20 p-4 rounded-xl mb-4">
+                      <p>Status: <span className={gameState.is_active ? 'text-green-400 font-bold' : 'text-red-400 font-bold'}>{gameState.is_active ? 'AKTIF' : 'NONAKTIF'}</span></p>
+                      <p>Kata: <span className="font-bold text-blue-300">{gameState.word || '-'}</span></p>
+                      <p>Petunjuk: <span className="italic">{gameState.hint || '-'}</span></p>
+                      <p>Drawer: <span className="font-bold text-yellow-300">{gameState.drawer_name || '-'}</span></p>
+                    </div>
+                    {gameState.is_active && <button onClick={stopGame} className="w-full bg-red-600 py-3 rounded-xl font-bold">Hentikan Game</button>}
+                  </section>
+                  
+                  <section className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-6">
+                    <h3 className="text-xl font-semibold mb-4">Mulai Round Baru</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm text-white/70 mb-2">Pilih Kata & Mulai (Drawer: Admin)</p>
+                        <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto p-2 bg-black/20 rounded-xl">
+                          {gameWords.map(w => (
+                             <div key={w.id} className="flex justify-between items-center bg-white/10 p-3 rounded-xl">
+                               <div><div className="font-bold text-blue-300">{w.word}</div><div className="text-xs text-white/60">{w.hint}</div></div>
+                               <button onClick={() => startGame(w, currentDeviceId!, 'Admin')} className="bg-green-500 px-4 py-2 rounded-lg text-xs font-bold shadow-md hover:bg-green-600">Start (Admin Draw)</button>
+                             </div>
+                          ))}
+                          {gameWords.length === 0 && <p className="text-center text-white/50 text-sm py-4">Belum ada daftar kata.</p>}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                  
+                  <section className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-6">
+                    <h3 className="text-xl font-semibold mb-4">Database Kata</h3>
+                    <div className="flex flex-col gap-3 mb-6">
+                      <input className="border border-white/30 bg-white/5 text-white rounded-xl px-4 py-3 text-sm outline-none" placeholder="Jawaban (contoh: Kucing)" value={newGameWord} onChange={(e) => setNewGameWord(e.target.value)} />
+                      <input className="border border-white/30 bg-white/5 text-white rounded-xl px-4 py-3 text-sm outline-none" placeholder="Petunjuk (contoh: Hewan peliharaan)" value={newGameHint} onChange={(e) => setNewGameHint(e.target.value)} />
+                      <button onClick={addGameWord} className="bg-blue-600 text-white py-3 rounded-xl font-bold">Tambah Kata</button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {gameWords.map((w) => (
+                        <div key={w.id} className="flex flex-col justify-between bg-white/10 border border-white/30 p-3 rounded-xl text-sm relative group">
+                           <span className="font-bold text-blue-200">{w.word}</span>
+                           <span className="text-xs text-white/70">{w.hint}</span>
+                           <button onClick={() => removeGameWord(w.id)} className="absolute top-2 right-2 text-white/50 hover:text-red-400 bg-black/30 rounded-full w-6 h-6 flex items-center justify-center">×</button>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+              </div>
+            ) :
+            
+            /* PUBLIC CHAT (GAME AREA) */
+            chatMode === 'public' ? (
+              <div className="flex flex-col h-full bg-white relative">
+                {/* Game Dashboard Header */}
+                <div className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white p-3 shadow-md z-10 flex flex-col items-center justify-center">
+                   {gameState.is_active ? (
+                     <>
+                       <div className="text-[10px] uppercase font-bold text-blue-200 tracking-widest mb-1">
+                         {gameState.drawer_id === currentDeviceId ? 'ANDA SEDANG MENGGAMBAR' : `${gameState.drawer_name} SEDANG MENGGAMBAR`}
+                       </div>
+                       <div className="text-lg font-black tracking-widest">
+                         {gameState.drawer_id === currentDeviceId 
+                           ? gameState.word.toUpperCase() 
+                           : gameState.word.split('').map((c: string) => c === ' ' ? ' ' : '_').join(' ')}
+                       </div>
+                       <div className="text-xs text-indigo-200 mt-1 italic">Clue: {gameState.hint}</div>
+                     </>
+                   ) : (
+                     <div className="text-sm font-bold text-indigo-100 py-2">Permainan sedang menunggu Admin...</div>
+                   )}
+                </div>
+                
+                {/* CANVAS AREA */}
+                <div className="w-full bg-gray-50 border-b border-gray-200 relative aspect-[4/3] max-h-[40vh] shadow-inner">
+                  <canvas 
+                    ref={canvasRef}
+                    className={`w-full h-full block ${gameState.drawer_id === currentDeviceId ? 'cursor-crosshair' : 'cursor-default'}`}
+                    onMouseDown={startDrawing}
+                    onMouseMove={draw}
+                    onMouseUp={stopDrawing}
+                    onMouseLeave={stopDrawing}
+                    onTouchStart={startDrawing}
+                    onTouchMove={draw}
+                    onTouchEnd={stopDrawing}
+                  />
+                  {!gameState.is_active && (
+                    <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-10">
+                       <span className="bg-blue-600/90 text-white px-4 py-2 rounded-full font-bold text-xs shadow-lg">Mode Tebak Gambar</span>
+                    </div>
+                  )}
+                  {/* Drawing Tools (Only for active drawer) */}
+                  {gameState.is_active && gameState.drawer_id === currentDeviceId && (
+                     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/90 p-2 rounded-2xl shadow-lg border border-gray-200 flex gap-3 z-10">
+                        <div className="flex gap-1.5 items-center">
+                          {['#000000', '#EF4444', '#3B82F6', '#10B981', '#F59E0B'].map(color => (
+                            <button key={color} onClick={() => setBrushColor(color)} className={`w-6 h-6 rounded-full shadow-sm border-2 ${brushColor === color ? 'border-gray-800 scale-110' : 'border-transparent'}`} style={{ backgroundColor: color }} />
+                          ))}
+                        </div>
+                        <div className="w-px bg-gray-300"></div>
+                        <div className="flex items-center gap-2">
+                           <button onClick={() => setBrushSize(3)} className={`w-5 h-5 rounded-full bg-gray-800 ${brushSize === 3 ? 'ring-2 ring-blue-400' : ''}`}></button>
+                           <button onClick={() => setBrushSize(8)} className={`w-7 h-7 rounded-full bg-gray-800 ${brushSize === 8 ? 'ring-2 ring-blue-400' : ''}`}></button>
+                        </div>
+                        <div className="w-px bg-gray-300"></div>
+                        <button onClick={broadcastClear} className="text-[10px] font-bold text-red-600 px-2 py-1 bg-red-50 rounded">Clear</button>
+                     </div>
+                  )}
+                </div>
+
+                {/* CHAT MESSAGES AREA (Guessing) */}
+                <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-100">
+                  {messages.length > 0 ? messages.map((m) => {
+                    const isSystem = m.device_id === 'system';
+                    if (isSystem) {
+                      return (
+                         <div key={m.id} id={`msg-${m.id}`} className="bg-gradient-to-r from-blue-100 to-green-100 p-3 rounded-xl border border-blue-200 shadow-sm w-full text-center my-2">
+                            <span className="font-bold text-blue-900 text-sm">{m.pesan}</span>
+                         </div>
+                      )
+                    }
+                    return (
+                      <div key={m.id} id={`msg-${m.id}`} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none relative"
+                        onMouseDown={() => { longPressTimer.current = setTimeout(() => { setLongPressId(m.id); }, 500); }}
+                        onMouseUp={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }}
+                        onTouchStart={() => { longPressTimer.current = setTimeout(() => { setLongPressId(m.id); }, 500); }}
+                        onTouchEnd={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }}>
+                        
+                        {longPressId === m.id && (
+                          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 rounded-xl flex items-center justify-center gap-3 shadow-sm border border-gray-200" onClick={(e) => { e.stopPropagation(); setLongPressId(null); }}>
+                            <button className="bg-gray-800 text-white px-5 py-2 rounded-full text-xs font-bold" onClick={(e) => { e.stopPropagation(); copyToClipboard(m.pesan, 'Pesan'); setLongPressId(null); }}>Salin</button>
+                            {(activeTab !== 'admin' && m.device_id === currentDeviceId) && (
+                               <button className="bg-blue-600 text-white px-5 py-2 rounded-full text-xs font-bold" onClick={(e) => { e.stopPropagation(); handleEditLimit(m); setLongPressId(null); }}>Edit</button>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="flex justify-between items-start mb-1">
+                          <div className="flex items-center gap-2">
+                            <b className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px]`}>{m.username}</b>
+                          </div>
+                          <span className="text-[10px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
+                        </div>
+                        <div className="text-sm text-gray-800 break-words">{applyCensor(m.pesan)}</div>
+                      </div>
+                    );
+                  }) : <div className="text-center text-gray-400 italic mt-10">Ketik jawabanmu di bawah...</div>}
+                  <div id="messages-end" className="h-0" />
+                </div>
+              </div>
+            ) : 
+
+            /* PRIVATE CHAT */
+            (
               <div className="flex-1 overflow-y-auto">
                 {activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser ? (
                   <div className="space-y-3 p-3">
                     {privateUsers.map(user => (
-                      <div key={user.device_id} onClick={() => setSelectedPrivateUser(user.device_id)} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-emerald-300 cursor-pointer transition-all flex justify-between items-center group">
+                      <div key={user.device_id} onClick={() => setSelectedPrivateUser(user.device_id)} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md cursor-pointer flex justify-between items-center">
                         <div>
-                          <div className="font-semibold text-blue-700 text-base">{user.username || 'User Tanpa Nama'}</div>
+                          <div className="font-semibold text-blue-700">{user.username || 'User Tanpa Nama'}</div>
                           <div className="text-xs text-gray-500 font-mono mt-0.5">ID: {user.device_id.substring(0, 8)}...</div>
                         </div>
                         <div className="text-right flex flex-col items-end gap-1.5">
-                          {user.count > 0 ? (
-                            <div className="bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">
-                              {user.count} Pesan Baru
-                            </div>
-                          ) : (
-                            <div className="bg-gray-400 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm opacity-90 whitespace-nowrap">
-                              Terbaca
-                            </div>
-                          )}
-                          <div className="text-[10px] text-emerald-600 font-medium">Terakhir: {formatMessageTime(user.last_active)}</div>
+                          {user.count > 0 ? <div className="bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">{user.count} Baru</div> : <div className="bg-gray-400 text-white text-[10px] font-bold px-2.5 py-1 rounded-full opacity-90">Terbaca</div>}
+                          <div className="text-[10px] text-emerald-600 font-medium">{formatMessageTime(user.last_active)}</div>
                         </div>
                       </div>
                     ))}
@@ -482,134 +735,33 @@ export default function Home() {
                   <div className="flex flex-col h-full relative">
                     <div className="p-3 space-y-3 overflow-x-hidden flex-1">
                       {messages.length > 0 ? messages.map((m) => {
-                        const shortBrowser = m.user_browser ? m.user_browser.split('(')[0].trim() + (m.user_browser.includes('(') ? ` (${m.user_browser.split('(')[1].split(')')[0]})` : '') : 'Unknown Browser';
                         return (
                           <div key={m.id} id={`msg-${m.id}`} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full select-none relative"
-                            onMouseDown={(e) => {
-                              longPressTimer.current = setTimeout(() => { setLongPressId(m.id); if (navigator.vibrate) navigator.vibrate(50); }, 500);
-                            }}
-                            onMouseMove={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
-                            onMouseUp={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
-                            onTouchStart={(e) => { 
-                              setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); 
-                              setSwipingId(m.id); setSwipeDelta(0); setIsHorizontalSwipe(false); 
-                              longPressTimer.current = setTimeout(() => { setLongPressId(m.id); if (navigator.vibrate) navigator.vibrate(50); }, 500);
-                            }}
-                            onTouchMove={(e) => {
-                              if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
-                              if (swipingId !== m.id) return;
-                              const deltaX = e.touches[0].clientX - touchStartX, deltaY = e.touches[0].clientY - touchInitialY;
-                              if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) setIsHorizontalSwipe(true);
-                              if (isHorizontalSwipe) setSwipeDelta(Math.max(-75, Math.min(75, deltaX)));
-                            }}
-                            onTouchEnd={() => { 
-                              if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
-                              if (swipingId === m.id && isHorizontalSwipe) {
-                                if (swipeDelta > 50) {
-                                  handleReply(m);
-                                } else if (swipeDelta < -50) {
-                                  const isMyMsg = m.device_id === currentDeviceId;
-                                  const isUnder24h = Date.now() - new Date(m.created_at).getTime() < 24 * 60 * 60 * 1000;
-                                  
-                                  if (activeTab === 'admin') {
-                                    if (window.confirm("Apakah benar mau menghapus pesan ini?")) deleteMsg(m.id);
-                                  } else if (isMyMsg) {
-                                    if (isUnder24h) {
-                                      if (window.confirm("Apakah benar mau menghapus pesan ini?")) deleteMsg(m.id);
-                                    } else {
-                                      alert("Pesan lebih dari 24 jam hanya dapat dihapus oleh admin.");
-                                    }
-                                  }
-                                }
-                              }
-                              setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false); 
-                            }}
-                            style={{ transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)', transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
-                            
-                            {swipingId === m.id && Math.abs(swipeDelta) > 15 && (
-                              <div className={`absolute top-1/2 -translate-y-1/2 font-bold text-xs pointer-events-none transition-opacity flex items-center justify-center ${swipeDelta > 0 ? '-left-6 text-blue-500' : '-right-8 text-red-500'}`}>
-                                {swipeDelta > 0 ? '↩' : (
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 stroke-current opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                )}
-                              </div>
-                            )}
+                            onMouseDown={() => { longPressTimer.current = setTimeout(() => { setLongPressId(m.id); }, 500); }}
+                            onMouseUp={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }}
+                            onTouchStart={() => { longPressTimer.current = setTimeout(() => { setLongPressId(m.id); }, 500); }}
+                            onTouchEnd={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }}>
                             
                             {longPressId === m.id && (
-                              <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 rounded-xl flex items-center justify-center gap-3 shadow-sm border border-gray-200 animate-fade-in" onClick={(e) => { e.stopPropagation(); setLongPressId(null); }}>
-                                <button className="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); copyToClipboard(m.pesan, 'Pesan'); setLongPressId(null); }}>Salin Teks</button>
+                              <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 rounded-xl flex items-center justify-center gap-3 shadow-sm border border-gray-200" onClick={(e) => { e.stopPropagation(); setLongPressId(null); }}>
+                                <button className="bg-gray-800 text-white px-5 py-2 rounded-full text-xs font-bold" onClick={(e) => { e.stopPropagation(); copyToClipboard(m.pesan, 'Pesan'); setLongPressId(null); }}>Salin</button>
                                 {(activeTab !== 'admin' && m.device_id === currentDeviceId) && (
-                                   <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); handleEditLimit(m); setLongPressId(null); }}>Edit Teks</button>
+                                   <button className="bg-blue-600 text-white px-5 py-2 rounded-full text-xs font-bold" onClick={(e) => { e.stopPropagation(); handleEditLimit(m); setLongPressId(null); }}>Edit</button>
                                 )}
                               </div>
                             )}
 
                             <div className="flex justify-between items-start mb-1">
                               <div className="flex items-center gap-2">
-                                <b onClick={() => handleTag(m.username)} className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px] cursor-pointer hover:underline`}>{m.username}</b>
-                                {m.username === 'Admin●ipix.my.id' ? <span className={`text-[9px] px-1 rounded ${isAdminOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span> : userStatus[m.username] && <span className={`text-[9px] px-1 rounded ${userStatus[m.username].online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>}
-                                {m.is_private && <span className="text-xs text-emerald-600">🔒 Private</span>}
+                                <b className={`${m.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'} text-[10px]`}>{m.username}</b>
+                                <span className="text-xs text-emerald-600">🔒 Private</span>
                               </div>
                               <span className="text-[10px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
                             </div>
-                            
-                            {renderMessageContent(m.pesan)}
-                            
-                            <div className={`mt-2 pt-2 border-t border-gray-100 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
-                              <div className="flex-1 overflow-hidden">
-                                {activeTab === 'admin' && (
-                                  <div className="flex flex-col gap-1 text-[9px] text-gray-400 font-sans w-full">
-                                    <span className="text-blue-600 font-mono cursor-pointer hover:underline break-all leading-tight" onClick={() => copyToClipboard(m.device_id, 'Device ID')}>
-                                      ID: {m.device_id}
-                                    </span>
-                                    <span className="text-orange-600 truncate font-medium max-w-[200px]" title={m.user_browser || ''}>
-                                      🌐 {shortBrowser}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              <div className="flex items-center gap-2 text-[10px] shrink-0 pb-0.5">
-                                <button onClick={() => handleReply(m)} className={`font-bold underline mr-1 transition-colors ${chatMode === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'}`}>Balas</button>
-                                {activeTab === 'admin' && (
-                                  <div className="relative flex items-center">
-                                    {activeMenuId === m.id && (
-                                      <div className="absolute right-6 bottom-0 bg-white border border-gray-200 shadow-lg rounded-full px-3 py-1.5 flex items-center gap-2.5 z-30 animate-fade-in whitespace-nowrap bg-opacity-95 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
-                                        <button onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="text-blue-600 font-bold hover:underline">Edit</button>
-                                        <button onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="text-purple-600 font-bold hover:underline">Nama</button>
-                                        <button onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="text-red-600 font-bold hover:underline">Hapus</button>
-                                        {!m.username.includes('Admin') && (
-                                          <><button onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="text-gray-500 font-bold hover:underline">Blokir</button><button onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="text-emerald-600 font-bold hover:underline">Private</button></>
-                                        )}
-                                      </div>
-                                    )}
-                                    <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === m.id ? null : m.id); }} className="text-gray-500 hover:text-gray-800 text-base font-bold px-1 rounded hover:bg-gray-100 transition-colors">⋮</button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                            <div className="text-sm text-gray-800 break-words">{applyCensor(m.pesan)}</div>
                           </div>
                         );
-                      }) : <div className="text-center text-gray-400 italic mt-10">Belum ada pesan di ruang ini.</div>}
-                      
-                      {isPillVisible && (
-                        <div className="w-full flex justify-center pt-2 pb-2 transition-all duration-500 ease-in-out opacity-100 scale-100 select-none">
-                          <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold text-gray-700 border shadow-xs text-center tracking-wide transition-colors duration-300 relative overflow-hidden flex items-center justify-center min-w-[310px] h-[34px] cursor-pointer ${chatMode === 'private' ? 'bg-emerald-50/90 border-emerald-300/80' : 'bg-blue-50/90 border-blue-300/80'}`} onMouseDown={handlePillStart} onMouseUp={handlePillEnd} onMouseLeave={handlePillEnd} onTouchStart={handlePillStart} onTouchEnd={handlePillEnd}>
-                            <div className={`absolute flex items-center gap-1 transition-all duration-500 w-full justify-center ${capsuleIndex === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                              <span>Bijaklah dalam berinteraksi salam toleransi |</span><a href="https://ipix.my.id" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-700 underline font-black" onClick={(e) => e.stopPropagation()}>ipix.my.id</a>
-                            </div>
-                            <div className={`absolute flex items-center gap-2 transition-all duration-500 w-full justify-center ${capsuleIndex === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
-                              <span className={`inline-block anim-slide-left font-black text-sm leading-none ${chatMode === 'private' ? 'text-emerald-500' : 'text-blue-500'}`}>&lt;</span><span>geser ke kiri untuk membalas chat geser ke kanan</span><span className={`inline-block anim-slide-right font-black text-sm leading-none ${chatMode === 'private' ? 'text-emerald-500' : 'text-blue-500'}`}>&gt;</span>
-                            </div>
-                            {showPillClose && (
-                              <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-10 animate-fade-in" onMouseDown={(e) => { e.stopPropagation(); setIsPillVisible(false); }} onTouchStart={(e) => { e.stopPropagation(); setIsPillVisible(false); }}>
-                                <div className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg active:scale-75 transition-transform text-sm leading-none">✕</div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                      }) : <div className="text-center text-gray-400 italic mt-10">Belum ada pesan private.</div>}
                       <div id="messages-end" className="h-0" />
                     </div>
                   </div>
@@ -618,23 +770,16 @@ export default function Home() {
             )}
           </div>
           
-          {currentHash !== '#block' && (
+          {/* CHAT INPUT FORM */}
+          {currentHash !== '#block' && currentHash !== '#gameadmin' && (
             <div className="bg-white sticky bottom-0 z-10 w-full flex flex-col">
-              {replyingTo && (
-                <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x transition-all duration-300 cursor-pointer ${chatMode === 'private' ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100/70' : 'bg-blue-50 border-blue-300 text-blue-900 hover:bg-blue-100/70'}`} onClick={() => scrollToMessageId(replyingTo.id)} title="Klik untuk melompat kembali ke pesan asli">
-                  <div className="truncate flex-1 pr-2"><span className="font-bold">Membalas @{replyingTo.username.split('●')[0]}:</span> <span className="italic opacity-80">"{replyingTo.pesan}"</span></div>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setReplyingTo(null); }} className="text-gray-400 hover:text-gray-700 text-base font-bold leading-none px-1">×</button>
-                </div>
-              )}
-              <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-end w-full relative">
+              <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2 items-end w-full relative shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
                 <div className="relative flex-1">
-                  <textarea id="chat-input" className={`w-full border p-2.5 rounded-2xl px-4 pb-7 text-sm resize-none focus:outline-none transition-all duration-300 min-h-[42px] max-h-[120px] font-sans leading-relaxed [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${chatMode === 'private' ? inputBlink ? 'bg-emerald-600/30 border-emerald-500 ring-2 ring-emerald-400 text-emerald-950 placeholder-emerald-600/50' : 'bg-emerald-600/10 border-emerald-500/20 text-emerald-950 placeholder-emerald-600/50 focus:border-emerald-500 focus:bg-emerald-600/15' : inputBlink ? 'bg-blue-600/30 border-blue-500 ring-2 ring-blue-400 text-blue-950 placeholder-blue-600/50' : 'bg-blue-600/10 border-blue-500/20 text-blue-950 placeholder-blue-600/50 focus:border-blue-500 focus:bg-blue-600/15'}`} value={input} onChange={(e) => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`; }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e); } }} placeholder="Ketik pesan..." maxLength={200} rows={1} disabled={sending} />
-                  <div className="absolute right-4 bottom-2.5 text-[10px] text-gray-400 font-mono pointer-events-none select-none opacity-80 bg-white/40 px-1 rounded">
-                    {200 - input.length}
-                  </div>
+                  <textarea id="chat-input" className={`w-full border p-2.5 rounded-2xl px-4 pb-7 text-sm resize-none focus:outline-none transition-all min-h-[42px] max-h-[120px] font-sans [scrollbar-width:none] ${chatMode === 'private' ? 'bg-emerald-600/10 border-emerald-500/20 text-emerald-950 focus:border-emerald-500' : 'bg-blue-600/10 border-blue-500/20 text-blue-950 focus:border-blue-500'}`} value={input} onChange={(e) => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`; }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e); } }} placeholder={chatMode === 'public' ? "Tebak gambarnya..." : "Ketik pesan private..."} maxLength={200} rows={1} disabled={sending} />
+                  <div className="absolute right-4 bottom-2.5 text-[10px] text-gray-400 font-mono pointer-events-none bg-white/40 px-1 rounded">{200 - input.length}</div>
                 </div>
-                <button type="submit" disabled={sending || !input.trim()} className={`px-4 sm:px-6 h-[42px] rounded-2xl font-bold text-xs sm:text-sm shrink-0 transition-all duration-200 active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${chatMode === 'private' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}>
-                  {sending ? '...' : (chatMode === 'private' ? <><span className="hidden sm:inline">Kirim ke Private Chat</span><span className="inline sm:hidden">Kirim admin</span></> : <><span className="hidden sm:inline">Kirim ke Public Chat</span><span className="inline sm:hidden">Kirim publik</span></>)}
+                <button type="submit" disabled={sending || !input.trim()} className={`px-4 sm:px-6 h-[42px] rounded-2xl font-bold text-xs shrink-0 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center ${chatMode === 'private' ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white'}`}>
+                  {sending ? '...' : (chatMode === 'private' ? 'Kirim Private' : 'Tebak!')}
                 </button>
               </form>
             </div>
