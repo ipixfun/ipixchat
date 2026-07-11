@@ -394,7 +394,9 @@ export default function Home() {
   }, [isDraggingRefresh, handleRefreshMove, handleRefreshEnd]);
 
 
-  // Renderer Berulang Untuk Pesan
+  // ==========================================
+  // RENDERER BERULANG UNTUK PESAN (UPDATED)
+  // ==========================================
   const renderMessageList = (msgArray: any[], colType: 'public' | 'private', isMinimized: boolean) => {
     if (msgArray.length === 0) return <div className="text-center text-gray-400 italic mt-10 text-[10px]">Belum ada pesan di ruang ini.</div>;
     return msgArray.map((m) => {
@@ -413,8 +415,14 @@ export default function Home() {
         borderColorClass = 'border-gray-300';
       }
 
+      // FITUR 2: Background Warna Chat (Emerald untuk Private, Blue untuk Publik)
+      const bgBubbleClass = m.is_private ? 'bg-emerald-50/90' : 'bg-blue-50/90';
+
+      // FITUR 3: Cek Last Edited dari LocalStorage
+      const isEdited = typeof window !== 'undefined' ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || '0') > 0 : false;
+
       return (
-        <div key={m.id} id={`msg-${m.id}`} className={`bg-white ${isMinimized ? 'p-1.5 rounded-md' : 'p-3 rounded-xl'} ${borderThicknessClass} shadow-sm w-full select-none relative ${borderColorClass}`}
+        <div key={m.id} id={`msg-${m.id}`} className={`${bgBubbleClass} ${isMinimized ? 'p-1.5 rounded-md' : 'p-3 rounded-xl'} ${borderThicknessClass} shadow-sm w-full select-none relative ${borderColorClass}`}
           onMouseDown={(e) => { longPressTimer.current = setTimeout(() => { setLongPressId(m.id); if (navigator.vibrate) navigator.vibrate(50); }, 500); }}
           onMouseMove={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
           onMouseUp={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
@@ -467,13 +475,20 @@ export default function Home() {
               <b onClick={() => handleTag(m.username)} className={`${isMsgAdmin ? 'text-red-600' : 'text-blue-700'} ${isMinimized ? 'text-[8px]' : 'text-[10px]'} cursor-pointer hover:underline`}>{m.username}</b>
               {isMsgAdmin ? <span className={`text-[8px] px-1 rounded ${isAdminOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span> : userStatus[m.username] && <span className={`text-[8px] px-1 rounded ${userStatus[m.username].online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>}
               {m.is_private && !isMinimized && <span className={`text-[10px] ${isMsgAdmin ? 'text-red-500' : 'text-emerald-500'}`}>🔒 Private</span>}
+              
+              {/* FITUR 3: Teks Kuning (last edited) */}
+              {isEdited && (
+                <span className="text-yellow-600 text-[9px] italic font-medium ml-1">
+                  (edited)
+                </span>
+              )}
             </div>
             <span className="text-[8px] text-gray-400 font-medium">{formatMessageTime(m.created_at)}</span>
           </div>
           
-          {/* Bagian truncating teks saat mode 2 kolom aktif */}
+          {/* FITUR 1: break-words & whitespace-pre-wrap agar teks tidak meluber keluar kotak container */}
           <div 
-            className={`mt-1 ${isTwoColumnMode ? 'line-clamp-4 cursor-pointer hover:bg-gray-50 transition-colors rounded' : ''}`}
+            className={`mt-1 min-w-0 break-words whitespace-pre-wrap ${isTwoColumnMode ? 'line-clamp-4 cursor-pointer hover:bg-black/5 transition-colors rounded' : ''}`}
             onClick={(e) => {
               if (isTwoColumnMode) {
                 e.stopPropagation();
@@ -484,7 +499,7 @@ export default function Home() {
             {renderMessageContent(m.pesan, isMinimized)}
           </div>
           
-          <div className={`${isMinimized ? 'mt-1 pt-1' : 'mt-2 pt-2'} border-t border-gray-100 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
+          <div className={`${isMinimized ? 'mt-1 pt-1' : 'mt-2 pt-2'} border-t border-gray-200 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
             <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end">
               {m.is_private && isMinimized && <span className={`text-[8px] font-bold ${isMsgAdmin ? 'text-red-500' : 'text-emerald-500'}`}>🔒 Private</span>}
               
@@ -504,12 +519,24 @@ export default function Home() {
                 <div className="relative flex items-center">
                   {activeMenuId === m.id && (
                     <div className="absolute right-6 bottom-0 bg-white border border-gray-200 shadow-lg rounded-full px-3 py-1.5 flex items-center gap-2.5 z-30 animate-fade-in whitespace-nowrap bg-opacity-95 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="text-blue-600 font-bold hover:underline">Edit</button>
-                      <button onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="text-purple-600 font-bold hover:underline">Nama</button>
-                      <button onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="text-red-600 font-bold hover:underline">Hapus</button>
-                      {!m.username.includes('Admin') && (
-                        <><button onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="text-gray-500 font-bold hover:underline">Blokir</button><button onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="text-emerald-600 font-bold hover:underline">Private</button></>
+                      
+                      {/* FITUR 4 & 5: Logika Titik Tiga Kondisional (Admin Lengkap vs Simple) */}
+                      {isTwoColumnMode ? (
+                        <>
+                          <button onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="text-blue-600 font-bold hover:underline">Edit</button>
+                          <button onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="text-purple-600 font-bold hover:underline">Nama</button>
+                          <button onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="text-red-600 font-bold hover:underline">Hapus</button>
+                          {!m.username.includes('Admin') && (
+                            <><button onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="text-gray-500 font-bold hover:underline">Blokir</button><button onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="text-emerald-600 font-bold hover:underline">Private</button></>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => { copyToClipboard(m.pesan, 'Pesan'); setActiveMenuId(null); }} className="text-gray-700 font-bold hover:underline">Salin</button>
+                          <button onClick={() => { handleReply(m); setActiveMenuId(null); }} className="text-blue-600 font-bold hover:underline">Balas</button>
+                        </>
                       )}
+
                     </div>
                   )}
                   <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === m.id ? null : m.id); }} className="text-gray-500 hover:text-gray-800 text-base font-bold px-1 rounded hover:bg-gray-100 transition-colors">⋮</button>
