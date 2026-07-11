@@ -15,7 +15,7 @@ export default function Login({
   handleAdminLogin
 }: any) {
   const title = "iPixChaT";
-  const existingNote = "Nama Anda telah tertanam di sistem chat. Hubungi admin jika ingin merubahnya.";
+  const existingNote = "Mohon maaf nama anda tidak bisa diubah lagi, Hubungi admin di chat jika anda ingin merubahnya.";
   const [displayedNote, setDisplayedNote] = useState("");
   const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
 
@@ -38,7 +38,7 @@ export default function Login({
   }, [isExistingUser]);
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-emerald-600 via-emerald-700 to-blue-950 p-6 relative overflow-hidden w-full">
+    <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-emerald-700 via-emerald-800 to-blue-950 p-6 relative overflow-hidden w-full">
       {/* Glass Background Layer */}
       <div className="absolute inset-0 bg-white/10 backdrop-blur-3xl z-0"></div>
       
@@ -80,7 +80,7 @@ export default function Login({
           <div className="w-full flex flex-col items-center">
             <input 
               className="w-full p-4 rounded-2xl bg-white/90 text-black placeholder-gray-500 border border-transparent focus:border-white/60 focus:bg-white transition-all outline-none font-medium shadow-inner text-center max-w-[280px]" 
-              placeholder="Masukkan Nama Anda..." 
+              placeholder="input nama max 20 huruf" 
               value={username || ""} 
               onChange={(e) => setUsername(e.target.value.slice(0, 20))} 
               disabled={isExistingUser} 
@@ -88,8 +88,8 @@ export default function Login({
             />
             
             {!isExistingUser && (
-              <div className="mt-4 mb-6 text-sm font-medium tracking-wide text-gray-700 min-h-[24px]">
-                Buat username yang relevan
+              <div className="mt-4 mb-6 text-sm font-medium tracking-wide text-gray-800 min-h-[24px]">
+                Buat username sesuka anda terserah max 20 huruf
               </div>
             )}
 
@@ -113,7 +113,7 @@ export default function Login({
             <button 
               onClick={handleAdminLogin} 
               className="w-full py-4 bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold text-lg shadow-[0_4px_15px_rgba(16,185,129,0.4)] hover:shadow-[0_8px_25px_rgba(16,185,129,0.5)] active:scale-95 transition-all rounded-2xl tracking-wider">
-              Verifikasi Admin
+              Login Admin
             </button>
           </div>
         )}
