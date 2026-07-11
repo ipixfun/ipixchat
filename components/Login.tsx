@@ -80,7 +80,7 @@ export default function Login({
           <div className="w-full flex flex-col items-center">
             <input 
               className="w-full p-4 rounded-2xl bg-white/90 text-black placeholder-gray-500 border border-transparent focus:border-white/60 focus:bg-white transition-all outline-none font-medium shadow-inner text-center max-w-[280px]" 
-              placeholder="input nama max 20 huruf" 
+              placeholder="Input Username max 20 huruf" 
               value={username || ""} 
               onChange={(e) => setUsername(e.target.value.slice(0, 20))} 
               disabled={isExistingUser} 
@@ -89,7 +89,7 @@ export default function Login({
             
             {!isExistingUser && (
               <div className="mt-4 mb-6 text-sm font-medium tracking-wide text-gray-800 min-h-[24px]">
-                Buat username sesuka anda terserah max 20 huruf
+                *Username setelah ini tidak bisa diubah lagi.
               </div>
             )}
 
