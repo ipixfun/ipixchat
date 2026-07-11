@@ -34,7 +34,7 @@ export default function Login({
               </div>
             ) : (
               <div className="text-[10px] text-white/90 mt-4 mb-6 text-center leading-relaxed bg-black/10 px-4 py-2.5 rounded-xl backdrop-blur-sm border border-white/10 w-full shadow-inner">
-                Nama Anda telah tertanam di sistem chat.<br/>Hubungi admin untuk merubahnya.
+                Nama Anda telah tertanam di sistem <br/>Hubungi admin jika ingin merubahnya.
               </div>
             )}
             <button 
