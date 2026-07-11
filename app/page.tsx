@@ -60,15 +60,31 @@ export default function Home() {
   // Dynamic Expansion & Mode States
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isChatExpanded, setIsChatExpanded] = useState(false);
-  const [isTwoColumnMode, setIsTwoColumnMode] = useState(false); // State Mode 2 Kolom
+  const [isTwoColumnMode, setIsTwoColumnMode] = useState(false); 
   
   const expandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const userScrolledUpRef = useRef<boolean>(false);
+  
   const isTyping = isInputFocused || input.trim().length > 0;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
 
-  // Handle Dynamic Column Expansion
+  // Floating Refresh Button States
+  const [refreshPos, setRefreshPos] = useState({ x: 20, y: 100 });
+  const [isDraggingRefresh, setIsDraggingRefresh] = useState(false);
+  const [isRefreshHovered, setIsRefreshHovered] = useState(false);
+  const dragStartPos = useRef({ x: 0, y: 0, initialX: 0, initialY: 0, isDragged: false });
+  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setRefreshPos({ x: window.innerWidth - 100, y: window.innerHeight - 200 });
+    }
+  }, []);
+
+  // Handle Dynamic Column Expansion (Diperpanjang jadi 60 detik)
   const handleInteraction = useCallback((mode: 'public' | 'private') => {
     setChatMode(mode);
     setIsChatExpanded(true);
@@ -77,7 +93,7 @@ export default function Home() {
     if (!isTyping) {
       expandTimeoutRef.current = setTimeout(() => {
         setIsChatExpanded(false);
-      }, 3000);
+      }, 60000); // 1 Menit
     }
   }, [isTyping]);
 
@@ -103,10 +119,37 @@ export default function Home() {
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
-  const handleScroll = () => {
+  const scrollToBottom = useCallback((behavior: 'auto' | 'smooth' = 'auto') => {
+    if (!userScrolledUpRef.current) {
+      document.getElementById('messages-end-public')?.scrollIntoView({ behavior });
+      document.getElementById('messages-end-private')?.scrollIntoView({ behavior });
+    }
+  }, []);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (longPressId !== null) setLongPressId(null);
     if (activeMenuId !== null) setActiveMenuId(null);
+
+    const target = e.currentTarget;
+    const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 100;
+
+    // Menangani saat scroll ke atas otomatis kembali ditahan selama 30 detik
+    if (!isAtBottom) {
+      userScrolledUpRef.current = true;
+      if (autoScrollTimeoutRef.current) clearTimeout(autoScrollTimeoutRef.current);
+      autoScrollTimeoutRef.current = setTimeout(() => {
+        userScrolledUpRef.current = false;
+        scrollToBottom('smooth');
+      }, 30000); // 30 detik
+    } else {
+      userScrolledUpRef.current = false;
+      if (autoScrollTimeoutRef.current) clearTimeout(autoScrollTimeoutRef.current);
+    }
   };
+
+  useEffect(() => {
+    scrollToBottom('auto');
+  }, [publicMessages, privateMessages, isChatExpanded, scrollToBottom]);
 
   const containsBlockedWord = (text: string) => blockedWords.some(word => word.trim() !== "" && text.toLowerCase().includes(word.toLowerCase()));
   const applyCensor = (text: string) => {
@@ -133,13 +176,13 @@ export default function Home() {
 
   const renderMessageContent = (text: string, isMinimized: boolean) => {
     const match = text.match(/^@(\w+)\s\("(.*?)"\)\s?(.*)$/);
-    const textSize = isMinimized ? 'text-xs' : 'text-sm';
+    const textSize = isMinimized ? 'text-[11px] leading-tight' : 'text-sm leading-relaxed';
     
     if (match) {
       const [_, user, quotedText, replyText] = match;
       return (
         <>
-          <div className={`text-[9px] text-gray-500 italic bg-gray-100 p-2 rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 ${chatMode === 'private' ? 'border-emerald-500' : 'border-blue-500'}`} onClick={() => scrollToMessage(quotedText)}>
+          <div className={`text-[9px] text-gray-500 italic bg-gray-100 ${isMinimized ? 'p-1.5' : 'p-2'} rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 ${chatMode === 'private' ? 'border-emerald-500' : 'border-blue-500'}`} onClick={() => scrollToMessage(quotedText)}>
             <span className="font-bold">@{user}</span>: "{applyCensor(quotedText)}"
           </div>
           <div className={`${textSize} text-gray-800 break-words`}>{applyCensor(replyText)}</div>
@@ -163,11 +206,6 @@ export default function Home() {
     const hour = new Date().getHours();
     return `Selamat ${hour >= 5 && hour < 12 ? "pagi" : hour >= 12 && hour < 15 ? "siang" : hour >= 15 && hour < 18 ? "sore" : "malam"}, `;
   };
-  
-  useEffect(() => {
-    document.getElementById('messages-end-public')?.scrollIntoView({ behavior: 'auto' });
-    document.getElementById('messages-end-private')?.scrollIntoView({ behavior: 'auto' });
-  }, [publicMessages, privateMessages, isChatExpanded]);
 
   const handleTouchStart = (e: React.TouchEvent) => { setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); };
   const handleTouchMove = (e: React.TouchEvent) => { if (!containerRef.current) return; };
@@ -319,9 +357,74 @@ export default function Home() {
   const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
   const inviteToPrivate = (id: string, name: string) => { handleInteraction('private'); setSelectedPrivateUser(id); };
 
-  // Renderer Berulang Untuk Pesan
+  // Logika Interaksi Tombol Refresh Melayang
+  const startRefreshFadeTimer = useCallback(() => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => {
+      setIsRefreshHovered(false);
+    }, 2000);
+  }, []);
+
+  const handleRefreshStart = (clientX: number, clientY: number) => {
+    setIsDraggingRefresh(true);
+    setIsRefreshHovered(true);
+    dragStartPos.current = { x: clientX, y: clientY, initialX: refreshPos.x, initialY: refreshPos.y, isDragged: false };
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+  };
+
+  const handleRefreshMove = useCallback((clientX: number, clientY: number) => {
+    if (!isDraggingRefresh) return;
+    const dx = clientX - dragStartPos.current.x;
+    const dy = clientY - dragStartPos.current.y;
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragStartPos.current.isDragged = true;
+
+    let newX = dragStartPos.current.initialX + dx;
+    let newY = dragStartPos.current.initialY + dy;
+
+    if (newX < 0) newX = 0;
+    if (newY < 0) newY = 0;
+    if (typeof window !== 'undefined') {
+        if (newX > window.innerWidth - 80) newX = window.innerWidth - 80;
+        if (newY > window.innerHeight - 80) newY = window.innerHeight - 80;
+    }
+
+    setRefreshPos({ x: newX, y: newY });
+  }, [isDraggingRefresh]);
+
+  const handleRefreshEnd = useCallback(() => {
+    if (isDraggingRefresh) {
+      setIsDraggingRefresh(false);
+      startRefreshFadeTimer();
+      if (!dragStartPos.current.isDragged) {
+         fetchData(); 
+      }
+    }
+  }, [isDraggingRefresh, startRefreshFadeTimer, fetchData]);
+
+  useEffect(() => {
+    const onTouchMove = (e: TouchEvent) => handleRefreshMove(e.touches[0].clientX, e.touches[0].clientY);
+    const onMouseMove = (e: MouseEvent) => handleRefreshMove(e.clientX, e.clientY);
+    const onTouchEnd = () => handleRefreshEnd();
+    const onMouseUp = () => handleRefreshEnd();
+
+    if (isDraggingRefresh) {
+      window.addEventListener('touchmove', onTouchMove, { passive: false });
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('touchend', onTouchEnd);
+      window.addEventListener('mouseup', onMouseUp);
+    }
+    return () => {
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [isDraggingRefresh, handleRefreshMove, handleRefreshEnd]);
+
+
+  // Renderer Berulang Untuk Pesan (Ditambahkan Kondisi isMinimized)
   const renderMessageList = (msgArray: any[], colType: 'public' | 'private', isMinimized: boolean) => {
-    if (msgArray.length === 0) return <div className="text-center text-gray-400 italic mt-10">Belum ada pesan di ruang ini.</div>;
+    if (msgArray.length === 0) return <div className="text-center text-gray-400 italic mt-10 text-[10px]">Belum ada pesan di ruang ini.</div>;
     return msgArray.map((m) => {
       const shortBrowser = m.user_browser ? m.user_browser.split('(')[0].trim() + (m.user_browser.includes('(') ? ` (${m.user_browser.split('(')[1].split(')')[0]})` : '') : 'Unknown Browser';
       const isMsgAdmin = m.username === 'Admin●ipix.my.id';
@@ -339,7 +442,7 @@ export default function Home() {
       }
 
       return (
-        <div key={m.id} id={`msg-${m.id}`} className={`bg-white ${isMinimized ? 'p-2 rounded-lg' : 'p-3 rounded-xl'} ${borderThicknessClass} shadow-sm w-full select-none relative ${borderColorClass}`}
+        <div key={m.id} id={`msg-${m.id}`} className={`bg-white ${isMinimized ? 'p-1.5 rounded-md' : 'p-3 rounded-xl'} ${borderThicknessClass} shadow-sm w-full select-none relative ${borderColorClass}`}
           onMouseDown={(e) => { longPressTimer.current = setTimeout(() => { setLongPressId(m.id); if (navigator.vibrate) navigator.vibrate(50); }, 500); }}
           onMouseMove={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
           onMouseUp={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
@@ -387,21 +490,20 @@ export default function Home() {
             </div>
           )}
 
-          <div className="flex justify-between items-start mb-1">
+          <div className={`flex justify-between items-start ${isMinimized ? 'mb-0.5' : 'mb-1'}`}>
             <div className="flex items-center gap-1.5 flex-wrap">
-              <b onClick={() => handleTag(m.username)} className={`${isMsgAdmin ? 'text-red-600' : 'text-blue-700'} ${isMinimized ? 'text-[9px]' : 'text-[10px]'} cursor-pointer hover:underline`}>{m.username}</b>
+              <b onClick={() => handleTag(m.username)} className={`${isMsgAdmin ? 'text-red-600' : 'text-blue-700'} ${isMinimized ? 'text-[8px]' : 'text-[10px]'} cursor-pointer hover:underline`}>{m.username}</b>
               {isMsgAdmin ? <span className={`text-[8px] px-1 rounded ${isAdminOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span> : userStatus[m.username] && <span className={`text-[8px] px-1 rounded ${userStatus[m.username].online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>}
               {m.is_private && !isMinimized && <span className={`text-[10px] ${isMsgAdmin ? 'text-red-500' : 'text-emerald-500'}`}>🔒 Private</span>}
             </div>
-            <span className="text-[9px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
+            <span className="text-[8px] text-gray-400 font-medium">{formatMessageTime(m.created_at)}</span>
           </div>
           
           {renderMessageContent(m.pesan, isMinimized)}
           
-          <div className={`mt-2 ${isMinimized ? 'pt-1' : 'pt-2'} border-t border-gray-100 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
+          <div className={`${isMinimized ? 'mt-1 pt-1' : 'mt-2 pt-2'} border-t border-gray-100 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
             <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end">
-              {/* Posisi logo Private pindah ke bawah-kiri saat tampilan diminimalkan */}
-              {m.is_private && isMinimized && <span className={`text-[9px] font-bold ${isMsgAdmin ? 'text-red-500' : 'text-emerald-500'}`}>🔒 Private</span>}
+              {m.is_private && isMinimized && <span className={`text-[8px] font-bold ${isMsgAdmin ? 'text-red-500' : 'text-emerald-500'}`}>🔒 Private</span>}
               
               {activeTab === 'admin' && (
                 <div className="flex flex-col gap-1 text-[8px] text-gray-400 font-sans w-full">
@@ -412,7 +514,9 @@ export default function Home() {
             </div>
             
             <div className="flex items-center gap-2 text-[10px] shrink-0 pb-0.5">
-              <button onClick={() => handleReply(m)} className={`font-bold underline mr-1 transition-colors ${colType === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'}`}>Balas</button>
+              {!isMinimized && (
+                <button onClick={() => handleReply(m)} className={`font-bold underline mr-1 transition-colors ${colType === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'}`}>Balas</button>
+              )}
               {activeTab === 'admin' && (
                 <div className="relative flex items-center">
                   {activeMenuId === m.id && (
@@ -437,8 +541,11 @@ export default function Home() {
 
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
   return (
-    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans" onClick={() => { setActiveMenuId(null); setLongPressId(null); }}>
+    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans overscroll-none" onClick={() => { setActiveMenuId(null); setLongPressId(null); }}>
       <style dangerouslySetInnerHTML={{ __html: `
+        /* Menonaktifkan perilaku pull-to-refresh bawaan browser */
+        body { overscroll-behavior-y: none; }
+      
         @keyframes slideLeftSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(-4px); opacity: 1; } } 
         @keyframes slideRightSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(4px); opacity: 1; } } 
         .anim-slide-left { animation: slideLeftSmooth 1.4s ease-in-out infinite; } 
@@ -452,17 +559,29 @@ export default function Home() {
         @keyframes textBlinkWhite { 0%, 100% { color: #ffffff; text-shadow: 0 0 5px rgba(255,255,255,0.8); } 50% { color: rgba(255,255,255,0.6); text-shadow: none; } }
         .anim-text-blink-white { animation: textBlinkWhite 1.5s ease-in-out infinite; }
         
-        /* Animasi Garis Turun untuk Sekat 2 Kolom */
         @keyframes dropLine { 0% { top: -50%; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
         .animate-drop-line { animation: dropLine 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
       `}} />
+
+      {/* Floating Refresh 3D Button */}
+      {isAuth && currentHash !== '#block' && (
+        <div
+          onMouseDown={(e) => handleRefreshStart(e.clientX, e.clientY)}
+          onTouchStart={(e) => handleRefreshStart(e.touches[0].clientX, e.touches[0].clientY)}
+          className={`fixed z-[100] px-3.5 py-1.5 rounded-full font-black text-white tracking-widest text-[10px] cursor-pointer select-none transition-opacity duration-500 bg-red-600 border border-red-500 
+          ${isRefreshHovered || isDraggingRefresh ? 'opacity-100 shadow-[0_4px_0_#7f1d1d,0_8px_15px_rgba(0,0,0,0.4)]' : 'opacity-30 shadow-[0_2px_0_#7f1d1d]'} 
+          active:translate-y-[2px] active:shadow-[0_2px_0_#7f1d1d,0_4px_8px_rgba(0,0,0,0.3)] backdrop-blur-sm`}
+          style={{ left: refreshPos.x, top: refreshPos.y, touchAction: 'none' }}
+        >
+           REFRESH
+        </div>
+      )}
 
       {!isAuth ? (
         <Login activeTab={activeTab} username={username} setUsername={setUsername} isExistingUser={isExistingUser} adminEmail={adminEmail} setAdminEmail={setAdminEmail} adminPass={adminPass} setAdminPass={setAdminPass} handleUserLogin={handleUserLogin} handleAdminLogin={handleAdminLogin} />
       ) : (
         <>
           {currentHash !== '#block' && (
-            // Background gradasi dinamis dari biru/hijau ke putih ke bawah sesuai tab
             <div className={`sticky top-0 z-20 p-3 transition-colors duration-500 border-b border-white/40 ${chatMode === 'public' ? 'bg-gradient-to-b from-blue-100 to-white' : 'bg-gradient-to-b from-emerald-100 to-white'}`}>
               <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full shadow">Keluar</button>
               <div className="flex justify-between items-center">
@@ -487,7 +606,6 @@ export default function Home() {
                   <span className="ml-2 sm:ml-4">🌐 Public Chat</span>
                 </button>
 
-                {/* Tombol 2D Dinamis Mode 2 Kolom di Tengah */}
                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
                   <button 
                     onClick={(e) => { e.stopPropagation(); setIsTwoColumnMode(!isTwoColumnMode); }}
@@ -517,35 +635,32 @@ export default function Home() {
             ) : (
               <div className="flex w-full h-full relative transition-all duration-500 ease-in-out">
                 
-                {/* 1. Kolom Kiri: Public Chat (Width disesuaikan berdasarkan isTwoColumnMode) */}
                 <div 
                   className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'public' ? 'bg-gradient-to-b from-blue-200 via-blue-50 to-white' : 'bg-blue-50/30'} ${isTwoColumnMode ? 'w-1/2' : (isChatExpanded && chatMode === 'private' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'public' ? 'w-full' : 'w-1/2')}`}
                   onClick={() => handleInteraction('public')}
                   onTouchStart={() => handleInteraction('public')}
                   onWheel={() => handleInteraction('public')}
                 >
-                  <div onScroll={handleScroll} className="p-2 space-y-3 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                  <div onScroll={handleScroll} className="p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                     <div className="text-center text-[9px] font-bold text-blue-500 mb-2 tracking-widest uppercase opacity-70">Ruang Publik</div>
                     {renderMessageList(publicMessages, 'public', isTwoColumnMode ? true : !isChatExpanded)}
                     <div id="messages-end-public" className="h-0" />
                   </div>
                 </div>
 
-                {/* 2. Sekat Animasi Garis Turun Tengah */}
                 {(!isChatExpanded || isTwoColumnMode) && (
                   <div className="w-[1.5px] bg-gray-200 relative z-10 shrink-0 overflow-hidden shadow-[0_0_5px_rgba(0,0,0,0.05)]">
                     <div className={`absolute w-full h-1/2 animate-drop-line ${chatMode === 'public' ? 'bg-gradient-to-b from-transparent via-blue-500 to-blue-700' : 'bg-gradient-to-b from-transparent via-emerald-500 to-emerald-700'}`}></div>
                   </div>
                 )}
 
-                {/* 3. Kolom Kanan: Private Chat (Width disesuaikan berdasarkan isTwoColumnMode) */}
                 <div 
                   className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'private' ? 'bg-gradient-to-b from-emerald-200 via-emerald-50 to-white' : 'bg-emerald-50/30'} ${isTwoColumnMode ? 'w-1/2' : (isChatExpanded && chatMode === 'public' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'private' ? 'w-full' : 'w-1/2')}`}
                   onClick={() => handleInteraction('private')}
                   onTouchStart={() => handleInteraction('private')}
                   onWheel={() => handleInteraction('private')}
                 >
-                  <div onScroll={handleScroll} className="p-2 space-y-3 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                  <div onScroll={handleScroll} className="p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                     <div className="text-center text-[9px] font-bold text-emerald-500 mb-2 tracking-widest uppercase opacity-70">Ruang Private</div>
                     {activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser ? (
                       <Admin privateUsers={privateUsers} setSelectedPrivateUser={setSelectedPrivateUser} formatMessageTime={formatMessageTime} />
@@ -556,7 +671,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* 4. Pill Floating (Bisa di-swipe untuk hilangkan) */}
                 {isPillVisible && (
                   <div 
                     className="absolute bottom-4 left-1/2 z-30 flex justify-center select-none shadow-lg rounded-full"
@@ -603,7 +717,6 @@ export default function Home() {
                 </div>
               )}
               
-              {/* Form Input Dinamis */}
               <form onSubmit={sendMessage} className="p-3 bg-white border-t border-gray-100 flex gap-2 items-end w-full relative transition-all duration-300">
                 <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
                   <div className="text-[10px] text-gray-400 mb-1.5 font-medium px-1 leading-tight w-full text-left">
