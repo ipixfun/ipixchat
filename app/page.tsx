@@ -43,7 +43,7 @@ export default function Home() {
   const [brushSize, setBrushSize] = useState(3);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const contextRef = useRef<CanvasRenderingContextAction | any>(null);
+  const contextRef = useRef<CanvasRenderingContext2D | any>(null);
   const broadcastChannel = useRef<any>(null);
 
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
