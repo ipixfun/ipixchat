@@ -26,8 +26,6 @@ export default function Home() {
   
   const [totalPublic, setTotalPublic] = useState(0);
   const [totalPrivate, setTotalPrivate] = useState(0);
-  const prevPubRef = useRef(0);
-  const prevPrivRef = useRef(0);
 
   const [isAdminOnline, setIsAdminOnline] = useState(false);
   const [adminOfflineTime, setAdminOfflineTime] = useState("");
@@ -54,7 +52,10 @@ export default function Home() {
   const [capsuleIndex, setCapsuleIndex] = useState<0 | 1>(0);
   const [isCapsulePaused, setIsCapsulePaused] = useState(false);
   const [isPillVisible, setIsPillVisible] = useState(true);
-  const [showPillClose, setShowPillClose] = useState(false);
+  
+  // Pill Swipe States
+  const [pillTouchStartX, setPillTouchStartX] = useState<number>(0);
+  const [pillSwipeDelta, setPillSwipeDelta] = useState<number>(0);
   
   // Dynamic Expansion States
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -62,7 +63,6 @@ export default function Home() {
   const expandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTyping = isInputFocused || input.trim().length > 0;
 
-  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
 
@@ -101,8 +101,10 @@ export default function Home() {
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
-  const handlePillStart = () => { setIsCapsulePaused(true); if (holdTimerRef.current) clearTimeout(holdTimerRef.current); holdTimerRef.current = setTimeout(() => setShowPillClose(true), 500); };
-  const handlePillEnd = () => { setIsCapsulePaused(false); if (holdTimerRef.current) clearTimeout(holdTimerRef.current); };
+  const handleScroll = () => {
+    if (longPressId !== null) setLongPressId(null);
+    if (activeMenuId !== null) setActiveMenuId(null);
+  };
 
   const containsBlockedWord = (text: string) => blockedWords.some(word => word.trim() !== "" && text.toLowerCase().includes(word.toLowerCase()));
   const applyCensor = (text: string) => {
@@ -127,20 +129,22 @@ export default function Home() {
     if (targetMsg) scrollToMessageId(targetMsg.id);
   };
 
-  const renderMessageContent = (text: string) => {
+  const renderMessageContent = (text: string, isMinimized: boolean) => {
     const match = text.match(/^@(\w+)\s\("(.*?)"\)\s?(.*)$/);
+    const textSize = isMinimized ? 'text-xs' : 'text-sm';
+    
     if (match) {
       const [_, user, quotedText, replyText] = match;
       return (
         <>
-          <div className={`text-[10px] text-gray-500 italic bg-gray-100 p-2 rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 ${chatMode === 'private' ? 'border-emerald-500' : 'border-blue-500'}`} onClick={() => scrollToMessage(quotedText)}>
+          <div className={`text-[9px] text-gray-500 italic bg-gray-100 p-2 rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 ${chatMode === 'private' ? 'border-emerald-500' : 'border-blue-500'}`} onClick={() => scrollToMessage(quotedText)}>
             <span className="font-bold">@{user}</span>: "{applyCensor(quotedText)}"
           </div>
-          <div className="text-sm text-gray-800 break-words">{applyCensor(replyText)}</div>
+          <div className={`${textSize} text-gray-800 break-words`}>{applyCensor(replyText)}</div>
         </>
       );
     }
-    return <div className="text-sm text-gray-800 break-words">{applyCensor(text)}</div>;
+    return <div className={`${textSize} text-gray-800 break-words`}>{applyCensor(text)}</div>;
   };
 
   const formatNotif = (num: number) => num >= 1000 ? (num / 1000).toFixed(1).replace('.0', '') + 'k' : num.toString();
@@ -179,7 +183,6 @@ export default function Home() {
     setReplyingTo(null);
   };
 
-  // Fetch Data mengambil kedua sisi (public & private) secara bersamaan untuk layout 2 kolom
   const fetchData = useCallback(async () => {
     if (!currentDeviceId) return;
     try {
@@ -314,8 +317,8 @@ export default function Home() {
   const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
   const inviteToPrivate = (id: string, name: string) => { handleInteraction('private'); setSelectedPrivateUser(id); };
 
-  // Renderer Berulang Untuk Pesan Agar Tidak Menumpuk Kode
-  const renderMessageList = (msgArray: any[], colType: 'public' | 'private') => {
+  // Renderer Berulang Untuk Pesan
+  const renderMessageList = (msgArray: any[], colType: 'public' | 'private', isMinimized: boolean) => {
     if (msgArray.length === 0) return <div className="text-center text-gray-400 italic mt-10">Belum ada pesan di ruang ini.</div>;
     return msgArray.map((m) => {
       const shortBrowser = m.user_browser ? m.user_browser.split('(')[0].trim() + (m.user_browser.includes('(') ? ` (${m.user_browser.split('(')[1].split(')')[0]})` : '') : 'Unknown Browser';
@@ -330,11 +333,11 @@ export default function Home() {
       } else if (isMsgMine) {
         borderColorClass = colType === 'private' ? 'border-emerald-500' : 'border-blue-500';
       } else {
-        borderColorClass = 'border-gray-500';
+        borderColorClass = 'border-gray-300';
       }
 
       return (
-        <div key={m.id} id={`msg-${m.id}`} className={`bg-white p-3 rounded-xl ${borderThicknessClass} shadow-sm w-full select-none relative ${borderColorClass}`}
+        <div key={m.id} id={`msg-${m.id}`} className={`bg-white ${isMinimized ? 'p-2 rounded-lg' : 'p-3 rounded-xl'} ${borderThicknessClass} shadow-sm w-full select-none relative ${borderColorClass}`}
           onMouseDown={(e) => { longPressTimer.current = setTimeout(() => { setLongPressId(m.id); if (navigator.vibrate) navigator.vibrate(50); }, 500); }}
           onMouseMove={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
           onMouseUp={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
@@ -383,20 +386,23 @@ export default function Home() {
           )}
 
           <div className="flex justify-between items-start mb-1">
-            <div className="flex items-center gap-2">
-              <b onClick={() => handleTag(m.username)} className={`${isMsgAdmin ? 'text-red-600' : 'text-blue-700'} text-[10px] cursor-pointer hover:underline`}>{m.username}</b>
-              {isMsgAdmin ? <span className={`text-[9px] px-1 rounded ${isAdminOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span> : userStatus[m.username] && <span className={`text-[9px] px-1 rounded ${userStatus[m.username].online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>}
-              {m.is_private && <span className={`text-xs ${isMsgAdmin ? 'text-red-500' : 'text-blue-500'}`}>🔒 Private</span>}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <b onClick={() => handleTag(m.username)} className={`${isMsgAdmin ? 'text-red-600' : 'text-blue-700'} ${isMinimized ? 'text-[9px]' : 'text-[10px]'} cursor-pointer hover:underline`}>{m.username}</b>
+              {isMsgAdmin ? <span className={`text-[8px] px-1 rounded ${isAdminOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span> : userStatus[m.username] && <span className={`text-[8px] px-1 rounded ${userStatus[m.username].online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>}
+              {m.is_private && !isMinimized && <span className={`text-[10px] ${isMsgAdmin ? 'text-red-500' : 'text-emerald-500'}`}>🔒 Private</span>}
             </div>
-            <span className="text-[10px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
+            <span className="text-[9px] text-gray-500 font-medium">{formatMessageTime(m.created_at)}</span>
           </div>
           
-          {renderMessageContent(m.pesan)}
+          {renderMessageContent(m.pesan, isMinimized)}
           
-          <div className={`mt-2 pt-2 border-t border-gray-100 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
-            <div className="flex-1 overflow-hidden">
+          <div className={`mt-2 ${isMinimized ? 'pt-1' : 'pt-2'} border-t border-gray-100 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
+            <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end">
+              {/* Posisi logo Private pindah ke bawah-kiri saat tampilan diminimalkan */}
+              {m.is_private && isMinimized && <span className={`text-[9px] font-bold ${isMsgAdmin ? 'text-red-500' : 'text-emerald-500'}`}>🔒 Private</span>}
+              
               {activeTab === 'admin' && (
-                <div className="flex flex-col gap-1 text-[9px] text-gray-400 font-sans w-full">
+                <div className="flex flex-col gap-1 text-[8px] text-gray-400 font-sans w-full">
                   <span className="text-blue-600 font-mono cursor-pointer hover:underline break-all leading-tight" onClick={() => copyToClipboard(m.device_id, 'Device ID')}>ID: {m.device_id}</span>
                   <span className="text-orange-600 truncate font-medium max-w-[200px]" title={m.user_browser || ''}>🌐 {shortBrowser}</span>
                 </div>
@@ -494,16 +500,16 @@ export default function Home() {
             ) : (
               <div className="flex w-full h-full relative transition-all duration-500 ease-in-out">
                 
-                {/* 1. Kolom Kiri: Public Chat */}
+                {/* 1. Kolom Kiri: Public Chat (Gradasi biru ke putih jika sedang terpilih) */}
                 <div 
-                  className={`h-full flex flex-col transition-all duration-500 ease-out bg-blue-50/30 ${isChatExpanded && chatMode === 'private' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'public' ? 'w-full' : 'w-1/2'}`}
+                  className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'public' ? 'bg-gradient-to-b from-blue-200 via-blue-50 to-white' : 'bg-blue-50/30'} ${isChatExpanded && chatMode === 'private' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'public' ? 'w-full' : 'w-1/2'}`}
                   onClick={() => handleInteraction('public')}
                   onTouchStart={() => handleInteraction('public')}
                   onWheel={() => handleInteraction('public')}
                 >
-                  <div className="p-3 space-y-3 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                    <div className="text-center text-[9px] font-bold text-blue-400 mb-2 tracking-widest uppercase opacity-70">Ruang Publik</div>
-                    {renderMessageList(publicMessages, 'public')}
+                  <div onScroll={handleScroll} className="p-2 space-y-3 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                    <div className="text-center text-[9px] font-bold text-blue-500 mb-2 tracking-widest uppercase opacity-70">Ruang Publik</div>
+                    {renderMessageList(publicMessages, 'public', !isChatExpanded)}
                     <div id="messages-end-public" className="h-0" />
                   </div>
                 </div>
@@ -515,39 +521,55 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* 3. Kolom Kanan: Private Chat */}
+                {/* 3. Kolom Kanan: Private Chat (Gradasi hijau ke putih jika sedang terpilih) */}
                 <div 
-                  className={`h-full flex flex-col transition-all duration-500 ease-out bg-emerald-50/30 ${isChatExpanded && chatMode === 'public' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'private' ? 'w-full' : 'w-1/2'}`}
+                  className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'private' ? 'bg-gradient-to-b from-emerald-200 via-emerald-50 to-white' : 'bg-emerald-50/30'} ${isChatExpanded && chatMode === 'public' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'private' ? 'w-full' : 'w-1/2'}`}
                   onClick={() => handleInteraction('private')}
                   onTouchStart={() => handleInteraction('private')}
                   onWheel={() => handleInteraction('private')}
                 >
-                  <div className="p-3 space-y-3 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                    <div className="text-center text-[9px] font-bold text-emerald-400 mb-2 tracking-widest uppercase opacity-70">Ruang Private</div>
+                  <div onScroll={handleScroll} className="p-2 space-y-3 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                    <div className="text-center text-[9px] font-bold text-emerald-500 mb-2 tracking-widest uppercase opacity-70">Ruang Private</div>
                     {activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser ? (
                       <Admin privateUsers={privateUsers} setSelectedPrivateUser={setSelectedPrivateUser} formatMessageTime={formatMessageTime} />
                     ) : (
-                      renderMessageList(privateMessages, 'private')
+                      renderMessageList(privateMessages, 'private', !isChatExpanded)
                     )}
                     <div id="messages-end-private" className="h-0" />
                   </div>
                 </div>
 
-                {/* 4. Pill Floating di Bawah (Berbagi tempat untuk kedua kolom) */}
+                {/* 4. Pill Floating (Bisa di-swipe untuk hilangkan) */}
                 {isPillVisible && (
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex justify-center transition-all duration-500 ease-in-out opacity-100 scale-100 select-none shadow-lg rounded-full">
-                    <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold text-gray-700 border shadow-sm text-center tracking-wide transition-colors duration-300 relative overflow-hidden flex items-center justify-center w-[300px] sm:min-w-[310px] h-[34px] cursor-pointer bg-white/95 backdrop-blur ${chatMode === 'private' ? 'border-emerald-300' : 'border-blue-300'}`} onMouseDown={handlePillStart} onMouseUp={handlePillEnd} onMouseLeave={handlePillEnd} onTouchStart={handlePillStart} onTouchEnd={handlePillEnd}>
+                  <div 
+                    className="absolute bottom-4 left-1/2 z-30 flex justify-center select-none shadow-lg rounded-full"
+                    style={{
+                      transform: `translateX(calc(-50% + ${pillSwipeDelta}px))`,
+                      transition: pillSwipeDelta === 0 ? 'transform 0.3s ease-out, opacity 0.5s' : 'none',
+                      opacity: Math.abs(pillSwipeDelta) > 100 ? 0 : 1
+                    }}
+                    onTouchStart={(e) => {
+                      setIsCapsulePaused(true);
+                      setPillTouchStartX(e.touches[0].clientX);
+                    }}
+                    onTouchMove={(e) => {
+                      setPillSwipeDelta(e.touches[0].clientX - pillTouchStartX);
+                    }}
+                    onTouchEnd={() => {
+                      setIsCapsulePaused(false);
+                      if (Math.abs(pillSwipeDelta) > 70) {
+                        setIsPillVisible(false);
+                      }
+                      setPillSwipeDelta(0);
+                    }}
+                  >
+                    <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold text-gray-700 border shadow-sm text-center tracking-wide relative overflow-hidden flex items-center justify-center w-[300px] sm:min-w-[310px] h-[34px] cursor-grab active:cursor-grabbing bg-white/95 backdrop-blur ${chatMode === 'private' ? 'border-emerald-300' : 'border-blue-300'}`}>
                       <div className={`absolute flex items-center gap-1 transition-all duration-500 w-full justify-center ${capsuleIndex === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                         <span>Bijaklah berinteraksi salam toleransi |</span><a href="https://ipix.my.id" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-700 underline font-black" onClick={(e) => e.stopPropagation()}>ipix.my.id</a>
                       </div>
                       <div className={`absolute flex items-center gap-2 transition-all duration-500 w-full justify-center ${capsuleIndex === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
                         <span className={`inline-block anim-slide-left font-black text-sm leading-none ${chatMode === 'private' ? 'text-emerald-500' : 'text-blue-500'}`}>&lt;</span><span>geser untuk menghapus dan membalas</span><span className={`inline-block anim-slide-right font-black text-sm leading-none ${chatMode === 'private' ? 'text-emerald-500' : 'text-blue-500'}`}>&gt;</span>
                       </div>
-                      {showPillClose && (
-                        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-10 animate-fade-in" onMouseDown={(e) => { e.stopPropagation(); setIsPillVisible(false); }} onTouchStart={(e) => { e.stopPropagation(); setIsPillVisible(false); }}>
-                          <div className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg active:scale-75 transition-transform text-sm leading-none">✕</div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -564,10 +586,8 @@ export default function Home() {
                 </div>
               )}
               
-              {/* Form Input Dinamis Menggunakan Struktur Flex */}
+              {/* Form Input Dinamis */}
               <form onSubmit={sendMessage} className="p-3 bg-white border-t border-gray-100 flex gap-2 items-end w-full relative transition-all duration-300">
-                
-                {/* Kolom Kiri: Teks Peringatan & Textarea */}
                 <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
                   <div className="text-[10px] text-gray-400 mb-1.5 font-medium px-1 leading-tight w-full text-left">
                     {chatMode === 'public' ? 'Chat di halaman ini bersifat publik dan umum mohon bijak berinteraksi' : 'Chat di halaman ini bersifat private hanya user dan admin yang bisa melihat'}
@@ -579,9 +599,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Kolom Kanan: Tombol Lebih Kecil & Dinamis Kanan */}
                 <div className="relative shrink-0 flex flex-col justify-end w-[110px] md:w-[150px] h-[42px] transition-all duration-300">
-                  
                   {activeTab === 'user' && (
                     <button 
                       type="button" 
