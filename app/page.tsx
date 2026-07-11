@@ -3,332 +3,178 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { supabase } from './supabaseClient';
 import Login from '../components/Login';
-import Admin from '../components/Admin';
 import Block from '../components/Block';
 import MessageItem from '../components/MessageItem';
+import ChatLayout from '../components/ChatLayout';
 
 export default function Home() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [publicMessages, setPublicMessages] = useState<any[]>([]);
-  const [privateMessages, setPrivateMessages] = useState<any[]>([]);
-  const [blockedList, setBlockedList] = useState<any[]>([]);
-  const [username, setUsername] = useState('');
-  const [isExistingUser, setIsExistingUser] = useState(false);
-  const [adminEmail, setAdminEmail] = useState('');
-  const [adminPass, setAdminPass] = useState('');
-  const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
-  const [chatMode, setChatMode] = useState<'public' | 'private'>('public');
-  const [input, setInput] = useState('');
-  const [isAuth, setIsAuth] = useState(false);
-  const [sending, setSending] = useState(false);
+  const [msgs, setMsgs] = useState({ all: [] as any[], pub: [] as any[], priv: [] as any[] });
+  const [auth, setAuth] = useState({ isAuth: false, isExist: false, user: '', adminEmail: '', adminPass: '' });
+  const [ui, setUi] = useState({ tab: 'user' as 'user'|'admin', mode: 'public' as 'public'|'private', expanded: false, twoCol: false, inputFocus: false });
+  const [counts, setCounts] = useState({ pub: 0, priv: 0 });
+  const [adminStat, setAdminStat] = useState({ online: false, offlineTime: '' });
+  const [usersInfo, setUsersInfo] = useState({ status: {} as Record<string, any>, blockedList: [] as any[], privUsers: [] as any[], selPriv: null as string|null });
+  const [censor, setCensor] = useState({ words: [] as string[], newWord: '' });
+  const [input, setInput] = useState({ text: '', sending: false, blink: false });
+  const [interact, setInteract] = useState({ replyTo: null as any, activeMenu: null as number|null, popup: null as any, swipeId: null as number|null, longPress: null as number|null });
+  const [pill, setPill] = useState({ idx: 0 as 0|1, pause: false, visible: true, startX: 0, delta: 0 });
   
-  const [totalPublic, setTotalPublic] = useState(0);
-  const [totalPrivate, setTotalPrivate] = useState(0);
-  const [isAdminOnline, setIsAdminOnline] = useState(false);
-  const [adminOfflineTime, setAdminOfflineTime] = useState("");
-  const [userStatus, setUserStatus] = useState<Record<string, { online: boolean; offlineTime?: string }>>({});
-  const [selectedPrivateUser, setSelectedPrivateUser] = useState<string | null>(null);
-  const [privateUsers, setPrivateUsers] = useState<any[]>([]);
-  const [blockedWords, setBlockedWords] = useState<string[]>([]);
-  const [newBadWord, setNewBadWord] = useState('');
-  const [currentHash, setCurrentHash] = useState('');
-  const [inputBlink, setInputBlink] = useState(false);
-  
-  const [replyingTo, setReplyingTo] = useState<any | null>(null);
-  const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
-  const [popupMsg, setPopupMsg] = useState<any | null>(null);
-  const [swipingId, setSwipingId] = useState<number | null>(null);
-  const [longPressId, setLongPressId] = useState<number | null>(null);
-
-  const [capsuleIndex, setCapsuleIndex] = useState<0 | 1>(0);
-  const [isCapsulePaused, setIsCapsulePaused] = useState(false);
-  const [isPillVisible, setIsPillVisible] = useState(true);
-  const [pillTouchStartX, setPillTouchStartX] = useState<number>(0);
-  const [pillSwipeDelta, setPillSwipeDelta] = useState<number>(0);
-  
-  const [isInputFocused, setIsInputFocused] = useState(false);
-  const [isChatExpanded, setIsChatExpanded] = useState(false);
-  const [isTwoColumnMode, setIsTwoColumnMode] = useState(false); 
-  const expandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isTyping = isInputFocused || input.trim().length > 0;
-
+  const currentHash = typeof window !== 'undefined' ? window.location.hash : '';
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
-  const [refreshPos, setRefreshPos] = useState({ x: 20, y: 100 });
-  const [isDraggingRefresh, setIsDraggingRefresh] = useState(false);
-  const [isRefreshHovered, setIsRefreshHovered] = useState(false);
-  const dragStartPos = useRef({ x: 0, y: 0, initialX: 0, initialY: 0, isDragged: false });
-  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [refresh, setRefresh] = useState({ pos: { x: 20, y: 100 }, drag: false, hover: false });
+  const dragRef = useRef({ x: 0, y: 0, initX: 0, initY: 0, dragged: false });
+  const refs = { expandTimer: useRef<NodeJS.Timeout | null>(null), refTimer: useRef<NodeJS.Timeout | null>(null) };
 
-  useEffect(() => { if (typeof window !== 'undefined') setRefreshPos({ x: window.innerWidth - 80, y: window.innerHeight - 180 }); }, []);
+  useEffect(() => { if (typeof window !== 'undefined') setRefresh(p => ({ ...p, pos: { x: window.innerWidth - 80, y: window.innerHeight - 180 } })); }, []);
 
-  const handleInteraction = useCallback((mode: 'public' | 'private') => {
-    setChatMode(mode); setIsChatExpanded(true);
-    if (expandTimeoutRef.current) clearTimeout(expandTimeoutRef.current);
-    if (!isTyping) expandTimeoutRef.current = setTimeout(() => setIsChatExpanded(false), 60000);
-  }, [isTyping]);
+  const handleInteraction = useCallback((m: 'public' | 'private') => {
+    setUi(p => ({ ...p, mode: m, expanded: true }));
+    if (refs.expandTimer.current) clearTimeout(refs.expandTimer.current);
+    if (!ui.inputFocus && !input.text.trim()) refs.expandTimer.current = setTimeout(() => setUi(p => ({ ...p, expanded: false })), 60000);
+  }, [ui.inputFocus, input.text]);
 
-  useEffect(() => { if (isTyping) { setIsChatExpanded(true); if (expandTimeoutRef.current) clearTimeout(expandTimeoutRef.current); } else { handleInteraction(chatMode); } }, [isTyping]);
-  useEffect(() => { if (isCapsulePaused) return; const i = setInterval(() => setCapsuleIndex((prev) => (prev === 0 ? 1 : 0)), 5000); return () => clearInterval(i); }, [isCapsulePaused]);
-  useEffect(() => { const h = () => setCurrentHash(window.location.hash); window.addEventListener('hashchange', h); h(); return () => window.removeEventListener('hashchange', h); }, []);
+  useEffect(() => { if (ui.inputFocus || input.text.trim()) { setUi(p => ({ ...p, expanded: true })); if (refs.expandTimer.current) clearTimeout(refs.expandTimer.current); } else handleInteraction(ui.mode); }, [ui.inputFocus, input.text, handleInteraction, ui.mode]);
+  useEffect(() => { if (pill.pause) return; const i = setInterval(() => setPill(p => ({ ...p, idx: p.idx === 0 ? 1 : 0 })), 5000); return () => clearInterval(i); }, [pill.pause]);
 
-  const handleScroll = () => { if (longPressId !== null) setLongPressId(null); if (activeMenuId !== null) setActiveMenuId(null); };
-  const containsBlockedWord = (text: string) => blockedWords.some(word => word.trim() !== "" && text.toLowerCase().includes(word.toLowerCase()));
-  const applyCensor = (text: string) => { let res = text; blockedWords.forEach(w => { if (w.trim()) res = res.replace(new RegExp(`\\b${w}\\b`, 'gi'), '***'); }); return res; };
-  const copyToClipboard = (text: string, label: string) => { navigator.clipboard.writeText(text); alert(`${label} berhasil disalin!`); };
+  const hScroll = () => setInteract(p => ({ ...p, longPress: null, activeMenu: null }));
+  const isCensored = (t: string) => censor.words.some(w => w.trim() && t.toLowerCase().includes(w.toLowerCase()));
+  const applyCensor = (t: string) => { let r = t; censor.words.forEach(w => { if (w.trim()) r = r.replace(new RegExp(`\\b${w}\\b`, 'gi'), '***'); }); return r; };
+  const copyTxt = (t: string, l: string) => { navigator.clipboard.writeText(t); alert(`${l} disalin!`); };
+  const scrollMsg = (id: number) => { const el = document.getElementById(`msg-${id}`); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); const bc = ui.mode === 'private' ? 'anim-bg-blink-green' : 'anim-bg-blink-blue'; el.classList.add(bc); setTimeout(() => el.classList.remove(bc), 1500); } };
+  const getFmt = { notif: (n: number) => n >= 1000 ? (n/1000).toFixed(1).replace('.0','')+'k' : n.toString(), time: (d: string) => new Date(d).toLocaleDateString('id-ID', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', ''), ago: (d: Date) => { const s = Math.floor((new Date().getTime() - d.getTime())/1000); return s/3600 >= 1 ? Math.floor(s/3600)+" jam lalu" : s/60 >= 1 ? Math.floor(s/60)+" menit lalu" : "baru saja"; }, greet: () => { const h = new Date().getHours(); return `Selamat ${h>=5&&h<12?"pagi":h>=12&&h<15?"siang":h>=15&&h<18?"sore":"malam"} `; } };
+
+  const handleLogout = async () => { await supabase.auth.signOut(); sessionStorage.clear(); setAuth(p => ({ ...p, isAuth: false })); window.location.replace("/"); };
   
-  const scrollToMessageId = (msgId: number) => {
-    const el = document.getElementById(`msg-${msgId}`);
-    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); const bc = chatMode === 'private' ? 'anim-bg-blink-green' : 'anim-bg-blink-blue'; el.classList.add(bc); setTimeout(() => el.classList.remove(bc), 1500); }
-  };
-  const scrollToMessage = (quotedText: string) => { const tm = messages.find(m => m.pesan.includes(quotedText)); if (tm) scrollToMessageId(tm.id); };
-  const formatNotif = (num: number) => num >= 1000 ? (num / 1000).toFixed(1).replace('.0', '') + 'k' : num.toString();
-  const getTimeAgo = (date: Date) => { const s = Math.floor((new Date().getTime() - date.getTime()) / 1000); let i = s / 3600; if (i >= 1) return Math.floor(i) + " jam lalu"; i = s / 60; if (i >= 1) return Math.floor(i) + " menit lalu"; return "baru saja"; };
-  const formatMessageTime = (dateStr: string) => new Date(dateStr).toLocaleDateString('id-ID', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', '');
-  const getGreeting = () => { const h = new Date().getHours(); return `Selamat ${h >= 5 && h < 12 ? "pagi" : h >= 12 && h < 15 ? "siang" : h >= 15 && h < 18 ? "sore" : "malam"}, `; };
-
-  const handleTag = (u: string) => setInput(prev => `${prev} @${u.split('●')[0]} `);
-  const addBlockedWord = async () => { if (!newBadWord.trim()) return; await supabase.from('blocked_words').insert([{ word: newBadWord.trim().charAt(0).toUpperCase() + newBadWord.trim().slice(1).toLowerCase() }]); setNewBadWord(''); fetchData(); };
-  const removeBlockedWord = async (word: string) => { await supabase.from('blocked_words').delete().eq('word', word); fetchData(); };
-  const handleReply = (m: any) => { setReplyingTo(m); setInputBlink(true); setTimeout(() => setInputBlink(false), 800); setTimeout(() => document.getElementById(`msg-${m.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100); };
-  const handleLogout = async () => { await supabase.auth.signOut(); sessionStorage.clear(); setIsAuth(false); window.location.replace("/"); };
-  const handleTabSwitch = (mode: 'public' | 'private') => { if (mode === chatMode && isChatExpanded && !isTwoColumnMode) return; handleInteraction(mode); setSelectedPrivateUser(null); setReplyingTo(null); };
-
   const fetchData = useCallback(async () => {
     if (!currentDeviceId) return;
     try {
-      const { data: bData } = await supabase.from('blocked_users').select('*');
-      const { data: bWordsData } = await supabase.from('blocked_words').select('word');
-      if (bWordsData) setBlockedWords(bWordsData.map(w => w.word));
-      const { data: pubData } = await supabase.from('messages').select('*').eq('is_private', false).order('created_at', { ascending: true });
-      let privQuery = supabase.from('messages').select('*').eq('is_private', true).order('created_at', { ascending: true });
-      if (activeTab === 'user') privQuery = privQuery.or(`device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}`);
-      else if (selectedPrivateUser) privQuery = privQuery.or(`device_id.eq.${selectedPrivateUser},private_with.eq.${selectedPrivateUser}`);
-      else privQuery = privQuery.eq('device_id', 'none');
-      const { data: privData } = await privQuery;
-      
-      if (isAuth) {
-        const { count: pubCount } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', false);
-        const { count: privCount } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', true).or(activeTab === 'user' ? `device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}` : `id.gt.0`);
-        setTotalPublic(pubCount || 0); setTotalPrivate(privCount || 0);
+      const [{ data: bD }, { data: bW }, { data: pD }, { data: prD }] = await Promise.all([
+        supabase.from('blocked_users').select('*'), supabase.from('blocked_words').select('word'), supabase.from('messages').select('*').eq('is_private', false).order('created_at', { ascending: true }),
+        supabase.from('messages').select('*').eq('is_private', true).or(ui.tab === 'user' ? `device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}` : usersInfo.selPriv ? `device_id.eq.${usersInfo.selPriv},private_with.eq.${usersInfo.selPriv}` : 'device_id.eq.none').order('created_at', { ascending: true })
+      ]);
+      if (bW) setCensor(p => ({ ...p, words: bW.map(w => w.word) }));
+      if (auth.isAuth) {
+        const [{ count: pubC }, { count: privC }] = await Promise.all([supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', false), supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', true).or(ui.tab === 'user' ? `device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}` : `id.gt.0`)]);
+        setCounts({ pub: pubC || 0, priv: privC || 0 });
       }
-      if (bData && bData.some(b => b.device_id === currentDeviceId)) return window.location.replace("https://ipix.my.id/chat");
-      const validPub = pubData?.filter(m => !(bData?.map(b => b.device_id) || []).includes(m.device_id)) || [];
-      const validPriv = privData?.filter(m => !(bData?.map(b => b.device_id) || []).includes(m.device_id)) || [];
-      setPublicMessages(validPub); setPrivateMessages(validPriv); setMessages([...validPub, ...validPriv]);
-
-      const allMsgs = [...validPub, ...validPriv];
-      const lastAdminMsg = allMsgs.filter(m => m.username === 'Admin●ipix.my.id').pop();
-      if (lastAdminMsg) { const isOnline = Date.now() - new Date(lastAdminMsg.created_at).getTime() < 300000; setIsAdminOnline(isOnline); if (!isOnline) setAdminOfflineTime(getTimeAgo(new Date(lastAdminMsg.created_at))); }
-
-      const statusMap: Record<string, { online: boolean; offlineTime?: string }> = {};
-      const uGroups = allMsgs.reduce((acc: any, msg: any) => { if (msg.username !== 'Admin●ipix.my.id') { if (!acc[msg.username]) acc[msg.username] = []; acc[msg.username].push(msg); } return acc; }, {});
-      Object.keys(uGroups).forEach(user => {
-        const lastMsg = uGroups[user].pop();
-        if (lastMsg) { const isOnline = Date.now() - new Date(lastMsg.created_at).getTime() < 300000; statusMap[user] = { online: isOnline, offlineTime: !isOnline ? getTimeAgo(new Date(lastMsg.created_at)) : undefined }; }
-      });
-      setUserStatus(statusMap);
+      if (bD?.some(b => b.device_id === currentDeviceId)) return window.location.replace("https://ipix.my.id/chat");
+      const vPub = pD?.filter(m => !bD?.map(b => b.device_id).includes(m.device_id)) || [];
+      const vPriv = prD?.filter(m => !bD?.map(b => b.device_id).includes(m.device_id)) || [];
+      setMsgs({ all: [...vPub, ...vPriv], pub: vPub, priv: vPriv });
       
-      if (activeTab === 'admin' && !selectedPrivateUser) {
-        const { data: allPrivate } = await supabase.from('messages').select('device_id, username, created_at').eq('is_private', true).order('created_at', { ascending: false });
-        if (allPrivate) {
-          const userMap = new Map(); const counts: Record<string, number> = {};
-          allPrivate.forEach(m => { if (m.username !== 'Admin●ipix.my.id' && m.device_id !== currentDeviceId) counts[m.device_id] = (counts[m.device_id] || 0) + 1; });
-          allPrivate.forEach(m => { if (m.username !== 'Admin●ipix.my.id' && m.device_id !== currentDeviceId && !userMap.has(m.device_id)) userMap.set(m.device_id, { device_id: m.device_id, username: m.username, last_active: m.created_at, count: counts[m.device_id] || 0 }); });
-          setPrivateUsers(Array.from(userMap.values()));
+      const lAdmin = [...vPub, ...vPriv].filter(m => m.username === 'Admin●ipix.my.id').pop();
+      if (lAdmin) setAdminStat({ online: Date.now() - new Date(lAdmin.created_at).getTime() < 300000, offlineTime: getFmt.ago(new Date(lAdmin.created_at)) });
+      const sMap: Record<string, any> = {};
+      [...vPub, ...vPriv].forEach(m => { if(m.username !== 'Admin●ipix.my.id') sMap[m.username] = { online: Date.now() - new Date(m.created_at).getTime() < 300000, offlineTime: getFmt.ago(new Date(m.created_at)) }; });
+      setUsersInfo(p => ({ ...p, status: sMap }));
+      
+      if (ui.tab === 'admin' && !usersInfo.selPriv) {
+        const { data: aP } = await supabase.from('messages').select('device_id, username, created_at').eq('is_private', true).order('created_at', { ascending: false });
+        if (aP) {
+          const uMap = new Map(); const c: Record<string, number> = {};
+          aP.forEach(m => { if (m.username !== 'Admin●ipix.my.id' && m.device_id !== currentDeviceId) c[m.device_id] = (c[m.device_id] || 0) + 1; });
+          aP.forEach(m => { if (m.username !== 'Admin●ipix.my.id' && m.device_id !== currentDeviceId && !uMap.has(m.device_id)) uMap.set(m.device_id, { ...m, last_active: m.created_at, count: c[m.device_id] || 0 }); });
+          setUsersInfo(p => ({ ...p, privUsers: Array.from(uMap.values()) }));
         }
       }
-    } catch (err) {}
-  }, [activeTab, selectedPrivateUser, currentDeviceId, isAuth]);
+    } catch (e) {}
+  }, [ui.tab, usersInfo.selPriv, currentDeviceId, auth.isAuth]);
 
   useEffect(() => {
     if (!localStorage.getItem('device_id')) localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
-    const checkAuth = async () => {
-      const cid = localStorage.getItem('device_id');
+    const chk = async () => {
+      const cid = localStorage.getItem('device_id')!;
       const { data: { session } } = await supabase.auth.getSession();
-      const isUrlAdmin = pathname.endsWith('/admin') || (typeof window !== 'undefined' && window.location.hash === '#admin');
-      if (cid) {
-        const { data: pData } = await supabase.from('profiles').select('username').eq('device_id', cid).single();
-        if (pData?.username) { setUsername(pData.username); setIsExistingUser(true); sessionStorage.setItem('saved_username', pData.username); }
+      const { data: pD } = await supabase.from('profiles').select('username').eq('device_id', cid).single();
+      if (pD?.username) { setAuth(p => ({ ...p, isExist: true, user: pD.username })); sessionStorage.setItem('saved_username', pD.username); }
+      const isAdmin = pathname.endsWith('/admin') || window.location.hash === '#admin';
+      setUi(p => ({ ...p, tab: isAdmin ? 'admin' : (sessionStorage.getItem('active_tab') as 'user'|'admin' || 'user') }));
+      if (session || sessionStorage.getItem('is_auth') === 'true') {
+        setAuth(p => ({ ...p, isAuth: true, user: session ? 'Admin●ipix.my.id' : (p.isExist ? p.user : sessionStorage.getItem('saved_username') || '') }));
+        if (session) setUi(p => ({ ...p, tab: 'admin' }));
       }
-      if (isUrlAdmin) setActiveTab('admin'); else setActiveTab((sessionStorage.getItem('active_tab') as 'user' | 'admin') || 'user');
-      if (session || sessionStorage.getItem('is_auth') === 'true') { setIsAuth(true); if (session) { setUsername('Admin●ipix.my.id'); setActiveTab('admin'); } else if (!isExistingUser) setUsername(sessionStorage.getItem('saved_username') || ''); }
       setMounted(true);
-    }; checkAuth();
-  }, [isExistingUser, pathname]);
+    }; chk();
+  }, [pathname]);
 
-  useEffect(() => {
-    if (!mounted) return; fetchData();
-    const ch = supabase.channel('chat').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchData).subscribe();
-    return () => { void supabase.removeChannel(ch); };
-  }, [mounted, fetchData]);
+  useEffect(() => { if (!mounted) return; fetchData(); const c = supabase.channel('chat').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchData).subscribe(); return () => { void supabase.removeChannel(c); }; }, [mounted, fetchData]);
 
-  const handleAdminLogin = async () => {
-    const { error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPass });
-    if (error) alert("Login Admin Gagal"); else { setIsAuth(true); setActiveTab('admin'); setUsername('Admin●ipix.my.id'); sessionStorage.setItem('is_auth', 'true'); sessionStorage.setItem('saved_username', 'Admin●ipix.my.id'); sessionStorage.setItem('active_tab', 'admin'); }
-  };
-  
-  const handleUserLogin = async () => {
-    if (!username.trim()) return alert("Masukkan nama Anda!"); if (containsBlockedWord(username)) return alert("Nama mengandung kata terlarang.");
-    const cid = localStorage.getItem('device_id') || 'guest';
-    const { data: bData } = await supabase.from('blocked_users').select('*').eq('device_id', cid);
-    if (bData && bData.length > 0) return window.location.replace("https://ipix.my.id/chat");
-    if (!isExistingUser) {
-      const { data: eProfiles } = await supabase.from('profiles').select('device_id, username').ilike('username', username.trim());
-      if (eProfiles && eProfiles.some(p => p.device_id !== cid && p.username.toLowerCase() === username.trim().toLowerCase())) return alert("Username sudah digunakan.");
+  const sendMsg = async (e: React.FormEvent) => {
+    e.preventDefault(); if (!input.text.trim() || input.sending) return; setInput(p => ({ ...p, sending: true }));
+    let txt = interact.replyTo ? `@${interact.replyTo.username.split('●')[0]} ("${interact.replyTo.pesan.substring(0,30)}...") ${input.text.trim()}` : input.text.trim();
+    if (auth.user !== 'Admin●ipix.my.id') {
+      const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('device_id', currentDeviceId || 'guest').gte('created_at', new Date(Date.now() - 300000).toISOString());
+      if (count && count >= 5) { alert("Batas 5 pesan per 5 menit."); setInput(p => ({ ...p, sending: false })); return; }
     }
-    try { await supabase.from('profiles').upsert({ device_id: cid, username: username.trim(), user_browser: typeof window !== 'undefined' ? navigator.userAgent : 'Unknown' }, { onConflict: 'device_id' }); } catch (err) {}
-    setIsAuth(true); sessionStorage.setItem('is_auth', 'true'); sessionStorage.setItem('saved_username', username.trim()); sessionStorage.setItem('active_tab', 'user');
+    await supabase.from('messages').insert([{ username: auth.user, pesan: txt, device_id: currentDeviceId || 'guest', is_private: ui.mode === 'private', private_with: ui.mode === 'private' ? (ui.tab === 'user' ? 'admin' : usersInfo.selPriv) : null, user_browser: navigator.userAgent }]);
+    setInput({ text: '', sending: false, blink: false }); setInteract(p => ({ ...p, replyTo: null })); setUi(p => ({ ...p, inputFocus: false })); const t = document.getElementById('chat-input'); if(t) t.style.height = 'auto'; fetchData();
   };
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!input.trim() || sending) return; setSending(true); 
-    let finalPesan = replyingTo ? `@${replyingTo.username.split('●')[0]} ("${replyingTo.pesan.length > 30 ? replyingTo.pesan.substring(0, 30) + "..." : replyingTo.pesan}") ${input.trim()}` : input.trim();
-    if (username !== 'Admin●ipix.my.id') {
-      const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('device_id', localStorage.getItem('device_id') || 'guest').gte('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString());
-      if (count && count >= 5) { alert("Batas 5 pesan per 5 menit."); setSending(false); return; }
-    }
-    const { error } = await supabase.from('messages').insert([{ username, pesan: finalPesan, device_id: localStorage.getItem('device_id') || 'guest', is_private: chatMode === 'private', private_with: chatMode === 'private' ? (activeTab === 'user' ? 'admin' : selectedPrivateUser) : null, user_browser: typeof window !== 'undefined' ? navigator.userAgent : 'Unknown' }]);
-    if (error) alert("Gagal kirim: " + error.message); else { setInput(''); setReplyingTo(null); setIsInputFocused(false); const t = document.getElementById('chat-input'); if (t) t.style.height = 'auto'; fetchData(); }
-    setSending(false);
-  };
-  
-  const handleEditLimit = async (msg: any) => {
-    const k = `edit_count_${msg.id}`; const c = parseInt(localStorage.getItem(k) || '0');
-    if (c >= 2) return alert("Batas edit 2x."); const nt = prompt("Edit pesan:", msg.pesan);
-    if (nt !== null && nt.trim() && nt.trim() !== msg.pesan) { await supabase.from('messages').update({ pesan: nt.trim() }).eq('id', msg.id); localStorage.setItem(k, (c + 1).toString()); fetchData(); }
+  const dbActions = {
+    editLmt: async (m: any) => { const c = parseInt(localStorage.getItem(`edit_${m.id}`) || '0'); if(c>=2) return alert("Batas 2x"); const nt = prompt("Edit:", m.pesan); if(nt && nt.trim() !== m.pesan) { await supabase.from('messages').update({ pesan: nt.trim() }).eq('id', m.id); localStorage.setItem(`edit_${m.id}`, (c+1).toString()); fetchData(); } },
+    editMsg: async (id: number) => { const nt = prompt("Edit:", msgs.all.find(m => m.id === id)?.pesan || ""); if(nt) { await supabase.from('messages').update({ pesan: nt }).eq('id', id); fetchData(); } },
+    editNm: async (id: number) => { const m = msgs.all.find(m => m.id === id); if(!m) return; const nn = prompt("Nama:", m.username); if(nn && isCensored(nn)) return alert("Terlarang!"); if(nn) { await Promise.all([supabase.from('profiles').update({ username: nn }).eq('device_id', m.device_id), supabase.from('messages').update({ username: nn }).eq('device_id', m.device_id)]); fetchData(); } },
+    delMsg: async (id: number) => { await supabase.from('messages').delete().eq('id', id); fetchData(); },
+    blkUser: async (id: string, nm: string) => { if(confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: nm }]); fetchData(); } },
+    addWrd: async () => { if(censor.newWord.trim()) { await supabase.from('blocked_words').insert([{ word: censor.newWord.trim() }]); setCensor(p => ({ ...p, newWord: '' })); fetchData(); } },
+    rmWrd: async (w: string) => { await supabase.from('blocked_words').delete().eq('word', w); fetchData(); }
   };
 
-  const editMsg = async (id: number) => { const nt = prompt("Edit pesan:", messages.find(m => m.id === id)?.pesan || ""); if (nt !== null && nt.trim()) { await supabase.from('messages').update({ pesan: nt }).eq('id', id); fetchData(); } };
-  const editNama = async (id: number) => { const m = messages.find(m => m.id === id); if (!m) return; const nn = prompt("Edit nama:", m.username); if (nn && containsBlockedWord(nn)) return alert("Mengandung kata terlarang!"); if (nn && nn.trim()) { await supabase.from('profiles').update({ username: nn.trim() }).eq('device_id', m.device_id); await supabase.from('messages').update({ username: nn.trim() }).eq('device_id', m.device_id); fetchData(); } };
-  const deleteMsg = async (id: number) => { await supabase.from('messages').delete().eq('id', id); fetchData(); };
-  const blockUser = async (id: string, name: string) => { if (confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: name }]); fetchData(); } };
-  const unblock = async (id: string) => { await supabase.from('blocked_users').delete().eq('device_id', id); fetchData(); };
-  const inviteToPrivate = (id: string, name: string) => { handleInteraction('private'); setSelectedPrivateUser(id); };
+  const hRefreshMove = useCallback((cx: number, cy: number) => {
+    if (!refresh.drag) return; const dx = cx - dragRef.current.x; const dy = cy - dragRef.current.y;
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragRef.current.dragged = true;
+    setRefresh(p => ({ ...p, pos: { x: Math.max(0, Math.min(dragRef.current.initX + dx, window.innerWidth - 60)), y: Math.max(0, Math.min(dragRef.current.initY + dy, window.innerHeight - 60)) } }));
+  }, [refresh.drag]);
+  const hRefreshEnd = useCallback(() => { if (refresh.drag) { setRefresh(p => ({ ...p, drag: false })); if(refs.refTimer.current) clearTimeout(refs.refTimer.current); refs.refTimer.current = setTimeout(() => setRefresh(p => ({ ...p, hover: false })), 2000); if (!dragRef.current.dragged) fetchData(); } }, [refresh.drag, fetchData]);
+  useEffect(() => { const tm=(e: TouchEvent)=>hRefreshMove(e.touches[0].clientX, e.touches[0].clientY); const mm=(e: MouseEvent)=>hRefreshMove(e.clientX, e.clientY); if(refresh.drag){ window.addEventListener('touchmove', tm, {passive:false}); window.addEventListener('mousemove', mm); window.addEventListener('touchend', hRefreshEnd); window.addEventListener('mouseup', hRefreshEnd); } return () => { window.removeEventListener('touchmove', tm); window.removeEventListener('mousemove', mm); window.removeEventListener('touchend', hRefreshEnd); window.removeEventListener('mouseup', hRefreshEnd); }; }, [refresh.drag, hRefreshMove, hRefreshEnd]);
 
-  const startRefreshFadeTimer = useCallback(() => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); refreshTimerRef.current = setTimeout(() => setIsRefreshHovered(false), 2000); }, []);
-  const handleRefreshStart = (clientX: number, clientY: number) => { setIsDraggingRefresh(true); setIsRefreshHovered(true); dragStartPos.current = { x: clientX, y: clientY, initialX: refreshPos.x, initialY: refreshPos.y, isDragged: false }; if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); };
-  const handleRefreshMove = useCallback((clientX: number, clientY: number) => {
-    if (!isDraggingRefresh) return; const dx = clientX - dragStartPos.current.x; const dy = clientY - dragStartPos.current.y;
-    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragStartPos.current.isDragged = true;
-    let nx = dragStartPos.current.initialX + dx; let ny = dragStartPos.current.initialY + dy;
-    if (nx < 0) nx = 0; if (ny < 0) ny = 0;
-    if (typeof window !== 'undefined') { if (nx > window.innerWidth - 60) nx = window.innerWidth - 60; if (ny > window.innerHeight - 60) ny = window.innerHeight - 60; }
-    setRefreshPos({ x: nx, y: ny });
-  }, [isDraggingRefresh]);
-  const handleRefreshEnd = useCallback(() => { if (isDraggingRefresh) { setIsDraggingRefresh(false); startRefreshFadeTimer(); if (!dragStartPos.current.isDragged) fetchData(); } }, [isDraggingRefresh, startRefreshFadeTimer, fetchData]);
-
-  useEffect(() => {
-    const tm = (e: TouchEvent) => handleRefreshMove(e.touches[0].clientX, e.touches[0].clientY); const mm = (e: MouseEvent) => handleRefreshMove(e.clientX, e.clientY);
-    const te = () => handleRefreshEnd(); const me = () => handleRefreshEnd();
-    if (isDraggingRefresh) { window.addEventListener('touchmove', tm, { passive: false }); window.addEventListener('mousemove', mm); window.addEventListener('touchend', te); window.addEventListener('mouseup', me); }
-    return () => { window.removeEventListener('touchmove', tm); window.removeEventListener('mousemove', mm); window.removeEventListener('touchend', te); window.removeEventListener('mouseup', me); };
-  }, [isDraggingRefresh, handleRefreshMove, handleRefreshEnd]);
-
-  const renderMessageList = (msgArray: any[], colType: 'public' | 'private', isMinimized: boolean) => {
-    if (msgArray.length === 0) return <div className="text-center text-gray-400 italic mt-10 text-[10px]">Belum ada pesan di ruang ini.</div>;
-    return msgArray.map((m) => (
-      <MessageItem key={m.id} m={m} colType={colType} isMinimized={isMinimized} currentDeviceId={currentDeviceId} activeTab={activeTab} isAdminOnline={isAdminOnline} adminOfflineTime={adminOfflineTime} userStatus={userStatus} isTwoColumnMode={isTwoColumnMode} activeMenuId={activeMenuId} setActiveMenuId={setActiveMenuId} longPressId={longPressId} setLongPressId={setLongPressId} swipingId={swipingId} setSwipingId={setSwipingId} handleTag={handleTag} handleReply={handleReply} deleteMsg={deleteMsg} copyToClipboard={copyToClipboard} handleEditLimit={handleEditLimit} editMsg={editMsg} editNama={editNama} blockUser={blockUser} inviteToPrivate={inviteToPrivate} setPopupMsg={setPopupMsg} applyCensor={applyCensor} scrollToMessage={scrollToMessage} formatMessageTime={formatMessageTime} />
-    ));
-  };
+  const renderMsgs = (arr: any[], colType: any, isMin: boolean) => arr.length === 0 ? <div className="text-center text-gray-400 italic mt-10 text-[10px]">Belum ada pesan.</div> : arr.map(m => <MessageItem key={m.id} m={m} colType={colType} isMinimized={isMin} currentDeviceId={currentDeviceId} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} isTwoColumnMode={ui.twoCol} activeMenuId={interact.activeMenu} setActiveMenuId={(id:any)=>setInteract(p=>({...p,activeMenu:id}))} longPressId={interact.longPress} setLongPressId={(id:any)=>setInteract(p=>({...p,longPress:id}))} swipingId={interact.swipeId} setSwipingId={(id:any)=>setInteract(p=>({...p,swipeId:id}))} handleTag={(u:string)=>setInput(p=>({...p,text:`${p.text} @${u.split('●')[0]} `}))} handleReply={(m:any)=>{setInteract(p=>({...p,replyTo:m})); setInput(p=>({...p,blink:true})); setTimeout(()=>setInput(p=>({...p,blink:false})),800);}} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} editNama={dbActions.editNm} blockUser={dbActions.blkUser} inviteToPrivate={(id:string)=>{handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:id}));}} setPopupMsg={(m:any)=>setInteract(p=>({...p,popup:m}))} applyCensor={applyCensor} scrollToMessage={(t:string)=>{const m=msgs.all.find(x=>x.pesan.includes(t)); if(m) scrollMsg(m.id);}} formatMessageTime={getFmt.time} />);
 
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
   return (
-    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans overscroll-none" onClick={() => { setActiveMenuId(null); setLongPressId(null); }}>
-      <style dangerouslySetInnerHTML={{ __html: ` body { overscroll-behavior-y: none; } @keyframes slideLeftSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(-4px); opacity: 1; } } @keyframes slideRightSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(4px); opacity: 1; } } .anim-slide-left { animation: slideLeftSmooth 1.4s ease-in-out infinite; } .anim-slide-right { animation: slideRightSmooth 1.4s ease-in-out infinite; } @keyframes bgBlinkBlue { 0%, 100% { background-color: #ffffff; } 50% { background-color: #e0f2fe; } } @keyframes bgBlinkGreen { 0%, 100% { background-color: #ffffff; } 50% { background-color: #d1fae5; } } .anim-bg-blink-blue { animation: bgBlinkBlue 1.5s ease-in-out; } .anim-bg-blink-green { animation: bgBlinkGreen 1.5s ease-in-out; } @keyframes textBlinkWhite { 0%, 100% { color: #ffffff; text-shadow: 0 0 5px rgba(255,255,255,0.8); } 50% { color: rgba(255,255,255,0.6); text-shadow: none; } } .anim-text-blink-white { animation: textBlinkWhite 1.5s ease-in-out infinite; } @keyframes dropLine { 0% { top: -50%; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { top: 100%; opacity: 0; } } .animate-drop-line { animation: dropLine 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; } `}} />
+    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans overscroll-none" onClick={() => setInteract(p => ({ ...p, activeMenu: null, longPress: null }))}>
+      <style dangerouslySetInnerHTML={{ __html: ` body{overscroll-behavior-y:none;} @keyframes sL{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(-4px);opacity:1;}} @keyframes sR{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(4px);opacity:1;}} .anim-slide-left{animation:sL 1.4s ease-in-out infinite;} .anim-slide-right{animation:sR 1.4s ease-in-out infinite;} @keyframes bB{0%,100%{background:#fff;}50%{background:#e0f2fe;}} @keyframes bG{0%,100%{background:#fff;}50%{background:#d1fae5;}} .anim-bg-blink-blue{animation:bB 1.5s ease-in-out;} .anim-bg-blink-green{animation:bG 1.5s ease-in-out;} @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} .anim-text-blink-white{animation:tW 1.5s ease-in-out infinite;} @keyframes dL{0%{top:-50%;opacity:0;}15%,85%{opacity:1;}100%{top:100%;opacity:0;}} .animate-drop-line{animation:dL 2.5s cubic-bezier(0.4,0,0.2,1) infinite;} `}} />
+      
+      {auth.isAuth && currentHash !== '#block' && <div onMouseDown={e => { setRefresh(p => ({ ...p, drag: true, hover: true })); dragRef.current = { x: e.clientX, y: e.clientY, initX: refresh.pos.x, initY: refresh.pos.y, dragged: false }; }} onTouchStart={e => { setRefresh(p => ({ ...p, drag: true, hover: true })); dragRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, initX: refresh.pos.x, initY: refresh.pos.y, dragged: false }; }} className={`fixed z-[100] px-2.5 py-1 rounded-full font-black text-black tracking-widest text-[9px] cursor-pointer select-none transition-opacity duration-500 bg-yellow-400 border border-yellow-500 ${refresh.hover || refresh.drag ? 'opacity-100 shadow-[0_3px_0_#a16207,0_6px_10px_rgba(0,0,0,0.4)]' : 'opacity-40 shadow-[0_2px_0_#a16207]'} backdrop-blur-sm`} style={{ left: refresh.pos.x, top: refresh.pos.y, touchAction: 'none' }}>REFRESH</div>}
 
-      {isAuth && currentHash !== '#block' && (
-        <div onMouseDown={(e) => handleRefreshStart(e.clientX, e.clientY)} onTouchStart={(e) => handleRefreshStart(e.touches[0].clientX, e.touches[0].clientY)} className={`fixed z-[100] px-2.5 py-1 rounded-full font-black text-black tracking-widest text-[9px] cursor-pointer select-none transition-opacity duration-500 bg-yellow-400 border border-yellow-500 ${isRefreshHovered || isDraggingRefresh ? 'opacity-100 shadow-[0_3px_0_#a16207,0_6px_10px_rgba(0,0,0,0.4)]' : 'opacity-40 shadow-[0_2px_0_#a16207]'} active:translate-y-[2px] active:shadow-[0_1px_0_#a16207,0_2px_4px_rgba(0,0,0,0.3)] backdrop-blur-sm`} style={{ left: refreshPos.x, top: refreshPos.y, touchAction: 'none' }}>REFRESH</div>
-      )}
-
-      {!isAuth ? (
-        <Login activeTab={activeTab} username={username} setUsername={setUsername} isExistingUser={isExistingUser} adminEmail={adminEmail} setAdminEmail={setAdminEmail} adminPass={adminPass} setAdminPass={setAdminPass} handleUserLogin={handleUserLogin} handleAdminLogin={handleAdminLogin} />
-      ) : (
+      {!auth.isAuth ? <Login activeTab={ui.tab} username={auth.user} setUsername={(u:string)=>setAuth(p=>({...p,user:u}))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e:string)=>setAuth(p=>({...p,adminEmail:e}))} adminPass={auth.adminPass} setAdminPass={(ps:string)=>setAuth(p=>({...p,adminPass:ps}))} handleUserLogin={async () => { if(!auth.user.trim() || isCensored(auth.user)) return alert("Nama tidak valid"); try { await supabase.from('profiles').upsert({ device_id: currentDeviceId||'guest', username: auth.user.trim(), user_browser: navigator.userAgent }, { onConflict: 'device_id' }); } catch(e){} setAuth(p=>({...p,isAuth:true})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username',auth.user.trim()); sessionStorage.setItem('active_tab','user'); }} handleAdminLogin={async () => { const { error } = await supabase.auth.signInWithPassword({ email: auth.adminEmail, password: auth.adminPass }); if (error) alert("Gagal"); else { setAuth(p=>({...p,isAuth:true,user:'Admin●ipix.my.id'})); setUi(p=>({...p,tab:'admin'})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username','Admin●ipix.my.id'); sessionStorage.setItem('active_tab','admin'); } }} /> : (
         <>
           {currentHash !== '#block' && (
-            <div className={`sticky top-0 z-20 p-3 transition-colors duration-500 border-b border-white/40 ${chatMode === 'public' ? 'bg-gradient-to-b from-blue-100 to-white' : 'bg-gradient-to-b from-emerald-100 to-white'}`}>
+            <div className={`sticky top-0 z-20 p-3 border-b border-white/40 ${ui.mode === 'public' ? 'bg-gradient-to-b from-blue-100 to-white' : 'bg-gradient-to-b from-emerald-100 to-white'}`}>
               <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full shadow">Keluar</button>
               <div className="flex justify-between items-center">
-                <div className="flex flex-col max-w-[65%]">
-                  <span className="text-[10px] text-gray-800 uppercase tracking-wider">{getGreeting().replace(',', '')}</span>
-                  <div className="flex flex-wrap items-center gap-1.5 leading-tight"><span className="text-[11px] font-bold text-blue-800">{username}</span>{activeTab === 'admin' && <span className="text-[9px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-mono truncate" title={currentDeviceId || ''}>ID: {currentDeviceId}</span>}</div>
-                </div>
-                <div className="text-center flex-1 flex flex-col items-end mr-16">
-                  <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-bold text-sm underline flex items-center gap-1">ipix.my.id</a>
-                  {activeTab === 'user' && <div className="text-[10px] text-gray-500 mt-0.5"><span className={`inline-block w-2 h-2 rounded-full ${isAdminOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>{isAdminOnline ? ' Admin Online' : ` Admin Offline • ${adminOfflineTime}`}</div>}
-                </div>
+                <div className="flex flex-col max-w-[65%]"><span className="text-[10px] text-gray-800 uppercase tracking-wider">{getFmt.greet()}</span><div className="flex items-center gap-1.5"><span className="text-[11px] font-bold text-blue-800">{auth.user}</span>{ui.tab === 'admin' && <span className="text-[9px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-mono truncate" title={currentDeviceId||''}>ID: {currentDeviceId}</span>}</div></div>
+                <div className="text-center flex-1 flex flex-col items-end mr-16"><a href="https://ipix.my.id" target="_blank" className="text-emerald-600 font-bold text-sm underline">ipix.my.id</a>{ui.tab === 'user' && <div className="text-[10px] text-gray-500 mt-0.5"><span className={`inline-block w-2 h-2 rounded-full ${adminStat.online ? 'bg-green-500' : 'bg-gray-400'}`}></span>{adminStat.online ? ' Admin Online' : ` Offline • ${adminStat.offlineTime}`}</div>}</div>
               </div>
               <div className="flex mt-3 bg-white border border-gray-200 rounded-full p-1 shadow-sm w-full relative">
-                <button onClick={() => handleTabSwitch('public')} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 flex items-center justify-center gap-2 ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}><div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${chatMode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-200`}>{formatNotif(totalPublic)}</span></div><span className="ml-2 sm:ml-4">🌐 Public Chat</span></button>
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30"><button onClick={(e) => { e.stopPropagation(); setIsTwoColumnMode(!isTwoColumnMode); }} className="bg-white border border-gray-200 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.1)] rounded-full px-2.5 py-1 active:scale-95 transition-transform"><span className="text-[8px] md:text-[9px] font-bold uppercase tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-blue-500">{isTwoColumnMode ? 'Mode 2 Kolom' : 'Mode 1 Kolom'}</span></button></div>
-                <button onClick={() => handleTabSwitch('private')} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 flex items-center justify-center gap-2 ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}><span className="mr-2 sm:mr-4">🔒 Chat private</span><div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${chatMode === 'private' ? 'bg-white text-emerald-600' : 'bg-emerald-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-200`}>{formatNotif(totalPrivate)}</span></div></button>
+                <button onClick={() => { if(ui.mode!=='public' || !ui.expanded || ui.twoCol) { handleInteraction('public'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); } }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 ${ui.mode === 'public' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}><div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.pub)}</span></div><span className="ml-2 sm:ml-4">🌐 Public Chat</span></button>
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30"><button onClick={e => { e.stopPropagation(); setUi(p => ({ ...p, twoCol: !p.twoCol })); }} className="bg-white border shadow-sm rounded-full px-2.5 py-1 active:scale-95"><span className="text-[8px] md:text-[9px] font-bold uppercase bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-blue-500">{ui.twoCol ? 'Mode 2 Kolom' : 'Mode 1 Kolom'}</span></button></div>
+                <button onClick={() => { if(ui.mode!=='private' || !ui.expanded || ui.twoCol) { handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); } }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 ${ui.mode === 'private' ? 'bg-emerald-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}><span className="mr-2 sm:mr-4">🔒 Chat private</span><div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'private' ? 'bg-white text-emerald-600' : 'bg-emerald-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.priv)}</span></div></button>
               </div>
             </div>
           )}
           
           <div className="flex-1 w-full relative bg-gray-50 flex overflow-hidden">
-            {activeTab === 'admin' && currentHash === '#block' ? (
-              <Block blockedList={blockedList} unblock={unblock} blockedWords={blockedWords} newBadWord={newBadWord} setNewBadWord={setNewBadWord} addBlockedWord={addBlockedWord} removeBlockedWord={removeBlockedWord} formatMessageTime={formatMessageTime} />
-            ) : (
-              <div className="flex w-full h-full relative transition-all duration-500 ease-in-out">
-                <div className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'public' ? 'bg-gradient-to-t from-blue-200 via-blue-50 to-white' : 'bg-blue-50/30'} ${isTwoColumnMode ? 'w-1/2' : (isChatExpanded && chatMode === 'private' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'public' ? 'w-full' : 'w-1/2')}`} onClick={() => handleInteraction('public')} onTouchStart={() => handleInteraction('public')} onWheel={() => handleInteraction('public')}>
-                  <div onScroll={handleScroll} className="p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"><div className="text-center text-[9px] font-bold text-blue-500 mb-2 tracking-widest uppercase opacity-70">Ruang Publik</div>{renderMessageList(publicMessages, 'public', isTwoColumnMode ? true : !isChatExpanded)}<div id="messages-end-public" className="h-0" /></div>
-                </div>
-                {(!isChatExpanded || isTwoColumnMode) && (
-                  <div className="w-[1.5px] bg-gray-200 relative z-10 shrink-0 overflow-hidden shadow-[0_0_5px_rgba(0,0,0,0.05)]"><div className={`absolute w-full h-1/2 animate-drop-line ${chatMode === 'public' ? 'bg-gradient-to-t from-transparent via-blue-500 to-blue-700' : 'bg-gradient-to-t from-transparent via-emerald-500 to-emerald-700'}`}></div></div>
-                )}
-                <div className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'private' ? 'bg-gradient-to-t from-emerald-200 via-emerald-50 to-white' : 'bg-emerald-50/30'} ${isTwoColumnMode ? 'w-1/2' : (isChatExpanded && chatMode === 'public' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'private' ? 'w-full' : 'w-1/2')}`} onClick={() => handleInteraction('private')} onTouchStart={() => handleInteraction('private')} onWheel={() => handleInteraction('private')}>
-                  <div onScroll={handleScroll} className="p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"><div className="text-center text-[9px] font-bold text-emerald-500 mb-2 tracking-widest uppercase opacity-70">Ruang Private</div>
-                    {activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser ? <Admin privateUsers={privateUsers} setSelectedPrivateUser={setSelectedPrivateUser} formatMessageTime={formatMessageTime} /> : renderMessageList(privateMessages, 'private', isTwoColumnMode ? true : !isChatExpanded)}<div id="messages-end-private" className="h-0" />
-                  </div>
-                </div>
-                {isPillVisible && (
-                  <div className="absolute bottom-4 left-1/2 z-30 flex justify-center select-none shadow-lg rounded-full" style={{ transform: `translateX(calc(-50% + ${pillSwipeDelta}px))`, transition: pillSwipeDelta === 0 ? 'transform 0.3s ease-out, opacity 0.5s' : 'none', opacity: Math.abs(pillSwipeDelta) > 100 ? 0 : 1 }} onTouchStart={(e) => { setIsCapsulePaused(true); setPillTouchStartX(e.touches[0].clientX); }} onTouchMove={(e) => setPillSwipeDelta(e.touches[0].clientX - pillTouchStartX)} onTouchEnd={() => { setIsCapsulePaused(false); if (Math.abs(pillSwipeDelta) > 70) setIsPillVisible(false); setPillSwipeDelta(0); }}>
-                    <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold text-gray-700 border shadow-sm text-center tracking-wide relative overflow-hidden flex items-center justify-center w-[300px] sm:min-w-[310px] h-[34px] cursor-grab active:cursor-grabbing bg-white/95 backdrop-blur ${chatMode === 'private' ? 'border-emerald-300' : 'border-blue-300'}`}>
-                      <div className={`absolute flex items-center gap-1 transition-all duration-500 w-full justify-center ${capsuleIndex === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}><span>Bijaklah berinteraksi salam toleransi |</span><a href="https://ipix.my.id" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-700 underline font-black" onClick={(e) => e.stopPropagation()}>ipix.my.id</a></div>
-                      <div className={`absolute flex items-center gap-2 transition-all duration-500 w-full justify-center ${capsuleIndex === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}><span className={`inline-block anim-slide-left font-black text-sm leading-none ${chatMode === 'private' ? 'text-emerald-500' : 'text-blue-500'}`}>&lt;</span><span>geser untuk menghapus dan membalas</span><span className={`inline-block anim-slide-right font-black text-sm leading-none ${chatMode === 'private' ? 'text-emerald-500' : 'text-blue-500'}`}>&gt;</span></div>
-                    </div>
-                  </div>
-                )}
-              </div>
+            {ui.tab === 'admin' && currentHash === '#block' ? <Block blockedList={usersInfo.blockedList} unblock={async (id)=>{await supabase.from('blocked_users').delete().eq('device_id', id); fetchData();}} blockedWords={censor.words} newBadWord={censor.newWord} setNewBadWord={(w:string)=>setCensor(p=>({...p,newWord:w}))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} /> : (
+              <ChatLayout cMode={ui.mode} is2Col={ui.twoCol} isExp={ui.expanded} hInteract={handleInteraction} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={msgs.pub} privMsgs={msgs.priv} isPill={pill.visible} pDelta={pill.delta} pTouchX={pill.startX} capIdx={pill.idx} setPTouchX={(x:number)=>setPill(p=>({...p,startX:x}))} setPDelta={(d:number)=>setPill(p=>({...p,delta:d}))} setCapPause={(v:boolean)=>setPill(p=>({...p,pause:v}))} setIsPill={(v:boolean)=>setPill(p=>({...p,visible:v}))} renderMsgs={renderMsgs} fmtTime={getFmt.time} setSelPriv={(u:string)=>setUsersInfo(p=>({...p,selPriv:u}))} />
             )}
           </div>
           
           {currentHash !== '#block' && (
             <div className="bg-white sticky bottom-0 z-20 w-full flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-              {replyingTo && (
-                <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x transition-all duration-300 cursor-pointer ${chatMode === 'private' ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100/70' : 'bg-blue-50 border-blue-300 text-blue-900 hover:bg-blue-100/70'}`} onClick={() => scrollToMessageId(replyingTo.id)}>
-                  <div className="truncate flex-1 pr-2"><span className="font-bold">Membalas @{replyingTo.username.split('●')[0]}:</span> <span className="italic opacity-80">"{replyingTo.pesan}"</span></div><button type="button" onClick={(e) => { e.stopPropagation(); setReplyingTo(null); }} className="text-gray-400 hover:text-gray-700 text-base font-bold leading-none px-1">×</button>
-                </div>
-              )}
-              <form onSubmit={sendMessage} className="p-2 sm:p-3 bg-white border-t border-gray-100 flex gap-2 items-end w-full relative transition-all duration-300">
-                <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
-                  <div className="text-[9px] sm:text-[10px] text-gray-400 mb-1 font-medium px-1 leading-tight w-full text-left">{chatMode === 'public' ? 'Chat di sini bersifat publik mohon bijak' : 'Chat di sini bersifat private hanya anda dan admin'}</div>
-                  <textarea id="chat-input" onFocus={() => setIsInputFocused(true)} onBlur={() => setIsInputFocused(false)} className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm resize-none focus:outline-none transition-all duration-300 min-h-[32px] sm:min-h-[38px] max-h-[100px] font-sans leading-relaxed [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${chatMode === 'private' ? inputBlink ? 'bg-emerald-600/30 border-emerald-500 ring-2 ring-emerald-400 text-emerald-950 placeholder-emerald-600/50' : 'bg-emerald-600/10 border-emerald-500/20 text-emerald-950 placeholder-emerald-600/50 focus:border-emerald-500 focus:bg-emerald-600/15' : inputBlink ? 'bg-blue-600/30 border-blue-500 ring-2 ring-blue-400 text-blue-950 placeholder-blue-600/50' : 'bg-blue-600/10 border-blue-500/20 text-blue-950 placeholder-blue-600/50 focus:border-blue-500 focus:bg-blue-600/15'}`} value={input} onChange={(e) => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`; }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e); } }} placeholder="Ketik pesan..." maxLength={200} rows={1} disabled={sending} />
-                  <div className="absolute right-3 bottom-1.5 sm:bottom-2 text-[9px] text-gray-400 font-mono pointer-events-none select-none opacity-80 bg-white/40 px-1 rounded">{200 - input.length}</div>
-                </div>
-                <div className="relative shrink-0 flex flex-col justify-end w-[95px] md:w-[130px] h-[32px] sm:h-[38px] transition-all duration-300">
-                  {activeTab === 'user' && (
-                    <button type="button" onClick={() => handleTabSwitch(chatMode === 'public' ? 'private' : 'public')} className={`absolute -top-[42px] sm:-top-[48px] right-0 w-full h-[32px] sm:h-[36px] rounded-full border-2 border-white z-20 flex items-center justify-center transition-all duration-300 ${isTyping ? 'bg-gray-400 shadow-[0_3px_0_#9ca3af] text-gray-100 opacity-80 pointer-events-none cursor-default' : chatMode === 'public' ? 'bg-emerald-500 shadow-[0_3px_0_#047857] text-white active:translate-y-[3px] active:shadow-none' : 'bg-blue-500 shadow-[0_3px_0_#1d4ed8] text-white active:translate-y-[3px] active:shadow-none'}`}>
-                      <span className={`font-extrabold text-[9px] md:text-[11px] tracking-tight ${!isTyping && 'anim-text-blink-white'}`}>{chatMode === 'public' ? 'Chat Admin' : 'Ke Publik Chat'}</span>
-                    </button>
-                  )}
-                  <button type="submit" disabled={sending || !input.trim()} className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs transition-all duration-200 active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${chatMode === 'private' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}>{sending ? '...' : (chatMode === 'private' ? 'Kirim Private' : 'Kirim Publik')}</button>
+              {interact.replyTo && <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${ui.mode === 'private' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-blue-50 border-blue-300 text-blue-900'}`} onClick={() => scrollMsg(interact.replyTo.id)}><div className="truncate flex-1 pr-2"><span className="font-bold">Balas @{interact.replyTo.username.split('●')[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span></div><button onClick={(e)=>{e.stopPropagation();setInteract(p=>({...p,replyTo:null}));}} className="text-gray-400 font-bold px-1">×</button></div>}
+              <form onSubmit={sendMsg} className="p-2 sm:p-3 bg-white border-t border-gray-100 flex gap-2 items-end w-full relative transition-all duration-300">
+                <div className="relative flex-1 flex flex-col justify-end transition-all duration-300"><div className="text-[9px] text-gray-400 mb-1 px-1">{ui.mode === 'public' ? 'Chat publik mohon bijak' : 'Chat private admin'}</div><textarea id="chat-input" onFocus={()=>setUi(p=>({...p,inputFocus:true}))} onBlur={()=>setUi(p=>({...p,inputFocus:false}))} className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm resize-none focus:outline-none min-h-[32px] sm:min-h-[38px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${ui.mode === 'private' ? input.blink ? 'bg-emerald-600/30 border-emerald-500 ring-2 ring-emerald-400' : 'bg-emerald-600/10 border-emerald-500/20 focus:border-emerald-500 focus:bg-emerald-600/15' : input.blink ? 'bg-blue-600/30 border-blue-500 ring-2 ring-blue-400' : 'bg-blue-600/10 border-blue-500/20 focus:border-blue-500 focus:bg-blue-600/15'}`} value={input.text} onChange={e=>{setInput(p=>({...p,text:e.target.value})); e.target.style.height='auto'; e.target.style.height=`${Math.min(e.target.scrollHeight,100)}px`;}} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg(e as any);}}} placeholder="Ketik pesan..." maxLength={200} rows={1} disabled={input.sending} /><div className="absolute right-3 bottom-1.5 text-[9px] text-gray-400 font-mono select-none opacity-80 bg-white/40 px-1 rounded">{200 - input.text.length}</div></div>
+                <div className="relative shrink-0 flex flex-col justify-end w-[95px] md:w-[130px] h-[32px] sm:h-[38px]">
+                  {ui.tab === 'user' && <button type="button" onClick={()=>handleInteraction(ui.mode === 'public' ? 'private' : 'public')} className={`absolute -top-[42px] sm:-top-[48px] right-0 w-full h-[32px] sm:h-[36px] rounded-full border-2 border-white z-20 flex items-center justify-center transition-all ${ui.inputFocus||input.text.trim() ? 'bg-gray-400 text-gray-100 opacity-80 pointer-events-none' : ui.mode === 'public' ? 'bg-emerald-500 shadow-[0_3px_0_#047857] text-white active:translate-y-[3px] active:shadow-none' : 'bg-blue-500 shadow-[0_3px_0_#1d4ed8] text-white active:translate-y-[3px] active:shadow-none'}`}><span className={`font-extrabold text-[9px] md:text-[11px] tracking-tight ${!(ui.inputFocus||input.text.trim()) && 'anim-text-blink-white'}`}>{ui.mode === 'public' ? 'Chat Admin' : 'Ke Publik Chat'}</span></button>}
+                  <button type="submit" disabled={input.sending || !input.text.trim()} className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${ui.mode === 'private' ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white'}`}>{input.sending ? '...' : (ui.mode === 'private' ? 'Kirim Private' : 'Kirim Publik')}</button>
                 </div>
               </form>
             </div>
           )}
-
-          {popupMsg && (
-            <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm transition-all" onClick={() => setPopupMsg(null)}>
-              <div className={`w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[85vh] flex flex-col ${popupMsg.is_private ? 'border-t-4 border-emerald-500' : 'border-t-4 border-blue-500'}`} onClick={e => e.stopPropagation()}>
-                <button onClick={() => setPopupMsg(null)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg active:scale-95">×</button>
-                <div className="flex items-center gap-2 border-b pb-3 mb-3"><span className={`font-bold ${popupMsg.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'}`}>{popupMsg.username}</span><span className="text-[10px] text-gray-400">{formatMessageTime(popupMsg.created_at)}</span>{popupMsg.is_private && <span className="text-[10px] text-emerald-500 font-bold ml-1">🔒 Private</span>}</div>
-                <div className="overflow-y-auto pr-2 pb-2 text-sm text-gray-800 leading-relaxed [scrollbar-width:thin]">{applyCensor(popupMsg.pesan)}</div>
-              </div>
-            </div>
-          )}
+          {interact.popup && <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm" onClick={()=>setInteract(p=>({...p,popup:null}))}><div className={`w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[85vh] flex flex-col ${interact.popup.is_private ? 'border-t-4 border-emerald-500' : 'border-t-4 border-blue-500'}`} onClick={e=>e.stopPropagation()}><button onClick={()=>setInteract(p=>({...p,popup:null}))} className="absolute top-3 right-3 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center font-bold active:scale-95">×</button><div className="flex items-center gap-2 border-b pb-3 mb-3"><span className={`font-bold ${interact.popup.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'}`}>{interact.popup.username}</span><span className="text-[10px] text-gray-400">{getFmt.time(interact.popup.created_at)}</span></div><div className="overflow-y-auto pr-2 pb-2 text-sm">{applyCensor(interact.popup.pesan)}</div></div></div>}
         </>
       )}
     </div>
