@@ -57,9 +57,11 @@ export default function Home() {
   const [pillTouchStartX, setPillTouchStartX] = useState<number>(0);
   const [pillSwipeDelta, setPillSwipeDelta] = useState<number>(0);
   
-  // Dynamic Expansion States
+  // Dynamic Expansion & Mode States
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isChatExpanded, setIsChatExpanded] = useState(false);
+  const [isTwoColumnMode, setIsTwoColumnMode] = useState(false); // State Mode 2 Kolom
+  
   const expandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTyping = isInputFocused || input.trim().length > 0;
 
@@ -75,7 +77,7 @@ export default function Home() {
     if (!isTyping) {
       expandTimeoutRef.current = setTimeout(() => {
         setIsChatExpanded(false);
-      }, 3000); // Tampilan kembali belah 2 kolom setelah 3 detik tanpa interaksi
+      }, 3000);
     }
   }, [isTyping]);
 
@@ -177,7 +179,7 @@ export default function Home() {
   const handleLogout = async () => { await supabase.auth.signOut(); sessionStorage.clear(); setIsAuth(false); window.location.replace("/"); };
   
   const handleTabSwitch = (mode: 'public' | 'private') => {
-    if (mode === chatMode && isChatExpanded) return;
+    if (mode === chatMode && isChatExpanded && !isTwoColumnMode) return;
     handleInteraction(mode);
     setSelectedPrivateUser(null);
     setReplyingTo(null);
@@ -460,7 +462,8 @@ export default function Home() {
       ) : (
         <>
           {currentHash !== '#block' && (
-            <div className="sticky top-0 z-20 p-3 bg-white/30 backdrop-blur-md border-b border-white/20">
+            // Background gradasi dinamis dari biru/hijau ke putih ke bawah sesuai tab
+            <div className={`sticky top-0 z-20 p-3 transition-colors duration-500 border-b border-white/40 ${chatMode === 'public' ? 'bg-gradient-to-b from-blue-100 to-white' : 'bg-gradient-to-b from-emerald-100 to-white'}`}>
               <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full shadow">Keluar</button>
               <div className="flex justify-between items-center">
                 <div className="flex flex-col max-w-[65%]">
@@ -476,19 +479,33 @@ export default function Home() {
                 </div>
               </div>
               <div className="flex mt-3 bg-white border border-gray-200 rounded-full p-1 shadow-sm w-full relative">
+                
                 <button onClick={() => handleTabSwitch('public')} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 flex items-center justify-center gap-2 ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
                   <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center">
                     <span className={`${chatMode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-200`}>{formatNotif(totalPublic)}</span>
                   </div>
-                  <span className="ml-5">🌐 Public Chat</span>
+                  <span className="ml-2 sm:ml-4">🌐 Public Chat</span>
                 </button>
 
+                {/* Tombol 2D Dinamis Mode 2 Kolom di Tengah */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setIsTwoColumnMode(!isTwoColumnMode); }}
+                    className="bg-white border border-gray-200 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.1)] rounded-full px-3 py-1 active:scale-95 transition-transform"
+                  >
+                    <span className="text-[9px] font-bold uppercase tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-blue-500">
+                      {isTwoColumnMode ? 'Mode 1 Kolom' : 'Mode 2 Kolom'}
+                    </span>
+                  </button>
+                </div>
+
                 <button onClick={() => handleTabSwitch('private')} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 flex items-center justify-center gap-2 ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
-                  <span className="mr-5">🔒 Chat Private</span>
+                  <span className="mr-2 sm:mr-4">🔒 Chat Private</span>
                   <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center">
                     <span className={`${chatMode === 'private' ? 'bg-white text-emerald-600' : 'bg-emerald-600 text-white'} text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-200`}>{formatNotif(totalPrivate)}</span>
                   </div>
                 </button>
+
               </div>
             </div>
           )}
@@ -500,30 +517,30 @@ export default function Home() {
             ) : (
               <div className="flex w-full h-full relative transition-all duration-500 ease-in-out">
                 
-                {/* 1. Kolom Kiri: Public Chat (Gradasi biru ke putih jika sedang terpilih) */}
+                {/* 1. Kolom Kiri: Public Chat (Width disesuaikan berdasarkan isTwoColumnMode) */}
                 <div 
-                  className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'public' ? 'bg-gradient-to-b from-blue-200 via-blue-50 to-white' : 'bg-blue-50/30'} ${isChatExpanded && chatMode === 'private' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'public' ? 'w-full' : 'w-1/2'}`}
+                  className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'public' ? 'bg-gradient-to-b from-blue-200 via-blue-50 to-white' : 'bg-blue-50/30'} ${isTwoColumnMode ? 'w-1/2' : (isChatExpanded && chatMode === 'private' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'public' ? 'w-full' : 'w-1/2')}`}
                   onClick={() => handleInteraction('public')}
                   onTouchStart={() => handleInteraction('public')}
                   onWheel={() => handleInteraction('public')}
                 >
                   <div onScroll={handleScroll} className="p-2 space-y-3 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                     <div className="text-center text-[9px] font-bold text-blue-500 mb-2 tracking-widest uppercase opacity-70">Ruang Publik</div>
-                    {renderMessageList(publicMessages, 'public', !isChatExpanded)}
+                    {renderMessageList(publicMessages, 'public', isTwoColumnMode ? true : !isChatExpanded)}
                     <div id="messages-end-public" className="h-0" />
                   </div>
                 </div>
 
                 {/* 2. Sekat Animasi Garis Turun Tengah */}
-                {!isChatExpanded && (
+                {(!isChatExpanded || isTwoColumnMode) && (
                   <div className="w-[1.5px] bg-gray-200 relative z-10 shrink-0 overflow-hidden shadow-[0_0_5px_rgba(0,0,0,0.05)]">
                     <div className={`absolute w-full h-1/2 animate-drop-line ${chatMode === 'public' ? 'bg-gradient-to-b from-transparent via-blue-500 to-blue-700' : 'bg-gradient-to-b from-transparent via-emerald-500 to-emerald-700'}`}></div>
                   </div>
                 )}
 
-                {/* 3. Kolom Kanan: Private Chat (Gradasi hijau ke putih jika sedang terpilih) */}
+                {/* 3. Kolom Kanan: Private Chat (Width disesuaikan berdasarkan isTwoColumnMode) */}
                 <div 
-                  className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'private' ? 'bg-gradient-to-b from-emerald-200 via-emerald-50 to-white' : 'bg-emerald-50/30'} ${isChatExpanded && chatMode === 'public' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'private' ? 'w-full' : 'w-1/2'}`}
+                  className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'private' ? 'bg-gradient-to-b from-emerald-200 via-emerald-50 to-white' : 'bg-emerald-50/30'} ${isTwoColumnMode ? 'w-1/2' : (isChatExpanded && chatMode === 'public' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'private' ? 'w-full' : 'w-1/2')}`}
                   onClick={() => handleInteraction('private')}
                   onTouchStart={() => handleInteraction('private')}
                   onWheel={() => handleInteraction('private')}
@@ -533,7 +550,7 @@ export default function Home() {
                     {activeTab === 'admin' && chatMode === 'private' && !selectedPrivateUser ? (
                       <Admin privateUsers={privateUsers} setSelectedPrivateUser={setSelectedPrivateUser} formatMessageTime={formatMessageTime} />
                     ) : (
-                      renderMessageList(privateMessages, 'private', !isChatExpanded)
+                      renderMessageList(privateMessages, 'private', isTwoColumnMode ? true : !isChatExpanded)
                     )}
                     <div id="messages-end-private" className="h-0" />
                   </div>
