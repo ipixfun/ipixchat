@@ -45,6 +45,7 @@ export default function Home() {
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState<boolean>(false);
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
+  const [popupMsg, setPopupMsg] = useState<any | null>(null);
   
   const [longPressId, setLongPressId] = useState<number | null>(null);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
@@ -63,8 +64,6 @@ export default function Home() {
   const [isTwoColumnMode, setIsTwoColumnMode] = useState(false); 
   
   const expandTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const userScrolledUpRef = useRef<boolean>(false);
   
   const isTyping = isInputFocused || input.trim().length > 0;
 
@@ -80,11 +79,11 @@ export default function Home() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setRefreshPos({ x: window.innerWidth - 100, y: window.innerHeight - 200 });
+      setRefreshPos({ x: window.innerWidth - 80, y: window.innerHeight - 180 });
     }
   }, []);
 
-  // Handle Dynamic Column Expansion (Diperpanjang jadi 60 detik)
+  // Handle Dynamic Column Expansion
   const handleInteraction = useCallback((mode: 'public' | 'private') => {
     setChatMode(mode);
     setIsChatExpanded(true);
@@ -119,37 +118,10 @@ export default function Home() {
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
-  const scrollToBottom = useCallback((behavior: 'auto' | 'smooth' = 'auto') => {
-    if (!userScrolledUpRef.current) {
-      document.getElementById('messages-end-public')?.scrollIntoView({ behavior });
-      document.getElementById('messages-end-private')?.scrollIntoView({ behavior });
-    }
-  }, []);
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+  const handleScroll = () => {
     if (longPressId !== null) setLongPressId(null);
     if (activeMenuId !== null) setActiveMenuId(null);
-
-    const target = e.currentTarget;
-    const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 100;
-
-    // Menangani saat scroll ke atas otomatis kembali ditahan selama 30 detik
-    if (!isAtBottom) {
-      userScrolledUpRef.current = true;
-      if (autoScrollTimeoutRef.current) clearTimeout(autoScrollTimeoutRef.current);
-      autoScrollTimeoutRef.current = setTimeout(() => {
-        userScrolledUpRef.current = false;
-        scrollToBottom('smooth');
-      }, 30000); // 30 detik
-    } else {
-      userScrolledUpRef.current = false;
-      if (autoScrollTimeoutRef.current) clearTimeout(autoScrollTimeoutRef.current);
-    }
   };
-
-  useEffect(() => {
-    scrollToBottom('auto');
-  }, [publicMessages, privateMessages, isChatExpanded, scrollToBottom]);
 
   const containsBlockedWord = (text: string) => blockedWords.some(word => word.trim() !== "" && text.toLowerCase().includes(word.toLowerCase()));
   const applyCensor = (text: string) => {
@@ -182,7 +154,7 @@ export default function Home() {
       const [_, user, quotedText, replyText] = match;
       return (
         <>
-          <div className={`text-[9px] text-gray-500 italic bg-gray-100 ${isMinimized ? 'p-1.5' : 'p-2'} rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 ${chatMode === 'private' ? 'border-emerald-500' : 'border-blue-500'}`} onClick={() => scrollToMessage(quotedText)}>
+          <div className={`text-[9px] text-gray-500 italic bg-gray-100 ${isMinimized ? 'p-1.5' : 'p-2'} rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 ${chatMode === 'private' ? 'border-emerald-500' : 'border-blue-500'}`} onClick={(e) => { e.stopPropagation(); scrollToMessage(quotedText); }}>
             <span className="font-bold">@{user}</span>: "{applyCensor(quotedText)}"
           </div>
           <div className={`${textSize} text-gray-800 break-words`}>{applyCensor(replyText)}</div>
@@ -384,8 +356,8 @@ export default function Home() {
     if (newX < 0) newX = 0;
     if (newY < 0) newY = 0;
     if (typeof window !== 'undefined') {
-        if (newX > window.innerWidth - 80) newX = window.innerWidth - 80;
-        if (newY > window.innerHeight - 80) newY = window.innerHeight - 80;
+        if (newX > window.innerWidth - 60) newX = window.innerWidth - 60;
+        if (newY > window.innerHeight - 60) newY = window.innerHeight - 60;
     }
 
     setRefreshPos({ x: newX, y: newY });
@@ -422,7 +394,7 @@ export default function Home() {
   }, [isDraggingRefresh, handleRefreshMove, handleRefreshEnd]);
 
 
-  // Renderer Berulang Untuk Pesan (Ditambahkan Kondisi isMinimized)
+  // Renderer Berulang Untuk Pesan
   const renderMessageList = (msgArray: any[], colType: 'public' | 'private', isMinimized: boolean) => {
     if (msgArray.length === 0) return <div className="text-center text-gray-400 italic mt-10 text-[10px]">Belum ada pesan di ruang ini.</div>;
     return msgArray.map((m) => {
@@ -499,7 +471,18 @@ export default function Home() {
             <span className="text-[8px] text-gray-400 font-medium">{formatMessageTime(m.created_at)}</span>
           </div>
           
-          {renderMessageContent(m.pesan, isMinimized)}
+          {/* Bagian truncating teks saat mode 2 kolom aktif */}
+          <div 
+            className={`mt-1 ${isTwoColumnMode ? 'line-clamp-4 cursor-pointer hover:bg-gray-50 transition-colors rounded' : ''}`}
+            onClick={(e) => {
+              if (isTwoColumnMode) {
+                e.stopPropagation();
+                setPopupMsg(m);
+              }
+            }}
+          >
+            {renderMessageContent(m.pesan, isMinimized)}
+          </div>
           
           <div className={`${isMinimized ? 'mt-1 pt-1' : 'mt-2 pt-2'} border-t border-gray-100 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
             <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end">
@@ -543,7 +526,6 @@ export default function Home() {
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans overscroll-none" onClick={() => { setActiveMenuId(null); setLongPressId(null); }}>
       <style dangerouslySetInnerHTML={{ __html: `
-        /* Menonaktifkan perilaku pull-to-refresh bawaan browser */
         body { overscroll-behavior-y: none; }
       
         @keyframes slideLeftSmooth { 0%, 100% { transform: translateX(0); opacity: 0.6; } 50% { transform: translateX(-4px); opacity: 1; } } 
@@ -563,14 +545,14 @@ export default function Home() {
         .animate-drop-line { animation: dropLine 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
       `}} />
 
-      {/* Floating Refresh 3D Button */}
+      {/* Floating Refresh Button (Kecil, Kuning, Teks Hitam) */}
       {isAuth && currentHash !== '#block' && (
         <div
           onMouseDown={(e) => handleRefreshStart(e.clientX, e.clientY)}
           onTouchStart={(e) => handleRefreshStart(e.touches[0].clientX, e.touches[0].clientY)}
-          className={`fixed z-[100] px-3.5 py-1.5 rounded-full font-black text-white tracking-widest text-[10px] cursor-pointer select-none transition-opacity duration-500 bg-red-600 border border-red-500 
-          ${isRefreshHovered || isDraggingRefresh ? 'opacity-100 shadow-[0_4px_0_#7f1d1d,0_8px_15px_rgba(0,0,0,0.4)]' : 'opacity-30 shadow-[0_2px_0_#7f1d1d]'} 
-          active:translate-y-[2px] active:shadow-[0_2px_0_#7f1d1d,0_4px_8px_rgba(0,0,0,0.3)] backdrop-blur-sm`}
+          className={`fixed z-[100] px-2.5 py-1 rounded-full font-black text-black tracking-widest text-[9px] cursor-pointer select-none transition-opacity duration-500 bg-yellow-400 border border-yellow-500 
+          ${isRefreshHovered || isDraggingRefresh ? 'opacity-100 shadow-[0_3px_0_#a16207,0_6px_10px_rgba(0,0,0,0.4)]' : 'opacity-40 shadow-[0_2px_0_#a16207]'} 
+          active:translate-y-[2px] active:shadow-[0_1px_0_#a16207,0_2px_4px_rgba(0,0,0,0.3)] backdrop-blur-sm`}
           style={{ left: refreshPos.x, top: refreshPos.y, touchAction: 'none' }}
         >
            REFRESH
@@ -600,8 +582,8 @@ export default function Home() {
               <div className="flex mt-3 bg-white border border-gray-200 rounded-full p-1 shadow-sm w-full relative">
                 
                 <button onClick={() => handleTabSwitch('public')} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 flex items-center justify-center gap-2 ${chatMode === 'public' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
-                  <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center">
-                    <span className={`${chatMode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-200`}>{formatNotif(totalPublic)}</span>
+                  <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center">
+                    <span className={`${chatMode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-200`}>{formatNotif(totalPublic)}</span>
                   </div>
                   <span className="ml-2 sm:ml-4">🌐 Public Chat</span>
                 </button>
@@ -609,9 +591,9 @@ export default function Home() {
                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
                   <button 
                     onClick={(e) => { e.stopPropagation(); setIsTwoColumnMode(!isTwoColumnMode); }}
-                    className="bg-white border border-gray-200 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.1)] rounded-full px-3 py-1 active:scale-95 transition-transform"
+                    className="bg-white border border-gray-200 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.1)] rounded-full px-2.5 py-1 active:scale-95 transition-transform"
                   >
-                    <span className="text-[9px] font-bold uppercase tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-blue-500">
+                    <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-blue-500">
                       {isTwoColumnMode ? 'Mode 2 Kolom' : 'Mode 1 Kolom'}
                     </span>
                   </button>
@@ -619,8 +601,8 @@ export default function Home() {
 
                 <button onClick={() => handleTabSwitch('private')} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full transition-all duration-200 z-10 flex items-center justify-center gap-2 ${chatMode === 'private' ? 'bg-emerald-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
                   <span className="mr-2 sm:mr-4">🔒 Chat private</span>
-                  <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center">
-                    <span className={`${chatMode === 'private' ? 'bg-white text-emerald-600' : 'bg-emerald-600 text-white'} text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-200`}>{formatNotif(totalPrivate)}</span>
+                  <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center">
+                    <span className={`${chatMode === 'private' ? 'bg-white text-emerald-600' : 'bg-emerald-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-200`}>{formatNotif(totalPrivate)}</span>
                   </div>
                 </button>
 
@@ -635,8 +617,9 @@ export default function Home() {
             ) : (
               <div className="flex w-full h-full relative transition-all duration-500 ease-in-out">
                 
+                {/* Gradasi warna bg-gradient-to-t agar warna berada di bawah */}
                 <div 
-                  className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'public' ? 'bg-gradient-to-b from-blue-200 via-blue-50 to-white' : 'bg-blue-50/30'} ${isTwoColumnMode ? 'w-1/2' : (isChatExpanded && chatMode === 'private' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'public' ? 'w-full' : 'w-1/2')}`}
+                  className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'public' ? 'bg-gradient-to-t from-blue-200 via-blue-50 to-white' : 'bg-blue-50/30'} ${isTwoColumnMode ? 'w-1/2' : (isChatExpanded && chatMode === 'private' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'public' ? 'w-full' : 'w-1/2')}`}
                   onClick={() => handleInteraction('public')}
                   onTouchStart={() => handleInteraction('public')}
                   onWheel={() => handleInteraction('public')}
@@ -650,12 +633,12 @@ export default function Home() {
 
                 {(!isChatExpanded || isTwoColumnMode) && (
                   <div className="w-[1.5px] bg-gray-200 relative z-10 shrink-0 overflow-hidden shadow-[0_0_5px_rgba(0,0,0,0.05)]">
-                    <div className={`absolute w-full h-1/2 animate-drop-line ${chatMode === 'public' ? 'bg-gradient-to-b from-transparent via-blue-500 to-blue-700' : 'bg-gradient-to-b from-transparent via-emerald-500 to-emerald-700'}`}></div>
+                    <div className={`absolute w-full h-1/2 animate-drop-line ${chatMode === 'public' ? 'bg-gradient-to-t from-transparent via-blue-500 to-blue-700' : 'bg-gradient-to-t from-transparent via-emerald-500 to-emerald-700'}`}></div>
                   </div>
                 )}
 
                 <div 
-                  className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'private' ? 'bg-gradient-to-b from-emerald-200 via-emerald-50 to-white' : 'bg-emerald-50/30'} ${isTwoColumnMode ? 'w-1/2' : (isChatExpanded && chatMode === 'public' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'private' ? 'w-full' : 'w-1/2')}`}
+                  className={`h-full flex flex-col transition-all duration-500 ease-out ${chatMode === 'private' ? 'bg-gradient-to-t from-emerald-200 via-emerald-50 to-white' : 'bg-emerald-50/30'} ${isTwoColumnMode ? 'w-1/2' : (isChatExpanded && chatMode === 'public' ? 'w-0 opacity-0 pointer-events-none' : isChatExpanded && chatMode === 'private' ? 'w-full' : 'w-1/2')}`}
                   onClick={() => handleInteraction('private')}
                   onTouchStart={() => handleInteraction('private')}
                   onWheel={() => handleInteraction('private')}
@@ -717,41 +700,59 @@ export default function Home() {
                 </div>
               )}
               
-              <form onSubmit={sendMessage} className="p-3 bg-white border-t border-gray-100 flex gap-2 items-end w-full relative transition-all duration-300">
+              {/* Kolom dan Tombol dibuat lebih ramping */}
+              <form onSubmit={sendMessage} className="p-2 sm:p-3 bg-white border-t border-gray-100 flex gap-2 items-end w-full relative transition-all duration-300">
                 <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
-                  <div className="text-[10px] text-gray-400 mb-1.5 font-medium px-1 leading-tight w-full text-left">
-                    {chatMode === 'public' ? 'Chat di halaman ini bersifat publik dan umum mohon bijak berinteraksi' : 'Chat di halaman ini bersifat private hanya anda dan admin yang bisa melihat'}
+                  <div className="text-[9px] sm:text-[10px] text-gray-400 mb-1 font-medium px-1 leading-tight w-full text-left">
+                    {chatMode === 'public' ? 'Chat di sini bersifat publik mohon bijak' : 'Chat di sini bersifat private hanya anda dan admin'}
                   </div>
                   
-                  <textarea id="chat-input" onFocus={() => setIsInputFocused(true)} onBlur={() => setIsInputFocused(false)} className={`w-full border p-2.5 rounded-2xl px-4 pb-7 text-sm resize-none focus:outline-none transition-all duration-300 min-h-[42px] max-h-[120px] font-sans leading-relaxed [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${chatMode === 'private' ? inputBlink ? 'bg-emerald-600/30 border-emerald-500 ring-2 ring-emerald-400 text-emerald-950 placeholder-emerald-600/50' : 'bg-emerald-600/10 border-emerald-500/20 text-emerald-950 placeholder-emerald-600/50 focus:border-emerald-500 focus:bg-emerald-600/15' : inputBlink ? 'bg-blue-600/30 border-blue-500 ring-2 ring-blue-400 text-blue-950 placeholder-blue-600/50' : 'bg-blue-600/10 border-blue-500/20 text-blue-950 placeholder-blue-600/50 focus:border-blue-500 focus:bg-blue-600/15'}`} value={input} onChange={(e) => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`; }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e); } }} placeholder="Ketik pesan..." maxLength={200} rows={1} disabled={sending} />
-                  <div className="absolute right-4 bottom-2.5 text-[10px] text-gray-400 font-mono pointer-events-none select-none opacity-80 bg-white/40 px-1 rounded">
+                  <textarea id="chat-input" onFocus={() => setIsInputFocused(true)} onBlur={() => setIsInputFocused(false)} className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm resize-none focus:outline-none transition-all duration-300 min-h-[32px] sm:min-h-[38px] max-h-[100px] font-sans leading-relaxed [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${chatMode === 'private' ? inputBlink ? 'bg-emerald-600/30 border-emerald-500 ring-2 ring-emerald-400 text-emerald-950 placeholder-emerald-600/50' : 'bg-emerald-600/10 border-emerald-500/20 text-emerald-950 placeholder-emerald-600/50 focus:border-emerald-500 focus:bg-emerald-600/15' : inputBlink ? 'bg-blue-600/30 border-blue-500 ring-2 ring-blue-400 text-blue-950 placeholder-blue-600/50' : 'bg-blue-600/10 border-blue-500/20 text-blue-950 placeholder-blue-600/50 focus:border-blue-500 focus:bg-blue-600/15'}`} value={input} onChange={(e) => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`; }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e); } }} placeholder="Ketik pesan..." maxLength={200} rows={1} disabled={sending} />
+                  <div className="absolute right-3 bottom-1.5 sm:bottom-2 text-[9px] text-gray-400 font-mono pointer-events-none select-none opacity-80 bg-white/40 px-1 rounded">
                     {200 - input.length}
                   </div>
                 </div>
 
-                <div className="relative shrink-0 flex flex-col justify-end w-[110px] md:w-[150px] h-[42px] transition-all duration-300">
+                <div className="relative shrink-0 flex flex-col justify-end w-[95px] md:w-[130px] h-[32px] sm:h-[38px] transition-all duration-300">
                   {activeTab === 'user' && (
                     <button 
                       type="button" 
                       onClick={() => handleTabSwitch(chatMode === 'public' ? 'private' : 'public')} 
-                      className={`absolute -top-[52px] right-0 w-full h-[42px] rounded-full border-[2.5px] border-white z-20 flex items-center justify-center transition-all duration-300 ${
+                      className={`absolute -top-[42px] sm:-top-[48px] right-0 w-full h-[32px] sm:h-[36px] rounded-full border-2 border-white z-20 flex items-center justify-center transition-all duration-300 ${
                         isTyping 
-                          ? 'bg-gray-400 shadow-[0_4px_0_#9ca3af] text-gray-100 opacity-80 pointer-events-none cursor-default' 
+                          ? 'bg-gray-400 shadow-[0_3px_0_#9ca3af] text-gray-100 opacity-80 pointer-events-none cursor-default' 
                           : chatMode === 'public'
-                            ? 'bg-emerald-500 shadow-[0_4px_0_#047857] text-white active:translate-y-[4px] active:shadow-none' 
-                            : 'bg-blue-500 shadow-[0_4px_0_#1d4ed8] text-white active:translate-y-[4px] active:shadow-none' 
+                            ? 'bg-emerald-500 shadow-[0_3px_0_#047857] text-white active:translate-y-[3px] active:shadow-none' 
+                            : 'bg-blue-500 shadow-[0_3px_0_#1d4ed8] text-white active:translate-y-[3px] active:shadow-none' 
                       }`}>
-                      <span className={`font-extrabold text-[11px] md:text-xs ${!isTyping && 'anim-text-blink-white'}`}>
+                      <span className={`font-extrabold text-[9px] md:text-[11px] tracking-tight ${!isTyping && 'anim-text-blink-white'}`}>
                         {chatMode === 'public' ? 'Chat Admin' : 'Ke Publik Chat'}
                       </span>
                     </button>
                   )}
 
-                  <button type="submit" disabled={sending || !input.trim()} className={`w-full h-[42px] rounded-2xl font-bold text-xs sm:text-sm transition-all duration-200 active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${chatMode === 'private' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}>
-                    {sending ? '...' : (chatMode === 'private' ? 'Kirim ke Private' : 'Kirim ke Publik')}
+                  <button type="submit" disabled={sending || !input.trim()} className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs transition-all duration-200 active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${chatMode === 'private' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}>
+                    {sending ? '...' : (chatMode === 'private' ? 'Kirim Private' : 'Kirim Publik')}
                   </button>
                 </div>
               </form>
+            </div>
+          )}
+
+          {/* Modal Pop Up untuk Pesan Utuh */}
+          {popupMsg && (
+            <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm transition-all" onClick={() => setPopupMsg(null)}>
+              <div className={`w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[85vh] flex flex-col ${popupMsg.is_private ? 'border-t-4 border-emerald-500' : 'border-t-4 border-blue-500'}`} onClick={e => e.stopPropagation()}>
+                <button onClick={() => setPopupMsg(null)} className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg active:scale-95">×</button>
+                <div className="flex items-center gap-2 border-b pb-3 mb-3">
+                  <span className={`font-bold ${popupMsg.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'}`}>{popupMsg.username}</span>
+                  <span className="text-[10px] text-gray-400">{formatMessageTime(popupMsg.created_at)}</span>
+                  {popupMsg.is_private && <span className="text-[10px] text-emerald-500 font-bold ml-1">🔒 Private</span>}
+                </div>
+                <div className="overflow-y-auto pr-2 pb-2 text-sm text-gray-800 leading-relaxed [scrollbar-width:thin]">
+                  {renderMessageContent(popupMsg.pesan, false)}
+                </div>
+              </div>
             </div>
           )}
         </>
