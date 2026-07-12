@@ -2,7 +2,7 @@
 import React, { useRef, useState } from 'react';
 
 export default function MessageItem({
-  index = 0, m, colType, isMinimized, currentDeviceId, activeTab, isAdminOnline, adminOfflineTime,
+  m, colType, isMinimized, currentDeviceId, activeTab, isAdminOnline, adminOfflineTime,
   userStatus, isTwoColumnMode, activeMenuId, setActiveMenuId, longPressId, setLongPressId,
   swipingId, setSwipingId, handleTag, handleReply, deleteMsg, copyToClipboard, handleEditLimit,
   editMsg, editNama, blockUser, inviteToPrivate, setPopupMsg, applyCensor, scrollToMessage, formatMessageTime
@@ -114,13 +114,14 @@ export default function MessageItem({
         <div className="flex items-center gap-2 text-[10px] shrink-0 pb-0.5">
           {!isMinimized && <button onClick={() => handleReply(m)} className={`font-bold underline mr-1 transition-colors ${colType === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'}`}>Balas</button>}
           
+          {/* Menu Admin */}
           {activeTab === 'admin' && (
             <div className="relative">
               <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === m.id ? null : m.id); }} className="text-gray-500 hover:text-gray-800 text-base font-bold px-2 py-1 rounded hover:bg-gray-200 transition-colors">⋮</button>
               {activeMenuId === m.id && (
                 <>
                   <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
-                  <div className={`absolute right-0 ${index < 3 ? 'top-full mt-2' : 'bottom-full mb-2'} w-48 bg-white border border-gray-200 shadow-2xl rounded-xl z-30 py-2 flex flex-col gap-0.5 animate-fade-in`}>
+                  <div className="absolute right-0 bottom-full mb-2 w-48 bg-white border border-gray-200 shadow-2xl rounded-xl z-30 py-2 flex flex-col gap-0.5 animate-fade-in">
                     <button onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-blue-600 hover:bg-gray-50">✏️ Edit Teks</button>
                     <button onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-purple-600 hover:bg-gray-50">👤 Edit Nama</button>
                     <button onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-gray-50">🗑️ Hapus Pesan</button>
