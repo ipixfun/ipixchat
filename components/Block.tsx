@@ -11,7 +11,7 @@ export default function Block({
   formatMessageTime
 }: any) {
   return (
-    <div className="min-h-full bg-gradient-to-br from-emerald-950 via-blue-950 to-emerald-950 text-white">
+    <div className="min-h-full w-full bg-gradient-to-br from-emerald-950 via-blue-950 to-emerald-950 text-white">
       <div className="sticky top-0 bg-gradient-to-br from-emerald-950 to-blue-950 border-b border-white/10 z-20 p-6">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <div>
@@ -23,8 +23,8 @@ export default function Block({
       </div>
       <div className="p-6 max-w-5xl mx-auto space-y-8 pb-20">
         <section className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-6">
-          <h3 className="text-xl font-semibold mb-5 flex items-center gap-3">👤 User Terblokir <span className="text-sm font-normal text-white/50">({blockedList.length})</span></h3>
-          {blockedList.length === 0 ? <p className="text-white/50 italic py-12 text-center">Belum ada user yang diblokir.</p> : (
+          <h3 className="text-xl font-semibold mb-5 flex items-center gap-3">👤 User Terblokir <span className="text-sm font-normal text-white/50">({blockedList?.length || 0})</span></h3>
+          {!blockedList || blockedList.length === 0 ? <p className="text-white/50 italic py-12 text-center">Belum ada user yang diblokir.</p> : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {blockedList.map((b: any) => (
                 <div key={b.device_id} onClick={() => unblock(b.device_id)} className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-red-500/50 p-5 rounded-2xl cursor-pointer transition-all flex justify-between items-start">
@@ -42,7 +42,7 @@ export default function Block({
             <button onClick={addBlockedWord} className="bg-red-600 hover:bg-red-700 text-white px-10 rounded-2xl font-semibold transition-all active:scale-95">Tambah</button>
           </div>
           <div className="flex flex-wrap gap-3">
-            {blockedWords.length === 0 ? <p className="text-white/50 italic py-8">Belum ada kata yang diblokir.</p> : blockedWords.sort((a: any, b: any) => a.localeCompare(b)).map((word: any, idx: number) => (
+            {!blockedWords || blockedWords.length === 0 ? <p className="text-white/50 italic py-8">Belum ada kata yang diblokir.</p> : blockedWords.sort((a: any, b: any) => a.localeCompare(b)).map((word: any, idx: number) => (
               <div key={idx} className="group flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/30 px-5 py-2.5 rounded-2xl text-sm transition-all"><span className="font-medium text-white">{word}</span><button onClick={() => removeBlockedWord(word)} className="text-white/50 hover:text-red-400 text-xl leading-none">×</button></div>
             ))}
           </div>

@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { supabase } from './supabaseClient';
 import Login from '../components/Login';
-import Block from '../components/Block';
+import Block from '../components/Block'; // Import Default
 import MessageItem from '../components/MessageItem';
 import ChatLayout from '../components/ChatLayout';
 
@@ -12,7 +12,6 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [msgs, setMsgs] = useState({ all: [] as any[], pub: [] as any[], priv: [] as any[] });
   const [auth, setAuth] = useState({ isAuth: false, isExist: false, user: '', adminEmail: '', adminPass: '' });
-  // Hapus twoCol dan expanded, sisakan hanya mode aktif (untuk form input)
   const [ui, setUi] = useState({ tab: 'user' as 'user'|'admin', mode: 'public' as 'public'|'private', inputFocus: false });
   const [counts, setCounts] = useState({ pub: 0, priv: 0 });
   const [adminStat, setAdminStat] = useState({ online: false, offlineTime: '' });
@@ -49,24 +48,32 @@ export default function Home() {
     if (!currentDeviceId) return;
     try {
       const [{ data: bD }, { data: bW }, { data: pD }, { data: prD }] = await Promise.all([
-        supabase.from('blocked_users').select('*'), supabase.from('blocked_words').select('word'), supabase.from('messages').select('*').eq('is_private', false).order('created_at', { ascending: true }),
+        supabase.from('blocked_users').select('*'), 
+        supabase.from('blocked_words').select('word'), 
+        supabase.from('messages').select('*').eq('is_private', false).order('created_at', { ascending: true }),
         supabase.from('messages').select('*').eq('is_private', true).or(ui.tab === 'user' ? `device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}` : usersInfo.selPriv ? `device_id.eq.${usersInfo.selPriv},private_with.eq.${usersInfo.selPriv}` : 'device_id.eq.none').order('created_at', { ascending: true })
       ]);
+      
       if (bW) setCensor(p => ({ ...p, words: bW.map(w => w.word) }));
+      
       if (auth.isAuth) {
         const [{ count: pubC }, { count: privC }] = await Promise.all([supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', false), supabase.from('messages').select('*', { count: 'exact', head: true }).eq('is_private', true).or(ui.tab === 'user' ? `device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}` : `id.gt.0`)]);
         setCounts({ pub: pubC || 0, priv: privC || 0 });
       }
+      
       if (bD?.some(b => b.device_id === currentDeviceId)) return window.location.replace("https://ipix.my.id/chat");
+      
       const vPub = pD?.filter(m => !bD?.map(b => b.device_id).includes(m.device_id)) || [];
       const vPriv = prD?.filter(m => !bD?.map(b => b.device_id).includes(m.device_id)) || [];
       setMsgs({ all: [...vPub, ...vPriv], pub: vPub, priv: vPriv });
       
       const lAdmin = [...vPub, ...vPriv].filter(m => m.username === 'Admin●ipix.my.id').pop();
       if (lAdmin) setAdminStat({ online: Date.now() - new Date(lAdmin.created_at).getTime() < 300000, offlineTime: getFmt.ago(new Date(lAdmin.created_at)) });
+      
       const sMap: Record<string, any> = {};
       [...vPub, ...vPriv].forEach(m => { if(m.username !== 'Admin●ipix.my.id') sMap[m.username] = { online: Date.now() - new Date(m.created_at).getTime() < 300000, offlineTime: getFmt.ago(new Date(m.created_at)) }; });
-      setUsersInfo(p => ({ ...p, status: sMap }));
+      
+      setUsersInfo(p => ({ ...p, status: sMap, blockedList: bD || [] }));
       
       if (ui.tab === 'admin' && !usersInfo.selPriv) {
         const { data: aP } = await supabase.from('messages').select('device_id, username, created_at').eq('is_private', true).order('created_at', { ascending: false });
@@ -97,11 +104,18 @@ export default function Home() {
     }; chk();
   }, [pathname]);
 
-  useEffect(() => { if (!mounted) return; fetchData(); const c = supabase.channel('chat').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchData).subscribe(); return () => { void supabase.removeChannel(c); }; }, [mounted, fetchData]);
-
   const sendMsg = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!input.text.trim() || input.sending) return; setInput(p => ({ ...p, sending: true }));
+    e.preventDefault(); 
+    if (!input.text.trim() || input.sending) return; 
+    
+    if (isCensored(input.text)) {
+      alert("Pesan gagal dikirim karena mengandung kata terlarang!");
+      return;
+    }
+    
+    setInput(p => ({ ...p, sending: true }));
     let txt = interact.replyTo ? `@${interact.replyTo.username.split('●')[0]} ("${interact.replyTo.pesan.substring(0,30)}...") ${input.text.trim()}` : input.text.trim();
+    
     if (auth.user !== 'Admin●ipix.my.id') {
       const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('device_id', currentDeviceId || 'guest').gte('created_at', new Date(Date.now() - 300000).toISOString());
       if (count && count >= 5) { alert("Batas 5 pesan per 5 menit."); setInput(p => ({ ...p, sending: false })); return; }
@@ -116,7 +130,7 @@ export default function Home() {
     editNm: async (id: number) => { const m = msgs.all.find(m => m.id === id); if(!m) return; const nn = prompt("Nama:", m.username); if(nn && isCensored(nn)) return alert("Terlarang!"); if(nn) { await Promise.all([supabase.from('profiles').update({ username: nn }).eq('device_id', m.device_id), supabase.from('messages').update({ username: nn }).eq('device_id', m.device_id)]); fetchData(); } },
     delMsg: async (id: number) => { await supabase.from('messages').delete().eq('id', id); fetchData(); },
     blkUser: async (id: string, nm: string) => { if(confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: nm }]); fetchData(); } },
-    addWrd: async () => { if(censor.newWord.trim()) { await supabase.from('blocked_words').insert([{ word: censor.newWord.trim() }]); setCensor(p => ({ ...p, newWord: '' })); fetchData(); } },
+    addWrd: async () => { if(censor.newWord.trim()) { await supabase.from('blocked_words').insert([{ word: censor.newWord.trim().toLowerCase() }]); setCensor(p => ({ ...p, newWord: '' })); fetchData(); } },
     rmWrd: async (w: string) => { await supabase.from('blocked_words').delete().eq('word', w); fetchData(); }
   };
 
@@ -150,18 +164,22 @@ export default function Home() {
       
       {auth.isAuth && currentHash !== '#block' && <div onMouseDown={e => { setRefresh(p => ({ ...p, drag: true, hover: true })); dragRef.current = { x: e.clientX, y: e.clientY, initX: refresh.pos.x, initY: refresh.pos.y, dragged: false }; }} onTouchStart={e => { setRefresh(p => ({ ...p, drag: true, hover: true })); dragRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, initX: refresh.pos.x, initY: refresh.pos.y, dragged: false }; }} className={`fixed z-[100] px-2.5 py-1 rounded-full font-black text-black tracking-widest text-[9px] cursor-pointer select-none transition-opacity duration-500 bg-yellow-400 border border-yellow-500 ${refresh.hover || refresh.drag ? 'opacity-100 shadow-[0_3px_0_#a16207,0_6px_10px_rgba(0,0,0,0.4)]' : 'opacity-40 shadow-[0_2px_0_#a16207]'} backdrop-blur-sm`} style={{ left: refresh.pos.x, top: refresh.pos.y, touchAction: 'none' }}>REFRESH</div>}
 
-      {!auth.isAuth ? <Login activeTab={ui.tab} username={auth.user} setUsername={(u:string)=>setAuth(p=>({...p,user:u}))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e:string)=>setAuth(p=>({...p,adminEmail:e}))} adminPass={auth.adminPass} setAdminPass={(ps:string)=>setAuth(p=>({...p,adminPass:ps}))} handleUserLogin={async () => { 
+      {!auth.isAuth ? <Login activeTab={ui.tab} username={auth.user} setUsername={(u:string)=>setAuth(p=>({...p,user:u}))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e:string)=>setAuth(p=>({...p,adminEmail:e}))} adminPass={auth.adminPass} setAdminPass={(ps:string)=>setAuth(p=>({...p,adminPass:ps}))} 
+        handleUserLogin={async () => { 
           if(!auth.user.trim() || isCensored(auth.user)) return alert("Nama tidak valid"); 
           try { 
-            // Cek Username Ganda
-            const { data: existUser } = await supabase.from('profiles').select('device_id').eq('username', auth.user.trim()).single();
+            const { data: existUser, error } = await supabase.from('profiles').select('device_id').ilike('username', auth.user.trim()).maybeSingle();
+            
             if (existUser && existUser.device_id !== (currentDeviceId || 'guest')) {
                return alert("Username sudah digunakan orang lain. Silakan pilih username yang berbeda.");
             }
             await supabase.from('profiles').upsert({ device_id: currentDeviceId||'guest', username: auth.user.trim(), user_browser: navigator.userAgent }, { onConflict: 'device_id' }); 
-          } catch(e){} 
+          } catch(e) {
+            console.error(e);
+          } 
           setAuth(p=>({...p,isAuth:true})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username',auth.user.trim()); sessionStorage.setItem('active_tab','user'); 
-        }} handleAdminLogin={async () => { const { error } = await supabase.auth.signInWithPassword({ email: auth.adminEmail, password: auth.adminPass }); if (error) alert("Gagal"); else { setAuth(p=>({...p,isAuth:true,user:'Admin●ipix.my.id'})); setUi(p=>({...p,tab:'admin'})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username','Admin●ipix.my.id'); sessionStorage.setItem('active_tab','admin'); } }} /> : (
+        }} 
+        handleAdminLogin={async () => { const { error } = await supabase.auth.signInWithPassword({ email: auth.adminEmail, password: auth.adminPass }); if (error) alert("Gagal"); else { setAuth(p=>({...p,isAuth:true,user:'Admin●ipix.my.id'})); setUi(p=>({...p,tab:'admin'})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username','Admin●ipix.my.id'); sessionStorage.setItem('active_tab','admin'); } }} /> : (
         <>
           {currentHash !== '#block' && (
             <div className={`sticky top-0 z-20 p-3 border-b border-white/40 ${ui.mode === 'public' ? 'bg-gradient-to-b from-blue-100 to-white' : 'bg-gradient-to-b from-emerald-100 to-white'}`}>
@@ -206,7 +224,6 @@ export default function Home() {
                   <span className={`px-2 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === 'Admin●ipix.my.id' ? 'bg-red-500' : interact.popup.is_private ? 'bg-emerald-500' : 'bg-blue-500'}`}>{interact.popup.username}</span>
                   <span className="text-[10px] text-gray-400">{getFmt.time(interact.popup.created_at)}</span>
                 </div>
-                {/* Format Text Menurun (break-words, flex-col, pre-wrap) */}
                 <div className="overflow-y-auto pr-2 pb-2 text-sm text-black flex flex-col break-words break-all whitespace-pre-wrap">
                   {applyCensor(interact.popup.pesan)}
                 </div>
