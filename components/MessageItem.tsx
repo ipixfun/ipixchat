@@ -113,23 +113,22 @@ export default function MessageItem({
         
         <div className="flex items-center gap-2 text-[10px] shrink-0 pb-0.5">
           {!isMinimized && <button onClick={() => handleReply(m)} className={`font-bold underline mr-1 transition-colors ${colType === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'}`}>Balas</button>}
+          
+          {/* Menu Dropdown Admin yang Baru */}
           {activeTab === 'admin' && (
             <div className="relative flex items-center">
               {activeMenuId === m.id && (
-                <div className="absolute right-6 bottom-0 bg-white border border-gray-200 shadow-lg rounded-full px-3 py-1.5 flex items-center gap-2.5 z-30 animate-fade-in whitespace-nowrap bg-opacity-95 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
-                  {isTwoColumnMode ? (
+                <div className="absolute right-6 bottom-0 bg-white border border-gray-200 shadow-xl rounded-lg px-4 py-3 flex flex-col items-start gap-3 z-30 animate-fade-in whitespace-nowrap bg-opacity-95 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
+                  <button onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="text-blue-600 font-bold hover:underline">✏️ Edit Teks</button>
+                  <button onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="text-purple-600 font-bold hover:underline">👤 Edit Nama</button>
+                  <button onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="text-red-600 font-bold hover:underline">🗑️ Hapus Pesan</button>
+                  <button onClick={() => { copyToClipboard(m.pesan, 'Pesan'); setActiveMenuId(null); }} className="text-gray-700 font-bold hover:underline">📋 Salin Teks</button>
+                  
+                  {!m.username.includes('Admin') && (
                     <>
-                      <button onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="text-blue-600 font-bold hover:underline">Edit</button>
-                      <button onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="text-purple-600 font-bold hover:underline">Nama</button>
-                      <button onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="text-red-600 font-bold hover:underline">Hapus</button>
-                      {!m.username.includes('Admin') && (
-                        <><button onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="text-gray-500 font-bold hover:underline">Blokir</button><button onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="text-emerald-600 font-bold hover:underline">Private</button></>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <button onClick={() => { copyToClipboard(m.pesan, 'Pesan'); setActiveMenuId(null); }} className="text-gray-700 font-bold hover:underline">Salin</button>
-                      <button onClick={() => { handleReply(m); setActiveMenuId(null); }} className="text-blue-600 font-bold hover:underline">Balas</button>
+                      <hr className="w-full border-gray-200 my-0.5" />
+                      <button onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="text-gray-500 font-bold hover:underline">🚫 Blokir User</button>
+                      <button onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="text-emerald-600 font-bold hover:underline">🔒 Chat Private</button>
                     </>
                   )}
                 </div>
