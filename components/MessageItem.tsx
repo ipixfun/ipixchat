@@ -3,7 +3,7 @@ import React, { useRef, useState } from 'react';
 
 export default function MessageItem({
   m, colType, isMinimized, currentDeviceId, activeTab, isAdminOnline, adminOfflineTime,
-  userStatus, isTwoColumnMode, activeMenuId, setActiveMenuId, longPressId, setLongPressId,
+  userStatus, activeMenuId, setActiveMenuId, longPressId, setLongPressId,
   swipingId, setSwipingId, handleTag, handleReply, deleteMsg, copyToClipboard, handleEditLimit,
   editMsg, editNama, blockUser, inviteToPrivate, setPopupMsg, applyCensor, scrollToMessage, formatMessageTime
 }: any) {
@@ -20,7 +20,7 @@ export default function MessageItem({
 
   const borderColorClass = isMsgAdmin ? 'border-red-500' : isMsgMine ? (colType === 'private' ? 'border-emerald-500' : 'border-blue-500') : 'border-gray-300';
   const borderThicknessClass = isMsgAdmin ? 'border-b-[1px] border-r-[1px]' : 'border-b-[2.5px] border-r-[2.5px]';
-  const bgBubbleClass = m.is_private ? 'bg-emerald-50/90' : 'bg-blue-50/90';
+  const bgBubbleClass = m.is_private ? 'bg-emerald-50/95' : 'bg-blue-50/95';
 
   const renderContent = (text: string, isMin: boolean) => {
     const match = text.match(/^@(\w+)\s\("(.*?)"\)\s?(.*)$/);
@@ -29,7 +29,7 @@ export default function MessageItem({
       const [_, user, quotedText, replyText] = match;
       return (
         <>
-          <div className={`text-[9px] text-gray-500 italic bg-gray-100 ${isMin ? 'p-1.5' : 'p-2'} rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 ${colType === 'private' ? 'border-emerald-500' : 'border-blue-500'}`} onClick={(e) => { e.stopPropagation(); scrollToMessage(quotedText); }}>
+          <div className={`text-[9px] text-gray-500 italic bg-white/70 ${isMin ? 'p-1.5' : 'p-2'} rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 ${colType === 'private' ? 'border-emerald-500' : 'border-blue-500'}`} onClick={(e) => { e.stopPropagation(); scrollToMessage(quotedText); }}>
             <span className="font-bold">@{user}</span>: "{applyCensor(quotedText)}"
           </div>
           <div className={`${textSize} text-gray-800 break-words`}>{applyCensor(replyText)}</div>
@@ -74,7 +74,7 @@ export default function MessageItem({
       style={{ transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)', transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
       
       {swipingId === m.id && Math.abs(swipeDelta) > 15 && (
-        <div className={`absolute top-1/2 -translate-y-1/2 font-bold text-xs pointer-events-none transition-opacity flex items-center justify-center ${swipeDelta > 0 ? '-left-8 text-red-500' : '-right-8 text-blue-500'}`}>
+        <div className={`absolute top-1/2 -translate-y-1/2 font-bold text-xs pointer-events-none transition-opacity flex items-center justify-center ${swipeDelta > 0 ? '-left-8 text-white' : '-right-8 text-white'}`}>
           {swipeDelta > 0 ? <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 stroke-current opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> : '↩'}
         </div>
       )}
@@ -88,21 +88,25 @@ export default function MessageItem({
 
       <div className={`flex justify-between items-start ${isMinimized ? 'mb-0.5' : 'mb-1'}`}>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <b onClick={() => handleTag(m.username)} className={`${isMsgAdmin ? 'text-red-600' : 'text-blue-700'} ${isMinimized ? 'text-[8px]' : 'text-[10px]'} cursor-pointer hover:underline`}>{m.username}</b>
-          {isMsgAdmin ? <span className={`text-[8px] px-1 rounded ${isAdminOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span> : userStatus[m.username] && <span className={`text-[8px] px-1 rounded ${userStatus[m.username].online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>}
-          {m.is_private && !isMinimized && <span className={`text-[10px] ${isMsgAdmin ? 'text-red-500' : 'text-emerald-500'}`}>🔒 Private</span>}
+          {/* Implementasi Pill Username */}
+          <b onClick={() => handleTag(m.username)} className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMsgAdmin ? 'bg-red-500' : (colType === 'private' ? 'bg-emerald-500' : 'bg-blue-500')} ${isMinimized ? 'text-[8px]' : 'text-[10px]'}`}>
+            {m.username}
+          </b>
+          {isMsgAdmin ? <span className={`text-[8px] px-1 rounded bg-white/50 text-gray-700`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span> : userStatus[m.username] && <span className={`text-[8px] px-1 rounded bg-white/50 text-gray-700`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>}
+          {m.is_private && !isMinimized && <span className={`text-[10px] ${isMsgAdmin ? 'text-red-500' : 'text-emerald-600'}`}>🔒 Private</span>}
           {isEdited && <span className="text-yellow-600 text-[9px] italic font-medium ml-1">(edited)</span>}
         </div>
         <span className="text-[8px] text-gray-400 font-medium">{formatMessageTime(m.created_at)}</span>
       </div>
       
-      <div className={`mt-1 min-w-0 break-words whitespace-pre-wrap ${isTwoColumnMode ? 'line-clamp-4 cursor-pointer hover:bg-black/5 transition-colors rounded' : ''}`} onClick={(e) => { if (isTwoColumnMode) { e.stopPropagation(); setPopupMsg(m); } }}>
+      {/* Container teks di set ke line-clamp agar bisa menjadi pemicu popup di antarmuka 2 kolom (isMinimized true) */}
+      <div className={`mt-1 min-w-0 break-words whitespace-pre-wrap line-clamp-4 cursor-pointer hover:bg-black/5 transition-colors rounded`} onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }}>
         {renderContent(m.pesan, isMinimized)}
       </div>
       
-      <div className={`${isMinimized ? 'mt-1 pt-1' : 'mt-2 pt-2'} border-t border-gray-200 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
+      <div className={`${isMinimized ? 'mt-1 pt-1' : 'mt-2 pt-2'} border-t border-black/10 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
         <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end">
-          {m.is_private && isMinimized && <span className={`text-[8px] font-bold ${isMsgAdmin ? 'text-red-500' : 'text-emerald-500'}`}>🔒 Private</span>}
+          {m.is_private && isMinimized && <span className={`text-[8px] font-bold ${isMsgAdmin ? 'text-red-500' : 'text-emerald-600'}`}>🔒 Private</span>}
           {activeTab === 'admin' && (
             <div className="flex flex-col gap-1 text-[8px] text-gray-400 font-sans w-full">
               <span className="text-blue-600 font-mono cursor-pointer hover:underline break-all leading-tight" onClick={() => copyToClipboard(m.device_id, 'Device ID')}>ID: {m.device_id}</span>
@@ -117,7 +121,7 @@ export default function MessageItem({
           {/* Menu Admin */}
           {activeTab === 'admin' && (
             <div className="relative">
-              <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === m.id ? null : m.id); }} className="text-gray-500 hover:text-gray-800 text-base font-bold px-2 py-1 rounded hover:bg-gray-200 transition-colors">⋮</button>
+              <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === m.id ? null : m.id); }} className="text-gray-500 hover:text-gray-800 text-base font-bold px-2 py-1 rounded hover:bg-white/50 transition-colors">⋮</button>
               {activeMenuId === m.id && (
                 <>
                   <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />

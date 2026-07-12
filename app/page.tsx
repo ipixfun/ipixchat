@@ -12,7 +12,8 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [msgs, setMsgs] = useState({ all: [] as any[], pub: [] as any[], priv: [] as any[] });
   const [auth, setAuth] = useState({ isAuth: false, isExist: false, user: '', adminEmail: '', adminPass: '' });
-  const [ui, setUi] = useState({ tab: 'user' as 'user'|'admin', mode: 'public' as 'public'|'private', expanded: false, twoCol: false, inputFocus: false });
+  // Hapus twoCol dan expanded, sisakan hanya mode aktif (untuk form input)
+  const [ui, setUi] = useState({ tab: 'user' as 'user'|'admin', mode: 'public' as 'public'|'private', inputFocus: false });
   const [counts, setCounts] = useState({ pub: 0, priv: 0 });
   const [adminStat, setAdminStat] = useState({ online: false, offlineTime: '' });
   const [usersInfo, setUsersInfo] = useState({ status: {} as Record<string, any>, blockedList: [] as any[], privUsers: [] as any[], selPriv: null as string|null });
@@ -25,17 +26,14 @@ export default function Home() {
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
   const [refresh, setRefresh] = useState({ pos: { x: 20, y: 100 }, drag: false, hover: false });
   const dragRef = useRef({ x: 0, y: 0, initX: 0, initY: 0, dragged: false });
-  const refs = { expandTimer: useRef<NodeJS.Timeout | null>(null), refTimer: useRef<NodeJS.Timeout | null>(null) };
+  const refs = { refTimer: useRef<NodeJS.Timeout | null>(null) };
 
   useEffect(() => { if (typeof window !== 'undefined') setRefresh(p => ({ ...p, pos: { x: window.innerWidth - 80, y: window.innerHeight - 180 } })); }, []);
 
   const handleInteraction = useCallback((m: 'public' | 'private') => {
-    setUi(p => ({ ...p, mode: m, expanded: true }));
-    if (refs.expandTimer.current) clearTimeout(refs.expandTimer.current);
-    if (!ui.inputFocus && !input.text.trim()) refs.expandTimer.current = setTimeout(() => setUi(p => ({ ...p, expanded: false })), 60000);
-  }, [ui.inputFocus, input.text]);
+    setUi(p => ({ ...p, mode: m }));
+  }, []);
 
-  useEffect(() => { if (ui.inputFocus || input.text.trim()) { setUi(p => ({ ...p, expanded: true })); if (refs.expandTimer.current) clearTimeout(refs.expandTimer.current); } else handleInteraction(ui.mode); }, [ui.inputFocus, input.text, handleInteraction, ui.mode]);
   useEffect(() => { if (pill.pause) return; const i = setInterval(() => setPill(p => ({ ...p, idx: p.idx === 0 ? 1 : 0 })), 5000); return () => clearInterval(i); }, [pill.pause]);
 
   const hScroll = () => setInteract(p => ({ ...p, longPress: null, activeMenu: null }));
@@ -130,19 +128,17 @@ export default function Home() {
   const hRefreshEnd = useCallback(() => { if (refresh.drag) { setRefresh(p => ({ ...p, drag: false })); if(refs.refTimer.current) clearTimeout(refs.refTimer.current); refs.refTimer.current = setTimeout(() => setRefresh(p => ({ ...p, hover: false })), 2000); if (!dragRef.current.dragged) fetchData(); } }, [refresh.drag, fetchData]);
   useEffect(() => { const tm=(e: TouchEvent)=>hRefreshMove(e.touches[0].clientX, e.touches[0].clientY); const mm=(e: MouseEvent)=>hRefreshMove(e.clientX, e.clientY); if(refresh.drag){ window.addEventListener('touchmove', tm, {passive:false}); window.addEventListener('mousemove', mm); window.addEventListener('touchend', hRefreshEnd); window.addEventListener('mouseup', hRefreshEnd); } return () => { window.removeEventListener('touchmove', tm); window.removeEventListener('mousemove', mm); window.removeEventListener('touchend', hRefreshEnd); window.removeEventListener('mouseup', hRefreshEnd); }; }, [refresh.drag, hRefreshMove, hRefreshEnd]);
 
-  const renderMsgs = (arr: any[], colType: any, isMin: boolean) => arr.length === 0 ? <div className="text-center text-gray-400 italic mt-10 text-[10px]">Belum ada pesan.</div> : arr.map((m, idx) => {
-    const isTruncated = ui.twoCol && m.pesan.length > 150;
+  const renderMsgs = (arr: any[], colType: any) => arr.length === 0 ? <div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div> : arr.map((m, idx) => {
+    const isTruncated = m.pesan.length > 150;
     const modifiedMsg = isTruncated ? { ...m, pesan: m.pesan.substring(0, 150) + '... \n\n[Klik untuk selengkapnya]' } : m;
 
     return (
       <div 
         key={m.id} 
-        className={`relative w-full group ${ui.twoCol ? 'cursor-pointer' : ''}`} 
-        onClick={() => { 
-          if (ui.twoCol) setInteract(p => ({...p, popup: m})) 
-        }}
+        className={`relative w-full group cursor-pointer`} 
+        onClick={() => { setInteract(p => ({...p, popup: m})) }}
       >
-        <MessageItem index={idx} m={modifiedMsg} colType={colType} isMinimized={isMin} currentDeviceId={currentDeviceId} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} isTwoColumnMode={ui.twoCol} activeMenuId={interact.activeMenu} setActiveMenuId={(id:any)=>setInteract(p=>({...p,activeMenu:id}))} longPressId={interact.longPress} setLongPressId={(id:any)=>setInteract(p=>({...p,longPress:id}))} swipingId={interact.swipeId} setSwipingId={(id:any)=>setInteract(p=>({...p,swipeId:id}))} handleTag={(u:string)=>setInput(p=>({...p,text:`${p.text} @${u.split('●')[0]} `}))} handleReply={(m:any)=>{setInteract(p=>({...p,replyTo:m})); setInput(p=>({...p,blink:true})); setTimeout(()=>setInput(p=>({...p,blink:false})),800);}} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} editNama={dbActions.editNm} blockUser={dbActions.blkUser} inviteToPrivate={(id:string)=>{handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:id}));}} setPopupMsg={(m:any)=>setInteract(p=>({...p,popup:m}))} applyCensor={applyCensor} scrollToMessage={(t:string)=>{const x=msgs.all.find(x=>x.pesan.includes(t)); if(x) scrollMsg(x.id);}} formatMessageTime={getFmt.time} />
+        <MessageItem index={idx} m={modifiedMsg} colType={colType} isMinimized={true} currentDeviceId={currentDeviceId} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} activeMenuId={interact.activeMenu} setActiveMenuId={(id:any)=>setInteract(p=>({...p,activeMenu:id}))} longPressId={interact.longPress} setLongPressId={(id:any)=>setInteract(p=>({...p,longPress:id}))} swipingId={interact.swipeId} setSwipingId={(id:any)=>setInteract(p=>({...p,swipeId:id}))} handleTag={(u:string)=>setInput(p=>({...p,text:`${p.text} @${u.split('●')[0]} `}))} handleReply={(m:any)=>{setInteract(p=>({...p,replyTo:m})); setInput(p=>({...p,blink:true})); setTimeout(()=>setInput(p=>({...p,blink:false})),800);}} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} editNama={dbActions.editNm} blockUser={dbActions.blkUser} inviteToPrivate={(id:string)=>{handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:id}));}} setPopupMsg={(m:any)=>setInteract(p=>({...p,popup:m}))} applyCensor={applyCensor} scrollToMessage={(t:string)=>{const x=msgs.all.find(x=>x.pesan.includes(t)); if(x) scrollMsg(x.id);}} formatMessageTime={getFmt.time} />
       </div>
     );
   });
@@ -154,7 +150,18 @@ export default function Home() {
       
       {auth.isAuth && currentHash !== '#block' && <div onMouseDown={e => { setRefresh(p => ({ ...p, drag: true, hover: true })); dragRef.current = { x: e.clientX, y: e.clientY, initX: refresh.pos.x, initY: refresh.pos.y, dragged: false }; }} onTouchStart={e => { setRefresh(p => ({ ...p, drag: true, hover: true })); dragRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, initX: refresh.pos.x, initY: refresh.pos.y, dragged: false }; }} className={`fixed z-[100] px-2.5 py-1 rounded-full font-black text-black tracking-widest text-[9px] cursor-pointer select-none transition-opacity duration-500 bg-yellow-400 border border-yellow-500 ${refresh.hover || refresh.drag ? 'opacity-100 shadow-[0_3px_0_#a16207,0_6px_10px_rgba(0,0,0,0.4)]' : 'opacity-40 shadow-[0_2px_0_#a16207]'} backdrop-blur-sm`} style={{ left: refresh.pos.x, top: refresh.pos.y, touchAction: 'none' }}>REFRESH</div>}
 
-      {!auth.isAuth ? <Login activeTab={ui.tab} username={auth.user} setUsername={(u:string)=>setAuth(p=>({...p,user:u}))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e:string)=>setAuth(p=>({...p,adminEmail:e}))} adminPass={auth.adminPass} setAdminPass={(ps:string)=>setAuth(p=>({...p,adminPass:ps}))} handleUserLogin={async () => { if(!auth.user.trim() || isCensored(auth.user)) return alert("Nama tidak valid"); try { await supabase.from('profiles').upsert({ device_id: currentDeviceId||'guest', username: auth.user.trim(), user_browser: navigator.userAgent }, { onConflict: 'device_id' }); } catch(e){} setAuth(p=>({...p,isAuth:true})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username',auth.user.trim()); sessionStorage.setItem('active_tab','user'); }} handleAdminLogin={async () => { const { error } = await supabase.auth.signInWithPassword({ email: auth.adminEmail, password: auth.adminPass }); if (error) alert("Gagal"); else { setAuth(p=>({...p,isAuth:true,user:'Admin●ipix.my.id'})); setUi(p=>({...p,tab:'admin'})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username','Admin●ipix.my.id'); sessionStorage.setItem('active_tab','admin'); } }} /> : (
+      {!auth.isAuth ? <Login activeTab={ui.tab} username={auth.user} setUsername={(u:string)=>setAuth(p=>({...p,user:u}))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e:string)=>setAuth(p=>({...p,adminEmail:e}))} adminPass={auth.adminPass} setAdminPass={(ps:string)=>setAuth(p=>({...p,adminPass:ps}))} handleUserLogin={async () => { 
+          if(!auth.user.trim() || isCensored(auth.user)) return alert("Nama tidak valid"); 
+          try { 
+            // Cek Username Ganda
+            const { data: existUser } = await supabase.from('profiles').select('device_id').eq('username', auth.user.trim()).single();
+            if (existUser && existUser.device_id !== (currentDeviceId || 'guest')) {
+               return alert("Username sudah digunakan orang lain. Silakan pilih username yang berbeda.");
+            }
+            await supabase.from('profiles').upsert({ device_id: currentDeviceId||'guest', username: auth.user.trim(), user_browser: navigator.userAgent }, { onConflict: 'device_id' }); 
+          } catch(e){} 
+          setAuth(p=>({...p,isAuth:true})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username',auth.user.trim()); sessionStorage.setItem('active_tab','user'); 
+        }} handleAdminLogin={async () => { const { error } = await supabase.auth.signInWithPassword({ email: auth.adminEmail, password: auth.adminPass }); if (error) alert("Gagal"); else { setAuth(p=>({...p,isAuth:true,user:'Admin●ipix.my.id'})); setUi(p=>({...p,tab:'admin'})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username','Admin●ipix.my.id'); sessionStorage.setItem('active_tab','admin'); } }} /> : (
         <>
           {currentHash !== '#block' && (
             <div className={`sticky top-0 z-20 p-3 border-b border-white/40 ${ui.mode === 'public' ? 'bg-gradient-to-b from-blue-100 to-white' : 'bg-gradient-to-b from-emerald-100 to-white'}`}>
@@ -164,16 +171,15 @@ export default function Home() {
                 <div className="text-center flex-1 flex flex-col items-end mr-16"><a href="https://ipix.my.id" target="_blank" className="text-emerald-600 font-bold text-sm underline">ipix.my.id</a>{ui.tab === 'user' && <div className="text-[10px] text-gray-500 mt-0.5"><span className={`inline-block w-2 h-2 rounded-full ${adminStat.online ? 'bg-green-500' : 'bg-gray-400'}`}></span>{adminStat.online ? ' Admin Online' : ` Offline • ${adminStat.offlineTime}`}</div>}</div>
               </div>
               <div className="flex mt-3 bg-white border border-gray-200 rounded-full p-1 shadow-sm w-full relative">
-                <button onClick={() => { if(ui.mode!=='public' || !ui.expanded || ui.twoCol) { handleInteraction('public'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); } }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 ${ui.mode === 'public' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}><div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.pub)}</span></div><span className="ml-2 sm:ml-4">🌐 Public Chat</span></button>
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30"><button onClick={e => { e.stopPropagation(); setUi(p => ({ ...p, twoCol: !p.twoCol })); }} className="bg-white border shadow-sm rounded-full px-2.5 py-1 active:scale-95"><span className="text-[8px] md:text-[9px] font-bold uppercase bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-blue-500">{ui.twoCol ? 'Mode 2 Kolom' : 'Mode 1 Kolom'}</span></button></div>
-                <button onClick={() => { if(ui.mode!=='private' || !ui.expanded || ui.twoCol) { handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); } }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 ${ui.mode === 'private' ? 'bg-emerald-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}><span className="mr-2 sm:mr-4">🔒 Chat private</span><div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'private' ? 'bg-white text-emerald-600' : 'bg-emerald-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.priv)}</span></div></button>
+                <button onClick={() => { handleInteraction('public'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 ${ui.mode === 'public' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}><div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.pub)}</span></div><span className="ml-2 sm:ml-4">🌐 Public Chat</span></button>
+                <button onClick={() => { handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 ${ui.mode === 'private' ? 'bg-emerald-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}><span className="mr-2 sm:mr-4">🔒 Chat private</span><div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'private' ? 'bg-white text-emerald-600' : 'bg-emerald-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.priv)}</span></div></button>
               </div>
             </div>
           )}
           
           <div className="flex-1 w-full relative bg-gray-50 flex overflow-hidden">
             {ui.tab === 'admin' && currentHash === '#block' ? <Block blockedList={usersInfo.blockedList} unblock={async (id: string)=>{await supabase.from('blocked_users').delete().eq('device_id', id); fetchData();}} blockedWords={censor.words} newBadWord={censor.newWord} setNewBadWord={(w:string)=>setCensor(p=>({...p,newWord:w}))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} /> : (
-              <ChatLayout cMode={ui.mode} is2Col={ui.twoCol} isExp={ui.expanded} hInteract={handleInteraction} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={msgs.pub} privMsgs={msgs.priv} isPill={pill.visible} pDelta={pill.delta} pTouchX={pill.startX} capIdx={pill.idx} setPTouchX={(x:number)=>setPill(p=>({...p,startX:x}))} setPDelta={(d:number)=>setPill(p=>({...p,delta:d}))} setCapPause={(v:boolean)=>setPill(p=>({...p,pause:v}))} setIsPill={(v:boolean)=>setPill(p=>({...p,visible:v}))} renderMsgs={renderMsgs} fmtTime={getFmt.time} setSelPriv={(u:string)=>setUsersInfo(p=>({...p,selPriv:u}))} />
+              <ChatLayout cMode={ui.mode} hInteract={handleInteraction} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={msgs.pub} privMsgs={msgs.priv} isPill={pill.visible} pDelta={pill.delta} pTouchX={pill.startX} capIdx={pill.idx} setPTouchX={(x:number)=>setPill(p=>({...p,startX:x}))} setPDelta={(d:number)=>setPill(p=>({...p,delta:d}))} setCapPause={(v:boolean)=>setPill(p=>({...p,pause:v}))} setIsPill={(v:boolean)=>setPill(p=>({...p,visible:v}))} renderMsgs={renderMsgs} fmtTime={getFmt.time} setSelPriv={(u:string)=>setUsersInfo(p=>({...p,selPriv:u}))} />
             )}
           </div>
           
@@ -196,9 +202,14 @@ export default function Home() {
             <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm" onClick={()=>setInteract(p=>({...p,popup:null}))}>
               <div className={`w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[85vh] flex flex-col ${interact.popup.is_private ? 'border-t-4 border-emerald-500' : 'border-t-4 border-blue-500'}`} onClick={e=>e.stopPropagation()}>
                 <button onClick={()=>setInteract(p=>({...p,popup:null}))} className="absolute top-3 right-3 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center font-bold active:scale-95">×</button>
-                <div className="flex items-center gap-2 border-b pb-3 mb-3"><span className={`font-bold ${interact.popup.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'}`}>{interact.popup.username}</span><span className="text-[10px] text-gray-400">{getFmt.time(interact.popup.created_at)}</span></div>
-                
-                <div className="overflow-y-auto pr-2 pb-2 text-sm text-black whitespace-pre-wrap">{applyCensor(interact.popup.pesan)}</div>
+                <div className="flex items-center gap-2 border-b pb-3 mb-3">
+                  <span className={`px-2 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === 'Admin●ipix.my.id' ? 'bg-red-500' : interact.popup.is_private ? 'bg-emerald-500' : 'bg-blue-500'}`}>{interact.popup.username}</span>
+                  <span className="text-[10px] text-gray-400">{getFmt.time(interact.popup.created_at)}</span>
+                </div>
+                {/* Format Text Menurun (break-words, flex-col, pre-wrap) */}
+                <div className="overflow-y-auto pr-2 pb-2 text-sm text-black flex flex-col break-words break-all whitespace-pre-wrap">
+                  {applyCensor(interact.popup.pesan)}
+                </div>
               </div>
             </div>
           )}
