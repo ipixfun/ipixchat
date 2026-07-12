@@ -21,20 +21,11 @@ export default function Home() {
   const [interact, setInteract] = useState({ replyTo: null as any, activeMenu: null as number|null, popup: null as any, swipeId: null as number|null, longPress: null as number|null });
   const [pill, setPill] = useState({ idx: 0 as 0|1, pause: false, visible: true, startX: 0, delta: 0 });
   
-  const [currentHash, setCurrentHash] = useState('');
+  const currentHash = typeof window !== 'undefined' ? window.location.hash : '';
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
   const [refresh, setRefresh] = useState({ pos: { x: 20, y: 100 }, drag: false, hover: false });
   const dragRef = useRef({ x: 0, y: 0, initX: 0, initY: 0, dragged: false });
   const refs = { refTimer: useRef<NodeJS.Timeout | null>(null) };
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setCurrentHash(window.location.hash);
-      const handleHashChange = () => setCurrentHash(window.location.hash);
-      window.addEventListener('hashchange', handleHashChange);
-      return () => window.removeEventListener('hashchange', handleHashChange);
-    }
-  }, []);
 
   useEffect(() => { if (typeof window !== 'undefined') setRefresh(p => ({ ...p, pos: { x: window.innerWidth - 80, y: window.innerHeight - 180 } })); }, []);
 
@@ -117,8 +108,17 @@ export default function Home() {
   useEffect(() => {
     if (mounted) {
       fetchData();
-      const messageSubscription = supabase.channel('public:messages').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => { fetchData(); }).subscribe();
-      return () => { supabase.removeChannel(messageSubscription); };
+
+      const messageSubscription = supabase
+        .channel('public:messages')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+          fetchData();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(messageSubscription);
+      };
     }
   }, [mounted, fetchData]);
 
@@ -181,16 +181,6 @@ export default function Home() {
       <style dangerouslySetInnerHTML={{ __html: ` body{overscroll-behavior-y:none;} @keyframes sL{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(-4px);opacity:1;}} @keyframes sR{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(4px);opacity:1;}} .anim-slide-left{animation:sL 1.4s ease-in-out infinite;} .anim-slide-right{animation:sR 1.4s ease-in-out infinite;} @keyframes bB{0%,100%{background:#fff;}50%{background:#e0f2fe;}} @keyframes bG{0%,100%{background:#fff;}50%{background:#d1fae5;}} .anim-bg-blink-blue{animation:bB 1.5s ease-in-out;} .anim-bg-blink-green{animation:bG 1.5s ease-in-out;} @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} .anim-text-blink-white{animation:tW 1.5s ease-in-out infinite;} @keyframes dL{0%{top:-50%;opacity:0;}15%,85%{opacity:1;}100%{top:100%;opacity:0;}} .animate-drop-line{animation:dL 2.5s cubic-bezier(0.4,0,0.2,1) infinite;} `}} />
       
       {auth.isAuth && currentHash !== '#block' && <div onMouseDown={e => { setRefresh(p => ({ ...p, drag: true, hover: true })); dragRef.current = { x: e.clientX, y: e.clientY, initX: refresh.pos.x, initY: refresh.pos.y, dragged: false }; }} onTouchStart={e => { setRefresh(p => ({ ...p, drag: true, hover: true })); dragRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, initX: refresh.pos.x, initY: refresh.pos.y, dragged: false }; }} className={`fixed z-[100] px-2.5 py-1 rounded-full font-black text-black tracking-widest text-[9px] cursor-pointer select-none transition-opacity duration-500 bg-yellow-400 border border-yellow-500 ${refresh.hover || refresh.drag ? 'opacity-100 shadow-[0_3px_0_#a16207,0_6px_10px_rgba(0,0,0,0.4)]' : 'opacity-40 shadow-[0_2px_0_#a16207]'} backdrop-blur-sm`} style={{ left: refresh.pos.x, top: refresh.pos.y, touchAction: 'none' }}>REFRESH</div>}
-
-      {/* FIX: Shortcut Pill Khusus Admin untuk Buka Tab Manajemen Block */}
-      {auth.isAuth && ui.tab === 'admin' && currentHash !== '#block' && (
-        <div 
-          onClick={() => window.open(`${window.location.pathname}#block`, '_blank')} 
-          className="fixed z-[100] bottom-28 right-4 px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-red-600 border border-red-700 shadow-[0_3px_0_#991b1b,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150"
-        >
-          BLOCK MGR
-        </div>
-      )}
 
       {!auth.isAuth ? <Login activeTab={ui.tab} username={auth.user} setUsername={(u:string)=>setAuth(p=>({...p,user:u}))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e:string)=>setAuth(p=>({...p,adminEmail:e}))} adminPass={auth.adminPass} setAdminPass={(ps:string)=>setAuth(p=>({...p,adminPass:ps}))} 
         handleUserLogin={async () => { 
