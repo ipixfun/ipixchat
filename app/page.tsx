@@ -104,10 +104,21 @@ export default function Home() {
     }; chk();
   }, [pathname]);
 
-  // FIX: Mengambil data otomatis dari Supabase ketika komponen selesai dimuat (mounted)
+  // Realtime Update Data
   useEffect(() => {
     if (mounted) {
       fetchData();
+
+      const messageSubscription = supabase
+        .channel('public:messages')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+          fetchData();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(messageSubscription);
+      };
     }
   }, [mounted, fetchData]);
 
@@ -189,7 +200,9 @@ export default function Home() {
             <div className={`sticky top-0 z-20 p-3 border-b border-white/40 ${ui.mode === 'public' ? 'bg-gradient-to-b from-blue-100 to-white' : 'bg-gradient-to-b from-emerald-100 to-white'}`}>
               <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full shadow">Keluar</button>
               <div className="flex justify-between items-center">
-                <div className="flex flex-col max-w-[65%]"><span className="text-[10px] text-gray-800 uppercase tracking-wider">{getFmt.greet()}</span><div className="flex items-center gap-1.5"><span className="text-[11px] font-bold text-blue-800">{auth.user}</span>{ui.tab === 'admin' && <span className="text-[9px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-mono truncate" title={currentDeviceId||''}>ID: {currentDeviceId}</span>}</div></div>
+                <div className="flex flex-col max-w-[65%]"><span className="text-[10px] text-gray-800 uppercase tracking-wider">{getFmt.greet()}</span>
+                  <div className="flex items-center gap-1.5 flex-wrap"><span className="text-[11px] font-bold text-blue-800">{auth.user}</span>{ui.tab === 'admin' && <span className="text-[9px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-mono break-all leading-tight">ID: {currentDeviceId}</span>}</div>
+                </div>
                 <div className="text-center flex-1 flex flex-col items-end mr-16"><a href="https://ipix.my.id" target="_blank" className="text-emerald-600 font-bold text-sm underline">ipix.my.id</a>{ui.tab === 'user' && <div className="text-[10px] text-gray-500 mt-0.5"><span className={`inline-block w-2 h-2 rounded-full ${adminStat.online ? 'bg-green-500' : 'bg-gray-400'}`}></span>{adminStat.online ? ' Admin Online' : ` Offline • ${adminStat.offlineTime}`}</div>}</div>
               </div>
               <div className="flex mt-3 bg-white border border-gray-200 rounded-full p-1 shadow-sm w-full relative">
@@ -208,14 +221,38 @@ export default function Home() {
           {currentHash !== '#block' && (
             <div className="bg-white sticky bottom-0 z-20 w-full flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
               {interact.replyTo && <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${ui.mode === 'private' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-blue-50 border-blue-300 text-blue-900'}`} onClick={() => scrollMsg(interact.replyTo.id)}><div className="truncate flex-1 pr-2"><span className="font-bold">Balas @{interact.replyTo.username.split('●')[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span></div><button onClick={(e)=>{e.stopPropagation();setInteract(p=>({...p,replyTo:null}));}} className="text-gray-400 font-bold px-1">×</button></div>}
+              
               <form onSubmit={sendMsg} className="p-2 sm:p-3 bg-white border-t border-gray-100 flex gap-2 items-end w-full relative transition-all duration-300">
                 <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
-                  <div className="text-[9px] text-gray-400 mb-1 px-1">{ui.mode === 'public' ? 'Chat publik mohon bijak' : 'Chat private admin'}</div>
-                  <textarea id="chat-input" onFocus={()=>setUi(p=>({...p,inputFocus:true}))} onBlur={()=>setUi(p=>({...p,inputFocus:false}))} className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm text-black resize-none focus:outline-none min-h-[32px] sm:min-h-[38px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${ui.mode === 'private' ? input.blink ? 'bg-emerald-600/30 border-emerald-500 ring-2 ring-emerald-400' : 'bg-emerald-600/10 border-emerald-500/20 focus:border-emerald-500 focus:bg-emerald-600/15' : input.blink ? 'bg-blue-600/30 border-blue-500 ring-2 ring-blue-400' : 'bg-blue-600/10 border-blue-500/20 focus:border-blue-500 focus:bg-blue-600/15'}`} value={input.text} onChange={e=>{setInput(p=>({...p,text:e.target.value})); e.target.style.height='auto'; e.target.style.height=`${Math.min(e.target.scrollHeight,100)}px`;}} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg(e as any);}}} placeholder="Ketik pesan..." maxLength={200} rows={1} disabled={input.sending} />
+                  <div className="text-[9px] text-gray-400 mb-1 px-1">
+                    {ui.mode === 'public' ? 'Chat publik mohon bijak' : (ui.tab === 'admin' && !usersInfo.selPriv ? 'Pilih obrolan di atas terlebih dahulu' : 'Chat private admin')}
+                  </div>
+                  
+                  <textarea 
+                    id="chat-input" 
+                    onFocus={()=>setUi(p=>({...p,inputFocus:true}))} 
+                    onBlur={()=>setUi(p=>({...p,inputFocus:false}))} 
+                    className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm text-black resize-none focus:outline-none min-h-[32px] sm:min-h-[38px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${ui.mode === 'private' ? input.blink ? 'bg-emerald-600/30 border-emerald-500 ring-2 ring-emerald-400' : 'bg-emerald-600/10 border-emerald-500/20 focus:border-emerald-500 focus:bg-emerald-600/15' : input.blink ? 'bg-blue-600/30 border-blue-500 ring-2 ring-blue-400' : 'bg-blue-600/10 border-blue-500/20 focus:border-blue-500 focus:bg-blue-600/15'} ${(ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv) ? 'opacity-50 cursor-not-allowed bg-gray-200' : ''}`} 
+                    value={input.text} 
+                    onChange={e=>{setInput(p=>({...p,text:e.target.value})); e.target.style.height='auto'; e.target.style.height=`${Math.min(e.target.scrollHeight,100)}px`;}} 
+                    onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg(e as any);}}} 
+                    placeholder={(ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv) ? "Pilih user terlebih dahulu..." : "Ketik pesan..."} 
+                    maxLength={200} 
+                    rows={1} 
+                    disabled={input.sending || (ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv)} 
+                  />
+                  
                   <div className="absolute right-3 bottom-1.5 text-[9px] text-gray-400 font-mono select-none opacity-80 bg-white/40 px-1 rounded">{200 - input.text.length}</div>
                 </div>
+                
                 <div className="relative shrink-0 flex flex-col justify-end w-[95px] md:w-[130px] h-[32px] sm:h-[38px]">
-                  <button type="submit" disabled={input.sending || !input.text.trim()} className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${ui.mode === 'private' ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white'}`}>{input.sending ? '...' : (ui.mode === 'private' ? 'Kirim Private' : 'Kirim Publik')}</button>
+                  <button 
+                    type="submit" 
+                    disabled={input.sending || !input.text.trim() || (ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv)} 
+                    className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${(ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv) ? 'bg-gray-400 text-white cursor-not-allowed' : (ui.mode === 'private' ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white')}`}
+                  >
+                    {input.sending ? '...' : (ui.mode === 'private' ? 'Kirim Private' : 'Kirim Publik')}
+                  </button>
                 </div>
               </form>
             </div>
