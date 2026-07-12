@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname } from P;
 import { supabase } from './supabaseClient';
 import Login from '../components/Login';
 import Block from '../components/Block';
