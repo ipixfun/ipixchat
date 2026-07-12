@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { supabase } from './supabaseClient';
 import Login from '../components/Login';
-import Block from '../components/Block'; // Import Default
+import Block from '../components/Block';
 import MessageItem from '../components/MessageItem';
 import ChatLayout from '../components/ChatLayout';
 
@@ -104,6 +104,13 @@ export default function Home() {
     }; chk();
   }, [pathname]);
 
+  // FIX: Mengambil data otomatis dari Supabase ketika komponen selesai dimuat (mounted)
+  useEffect(() => {
+    if (mounted) {
+      fetchData();
+    }
+  }, [mounted, fetchData]);
+
   const sendMsg = async (e: React.FormEvent) => {
     e.preventDefault(); 
     if (!input.text.trim() || input.sending) return; 
@@ -168,15 +175,12 @@ export default function Home() {
         handleUserLogin={async () => { 
           if(!auth.user.trim() || isCensored(auth.user)) return alert("Nama tidak valid"); 
           try { 
-            const { data: existUser, error } = await supabase.from('profiles').select('device_id').ilike('username', auth.user.trim()).maybeSingle();
-            
+            const { data: existUser } = await supabase.from('profiles').select('device_id').ilike('username', auth.user.trim()).maybeSingle();
             if (existUser && existUser.device_id !== (currentDeviceId || 'guest')) {
-               return alert("Username sudah digunakan orang lain. Silakan pilih username yang berbeda.");
+               return alert("Username sudah digunakan orang lain.");
             }
             await supabase.from('profiles').upsert({ device_id: currentDeviceId||'guest', username: auth.user.trim(), user_browser: navigator.userAgent }, { onConflict: 'device_id' }); 
-          } catch(e) {
-            console.error(e);
-          } 
+          } catch(e) {} 
           setAuth(p=>({...p,isAuth:true})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username',auth.user.trim()); sessionStorage.setItem('active_tab','user'); 
         }} 
         handleAdminLogin={async () => { const { error } = await supabase.auth.signInWithPassword({ email: auth.adminEmail, password: auth.adminPass }); if (error) alert("Gagal"); else { setAuth(p=>({...p,isAuth:true,user:'Admin●ipix.my.id'})); setUi(p=>({...p,tab:'admin'})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username','Admin●ipix.my.id'); sessionStorage.setItem('active_tab','admin'); } }} /> : (
