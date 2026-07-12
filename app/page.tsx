@@ -130,9 +130,7 @@ export default function Home() {
   const hRefreshEnd = useCallback(() => { if (refresh.drag) { setRefresh(p => ({ ...p, drag: false })); if(refs.refTimer.current) clearTimeout(refs.refTimer.current); refs.refTimer.current = setTimeout(() => setRefresh(p => ({ ...p, hover: false })), 2000); if (!dragRef.current.dragged) fetchData(); } }, [refresh.drag, fetchData]);
   useEffect(() => { const tm=(e: TouchEvent)=>hRefreshMove(e.touches[0].clientX, e.touches[0].clientY); const mm=(e: MouseEvent)=>hRefreshMove(e.clientX, e.clientY); if(refresh.drag){ window.addEventListener('touchmove', tm, {passive:false}); window.addEventListener('mousemove', mm); window.addEventListener('touchend', hRefreshEnd); window.addEventListener('mouseup', hRefreshEnd); } return () => { window.removeEventListener('touchmove', tm); window.removeEventListener('mousemove', mm); window.removeEventListener('touchend', hRefreshEnd); window.removeEventListener('mouseup', hRefreshEnd); }; }, [refresh.drag, hRefreshMove, hRefreshEnd]);
 
-  // BAGIAN YANG DIUBAH: Logika Render Chat
   const renderMsgs = (arr: any[], colType: any, isMin: boolean) => arr.length === 0 ? <div className="text-center text-gray-400 italic mt-10 text-[10px]">Belum ada pesan.</div> : arr.map(m => {
-    // 1. Modifikasi teks khusus 2 kolom (Maksimal ~2 paragraf/150 karakter)
     const isTruncated = ui.twoCol && m.pesan.length > 150;
     const modifiedMsg = isTruncated ? { ...m, pesan: m.pesan.substring(0, 150) + '... \n\n[Klik untuk selengkapnya]' } : m;
 
@@ -141,32 +139,10 @@ export default function Home() {
         key={m.id} 
         className={`relative w-full group ${ui.twoCol ? 'cursor-pointer' : ''}`} 
         onClick={() => { 
-          // Set popup dengan isi teks chat *aslinya* agar memuat full teks
           if (ui.twoCol) setInteract(p => ({...p, popup: m})) 
         }}
       >
         <MessageItem m={modifiedMsg} colType={colType} isMinimized={isMin} currentDeviceId={currentDeviceId} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} isTwoColumnMode={ui.twoCol} activeMenuId={interact.activeMenu} setActiveMenuId={(id:any)=>setInteract(p=>({...p,activeMenu:id}))} longPressId={interact.longPress} setLongPressId={(id:any)=>setInteract(p=>({...p,longPress:id}))} swipingId={interact.swipeId} setSwipingId={(id:any)=>setInteract(p=>({...p,swipeId:id}))} handleTag={(u:string)=>setInput(p=>({...p,text:`${p.text} @${u.split('●')[0]} `}))} handleReply={(m:any)=>{setInteract(p=>({...p,replyTo:m})); setInput(p=>({...p,blink:true})); setTimeout(()=>setInput(p=>({...p,blink:false})),800);}} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} editNama={dbActions.editNm} blockUser={dbActions.blkUser} inviteToPrivate={(id:string)=>{handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:id}));}} setPopupMsg={(m:any)=>setInteract(p=>({...p,popup:m}))} applyCensor={applyCensor} scrollToMessage={(t:string)=>{const x=msgs.all.find(x=>x.pesan.includes(t)); if(x) scrollMsg(x.id);}} formatMessageTime={getFmt.time} />
-        
-        {/* 2. Injeksi Menu Titik Tiga Admin langsung di page.tsx */}
-        {ui.tab === 'admin' && m.username !== 'Admin●ipix.my.id' && (
-          <div className="absolute top-2 right-2 z-50">
-            <button 
-              onClick={(e) => { e.stopPropagation(); setInteract(p => ({...p, activeMenu: p.activeMenu === m.id ? null : m.id})); }} 
-              className="text-gray-500 font-bold px-2 py-0.5 rounded-full bg-white/70 hover:bg-gray-200 shadow-sm backdrop-blur-sm active:scale-95 transition-all"
-            >
-              ⋮
-            </button>
-            
-            {interact.activeMenu === m.id && (
-              <div className={`absolute top-full mt-1 w-36 bg-white border border-gray-200 shadow-xl rounded-lg py-1.5 z-[100] transition-all duration-200 ${ui.twoCol ? 'right-0 origin-top-right' : 'left-0 origin-top-left'}`}>
-                <button onClick={(e) => { e.stopPropagation(); setInteract(p => ({...p, activeMenu: null})); dbActions.editNm(m.id); }} className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100">✏️ Edit Nama</button>
-                <button onClick={(e) => { e.stopPropagation(); setInteract(p => ({...p, activeMenu: null})); dbActions.delMsg(m.id); }} className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50">🗑️ Hapus</button>
-                <button onClick={(e) => { e.stopPropagation(); setInteract(p => ({...p, activeMenu: null})); dbActions.blkUser(m.device_id, m.username); }} className="w-full text-left px-4 py-2 text-xs font-semibold text-orange-600 hover:bg-orange-50">🚫 Blokir</button>
-                <button onClick={(e) => { e.stopPropagation(); setInteract(p => ({...p, activeMenu: null})); handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:m.device_id})); }} className="w-full text-left px-4 py-2 text-xs font-semibold text-emerald-600 hover:bg-emerald-50">🔒 Private</button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     );
   });
@@ -222,7 +198,6 @@ export default function Home() {
                 <button onClick={()=>setInteract(p=>({...p,popup:null}))} className="absolute top-3 right-3 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center font-bold active:scale-95">×</button>
                 <div className="flex items-center gap-2 border-b pb-3 mb-3"><span className={`font-bold ${interact.popup.username === 'Admin●ipix.my.id' ? 'text-red-600' : 'text-blue-700'}`}>{interact.popup.username}</span><span className="text-[10px] text-gray-400">{getFmt.time(interact.popup.created_at)}</span></div>
                 
-                {/* 3. Pop up dirender dengan whitespace-pre-wrap agar paragraf tersusun rapi */}
                 <div className="overflow-y-auto pr-2 pb-2 text-sm text-black whitespace-pre-wrap">{applyCensor(interact.popup.pesan)}</div>
               </div>
             </div>
