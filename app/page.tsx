@@ -17,7 +17,9 @@ export default function Home() {
   const [adminStat, setAdminStat] = useState({ online: false, offlineTime: '' });
   const [usersInfo, setUsersInfo] = useState({ status: {} as Record<string, any>, blockedList: [] as any[], privUsers: [] as any[], selPriv: null as string|null });
   const [censor, setCensor] = useState({ words: [] as string[], newWord: '' });
-  const [input, setInput] = useState({ text: '', sending: false, blink: false });
+  
+  // TAMBAHAN: State image & uploadingImage
+  const [input, setInput] = useState({ text: '', sending: false, blink: false, image: null as string|null, uploadingImage: false });
   const [interact, setInteract] = useState({ replyTo: null as any, activeMenu: null as number|null, popup: null as any, swipeId: null as number|null, longPress: null as number|null });
   const [pill, setPill] = useState({ idx: 0 as 0|1, pause: false, visible: true, startX: 0, delta: 0 });
   
@@ -26,6 +28,10 @@ export default function Home() {
   const [refresh, setRefresh] = useState({ pos: { x: 20, y: 100 }, drag: false, hover: false });
   const dragRef = useRef({ x: 0, y: 0, initX: 0, initY: 0, dragged: false });
   const refs = { refTimer: useRef<NodeJS.Timeout | null>(null) };
+
+  // KONFIGURASI CLOUDINARY (Ganti dengan milik Anda)
+  const CLOUDINARY_CLOUD_NAME = 'bjamo8ld';
+  const CLOUDINARY_UPLOAD_PRESET = 'ipixchat'; 
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -38,9 +44,7 @@ export default function Home() {
 
   useEffect(() => { if (typeof window !== 'undefined') setRefresh(p => ({ ...p, pos: { x: window.innerWidth - 80, y: window.innerHeight - 180 } })); }, []);
 
-  const handleInteraction = useCallback((m: 'public' | 'private') => {
-    setUi(p => ({ ...p, mode: m }));
-  }, []);
+  const handleInteraction = useCallback((m: 'public' | 'private') => { setUi(p => ({ ...p, mode: m })); }, []);
 
   useEffect(() => { if (pill.pause) return; const i = setInterval(() => setPill(p => ({ ...p, idx: p.idx === 0 ? 1 : 0 })), 5000); return () => clearInterval(i); }, [pill.pause]);
 
@@ -113,7 +117,6 @@ export default function Home() {
     }; chk();
   }, [pathname]);
 
-  // Realtime Update Data
   useEffect(() => {
     if (mounted) {
       fetchData();
@@ -122,9 +125,42 @@ export default function Home() {
     }
   }, [mounted, fetchData]);
 
+  // TAMBAHAN: Fungsi Handle Upload Gambar
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Ukuran gambar maksimal 5MB!");
+      return;
+    }
+
+    setInput(p => ({ ...p, uploadingImage: true }));
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    
+    try {
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (data.secure_url) {
+        setInput(p => ({ ...p, image: data.secure_url, uploadingImage: false }));
+      } else {
+        throw new Error('Upload gagal');
+      }
+    } catch (err) {
+      alert("Gagal mengunggah gambar. Pastikan konfigurasi Cloudinary benar.");
+      setInput(p => ({ ...p, uploadingImage: false }));
+    }
+  };
+
   const sendMsg = async (e: React.FormEvent) => {
     e.preventDefault(); 
-    if (!input.text.trim() || input.sending) return; 
+    // TAMBAHAN: Cek validasi untuk mengizinkan kirim jika text kosong TAPI ada gambar
+    if ((!input.text.trim() && !input.image) || input.sending) return; 
     
     if (isCensored(input.text)) {
       alert("Pesan gagal dikirim karena mengandung kata terlarang!");
@@ -138,8 +174,24 @@ export default function Home() {
       const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('device_id', currentDeviceId || 'guest').gte('created_at', new Date(Date.now() - 300000).toISOString());
       if (count && count >= 5) { alert("Batas 5 pesan per 5 menit."); setInput(p => ({ ...p, sending: false })); return; }
     }
-    await supabase.from('messages').insert([{ username: auth.user, pesan: txt, device_id: currentDeviceId || 'guest', is_private: ui.mode === 'private', private_with: ui.mode === 'private' ? (ui.tab === 'user' ? 'admin' : usersInfo.selPriv) : null, user_browser: navigator.userAgent }]);
-    setInput({ text: '', sending: false, blink: false }); setInteract(p => ({ ...p, replyTo: null })); setUi(p => ({ ...p, inputFocus: false })); const t = document.getElementById('chat-input'); if(t) t.style.height = 'auto'; fetchData();
+    
+    // TAMBAHAN: Sertakan kolom image_url pada saat insert
+    await supabase.from('messages').insert([{ 
+      username: auth.user, 
+      pesan: txt, 
+      image_url: input.image, // URL Foto Cloudinary
+      device_id: currentDeviceId || 'guest', 
+      is_private: ui.mode === 'private', 
+      private_with: ui.mode === 'private' ? (ui.tab === 'user' ? 'admin' : usersInfo.selPriv) : null, 
+      user_browser: navigator.userAgent 
+    }]);
+    
+    // Reset form dan image
+    setInput({ text: '', sending: false, blink: false, image: null, uploadingImage: false }); 
+    setInteract(p => ({ ...p, replyTo: null })); 
+    setUi(p => ({ ...p, inputFocus: false })); 
+    const t = document.getElementById('chat-input'); if(t) t.style.height = 'auto'; 
+    fetchData();
   };
 
   const dbActions = {
@@ -161,7 +213,7 @@ export default function Home() {
   useEffect(() => { const tm=(e: TouchEvent)=>hRefreshMove(e.touches[0].clientX, e.touches[0].clientY); const mm=(e: MouseEvent)=>hRefreshMove(e.clientX, e.clientY); if(refresh.drag){ window.addEventListener('touchmove', tm, {passive:false}); window.addEventListener('mousemove', mm); window.addEventListener('touchend', hRefreshEnd); window.addEventListener('mouseup', hRefreshEnd); } return () => { window.removeEventListener('touchmove', tm); window.removeEventListener('mousemove', mm); window.removeEventListener('touchend', hRefreshEnd); window.removeEventListener('mouseup', hRefreshEnd); }; }, [refresh.drag, hRefreshMove, hRefreshEnd]);
 
   const renderMsgs = (arr: any[], colType: any) => arr.length === 0 ? <div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div> : arr.map((m, idx) => {
-    const isTruncated = m.pesan.length > 150;
+    const isTruncated = m.pesan && m.pesan.length > 150;
     const modifiedMsg = isTruncated ? { ...m, pesan: m.pesan.substring(0, 150) + '... \n\n[Klik untuk selengkapnya]' } : m;
 
     return (
@@ -182,14 +234,8 @@ export default function Home() {
       
       {auth.isAuth && currentHash !== '#block' && <div onMouseDown={e => { setRefresh(p => ({ ...p, drag: true, hover: true })); dragRef.current = { x: e.clientX, y: e.clientY, initX: refresh.pos.x, initY: refresh.pos.y, dragged: false }; }} onTouchStart={e => { setRefresh(p => ({ ...p, drag: true, hover: true })); dragRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, initX: refresh.pos.x, initY: refresh.pos.y, dragged: false }; }} className={`fixed z-[100] px-2.5 py-1 rounded-full font-black text-black tracking-widest text-[9px] cursor-pointer select-none transition-opacity duration-500 bg-yellow-400 border border-yellow-500 ${refresh.hover || refresh.drag ? 'opacity-100 shadow-[0_3px_0_#a16207,0_6px_10px_rgba(0,0,0,0.4)]' : 'opacity-40 shadow-[0_2px_0_#a16207]'} backdrop-blur-sm`} style={{ left: refresh.pos.x, top: refresh.pos.y, touchAction: 'none' }}>REFRESH</div>}
 
-      {/* FIX: Shortcut Pill Khusus Admin untuk Buka Tab Manajemen Block */}
       {auth.isAuth && ui.tab === 'admin' && currentHash !== '#block' && (
-        <div 
-          onClick={() => window.open(`${window.location.pathname}#block`, '_blank')} 
-          className="fixed z-[100] bottom-28 right-4 px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-red-600 border border-red-700 shadow-[0_3px_0_#991b1b,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150"
-        >
-          BLOCK MGR
-        </div>
+        <div onClick={() => window.open(`${window.location.pathname}#block`, '_blank')} className="fixed z-[100] bottom-28 right-4 px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-red-600 border border-red-700 shadow-[0_3px_0_#991b1b,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150">BLOCK MGR</div>
       )}
 
       {!auth.isAuth ? <Login activeTab={ui.tab} username={auth.user} setUsername={(u:string)=>setAuth(p=>({...p,user:u}))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e:string)=>setAuth(p=>({...p,adminEmail:e}))} adminPass={auth.adminPass} setAdminPass={(ps:string)=>setAuth(p=>({...p,adminPass:ps}))} 
@@ -197,9 +243,7 @@ export default function Home() {
           if(!auth.user.trim() || isCensored(auth.user)) return alert("Nama tidak valid"); 
           try { 
             const { data: existUser } = await supabase.from('profiles').select('device_id').ilike('username', auth.user.trim()).maybeSingle();
-            if (existUser && existUser.device_id !== (currentDeviceId || 'guest')) {
-               return alert("Username sudah digunakan orang lain.");
-            }
+            if (existUser && existUser.device_id !== (currentDeviceId || 'guest')) return alert("Username sudah digunakan orang lain.");
             await supabase.from('profiles').upsert({ device_id: currentDeviceId||'guest', username: auth.user.trim(), user_browser: navigator.userAgent }, { onConflict: 'device_id' }); 
           } catch(e) {} 
           setAuth(p=>({...p,isAuth:true})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username',auth.user.trim()); sessionStorage.setItem('active_tab','user'); 
@@ -233,10 +277,31 @@ export default function Home() {
               {interact.replyTo && <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${ui.mode === 'private' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-blue-50 border-blue-300 text-blue-900'}`} onClick={() => scrollMsg(interact.replyTo.id)}><div className="truncate flex-1 pr-2"><span className="font-bold">Balas @{interact.replyTo.username.split('●')[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span></div><button onClick={(e)=>{e.stopPropagation();setInteract(p=>({...p,replyTo:null}));}} className="text-gray-400 font-bold px-1">×</button></div>}
               
               <form onSubmit={sendMsg} className="p-2 sm:p-3 bg-white border-t border-gray-100 flex gap-2 items-end w-full relative transition-all duration-300">
+                
+                {/* TAMBAHAN: Tombol Attachment File */}
+                <div className="relative shrink-0 flex items-center justify-center w-8 mb-2">
+                  <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={input.uploadingImage} />
+                  <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full ${(ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv) ? 'text-gray-300 pointer-events-none' : 'text-gray-500 hover:text-blue-600 hover:bg-gray-100'}`}>
+                    {input.uploadingImage ? (
+                       <svg className="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
+                    )}
+                  </label>
+                </div>
+
                 <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
                   <div className="text-[9px] text-gray-400 mb-1 px-1">
                     {ui.mode === 'public' ? 'Chat publik mohon bijak' : (ui.tab === 'admin' && !usersInfo.selPriv ? 'Pilih obrolan di atas terlebih dahulu' : 'Chat private admin')}
                   </div>
+                  
+                  {/* TAMBAHAN: Preview Image sebelum di-send */}
+                  {input.image && (
+                    <div className="relative mb-2 inline-block">
+                      <img src={input.image} alt="preview" className="h-16 w-16 object-cover rounded-lg border shadow-sm" />
+                      <button type="button" onClick={() => setInput(p => ({...p, image: null}))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] font-bold flex items-center justify-center">×</button>
+                    </div>
+                  )}
                   
                   <textarea 
                     id="chat-input" 
@@ -255,28 +320,36 @@ export default function Home() {
                   <div className="absolute right-3 bottom-1.5 text-[9px] text-gray-400 font-mono select-none opacity-80 bg-white/40 px-1 rounded">{200 - input.text.length}</div>
                 </div>
                 
-                <div className="relative shrink-0 flex flex-col justify-end w-[95px] md:w-[130px] h-[32px] sm:h-[38px]">
+                <div className="relative shrink-0 flex flex-col justify-end w-[85px] md:w-[110px] h-[32px] sm:h-[38px]">
                   <button 
                     type="submit" 
-                    disabled={input.sending || !input.text.trim() || (ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv)} 
+                    // Aktif jika text ADA atau image ADA
+                    disabled={input.sending || (!input.text.trim() && !input.image) || (ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv)} 
                     className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${(ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv) ? 'bg-gray-400 text-white cursor-not-allowed' : (ui.mode === 'private' ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white')}`}
                   >
-                    {input.sending ? '...' : (ui.mode === 'private' ? 'Kirim Private' : 'Kirim Publik')}
+                    {input.sending ? '...' : (ui.mode === 'private' ? 'Kirim' : 'Kirim')}
                   </button>
                 </div>
               </form>
             </div>
           )}
+
+          {/* TAMBAHAN POP-UP: Tampilkan Gambar Full-size saat Pop-up Aktif */}
           {interact.popup && (
-            <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm" onClick={()=>setInteract(p=>({...p,popup:null}))}>
-              <div className={`w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[85vh] flex flex-col ${interact.popup.is_private ? 'border-t-4 border-emerald-500' : 'border-t-4 border-blue-500'}`} onClick={e=>e.stopPropagation()}>
+            <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={()=>setInteract(p=>({...p,popup:null}))}>
+              <div className={`w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col ${interact.popup.is_private ? 'border-t-4 border-emerald-500' : 'border-t-4 border-blue-500'}`} onClick={e=>e.stopPropagation()}>
                 <button onClick={()=>setInteract(p=>({...p,popup:null}))} className="absolute top-3 right-3 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center font-bold active:scale-95">×</button>
                 <div className="flex items-center gap-2 border-b pb-3 mb-3">
                   <span className={`px-2 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === 'Admin●ipix.my.id' ? 'bg-red-500' : interact.popup.is_private ? 'bg-emerald-500' : 'bg-blue-500'}`}>{interact.popup.username}</span>
                   <span className="text-[10px] text-gray-400">{getFmt.time(interact.popup.created_at)}</span>
                 </div>
+                
                 <div className="overflow-y-auto pr-2 pb-2 text-sm text-black flex flex-col break-words break-all whitespace-pre-wrap">
-                  {applyCensor(interact.popup.pesan)}
+                  {/* Tampilkan Image di Pop-up */}
+                  {interact.popup.image_url && (
+                    <img src={interact.popup.image_url} alt="Uploaded Image" className="w-full h-auto max-h-[50vh] object-contain rounded-lg border mb-3 shadow-sm bg-gray-50" />
+                  )}
+                  {interact.popup.pesan && applyCensor(interact.popup.pesan)}
                 </div>
               </div>
             </div>

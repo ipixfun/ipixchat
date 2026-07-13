@@ -23,6 +23,8 @@ export default function MessageItem({
   const bgBubbleClass = m.is_private ? 'bg-emerald-50/95' : 'bg-blue-50/95';
 
   const renderContent = (text: string, isMin: boolean) => {
+    if (!text) return null; // Pengamanan jika pesan hanya gambar (tanpa teks)
+    
     const match = text.match(/^@(\w+)\s\("(.*?)"\)\s?(.*)$/);
     const textSize = isMin ? 'text-[11px] leading-tight' : 'text-sm leading-relaxed';
     if (match) {
@@ -98,11 +100,30 @@ export default function MessageItem({
         </div>
         <span className="text-[8px] text-gray-400 font-medium">{formatMessageTime(m.created_at)}</span>
       </div>
+
+      {/* ========================================== */}
+      {/* TAMPILAN GAMBAR (THUMBNAIL)                */}
+      {/* ========================================== */}
+      {m.image_url && (
+        <div 
+          className="mt-2 mb-1 relative cursor-zoom-in group w-max"
+          onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }}
+        >
+          <img 
+            src={m.image_url} 
+            alt="attachment" 
+            className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? 'w-20 h-20' : 'w-28 h-28 sm:w-36 sm:h-36'}`} 
+            loading="lazy"
+          />
+        </div>
+      )}
       
       {/* Container teks di set ke line-clamp agar bisa menjadi pemicu popup di antarmuka 2 kolom (isMinimized true) */}
-      <div className={`mt-1 min-w-0 break-words whitespace-pre-wrap line-clamp-4 cursor-pointer hover:bg-black/5 transition-colors rounded`} onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }}>
-        {renderContent(m.pesan, isMinimized)}
-      </div>
+      {m.pesan && (
+        <div className={`mt-1 min-w-0 break-words whitespace-pre-wrap line-clamp-4 cursor-pointer hover:bg-black/5 transition-colors rounded`} onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }}>
+          {renderContent(m.pesan, isMinimized)}
+        </div>
+      )}
       
       <div className={`${isMinimized ? 'mt-1 pt-1' : 'mt-2 pt-2'} border-t border-black/10 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
         <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end">
