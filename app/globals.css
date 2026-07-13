@@ -10,8 +10,8 @@
 
 /* (Opsional) Jika kamu mau tulis CSS custom sendiri, tulis di bawah sini: */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #b3b1b1;
 }
 
 body {
