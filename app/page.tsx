@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { usePathname } from P;
+import { usePathname } from 'next/navigation';
 import { supabase } from './supabaseClient';
 import Login from '../components/Login';
 import Block from '../components/Block';
@@ -103,7 +103,7 @@ export default function Home() {
       const { data: { session } } = await supabase.auth.getSession();
       const { data: pD } = await supabase.from('profiles').select('username').eq('device_id', cid).single();
       if (pD?.username) { setAuth(p => ({ ...p, isExist: true, user: pD.username })); sessionStorage.setItem('saved_username', pD.username); }
-      const isAdmin = pathname.endsWith('/admin') || window.location.hash === '#admin';
+      const isAdmin = pathname?.endsWith('/admin') || window.location.hash === '#admin';
       setUi(p => ({ ...p, tab: isAdmin ? 'admin' : (sessionStorage.getItem('active_tab') as 'user'|'admin' || 'user') }));
       if (session || sessionStorage.getItem('is_auth') === 'true') {
         setAuth(p => ({ ...p, isAuth: true, user: session ? 'Admin●ipix.my.id' : (p.isExist ? p.user : sessionStorage.getItem('saved_username') || '') }));
