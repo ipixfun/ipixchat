@@ -23,6 +23,7 @@ export default function Home() {
   const [currentHash, setCurrentHash] = useState('');
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
   const [refresh, setRefresh] = useState({ pos: { x: 20, y: 100 }, drag: false, hover: false });
+  const [pageTouchX, setPageTouchX] = useState<number | null>(null); // Tambahan state deteksi swipe halaman
   const CLOUDINARY_CLOUD_NAME = 'bjamo8ld';
   const CLOUDINARY_UPLOAD_PRESET = 'ipixchat';
 
@@ -160,7 +161,6 @@ export default function Home() {
     const file = e.target.files?.[0]; if (!file) return;
     if (file.size > 5 * 1024 * 1024) { alert("Ukuran gambar maksimal 5MB!"); return; }
 
-    // Cek limit upload (Maks 2x dalam 24 jam) untuk user non-admin
     if (auth.user !== 'Admin●ipix.my.id') {
       const { count } = await supabase.from('messages')
         .select('*', { count: 'exact', head: true })
@@ -194,7 +194,6 @@ export default function Home() {
       if (count && count >= 5) { alert("Batas 5 pesan per 5 menit."); setInput(p => ({ ...p, sending: false })); return; }
     }
     
-    // Tambahkan flag is_approved (Otomatis true untuk admin, false untuk user biasa)
     await supabase.from('messages').insert([{ 
       username: auth.user, 
       pesan: txt, 
@@ -251,7 +250,24 @@ export default function Home() {
               )}
             </div>
           </div>
-          <div className="flex mt-3 bg-white border border-gray-200 rounded-full p-1 shadow-sm w-full relative">
+          <div 
+            className="flex mt-3 bg-white border border-gray-200 rounded-full p-1 shadow-sm w-full relative overflow-hidden"
+            onTouchStart={(e) => setPageTouchX(e.touches[0].clientX)}
+            onTouchMove={(e) => {
+              if (pageTouchX === null) return;
+              const deltaX = e.touches[0].clientX - pageTouchX;
+              if (deltaX > 50 && ui.mode !== 'public') {
+                handleInteraction('public');
+                setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null}));
+                setPageTouchX(null);
+              } else if (deltaX < -50 && ui.mode !== 'private') {
+                handleInteraction('private');
+                setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null}));
+                setPageTouchX(null);
+              }
+            }}
+            onTouchEnd={() => setPageTouchX(null)}
+          >
             <button onClick={() => { handleInteraction('public'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 ${ui.mode === 'public' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
               <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.pub)}</span></div>
               <span className="ml-2 sm:ml-4">🌐 Public Chat</span>
@@ -263,7 +279,28 @@ export default function Home() {
           </div>
         </div>
       )}
-      <div className="flex-1 w-full relative bg-gray-50 flex overflow-hidden">
+      <div 
+        className="flex-1 w-full relative bg-gray-50 flex overflow-hidden"
+        onTouchStart={(e) => {
+          if (interact.swipeId === null) {
+            setPageTouchX(e.touches[0].clientX);
+          }
+        }}
+        onTouchMove={(e) => {
+          if (pageTouchX === null || interact.swipeId !== null) return;
+          const deltaX = e.touches[0].clientX - pageTouchX;
+          if (deltaX > 75 && ui.mode !== 'public') {
+            handleInteraction('public');
+            setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null}));
+            setPageTouchX(null);
+          } else if (deltaX < -75 && ui.mode !== 'private') {
+            handleInteraction('private');
+            setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null}));
+            setPageTouchX(null);
+          }
+        }}
+        onTouchEnd={() => setPageTouchX(null)}
+      >
         {ui.tab === 'admin' && currentHash === '#block' ? <Block blockedList={usersInfo.blockedList} unblock={async (id: string)=>{await supabase.from('blocked_users').delete().eq('device_id', id); fetchData();}} blockedWords={censor.words} newBadWord={censor.newWord} setNewBadWord={(w:string)=>setCensor(p=>({...p,newWord:w}))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} /> : (
           <ChatLayout cMode={ui.mode} hInteract={handleInteraction} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={msgs.pub} privMsgs={msgs.priv} isPill={pill.visible} pDelta={pill.delta} pTouchX={pill.startX} capIdx={pill.idx} setPTouchX={(x:number)=>setPill(p=>({...p,startX:x}))} setPDelta={(d:number)=>setPill(p=>({...p,delta:d}))} setCapPause={(v:boolean)=>setPill(p=>({...p,pause:v}))} setIsPill={(v:boolean)=>setPill(p=>({...p,visible:v}))} renderMsgs={renderMsgs} fmtTime={getFmt.time} setSelPriv={(u:string)=>setUsersInfo(p=>({...p,selPriv:u}))} />
         )}
@@ -298,7 +335,6 @@ export default function Home() {
         </div>
       )}
       
-      {/* POPUP BESAR SAAT LONG PRESS */}
       {interact.popup && interact.popup.pesan !== '___DELETED___' && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={()=>setInteract(p=>({...p,popup:null}))}>
           <div className={`w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col ${interact.popup.is_private ? 'border-t-4 border-emerald-500' : 'border-t-4 border-blue-500'}`} onClick={e=>e.stopPropagation()}>
