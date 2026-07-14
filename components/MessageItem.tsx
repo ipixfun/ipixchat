@@ -2,11 +2,15 @@
 import React, { useRef, useState } from 'react';
 
 export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTab, isAdminOnline, adminOfflineTime, userStatus, activeMenuId, setActiveMenuId, swipingId, setSwipingId, handleTag, handleReply, deleteMsg, copyToClipboard, handleEditLimit, editMsg, editNama, blockUser, inviteToPrivate, setPopupMsg, handleLongPress, approveImage, applyCensor, scrollToMessage, formatMessageTime, authUser }: any) {
-  const [swipeDelta, setSwipeDelta] = useState(0); const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
-  const [touchStartX, setTouchStartX] = useState(0); const [touchInitialY, setTouchInitialY] = useState(0);
+  const [swipeDelta, setSwipeDelta] = useState(0); 
+  const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
+  const [touchStartX, setTouchStartX] = useState(0); 
+  const [touchInitialY, setTouchInitialY] = useState(0);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  
   const shortBrowser = m.user_browser ? m.user_browser.split('(')[0].trim() + (m.user_browser.includes('(') ? ` (${m.user_browser.split('(')[1].split(')')[0]})` : '') : 'Unknown Browser';
-  const isMsgAdmin = m.username === 'Admin●ipix.my.id'; const isMsgMine = m.device_id === currentDeviceId || m.username === authUser;
+  const isMsgAdmin = m.username === 'Admin●ipix.my.id'; 
+  const isMsgMine = m.device_id === currentDeviceId || m.username === authUser;
   const isEdited = m.is_edited || (typeof window !== 'undefined' ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || '0') > 0 : false);
 
   if (m.pesan === '___DELETED___') {
@@ -21,7 +25,8 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
   const borderThicknessClass = isMsgAdmin ? 'border-r-[3px] border-b-[1px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5 border-b-black/5' : 'border-b-[3px] border-r-[3px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5';
   const borderColorClass = isMsgAdmin ? 'border-r-red-600' : isPrivateAndNotAdmin ? 'border-b-emerald-500 border-r-emerald-500' : isMsgMine ? 'border-b-blue-500 border-r-blue-500' : 'border-b-gray-400 border-r-gray-400';
   const bgBubbleClass = m.is_private ? 'bg-emerald-50/95' : 'bg-blue-50/95';
-  const needsApproval = m.image_url && m.is_approved === false && !isMsgAdmin; const showBlurred = needsApproval && activeTab !== 'admin';
+  const needsApproval = m.image_url && m.is_approved === false && !isMsgAdmin; 
+  const showBlurred = needsApproval && activeTab !== 'admin';
 
   const renderContent = (text: string, isMin: boolean) => {
     if (!text) return null; const match = text.match(/^@(\w+)\s\("(.*?)"\)\s?(.*)$/); const textSize = isMin ? 'text-[11px] leading-tight' : 'text-sm leading-relaxed';
@@ -44,14 +49,19 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
           <div className="flex items-center gap-1.5 flex-wrap"><b onClick={(e) => { e.stopPropagation(); handleTag(m.username); }} className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMsgAdmin ? 'bg-red-600' : isMsgMine ? 'bg-blue-600' : 'bg-gray-700'} ${isMinimized ? 'text-[8px]' : 'text-[10px]'}`}>{m.username}</b>{m.is_private && !isMinimized && <span className={`text-[10px] ${isMsgAdmin ? 'text-red-500' : 'text-emerald-600'}`}>🔒 Private</span>}</div>
           <div className="text-right shrink-0">{isMsgAdmin ? <span className={`px-1.5 py-0.5 rounded bg-white/60 text-[8px] ${isAdminOnline ? 'text-green-600 font-bold' : 'text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span> : (userStatus[m.username] && <span className={`px-1.5 py-0.5 rounded bg-white/60 text-[8px] ${userStatus[m.username].online ? 'text-green-600 font-bold' : 'text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>)}</div>
         </div>
-        {m.image_url && (
-          <div className="mt-2 mb-1 relative cursor-zoom-in group w-max">
-            <img src={m.image_url} alt="attachment" onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? 'w-20 h-20' : 'w-28 h-28 sm:w-36 sm:h-36'} ${showBlurred ? 'blur-md' : ''}`} loading="lazy" />
-            {showBlurred && <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg pointer-events-none"><span className="text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-1 bg-black/60 rounded text-center leading-tight">Menunggu<br/>Persetujuan</span></div>}
-            {needsApproval && activeTab === 'admin' && <button onClick={(e) => { e.stopPropagation(); approveImage(m.id); }} className="absolute -top-2 -right-2 bg-green-500 hover:bg-green-600 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-md active:scale-95 transition-all">Setujui</button>}
-          </div>
-        )}
-        {m.pesan && <div className="mt-1 min-w-0 break-words whitespace-pre-wrap">{renderContent(m.pesan, isMinimized)}</div>}
+        
+        {/* Layout Baru: Teks dan Foto Berdampingan (Side by Side) di Dalam Obrolan */}
+        <div className="flex items-start gap-3 mt-1.5 mb-1">
+          {m.image_url && (
+            <div className="relative cursor-zoom-in group shrink-0 w-max">
+              <img src={m.image_url} alt="attachment" onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? 'w-16 h-16' : 'w-24 h-24 sm:w-28 sm:h-28'} ${showBlurred ? 'blur-md' : ''}`} loading="lazy" />
+              {showBlurred && <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg pointer-events-none"><span className="text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-1 bg-black/60 rounded text-center leading-tight">Menunggu<br/>Persetujuan</span></div>}
+              {needsApproval && activeTab === 'admin' && <button onClick={(e) => { e.stopPropagation(); approveImage(m.id); }} className="absolute -top-2 -right-2 bg-green-500 hover:bg-green-600 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-md active:scale-95 transition-all">Setujui</button>}
+            </div>
+          )}
+          {m.pesan && <div className="min-w-0 flex-1 break-words whitespace-pre-wrap">{renderContent(m.pesan, isMinimized)}</div>}
+        </div>
+
         <div className={`${isMinimized ? 'mt-1 pt-1' : 'mt-2 pt-2'} border-t border-black/10 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
           <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end items-start text-left">
             {isEdited && <span className="text-yellow-600 font-black text-[9px] lowercase bg-yellow-100/70 px-1 rounded shadow-sm">(edited)</span>}
