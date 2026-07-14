@@ -24,8 +24,10 @@ export default function Login({
   const [berat, setBerat] = useState("");
   const [sosmed, setSosmed] = useState("");
   const [stay, setStay] = useState("");
+  const [status, setStatus] = useState("");
+  const [role, setRole] = useState("");
 
-  // State baru untuk persetujuan username permanen
+  // State untuk persetujuan username permanen
   const [isUsernameAgreed, setIsUsernameAgreed] = useState(false);
 
   // Mengunci data gelembung agar tidak terpengaruh re-render dari efek mengetik teks
@@ -33,9 +35,9 @@ export default function Login({
     return Array.from({ length: 14 }).map((_, i) => ({
       id: i,
       left: `${2 + Math.random() * 96}%`,
-      size: Math.random() * 12 + 6, // Ukuran kecil ke sedang semula
+      size: Math.random() * 12 + 6,
       delay: Math.random() * 4,
-      duration: Math.random() * 5 + 7, // Pergerakan lambat dan konstan
+      duration: Math.random() * 5 + 7,
     }));
   }, []);
 
@@ -57,8 +59,16 @@ export default function Login({
     return () => clearInterval(interval);
   }, [isExistingUser]);
 
-  // Validasi tombol login user baru (wajib mengisi semua kolom & mencentang S&K nama permanen)
-  const isFormValid = username?.trim().length > 0 && umur !== "" && berat !== "" && sosmed !== "" && stay !== "" && isUsernameAgreed;
+  // Validasi tombol login user baru (semua kolom wajib diisi & persetujuan dicentang)
+  const isFormValid = 
+    username?.trim().length > 0 && 
+    umur !== "" && 
+    berat !== "" && 
+    sosmed !== "" && 
+    stay !== "" && 
+    status !== "" && 
+    role !== "" && 
+    isUsernameAgreed;
 
   return (
     // Background utama
@@ -175,7 +185,7 @@ export default function Login({
                 </div>
 
                 {/* Baris 2: Dropdown Pilihan Platform Sosmed dan Stay */}
-                <div className="flex gap-3 w-full mb-6">
+                <div className="flex gap-3 w-full mb-3">
                   <div className="w-1/2 relative">
                     <select 
                       value={sosmed}
@@ -203,6 +213,42 @@ export default function Login({
                       <option value="jawa timur">Jawa Timur</option>
                       <option value="jawa barat">Jawa Barat</option>
                       <option value="luar jawa">Luar Jawa</option>
+                      <option value="foreigner">Foreigner</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                      <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Baris 3: Dropdown Pilihan Status dan Role */}
+                <div className="flex gap-3 w-full mb-6">
+                  <div className="w-1/2 relative">
+                    <select 
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                      className="w-full p-3 bg-white/40 backdrop-blur-sm text-gray-800 font-bold border border-white/30 rounded-3xl focus:outline-none focus:ring-2 focus:ring-emerald-400 appearance-none shadow-sm cursor-pointer text-center text-sm"
+                    >
+                      <option value="" disabled>Status</option>
+                      <option value="single">Single</option>
+                      <option value="double">Double</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                      <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                  </div>
+
+                  <div className="w-1/2 relative">
+                    <select 
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      className="w-full p-3 bg-white/40 backdrop-blur-sm text-gray-800 font-bold border border-white/30 rounded-3xl focus:outline-none focus:ring-2 focus:ring-emerald-400 appearance-none shadow-sm cursor-pointer text-center text-sm"
+                    >
+                      <option value="" disabled>Role</option>
+                      <option value="T">T</option>
+                      <option value="V">V</option>
+                      <option value="B">B</option>
+                      <option value="Side">Side</option>
                     </select>
                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
                       <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
@@ -236,7 +282,7 @@ export default function Login({
               {isExistingUser ? 'Masuk Chat' : 'Login'}
             </button>
 
-            {/* Kolom Centang/Pill warning username di bawah tombol login */}
+            {/* Kolom Centang warning username di bawah tombol login */}
             {!isExistingUser && (
               <motion.div 
                 whileHover={{ scale: 1.01 }}
