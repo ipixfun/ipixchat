@@ -68,8 +68,7 @@ export default function MessageItem({ m, colType, isMinimized, currentDeviceId, 
           )}
         </div>
       )}
-      <div className={`relative z-10 ${bgBubbleClass} ${isMinimized ? 'p-1.5 rounded-md' : 'p-3 rounded-xl'} ${borderThicknessClass} shadow-sm w-full select-none ${borderColorClass} outline-none`}
-        onContextMenu={(e) => { e.preventDefault(); return false; }}
+      <div className={`relative z-10 ${bgBubbleClass} ${isMinimized ? 'p-1.5 rounded-md' : 'p-3 rounded-xl'} ${borderThicknessClass} shadow-sm w-full select-none ${borderColorClass}`}
         onMouseDown={(e) => { 
           if (e.button !== 0) return; 
           longPressTimer.current = setTimeout(() => { 
@@ -114,13 +113,7 @@ export default function MessageItem({ m, colType, isMinimized, currentDeviceId, 
           }
           setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false); 
         }}
-        style={{ 
-          WebkitTouchCallout: 'none',
-          WebkitUserSelect: 'none',
-          userSelect: 'none',
-          transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)', 
-          transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' 
-        }}
+        style={{ transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)', transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}
       >
         <div className={`flex justify-between items-start ${isMinimized ? 'mb-0.5' : 'mb-1'}`}>
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -138,10 +131,7 @@ export default function MessageItem({ m, colType, isMinimized, currentDeviceId, 
         </div>
         
         {m.image_url && (
-          <div 
-            className="mt-2 mb-1 relative cursor-pointer group w-max"
-            onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }}
-          >
+          <div className="mt-2 mb-1 relative cursor-zoom-in group w-max">
             <img src={m.image_url} alt="attachment" className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? 'w-20 h-20' : 'w-28 h-28 sm:w-36 sm:h-36'} ${showBlurred ? 'blur-md' : ''}`} loading="lazy" />
             {showBlurred && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg pointer-events-none">
@@ -186,7 +176,7 @@ export default function MessageItem({ m, colType, isMinimized, currentDeviceId, 
                           <>
                             <div className="h-px bg-gray-200 my-1 mx-2" />
                             <button type="button" onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-orange-600 hover:bg-gray-50">🚫 Blokir User</button>
-                            <button type="button" onClick={() => { inviteToPrivate(m.device_id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-emerald-600 hover:bg-gray-50">🔒 Chat Private</button>
+                            <button type="button" onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-emerald-600 hover:bg-gray-50">🔒 Chat Private</button>
                           </>
                         )}
                       </div>

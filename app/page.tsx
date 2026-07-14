@@ -23,12 +23,6 @@ export default function Home() {
   const [currentHash, setCurrentHash] = useState('');
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
   const [refresh, setRefresh] = useState({ pos: { x: 20, y: 100 }, drag: false, hover: false });
-  
-  // State untuk deteksi gesekan halaman & animasi
-  const [pageTouchX, setPageTouchX] = useState<number | null>(null);
-  const [pageSwipeDelta, setPageSwipeDelta] = useState(0);
-  const [animState, setAnimState] = useState({ dir: '', active: false });
-
   const CLOUDINARY_CLOUD_NAME = 'bjamo8ld';
   const CLOUDINARY_UPLOAD_PRESET = 'ipixchat';
 
@@ -43,32 +37,7 @@ export default function Home() {
 
   useEffect(() => { if (typeof window !== 'undefined') setRefresh(p => ({ ...p, pos: { x: window.innerWidth - 80, y: window.innerHeight - 180 } })); }, []);
 
-  // Handler navigasi view dan animasi tab
-  const navigateView = useCallback((action: 'to-private' | 'to-public' | 'back-to-list', userId: string | null = null) => {
-    if (action === 'to-private') {
-      setAnimState({ dir: 'slide-in-right', active: true });
-      setTimeout(() => setAnimState({ dir: '', active: false }), 350);
-      setUi(p => ({ ...p, mode: 'private' }));
-      setUsersInfo(p => ({ ...p, selPriv: userId }));
-      setInteract(p => ({ ...p, replyTo: null }));
-    } else if (action === 'to-public') {
-      setAnimState({ dir: 'slide-in-left', active: true });
-      setTimeout(() => setAnimState({ dir: '', active: false }), 350);
-      setUi(p => ({ ...p, mode: 'public' }));
-      setUsersInfo(p => ({ ...p, selPriv: null }));
-      setInteract(p => ({ ...p, replyTo: null }));
-    } else if (action === 'back-to-list') {
-      setAnimState({ dir: 'slide-in-left', active: true });
-      setTimeout(() => setAnimState({ dir: '', active: false }), 350);
-      setUsersInfo(p => ({ ...p, selPriv: null }));
-      setInteract(p => ({ ...p, replyTo: null }));
-    }
-  }, []);
-
-  const handleInteraction = useCallback((m: 'public' | 'private') => {
-    if (m === 'public') navigateView('to-public');
-    else if (m === 'private') navigateView('to-private');
-  }, [navigateView]);
+  const handleInteraction = useCallback((m: 'public' | 'private') => { setUi(p => ({ ...p, mode: m })); }, []);
 
   useEffect(() => { if (pill.pause) return; const i = setInterval(() => setPill(p => ({ ...p, idx: p.idx === 0 ? 1 : 0 })), 5000); return () => clearInterval(i); }, [pill.pause]);
 
@@ -191,6 +160,7 @@ export default function Home() {
     const file = e.target.files?.[0]; if (!file) return;
     if (file.size > 5 * 1024 * 1024) { alert("Ukuran gambar maksimal 5MB!"); return; }
 
+    // Cek limit upload (Maks 2x dalam 24 jam) untuk user non-admin
     if (auth.user !== 'Admin●ipix.my.id') {
       const { count } = await supabase.from('messages')
         .select('*', { count: 'exact', head: true })
@@ -224,6 +194,7 @@ export default function Home() {
       if (count && count >= 5) { alert("Batas 5 pesan per 5 menit."); setInput(p => ({ ...p, sending: false })); return; }
     }
     
+    // Tambahkan flag is_approved (Otomatis true untuk admin, false untuk user biasa)
     await supabase.from('messages').insert([{ 
       username: auth.user, 
       pesan: txt, 
@@ -246,7 +217,7 @@ export default function Home() {
 
   const renderMsgs = (arr: any[], colType: any) => arr.length === 0 ? <div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div> : arr.map((m, idx) => (
     <div key={m.id} className="relative w-full group">
-      <MessageItem index={idx} m={m} colType={colType} isMinimized={true} currentDeviceId={currentDeviceId} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} activeMenuId={interact.activeMenu} setActiveMenuId={(id:any)=>setInteract(p=>({...p,activeMenu:id}))} swipingId={interact.swipeId} setSwipingId={(id:any)=>setInteract(p=>({...p,swipeId:id}))} handleTag={(u:string)=>setInput(p=>({...p,text:`${p.text} @${u.split('●')[0]} `}))} handleReply={(m:any)=>{setInteract(p=>({...p,replyTo:m})); setInput(p=>({...p,blink:true})); setTimeout(()=>setInput(p=>({...p,blink:false})),800);}} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} editNama={dbActions.editNm} blockUser={dbActions.blkUser} inviteToPrivate={(id:string) => navigateView('to-private', id)} setPopupMsg={(m:any)=>setInteract(p=>({...p,popup:m}))} handleLongPress={(m:any)=>setInteract(p=>({...p,popup:m}))} approveImage={dbActions.approveImg} applyCensor={applyCensor} scrollToMessage={(t:string)=>{const x=msgs.all.find(x=>x.pesan.includes(t)); if(x) scrollMsg(x.id);}} formatMessageTime={getFmt.time} authUser={auth.user} />
+      <MessageItem index={idx} m={m} colType={colType} isMinimized={true} currentDeviceId={currentDeviceId} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} activeMenuId={interact.activeMenu} setActiveMenuId={(id:any)=>setInteract(p=>({...p,activeMenu:id}))} swipingId={interact.swipeId} setSwipingId={(id:any)=>setInteract(p=>({...p,swipeId:id}))} handleTag={(u:string)=>setInput(p=>({...p,text:`${p.text} @${u.split('●')[0]} `}))} handleReply={(m:any)=>{setInteract(p=>({...p,replyTo:m})); setInput(p=>({...p,blink:true})); setTimeout(()=>setInput(p=>({...p,blink:false})),800);}} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} editNama={dbActions.editNm} blockUser={dbActions.blkUser} inviteToPrivate={(id:string)=>{handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:id}));}} setPopupMsg={(m:any)=>setInteract(p=>({...p,popup:m}))} handleLongPress={(m:any)=>setInteract(p=>({...p,popup:m}))} approveImage={dbActions.approveImg} applyCensor={applyCensor} scrollToMessage={(t:string)=>{const x=msgs.all.find(x=>x.pesan.includes(t)); if(x) scrollMsg(x.id);}} formatMessageTime={getFmt.time} authUser={auth.user} />
     </div>
   ));
 
@@ -254,12 +225,11 @@ export default function Home() {
 
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans overscroll-none" onClick={() => setInteract(p => ({ ...p, activeMenu: null }))}>
-      <style dangerouslySetInnerHTML={{ __html: ` body{overscroll-behavior-y:none;} @keyframes sL{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(-4px);opacity:1;}} @keyframes sR{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(4px);opacity:1;}} .anim-slide-left{animation:sL 1.4s ease-in-out infinite;} .anim-slide-right{animation:sR 1.4s ease-in-out infinite;} @keyframes bC{0%,100%{background:inherit;}50%{background:#fef9c3;}} .anim-bg-blink-cream{animation:bC 1.5s ease-in-out;} @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;} } .anim-text-blink-white{animation:tW 1.5s ease-in-out infinite;} @keyframes sInL { from { transform: translateX(-20%); opacity: 0.5; } to { transform: translateX(0); opacity: 1; } } @keyframes sInR { from { transform: translateX(20%); opacity: 0.5; } to { transform: translateX(0); opacity: 1; } } .anim-slide-in-left { animation: sInL 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards; } .anim-slide-in-right { animation: sInR 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards; } `}} />
+      <style dangerouslySetInnerHTML={{ __html: ` body{overscroll-behavior-y:none;} @keyframes sL{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(-4px);opacity:1;}} @keyframes sR{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(4px);opacity:1;}} .anim-slide-left{animation:sL 1.4s ease-in-out infinite;} .anim-slide-right{animation:sR 1.4s ease-in-out infinite;} @keyframes bC{0%,100%{background:inherit;}50%{background:#fef9c3;}} .anim-bg-blink-cream{animation:bC 1.5s ease-in-out;} @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} .anim-text-blink-white{animation:tW 1.5s ease-in-out infinite;} `}} />
       
       {auth.isAuth && ui.tab === 'admin' && currentHash !== '#block' && (
         <div onClick={() => window.open(`${window.location.pathname}#block`, '_blank')} className="fixed z-[100] bottom-28 right-4 px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-red-600 border border-red-700 shadow-[0_3px_0_#991b1b,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150">BLOCK MGR</div>
       )}
-      
       {currentHash !== '#block' && (
         <div className={`sticky top-0 z-20 p-3 border-b border-white/40 ${ui.mode === 'public' ? 'bg-gradient-to-b from-blue-100 to-white' : 'bg-gradient-to-b from-emerald-100 to-white'}`}>
           <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full shadow">Keluar</button>
@@ -281,101 +251,23 @@ export default function Home() {
               )}
             </div>
           </div>
-          
-          {/* Tab Menu - Segmented Control dengan animasi slider 2 kolom */}
-          <div 
-            className="flex mt-3 bg-gray-200/60 border border-gray-300/50 rounded-full p-1 shadow-inner w-full relative overflow-hidden"
-            onTouchStart={(e) => setPageTouchX(e.touches[0].clientX)}
-            onTouchMove={(e) => {
-              if (pageTouchX === null) return;
-              const deltaX = e.touches[0].clientX - pageTouchX;
-              // Efek karet/pegas jika mentok
-              if (ui.mode === 'public' && deltaX > 0) setPageSwipeDelta(deltaX * 0.25);
-              else if (ui.mode === 'private' && !usersInfo.selPriv && deltaX < 0) setPageSwipeDelta(deltaX * 0.25);
-              else if (ui.mode === 'private' && usersInfo.selPriv && deltaX < 0) setPageSwipeDelta(deltaX * 0.25);
-              else setPageSwipeDelta(deltaX);
-            }}
-            onTouchEnd={() => {
-              if (pageTouchX === null) return;
-              if (pageSwipeDelta < -60) {
-                if (ui.mode === 'public') navigateView('to-private');
-              } else if (pageSwipeDelta > 60) {
-                if (ui.mode === 'private') {
-                  if (usersInfo.selPriv) navigateView('back-to-list'); // Swipe back kembali ke list
-                  else navigateView('to-public');
-                }
-              }
-              setPageTouchX(null); setPageSwipeDelta(0);
-            }}
-          >
-            {/* Indikator Latar Belakang Animasi */}
-            <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-full transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)] shadow-md ${ui.mode === 'public' ? 'left-1 bg-blue-600' : 'left-[calc(50%+2px)] bg-emerald-600'}`} />
-            
-            <button onClick={() => { if(ui.mode !== 'public') navigateView('to-public'); }} className={`relative flex-1 z-10 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-colors duration-300 ${ui.mode === 'public' ? 'text-white' : 'text-gray-600 hover:text-gray-800'}`}>
-              <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center">
-                <span className={`text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-300 ${ui.mode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'}`}>{getFmt.notif(counts.pub)}</span>
-              </div>
+          <div className="flex mt-3 bg-white border border-gray-200 rounded-full p-1 shadow-sm w-full relative">
+            <button onClick={() => { handleInteraction('public'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 ${ui.mode === 'public' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
+              <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.pub)}</span></div>
               <span className="ml-2 sm:ml-4">🌐 Public Chat</span>
             </button>
-            
-            <button onClick={() => { 
-              if (ui.mode !== 'private') navigateView('to-private'); 
-              else if (usersInfo.selPriv) navigateView('back-to-list'); 
-            }} className={`relative flex-1 z-10 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-colors duration-300 ${ui.mode === 'private' ? 'text-white' : 'text-gray-600 hover:text-gray-800'}`}>
+            <button onClick={() => { handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 ${ui.mode === 'private' ? 'bg-emerald-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
               <span className="mr-2 sm:mr-4">🔒 Chat private</span>
-              <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center">
-                <span className={`text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-300 ${ui.mode === 'private' ? 'bg-white text-emerald-600' : 'bg-emerald-600 text-white'}`}>{getFmt.notif(counts.priv)}</span>
-              </div>
+              <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'private' ? 'bg-white text-emerald-600' : 'bg-emerald-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.priv)}</span></div>
             </button>
           </div>
         </div>
       )}
-
-      {/* Area Tubuh Halaman (Drag Kiri/Kanan dan Animasi Slide Masuk) */}
-      <div 
-        className="flex-1 w-full relative bg-gray-50 overflow-hidden"
-        onTouchStart={(e) => {
-          if (interact.swipeId === null) setPageTouchX(e.touches[0].clientX);
-        }}
-        onTouchMove={(e) => {
-          if (pageTouchX === null || interact.swipeId !== null) return;
-          const deltaX = e.touches[0].clientX - pageTouchX;
-          if (ui.mode === 'public' && deltaX > 0) setPageSwipeDelta(deltaX * 0.25);
-          else if (ui.mode === 'private' && !usersInfo.selPriv && deltaX < 0) setPageSwipeDelta(deltaX * 0.25);
-          else if (ui.mode === 'private' && usersInfo.selPriv && deltaX < 0) setPageSwipeDelta(deltaX * 0.25);
-          else setPageSwipeDelta(deltaX);
-        }}
-        onTouchEnd={() => {
-          if (pageTouchX === null) return;
-          if (pageSwipeDelta < -60) {
-            if (ui.mode === 'public') navigateView('to-private');
-          } else if (pageSwipeDelta > 60) {
-            if (ui.mode === 'private') {
-              if (usersInfo.selPriv) navigateView('back-to-list'); // Geser kembali dari room chat -> 2 kolom (List)
-              else navigateView('to-public');
-            }
-          }
-          setPageTouchX(null); setPageSwipeDelta(0);
-        }}
-      >
-        <div 
-          className="w-full h-full flex flex-col"
-          style={{
-            transform: pageTouchX !== null && interact.swipeId === null ? `translateX(${pageSwipeDelta}px)` : 'translateX(0px)',
-            transition: pageTouchX !== null ? 'none' : 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)'
-          }}
-        >
-          {/* Kontainer untuk efek animasi transisi (Kiri/Kanan) */}
-          <div className={`w-full h-full flex flex-col ${animState.active ? (animState.dir === 'slide-in-left' ? 'anim-slide-in-left' : 'anim-slide-in-right') : ''}`}>
-            {ui.tab === 'admin' && currentHash === '#block' ? (
-              <Block blockedList={usersInfo.blockedList} unblock={async (id: string)=>{await supabase.from('blocked_users').delete().eq('device_id', id); fetchData();}} blockedWords={censor.words} newBadWord={censor.newWord} setNewBadWord={(w:string)=>setCensor(p=>({...p,newWord:w}))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} /> 
-            ) : (
-              <ChatLayout cMode={ui.mode} hInteract={handleInteraction} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={msgs.pub} privMsgs={msgs.priv} isPill={pill.visible} pDelta={pill.delta} pTouchX={pill.startX} capIdx={pill.idx} setPTouchX={(x:number)=>setPill(p=>({...p,startX:x}))} setPDelta={(d:number)=>setPill(p=>({...p,delta:d}))} setCapPause={(v:boolean)=>setPill(p=>({...p,pause:v}))} setIsPill={(v:boolean)=>setPill(p=>({...p,visible:v}))} renderMsgs={renderMsgs} fmtTime={getFmt.time} setSelPriv={(u:string)=>setUsersInfo(p=>({...p,selPriv:u}))} />
-            )}
-          </div>
-        </div>
+      <div className="flex-1 w-full relative bg-gray-50 flex overflow-hidden">
+        {ui.tab === 'admin' && currentHash === '#block' ? <Block blockedList={usersInfo.blockedList} unblock={async (id: string)=>{await supabase.from('blocked_users').delete().eq('device_id', id); fetchData();}} blockedWords={censor.words} newBadWord={censor.newWord} setNewBadWord={(w:string)=>setCensor(p=>({...p,newWord:w}))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} /> : (
+          <ChatLayout cMode={ui.mode} hInteract={handleInteraction} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={msgs.pub} privMsgs={msgs.priv} isPill={pill.visible} pDelta={pill.delta} pTouchX={pill.startX} capIdx={pill.idx} setPTouchX={(x:number)=>setPill(p=>({...p,startX:x}))} setPDelta={(d:number)=>setPill(p=>({...p,delta:d}))} setCapPause={(v:boolean)=>setPill(p=>({...p,pause:v}))} setIsPill={(v:boolean)=>setPill(p=>({...p,visible:v}))} renderMsgs={renderMsgs} fmtTime={getFmt.time} setSelPriv={(u:string)=>setUsersInfo(p=>({...p,selPriv:u}))} />
+        )}
       </div>
-
       {currentHash !== '#block' && (
         <div className="bg-white sticky bottom-0 z-20 w-full flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
           {interact.replyTo && <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${ui.mode === 'private' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-blue-50 border-blue-300 text-blue-900'}`} onClick={() => scrollMsg(interact.replyTo.id)}><div className="truncate flex-1 pr-2"><span className="font-bold">Balas @{interact.replyTo.username.split('●')[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span></div><button type="button" onClick={(e)=>{e.stopPropagation();setInteract(p=>({...p,replyTo:null}));}} className="text-gray-400 font-bold px-1">×</button></div>}
@@ -406,6 +298,7 @@ export default function Home() {
         </div>
       )}
       
+      {/* POPUP BESAR SAAT LONG PRESS */}
       {interact.popup && interact.popup.pesan !== '___DELETED___' && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={()=>setInteract(p=>({...p,popup:null}))}>
           <div className={`w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col ${interact.popup.is_private ? 'border-t-4 border-emerald-500' : 'border-t-4 border-blue-500'}`} onClick={e=>e.stopPropagation()}>
