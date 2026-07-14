@@ -19,6 +19,9 @@ export default function Login({
   const [displayedNote, setDisplayedNote] = useState("");
   const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
   
+  // State untuk efek ketikan placeholder username
+  const [placeholderText, setPlaceholderText] = useState("");
+
   // State untuk dropdown formulir
   const [umur, setUmur] = useState("");
   const [berat, setBerat] = useState("");
@@ -28,6 +31,23 @@ export default function Login({
 
   // State untuk notifikasi validasi di dalam tombol
   const [validationMsg, setValidationMsg] = useState("");
+
+  // Typing effect untuk placeholder username (Maks 20 huruf)
+  useEffect(() => {
+    if (isExistingUser) return;
+    const targetPlaceholder = "Username (Maks 20 huruf)";
+    let index = 0;
+    const interval = setInterval(() => {
+      if (index < targetPlaceholder.length) {
+        setPlaceholderText(targetPlaceholder.slice(0, index + 1));
+        index++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 60); // Kecepatan ketikan placeholder
+
+    return () => clearInterval(interval);
+  }, [isExistingUser]);
 
   // Typing effect untuk existing user note
   useEffect(() => {
@@ -73,7 +93,7 @@ export default function Login({
 
   // --- LOGIK STYLING OUTLINE DINAMIS (MANDIRI & SPESIFIK) ---
   
-  // 1. Outline untuk Kolom Input Username
+  // 1. Outline untuk Input Username
   const usernameBorderClass = isFormValid
     ? 'border-emerald-500 border-2'
     : (validationMsg === "isi nama dulu sayang")
@@ -84,15 +104,15 @@ export default function Login({
   const umurBorderClass = isFormValid
     ? 'border-emerald-500 border-2'
     : (validationMsg && !umur)
-      ? 'border-red-500 animate-pulse border-2' // Hanya kedip jika validasi error dipicu DAN umur kosong
-      : 'border-blue-400 border-2'; // Default Biru
+      ? 'border-red-500 animate-pulse border-2'
+      : 'border-blue-400 border-2';
 
   // 3. Outline Mandiri untuk Dropdown Berat
   const beratBorderClass = isFormValid
     ? 'border-emerald-500 border-2'
     : (validationMsg && !berat)
-      ? 'border-red-500 animate-pulse border-2' // Hanya kedip jika validasi error dipicu DAN berat kosong
-      : 'border-blue-400 border-2'; // Default Biru
+      ? 'border-red-500 animate-pulse border-2'
+      : 'border-blue-400 border-2';
 
   // 4. Outline untuk Ceklist Warning
   const checkboxBorderClass = isFormValid
@@ -129,25 +149,28 @@ export default function Login({
         {activeTab === 'user' ? (
           <div className="w-full flex flex-col items-center relative z-10">
             
-            {/* Input Nama / Username - Abu-abu blur default, teks biru ketika diinput */}
-            <input 
-              className={`w-full p-3.5 sm:p-4 rounded-full focus:outline-none transition-all text-center text-base sm:text-lg tracking-wide mb-4 shadow-inner font-bold backdrop-blur-sm
-                ${isExistingUser 
-                  ? 'bg-neutral-500/20 text-blue-900 border-neutral-500/30 cursor-not-allowed select-none' 
-                  : `bg-neutral-500/20 text-blue-400 placeholder-neutral-400 focus:ring-2 focus:ring-blue-300 ${usernameBorderClass}`
-                }`}
-              placeholder="Username (Maks 20 huruf)" 
-              value={username || ""} 
-              onChange={(e) => {
-                setUsername(e.target.value.slice(0, 20));
-                if (validationMsg) setValidationMsg(""); 
-              }} 
-              disabled={isExistingUser} 
-              maxLength={20}
-            />
+            {isExistingUser ? (
+              /* Pill Username saat sudah login - welcome back (hijau) & username (biru tua) */
+              <div className="w-full p-3.5 sm:p-4 mb-4 rounded-full text-center text-base sm:text-lg tracking-wide shadow-inner font-bold backdrop-blur-sm bg-neutral-500/20 border border-neutral-500/30 select-none flex items-center justify-center gap-2">
+                <span className="text-emerald-500">welcome back</span>
+                <span className="text-blue-900">{username}</span>
+              </div>
+            ) : (
+              /* Input Nama / Username - Abu-abu blur default, teks biru tua & bold ketika diinput */
+              <input 
+                className={`w-full p-3.5 sm:p-4 rounded-full focus:outline-none transition-all text-center text-base sm:text-lg tracking-wide mb-4 shadow-inner font-bold backdrop-blur-sm bg-neutral-500/20 text-blue-900 placeholder-neutral-500 focus:ring-2 focus:ring-blue-300 ${usernameBorderClass}`}
+                placeholder={placeholderText} 
+                value={username || ""} 
+                onChange={(e) => {
+                  setUsername(e.target.value.slice(0, 20));
+                  if (validationMsg) setValidationMsg(""); 
+                }} 
+                maxLength={20}
+              />
+            )}
             
             {!isExistingUser && (
-              /* Kolom Pilihan Umur dan Berat (Pill User Kolom Pilih dengan animasi kedip terpisah) */
+              /* Kolom Pilihan Umur dan Berat (Pill User Kolom Pilih) */
               <div className="grid grid-cols-2 gap-3 w-full mb-5 sm:mb-6">
                 <div className="relative">
                   <select 
