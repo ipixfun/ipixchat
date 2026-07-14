@@ -18,7 +18,6 @@ export default function Home() {
   const [usersInfo, setUsersInfo] = useState({ status: {} as Record<string, any>, blockedList: [] as any[], privUsers: [] as any[], selPriv: null as string|null });
   const [censor, setCensor] = useState({ words: [] as string[], newWord: '' });
   
-  // TAMBAHAN: State image & uploadingImage
   const [input, setInput] = useState({ text: '', sending: false, blink: false, image: null as string|null, uploadingImage: false });
   const [interact, setInteract] = useState({ replyTo: null as any, activeMenu: null as number|null, popup: null as any, swipeId: null as number|null, longPress: null as number|null });
   const [pill, setPill] = useState({ idx: 0 as 0|1, pause: false, visible: true, startX: 0, delta: 0 });
@@ -29,7 +28,6 @@ export default function Home() {
   const dragRef = useRef({ x: 0, y: 0, initX: 0, initY: 0, dragged: false });
   const refs = { refTimer: useRef<NodeJS.Timeout | null>(null) };
 
-  // KONFIGURASI CLOUDINARY (Ganti dengan milik Anda)
   const CLOUDINARY_CLOUD_NAME = 'bjamo8ld';
   const CLOUDINARY_UPLOAD_PRESET = 'ipixchat'; 
 
@@ -52,7 +50,17 @@ export default function Home() {
   const isCensored = (t: string) => censor.words.some(w => w.trim() && t.toLowerCase().includes(w.toLowerCase()));
   const applyCensor = (t: string) => { let r = t; censor.words.forEach(w => { if (w.trim()) r = r.replace(new RegExp(`\\b${w}\\b`, 'gi'), '***'); }); return r; };
   const copyTxt = (t: string, l: string) => { navigator.clipboard.writeText(t); alert(`${l} disalin!`); };
-  const scrollMsg = (id: number) => { const el = document.getElementById(`msg-${id}`); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); const bc = ui.mode === 'private' ? 'anim-bg-blink-green' : 'anim-bg-blink-blue'; el.classList.add(bc); setTimeout(() => el.classList.remove(bc), 1500); } };
+  
+  const scrollMsg = (id: number) => { 
+    const el = document.getElementById(`msg-${id}`); 
+    if (el) { 
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
+      const bc = 'anim-bg-blink-cream'; 
+      el.classList.add(bc); 
+      setTimeout(() => el.classList.remove(bc), 1500); 
+    } 
+  };
+
   const getFmt = { notif: (n: number) => n >= 1000 ? (n/1000).toFixed(1).replace('.0','')+'k' : n.toString(), time: (d: string) => new Date(d).toLocaleDateString('id-ID', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', ''), ago: (d: Date) => { const s = Math.floor((new Date().getTime() - d.getTime())/1000); return s/3600 >= 1 ? Math.floor(s/3600)+" jam lalu" : s/60 >= 1 ? Math.floor(s/60)+" menit lalu" : "baru saja"; }, greet: () => { const h = new Date().getHours(); return `Selamat ${h>=5&&h<12?"pagi":h>=12&&h<15?"siang":h>=15&&h<18?"sore":"malam"} `; } };
 
   const handleLogout = async () => { await supabase.auth.signOut(); sessionStorage.clear(); setAuth(p => ({ ...p, isAuth: false })); window.location.replace("/"); };
@@ -113,8 +121,8 @@ export default function Home() {
         setAuth(p => ({ ...p, isAuth: true, user: session ? 'Admin●ipix.my.id' : (p.isExist ? p.user : sessionStorage.getItem('saved_username') || '') }));
         if (session) setUi(p => ({ ...p, tab: 'admin' }));
       }
-      setMounted(true);
-    }; chk();
+      mounted && setMounted(true);
+    }; chk(); setMounted(true);
   }, [pathname]);
 
   useEffect(() => {
@@ -125,7 +133,6 @@ export default function Home() {
     }
   }, [mounted, fetchData]);
 
-  // TAMBAHAN: Fungsi Handle Upload Gambar
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -177,7 +184,7 @@ export default function Home() {
     await supabase.from('messages').insert([{ 
       username: auth.user, 
       pesan: txt, 
-      image_url: input.image, // URL Foto Cloudinary
+      image_url: input.image, 
       device_id: currentDeviceId || 'guest', 
       is_private: ui.mode === 'private', 
       private_with: ui.mode === 'private' ? (ui.tab === 'user' ? 'admin' : usersInfo.selPriv) : null, 
@@ -192,8 +199,8 @@ export default function Home() {
   };
 
   const dbActions = {
-    editLmt: async (m: any) => { const c = parseInt(localStorage.getItem(`edit_${m.id}`) || '0'); if(c>=2) return alert("Batas 2x"); const nt = prompt("Edit:", m.pesan); if(nt && nt.trim() !== m.pesan) { await supabase.from('messages').update({ pesan: nt.trim() }).eq('id', m.id); localStorage.setItem(`edit_${m.id}`, (c+1).toString()); fetchData(); } },
-    editMsg: async (id: number) => { const nt = prompt("Edit:", msgs.all.find(m => m.id === id)?.pesan || ""); if(nt) { await supabase.from('messages').update({ pesan: nt }).eq('id', id); fetchData(); } },
+    editLmt: async (m: any) => { const c = parseInt(localStorage.getItem(`edit_${m.id}`) || '0'); if(c>=2) return alert("Batas 2x"); const nt = prompt("Edit:", m.pesan); if(nt && nt.trim() !== m.pesan) { await supabase.from('messages').update({ pesan: nt.trim() }).eq('id', m.id); localStorage.setItem(`edit_${m.id}`, (c+1).toString()); localStorage.setItem(`edit_count_${m.id}`, '1'); fetchData(); } },
+    editMsg: async (id: number) => { const nt = prompt("Edit:", msgs.all.find(m => m.id === id)?.pesan || ""); if(nt) { await supabase.from('messages').update({ pesan: nt }).eq('id', id); localStorage.setItem(`edit_count_${id}`, '1'); fetchData(); } },
     editNm: async (id: number) => { const m = msgs.all.find(m => m.id === id); if(!m) return; const nn = prompt("Nama:", m.username); if(nn && isCensored(nn)) return alert("Terlarang!"); if(nn) { await Promise.all([supabase.from('profiles').update({ username: nn }).eq('device_id', m.device_id), supabase.from('messages').update({ username: nn }).eq('device_id', m.device_id)]); fetchData(); } },
     delMsg: async (id: number) => { await supabase.from('messages').delete().eq('id', id); fetchData(); },
     blkUser: async (id: string, nm: string) => { if(confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: nm }]); fetchData(); } },
@@ -201,25 +208,14 @@ export default function Home() {
     rmWrd: async (w: string) => { await supabase.from('blocked_words').delete().eq('word', w); fetchData(); }
   };
 
-  const hRefreshMove = useCallback((cx: number, cy: number) => {
-    if (!refresh.drag) return; const dx = cx - dragRef.current.x; const dy = cy - dragRef.current.y;
-    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragRef.current.dragged = true;
-    setRefresh(p => ({ ...p, pos: { x: Math.max(0, Math.min(dragRef.current.initX + dx, window.innerWidth - 60)), y: Math.max(0, Math.min(dragRef.current.initY + dy, window.innerHeight - 60)) } }));
-  }, [refresh.drag]);
-  const hRefreshEnd = useCallback(() => { if (refresh.drag) { setRefresh(p => ({ ...p, drag: false })); if(refs.refTimer.current) clearTimeout(refs.refTimer.current); refs.refTimer.current = setTimeout(() => setRefresh(p => ({ ...p, hover: false })), 2000); if (!dragRef.current.dragged) fetchData(); } }, [refresh.drag, fetchData]);
-  useEffect(() => { const tm=(e: TouchEvent)=>hRefreshMove(e.touches[0].clientX, e.touches[0].clientY); const mm=(e: MouseEvent)=>hRefreshMove(e.clientX, e.clientY); if(refresh.drag){ window.addEventListener('touchmove', tm, {passive:false}); window.addEventListener('mousemove', mm); window.addEventListener('touchend', hRefreshEnd); window.addEventListener('mouseup', hRefreshEnd); } return () => { window.removeEventListener('touchmove', tm); window.removeEventListener('mousemove', mm); window.removeEventListener('touchend', hRefreshEnd); window.removeEventListener('mouseup', hRefreshEnd); }; }, [refresh.drag, hRefreshMove, hRefreshEnd]);
-
   const renderMsgs = (arr: any[], colType: any) => arr.length === 0 ? <div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div> : arr.map((m, idx) => {
-    const isTruncated = m.pesan && m.pesan.length > 150;
-    const modifiedMsg = isTruncated ? { ...m, pesan: m.pesan.substring(0, 150) + '... \n\n[Klik untuk selengkapnya]' } : m;
-
     return (
       <div 
         key={m.id} 
         className={`relative w-full group cursor-pointer`} 
         onClick={() => { setInteract(p => ({...p, popup: m})) }}
       >
-        <MessageItem index={idx} m={modifiedMsg} colType={colType} isMinimized={true} currentDeviceId={currentDeviceId} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} activeMenuId={interact.activeMenu} setActiveMenuId={(id:any)=>setInteract(p=>({...p,activeMenu:id}))} longPressId={interact.longPress} setLongPressId={(id:any)=>setInteract(p=>({...p,longPress:id}))} swipingId={interact.swipeId} setSwipingId={(id:any)=>setInteract(p=>({...p,swipeId:id}))} handleTag={(u:string)=>setInput(p=>({...p,text:`${p.text} @${u.split('●')[0]} `}))} handleReply={(m:any)=>{setInteract(p=>({...p,replyTo:m})); setInput(p=>({...p,blink:true})); setTimeout(()=>setInput(p=>({...p,blink:false})),800);}} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} editNama={dbActions.editNm} blockUser={dbActions.blkUser} inviteToPrivate={(id:string)=>{handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:id}));}} setPopupMsg={(m:any)=>setInteract(p=>({...p,popup:m}))} applyCensor={applyCensor} scrollToMessage={(t:string)=>{const x=msgs.all.find(x=>x.pesan.includes(t)); if(x) scrollMsg(x.id);}} formatMessageTime={getFmt.time} />
+        <MessageItem index={idx} m={m} colType={colType} isMinimized={true} currentDeviceId={currentDeviceId} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} activeMenuId={interact.activeMenu} setActiveMenuId={(id:any)=>setInteract(p=>({...p,activeMenu:id}))} longPressId={interact.longPress} setLongPressId={(id:any)=>setInteract(p=>({...p,longPress:id}))} swipingId={interact.swipeId} setSwipingId={(id:any)=>setInteract(p=>({...p,swipeId:id}))} handleTag={(u:string)=>setInput(p=>({...p,text:`${p.text} @${u.split('●')[0]} `}))} handleReply={(m:any)=>{setInteract(p=>({...p,replyTo:m})); setInput(p=>({...p,blink:true})); setTimeout(()=>setInput(p=>({...p,blink:false})),800);}} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} editNama={dbActions.editNm} blockUser={dbActions.blkUser} inviteToPrivate={(id:string)=>{handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:id}));}} setPopupMsg={(m:any)=>setInteract(p=>({...p,popup:m}))} applyCensor={applyCensor} scrollToMessage={(t:string)=>{const x=msgs.all.find(x=>x.pesan.includes(t)); if(x) scrollMsg(x.id);}} formatMessageTime={getFmt.time} authUser={auth.user} />
       </div>
     );
   });
@@ -228,15 +224,12 @@ export default function Home() {
   
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans overscroll-none" onClick={() => setInteract(p => ({ ...p, activeMenu: null, longPress: null }))}>
-      <style dangerouslySetInnerHTML={{ __html: ` body{overscroll-behavior-y:none;} @keyframes sL{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(-4px);opacity:1;}} @keyframes sR{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(4px);opacity:1;}} .anim-slide-left{animation:sL 1.4s ease-in-out infinite;} .anim-slide-right{animation:sR 1.4s ease-in-out infinite;} @keyframes bB{0%,100%{background:#fff;}50%{background:#e0f2fe;}} @keyframes bG{0%,100%{background:#fff;}50%{background:#d1fae5;}} .anim-bg-blink-blue{animation:bB 1.5s ease-in-out;} .anim-bg-blink-green{animation:bG 1.5s ease-in-out;} @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} .anim-text-blink-white{animation:tW 1.5s ease-in-out infinite;} @keyframes dL{0%{top:-50%;opacity:0;}15%,85%{opacity:1;}100%{top:100%;opacity:0;}} .animate-drop-line{animation:dL 2.5s cubic-bezier(0.4,0,0.2,1) infinite;} `}} />
+      <style dangerouslySetInnerHTML={{ __html: ` body{overscroll-behavior-y:none;} @keyframes sL{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(-4px);opacity:1;}} @keyframes sR{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(4px);opacity:1;}} .anim-slide-left{animation:sL 1.4s ease-in-out infinite;} .anim-slide-right{animation:sR 1.4s ease-in-out infinite;} @keyframes bC{0%,100%{background:inherit;}50%{background:#fef9c3;}} .anim-bg-blink-cream{animation:bC 1.5s ease-in-out;} @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} .anim-text-blink-white{animation:tW 1.5s ease-in-out infinite;} @keyframes dL{0%{top:-50%;opacity:0;}15%,85%{opacity:1;}100%{top:100%;opacity:0;}} .animate-drop-line{animation:dL 2.5s cubic-bezier(0.4,0,0.2,1) infinite;} `}} />
       
-      {auth.isAuth && currentHash !== '#block' && <div onMouseDown={e => { setRefresh(p => ({ ...p, drag: true, hover: true })); dragRef.current = { x: e.clientX, y: e.clientY, initX: refresh.pos.x, initY: refresh.pos.y, dragged: false }; }} onTouchStart={e => { setRefresh(p => ({ ...p, drag: true, hover: true })); dragRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, initX: refresh.pos.x, initY: refresh.pos.y, dragged: false }; }} className={`fixed z-[100] px-2.5 py-1 rounded-full font-black text-black tracking-widest text-[9px] cursor-pointer select-none transition-opacity duration-500 bg-yellow-400 border border-yellow-500 ${refresh.hover || refresh.drag ? 'opacity-100 shadow-[0_3px_0_#a16207,0_6px_10px_rgba(0,0,0,0.4)]' : 'opacity-40 shadow-[0_2px_0_#a16207]'} backdrop-blur-sm`} style={{ left: refresh.pos.x, top: refresh.pos.y, touchAction: 'none' }}>REFRESH</div>}
-
       {auth.isAuth && ui.tab === 'admin' && currentHash !== '#block' && (
         <div onClick={() => window.open(`${window.location.pathname}#block`, '_blank')} className="fixed z-[100] bottom-28 right-4 px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-red-600 border border-red-700 shadow-[0_3px_0_#991b1b,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150">BLOCK MGR</div>
       )}
 
-      {/* SELALU RENDER TAMPILAN CHAT SEBAGAI BACKGROUND */}
       {currentHash !== '#block' && (
         <div className={`sticky top-0 z-20 p-3 border-b border-white/40 ${ui.mode === 'public' ? 'bg-gradient-to-b from-blue-100 to-white' : 'bg-gradient-to-b from-emerald-100 to-white'}`}>
           <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full shadow">Keluar</button>
@@ -251,9 +244,9 @@ export default function Home() {
             <div className="text-center flex-1 flex flex-col items-end mr-16">
               <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 font-bold text-sm underline">ipix.my.id</a>
               {ui.tab === 'user' && (
-                <div className="text-[10px] text-gray-500 mt-0.5">
-                  <span className={`inline-block w-2 h-2 rounded-full ${adminStat.online ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                  {adminStat.online ? ' Admin Online' : ` Offline • ${adminStat.offlineTime}`}
+                <div className="text-[10px] text-gray-500 mt-0.5 flex items-center gap-1">
+                  <span className={`inline-block w-1.5 h-1.5 rounded-full ${adminStat.online ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                  {adminStat.online ? <span className="text-green-600 font-bold text-[9px]">Online</span> : <span className="text-[9px]">Offline • {adminStat.offlineTime}</span>}
                 </div>
               )}
             </div>
@@ -317,12 +310,21 @@ export default function Home() {
             </div>
             
             <div className="relative shrink-0 flex flex-col justify-end w-[85px] md:w-[110px] h-[32px] sm:h-[38px]">
+              {auth.isAuth && currentHash !== '#block' && (
+                <button 
+                  type="button"
+                  onClick={() => fetchData()}
+                  className="absolute bottom-full mb-1.5 left-0 right-0 px-2 py-0.5 rounded-full font-black text-black tracking-widest text-[8px] bg-yellow-400 border border-yellow-500 shadow-sm active:scale-95 transition-all text-center select-none"
+                >
+                  REFRESH
+                </button>
+              )}
               <button 
                 type="submit" 
                 disabled={input.sending || (!input.text.trim() && !input.image) || (ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv)} 
                 className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${(ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv) ? 'bg-gray-400 text-white cursor-not-allowed' : (ui.mode === 'private' ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white')}`}
               >
-                {input.sending ? '...' : (ui.mode === 'private' ? 'Kirim' : 'Kirim')}
+                {input.sending ? '...' : 'Kirim'}
               </button>
             </div>
           </form>
@@ -334,7 +336,7 @@ export default function Home() {
           <div className={`w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col ${interact.popup.is_private ? 'border-t-4 border-emerald-500' : 'border-t-4 border-blue-500'}`} onClick={e=>e.stopPropagation()}>
             <button onClick={()=>setInteract(p=>({...p,popup:null}))} className="absolute top-3 right-3 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center font-bold active:scale-95">×</button>
             <div className="flex items-center gap-2 border-b pb-3 mb-3">
-              <span className={`px-2 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === 'Admin●ipix.my.id' ? 'bg-red-500' : interact.popup.is_private ? 'bg-emerald-500' : 'bg-blue-500'}`}>{interact.popup.username}</span>
+              <span className={`px-2 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.device_id === currentDeviceId || interact.popup.username === auth.user ? 'bg-blue-600' : 'bg-gray-700'}`}>{interact.popup.username}</span>
               <span className="text-[10px] text-gray-400">{getFmt.time(interact.popup.created_at)}</span>
             </div>
             
@@ -348,7 +350,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* OVERLAY LOGIN - AKAN MUNCUL MENUTUPI CHAT BILA BELUM LOGIN */}
       {!auth.isAuth && (
         <Login 
           activeTab={ui.tab} 

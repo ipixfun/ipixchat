@@ -5,7 +5,7 @@ export default function MessageItem({
   m, colType, isMinimized, currentDeviceId, activeTab, isAdminOnline, adminOfflineTime,
   userStatus, activeMenuId, setActiveMenuId, longPressId, setLongPressId,
   swipingId, setSwipingId, handleTag, handleReply, deleteMsg, copyToClipboard, handleEditLimit,
-  editMsg, editNama, blockUser, inviteToPrivate, setPopupMsg, applyCensor, scrollToMessage, formatMessageTime
+  editMsg, editNama, blockUser, inviteToPrivate, setPopupMsg, applyCensor, scrollToMessage, formatMessageTime, authUser
 }: any) {
   const [swipeDelta, setSwipeDelta] = useState(0);
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
@@ -15,7 +15,7 @@ export default function MessageItem({
 
   const shortBrowser = m.user_browser ? m.user_browser.split('(')[0].trim() + (m.user_browser.includes('(') ? ` (${m.user_browser.split('(')[1].split(')')[0]})` : '') : 'Unknown Browser';
   const isMsgAdmin = m.username === 'Admin●ipix.my.id';
-  const isMsgMine = m.device_id === currentDeviceId;
+  const isMsgMine = m.device_id === currentDeviceId || m.username === authUser;
   const isEdited = typeof window !== 'undefined' ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || '0') > 0 : false;
 
   const borderColorClass = isMsgAdmin ? 'border-red-500' : isMsgMine ? (colType === 'private' ? 'border-emerald-500' : 'border-blue-500') : 'border-gray-300';
@@ -43,7 +43,6 @@ export default function MessageItem({
 
   return (
     <div id={`msg-${m.id}`} className="relative w-full">
-      {/* Latar Belakang Swipe (Kolom Aksi) */}
       {swipingId === m.id && swipeDelta !== 0 && (
         <div className={`absolute inset-0 flex items-center px-5 transition-colors duration-200 ${isMinimized ? 'rounded-md' : 'rounded-xl'} ${swipeDelta > 0 ? 'bg-red-500 justify-start' : (colType === 'private' ? 'bg-emerald-500 justify-end' : 'bg-blue-500 justify-end')}`}>
           {swipeDelta > 0 ? (
@@ -61,7 +60,6 @@ export default function MessageItem({
         </div>
       )}
 
-      {/* Bubble Pesan */}
       <div 
         className={`relative z-10 ${bgBubbleClass} ${isMinimized ? 'p-1.5 rounded-md' : 'p-3 rounded-xl'} ${borderThicknessClass} shadow-sm w-full select-none ${borderColorClass}`}
         onMouseDown={() => { longPressTimer.current = setTimeout(() => { setLongPressId(m.id); if (navigator.vibrate) navigator.vibrate(50); }, 500); }}
@@ -106,14 +104,26 @@ export default function MessageItem({
 
         <div className={`flex justify-between items-start ${isMinimized ? 'mb-0.5' : 'mb-1'}`}>
           <div className="flex items-center gap-1.5 flex-wrap">
-            <b onClick={() => handleTag(m.username)} className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMsgAdmin ? 'bg-red-500' : (colType === 'private' ? 'bg-emerald-500' : 'bg-blue-500')} ${isMinimized ? 'text-[8px]' : 'text-[10px]'}`}>
+            <b onClick={() => handleTag(m.username)} className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMsgMine ? 'bg-blue-600' : 'bg-gray-700'} ${isMinimized ? 'text-[8px]' : 'text-[10px]'}`}>
               {m.username}
             </b>
-            {isMsgAdmin ? <span className={`text-[8px] px-1 rounded bg-white/50 text-gray-700`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span> : userStatus[m.username] && <span className={`text-[8px] px-1 rounded bg-white/50 text-gray-700`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>}
+            {isMsgAdmin ? (
+              <span className={`px-1 rounded bg-white/50 text-[8px] ${isAdminOnline ? 'text-green-600 font-bold' : 'text-gray-500'}`}>
+                {isAdminOnline ? 'Online' : adminOfflineTime}
+              </span>
+            ) : (
+              userStatus[m.username] && (
+                <span className={`px-1 rounded bg-white/50 text-[8px] ${userStatus[m.username].online ? 'text-green-600 font-bold' : 'text-gray-500'}`}>
+                  {userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}
+                </span>
+              )
+            )}
             {m.is_private && !isMinimized && <span className={`text-[10px] ${isMsgAdmin ? 'text-red-500' : 'text-emerald-600'}`}>🔒 Private</span>}
-            {isEdited && <span className="text-yellow-600 text-[9px] italic font-medium ml-1">(edited)</span>}
           </div>
-          <span className="text-[8px] text-gray-400 font-medium">{formatMessageTime(m.created_at)}</span>
+          <span className="text-[8px] text-gray-400 font-medium flex items-center gap-1">
+            {formatMessageTime(m.created_at)}
+            {isEdited && <span className="text-yellow-500 font-bold text-[9px] lowercase">(edited)</span>}
+          </span>
         </div>
 
         {m.image_url && (
@@ -131,7 +141,7 @@ export default function MessageItem({
         )}
         
         {m.pesan && (
-          <div className={`mt-1 min-w-0 break-words whitespace-pre-wrap line-clamp-4 cursor-pointer hover:bg-black/5 transition-colors rounded`} onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }}>
+          <div className="mt-1 min-w-0 break-words whitespace-pre-wrap cursor-pointer hover:bg-black/5 transition-colors rounded" onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }}>
             {renderContent(m.pesan, isMinimized)}
           </div>
         )}
