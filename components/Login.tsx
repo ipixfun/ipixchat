@@ -14,7 +14,6 @@ export default function Login({
   handleUserLogin,
   handleAdminLogin
 }: any) {
-  const title = "iPixChaT";
   const existingNote = "Mohon maaf nama anda tidak bisa diubah lagi. Hubungi admin di chat jika anda ingin merubahnya.";
   const [displayedNote, setDisplayedNote] = useState("");
   const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
@@ -25,6 +24,9 @@ export default function Login({
 
   // State untuk persetujuan username permanen
   const [isUsernameAgreed, setIsUsernameAgreed] = useState(false);
+
+  // State untuk notifikasi validasi
+  const [validationMsg, setValidationMsg] = useState("");
 
   // Typing effect untuk existing user note
   useEffect(() => {
@@ -44,46 +46,49 @@ export default function Login({
     return () => clearInterval(interval);
   }, [isExistingUser]);
 
-  // Validasi tombol login user baru
+  // Validasi apakah semua kolom untuk user baru sudah terisi lengkap & dicentang
   const isFormValid = username?.trim().length > 0 && umur !== "" && berat !== "" && isUsernameAgreed;
+
+  // Handler Login User dengan Notifikasi Kustom
+  const handleUserLoginWrapper = () => {
+    if (!isExistingUser) {
+      if (!username || username.trim().length === 0) {
+        setValidationMsg("isi dulu sayang");
+        return;
+      }
+      if (!umur || !berat) {
+        setValidationMsg("pilih dulu sayang");
+        return;
+      }
+      if (!isUsernameAgreed) {
+        setValidationMsg("ceklist dulu sayang");
+        return;
+      }
+    }
+    
+    // Jika semua valid atau merupakan existing user
+    setValidationMsg("");
+    handleUserLogin();
+  };
 
   return (
     // Background utama dibuat full bg-transparent
     <div className="fixed inset-0 flex flex-col items-center justify-center p-6 z-50 bg-transparent overflow-hidden w-full font-sans">
       
-      {/* Logo iPixChaT Dinamis (3D Gelombang Ijo-Biru dengan Font Rounded) */}
-      <div className="relative z-20 mb-10 flex justify-center pointer-events-none select-none">
-        {/* Teks Gelombang 3D dengan Ujung Bulat (Rounded) */}
-        <div className="flex relative z-10">
-          {title.split('').map((letter, index) => (
-            <motion.span
-              key={index}
-              className="inline-block text-6xl sm:text-7xl font-black tracking-[-1px] text-transparent bg-clip-text bg-gradient-to-b from-emerald-400 via-teal-300 to-blue-600 drop-shadow-[0_6px_3px_rgba(4,120,87,0.7)]"
-              style={{ fontFamily: "'Comfortaa', 'Quicksand', 'Nunito', system-ui, sans-serif" }}
-              animate={{
-                y: [0, -18, 0],
-              }}
-              transition={{
-                y: { duration: 2.2, repeat: Infinity, delay: index * 0.15, ease: "easeInOut" },
-              }}
-            >
-              {letter}
-            </motion.span>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Card - Menggunakan bg-white/5 (Opasitas 5%) dan Efek Blur Ringan */}
+      {/* Main Card - Kotak login blur 5% (bg-white/5) */}
       <div className="w-full max-w-sm flex flex-col items-center bg-white/5 backdrop-blur-sm border border-white/10 p-8 rounded-[2.5rem] shadow-[0_12px_40px_rgba(0,0,0,0.2)] z-20 relative overflow-hidden">
         
         {activeTab === 'user' ? (
           <div className="w-full flex flex-col items-center relative z-10">
             {/* Input Username */}
             <input 
-              className="w-full p-4 bg-white/40 backdrop-blur-sm text-gray-900 placeholder-gray-700 border border-white/30 rounded-full focus:border-emerald-400 focus:ring-2 focus:ring-emerald-300 focus:outline-none transition-all text-center text-lg tracking-wide mb-4 shadow-inner font-bold" 
+              className="w-full p-4 bg-white/40 backdrop-blur-sm text-gray-900 placeholder-gray-700 border border-white/30 rounded-full focus:border-blue-400 focus:ring-2 focus:ring-blue-300 focus:outline-none transition-all text-center text-lg tracking-wide mb-4 shadow-inner font-bold" 
               placeholder="Username (Maks 20 huruf)" 
               value={username || ""} 
-              onChange={(e) => setUsername(e.target.value.slice(0, 20))} 
+              onChange={(e) => {
+                setUsername(e.target.value.slice(0, 20));
+                if (validationMsg) setValidationMsg(""); 
+              }} 
               disabled={isExistingUser} 
               maxLength={20}
             />
@@ -94,8 +99,11 @@ export default function Login({
                 <div className="w-1/2 relative">
                   <select 
                     value={umur}
-                    onChange={(e) => setUmur(e.target.value)}
-                    className="w-full p-3 bg-white/40 backdrop-blur-sm text-gray-800 font-bold border border-white/30 rounded-3xl focus:outline-none focus:ring-2 focus:ring-emerald-400 appearance-none shadow-sm cursor-pointer text-center text-sm"
+                    onChange={(e) => {
+                      setUmur(e.target.value);
+                      if (validationMsg) setValidationMsg("");
+                    }}
+                    className="w-full p-3 bg-white/40 backdrop-blur-sm text-gray-800 font-bold border border-white/30 rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-400 appearance-none shadow-sm cursor-pointer text-center text-sm"
                   >
                     <option value="" disabled>Umur</option>
                     <option value="20+">20+</option>
@@ -112,8 +120,11 @@ export default function Login({
                 <div className="w-1/2 relative">
                   <select 
                     value={berat}
-                    onChange={(e) => setBerat(e.target.value)}
-                    className="w-full p-3 bg-white/40 backdrop-blur-sm text-gray-800 font-bold border border-white/30 rounded-3xl focus:outline-none focus:ring-2 focus:ring-emerald-400 appearance-none shadow-sm cursor-pointer text-center text-sm"
+                    onChange={(e) => {
+                      setBerat(e.target.value);
+                      if (validationMsg) setValidationMsg("");
+                    }}
+                    className="w-full p-3 bg-white/40 backdrop-blur-sm text-gray-800 font-bold border border-white/30 rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-400 appearance-none shadow-sm cursor-pointer text-center text-sm"
                   >
                     <option value="" disabled>Berat</option>
                     <option value="<55">&lt;55</option>
@@ -141,17 +152,27 @@ export default function Login({
               </motion.div>
             )}
 
-            {/* Tombol Login dengan Outline Biru Ijo (Teal) */}
+            {/* Notifikasi Peringatan Masukan */}
+            {validationMsg && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="w-full text-center text-sm font-extrabold text-rose-500 bg-rose-500/10 border border-rose-500/20 py-2 px-4 rounded-full mb-3 tracking-wide"
+              >
+                {validationMsg}
+              </motion.div>
+            )}
+
+            {/* Tombol Login Berubah Warna: Masuk Chat/Sudah Diisi Lengkap = Ijo, Belum Lengkap = Biru */}
             <button 
-              onClick={handleUserLogin} 
-              disabled={!isExistingUser && !isFormValid} 
-              className={`w-full py-4 mb-4 text-white font-bold text-md shadow-lg transition-all rounded-full tracking-wider
-                ${(!isExistingUser && !isFormValid) 
-                  ? 'bg-gray-400/40 cursor-not-allowed opacity-60 backdrop-blur-sm border border-transparent' 
-                  : 'bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 hover:shadow-xl active:scale-95 cursor-pointer border-2 border-teal-400'
+              onClick={handleUserLoginWrapper} 
+              className={`w-full py-4 mb-4 text-white font-bold text-md shadow-lg transition-all rounded-full tracking-wider border-2 active:scale-95 cursor-pointer
+                ${(isExistingUser || isFormValid)
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-emerald-400 shadow-green-500/20' 
+                  : 'bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 border-cyan-400 shadow-blue-500/20'
                 }`}
             >
-              {isExistingUser ? 'Masuk Chat' : 'Login'}
+              {isExistingUser ? 'Masuk Chat' : 'Gabung'}
             </button>
 
             {/* Kolom Centang warning username */}
@@ -163,9 +184,12 @@ export default function Login({
                 <input 
                   type="checkbox" 
                   id="username-agree" 
-                  className="w-4 h-4 accent-emerald-500 border-white/40 rounded cursor-pointer scale-105"
+                  className="w-4 h-4 accent-blue-500 border-white/40 rounded cursor-pointer scale-105"
                   checked={isUsernameAgreed}
-                  onChange={(e) => setIsUsernameAgreed(e.target.checked)}
+                  onChange={(e) => {
+                    setIsUsernameAgreed(e.target.checked);
+                    if (validationMsg) setValidationMsg("");
+                  }}
                 />
                 <label htmlFor="username-agree" className="text-[11px] font-bold tracking-wide text-gray-800 drop-shadow-sm cursor-pointer leading-none">
                   *Username permanen & tidak dapat diubah
@@ -177,14 +201,14 @@ export default function Login({
           <div className="w-full flex flex-col items-center relative z-10">
             {/* Input Admin */}
             <input 
-              className="w-full p-4 mb-4 bg-white/40 backdrop-blur-sm text-gray-900 placeholder-gray-700 border border-white/30 rounded-full focus:border-emerald-400 focus:ring-2 focus:ring-emerald-300 focus:outline-none transition-all text-center text-md tracking-wide shadow-inner font-bold" 
+              className="w-full p-4 mb-4 bg-white/40 backdrop-blur-sm text-gray-900 placeholder-gray-700 border border-white/30 rounded-full focus:border-blue-400 focus:ring-2 focus:ring-blue-300 focus:outline-none transition-all text-center text-md tracking-wide shadow-inner font-bold" 
               placeholder="Email Admin" 
               value={adminEmail || ""} 
               onChange={(e) => setAdminEmail(e.target.value)} 
             />
             <input 
               type="password" 
-              className="w-full p-4 mb-8 bg-white/40 backdrop-blur-sm text-gray-900 placeholder-gray-700 border border-white/30 rounded-full focus:border-emerald-400 focus:ring-2 focus:ring-emerald-300 focus:outline-none transition-all text-center text-md tracking-wide shadow-inner font-bold" 
+              className="w-full p-4 mb-8 bg-white/40 backdrop-blur-sm text-gray-900 placeholder-gray-700 border border-white/30 rounded-full focus:border-blue-400 focus:ring-2 focus:ring-blue-300 focus:outline-none transition-all text-center text-md tracking-wide shadow-inner font-bold" 
               placeholder="Password Admin" 
               value={adminPass || ""} 
               onChange={(e) => setAdminPass(e.target.value)} 
@@ -192,8 +216,8 @@ export default function Login({
             
             <button 
               onClick={handleAdminLogin} 
-              className="w-full py-4 bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold text-md shadow-lg hover:shadow-xl active:scale-95 transition-all rounded-full tracking-wider border-2 border-teal-400">
-              Login Admin
+              className="w-full py-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-bold text-md shadow-lg hover:shadow-xl active:scale-95 transition-all rounded-full tracking-wider border-2 border-cyan-400">
+              Gabung Admin
             </button>
           </div>
         )}
