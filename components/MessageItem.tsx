@@ -194,18 +194,21 @@ export default function MessageList({
                   type="button" 
                   onClick={async (e) => {
                     e.stopPropagation();
-                    const oldText = popupMsg.pesan;
-                    setPopupMsg(null);
+                    const targetMsg = popupMsg; // Simpan referensi objek
+                    const oldText = targetMsg.pesan;
+                    
                     const newText = window.prompt("Edit pesan:", oldText);
+                    setPopupMsg(null); // Tutup popup setelah dialog prompt
+
                     if (newText && newText.trim() !== oldText) {
                       if (uiTab === 'admin') {
-                        await supabase.from('messages').update({ pesan: newText.trim(), is_edited: true }).eq('id', popupMsg.id);
+                        await supabase.from('messages').update({ pesan: newText.trim(), is_edited: true }).eq('id', targetMsg.id);
                       } else {
-                        const c = parseInt(localStorage.getItem(`edit_${popupMsg.id}`) || '0');
+                        const c = parseInt(localStorage.getItem(`edit_${targetMsg.id}`) || '0');
                         if (c >= 2) return alert("Batas 2x Edit");
-                        await supabase.from('messages').update({ pesan: newText.trim(), is_edited: true }).eq('id', popupMsg.id);
-                        localStorage.setItem(`edit_${popupMsg.id}`, (c+1).toString());
-                        localStorage.setItem(`edit_count_${popupMsg.id}`, '1');
+                        await supabase.from('messages').update({ pesan: newText.trim(), is_edited: true }).eq('id', targetMsg.id);
+                        localStorage.setItem(`edit_${targetMsg.id}`, (c+1).toString());
+                        localStorage.setItem(`edit_count_${targetMsg.id}`, '1');
                       }
                       fetchData();
                     }
@@ -252,7 +255,7 @@ interface MessageItemProps {
 }
 
 function MessageItem({
-  m, allMessages, currentDeviceId, uiTab, adminOnline, adminOfflineTime,
+  m, allMessages, colType, currentDeviceId, uiTab, adminOnline, adminOfflineTime,
   userStatus, censorWords, activeMenuId, setActiveMenuId, swipingId, setSwipingId,
   setPopupMsg, triggerReply, deleteMsg, editMsg, editNama, blockUser,
   handleInteraction, setSelPriv, startDrag, fmtTime, authUser
@@ -311,8 +314,8 @@ function MessageItem({
   return (
     <div id={`msg-${m.id}`} className="relative w-full">
       {swipingId === m.id && swipeDelta !== 0 && (
-        <div className={`absolute inset-0 flex items-center px-4 rounded-md transition-colors ${swipeDelta > 0 ? 'bg-red-500 justify-start' : 'bg-blue-500 justify-end'}`}>
-          {swipeDelta > 0 ? <span className="text-white text-xs font-bold">Hapus</span> : <span className="text-white text-xs font-bold">Balas</span>}
+        <div className={`absolute inset-0 flex items-center px-4 rounded-md transition-colors ${swipeDelta > 0 ? 'bg-blue-500 justify-start' : 'bg-red-500 justify-end'}`}>
+          {swipeDelta > 0 ? <span className="text-white text-xs font-bold">💬 Balas</span> : <span className="text-white text-xs font-bold">🗑️ Hapus</span>}
         </div>
       )}
 
@@ -321,12 +324,13 @@ function MessageItem({
         className={`relative z-10 ${bgBubbleClass} p-1.5 rounded-md ${borderThicknessClass} shadow-sm w-full select-none ${borderColorClass}`}
         onMouseDown={(e) => {
           if (e.button !== 0) return;
-          // Ditambahkan pengecekan koordinat aman tipe data number
           const startX = e.clientX;
           const startY = e.clientY;
+          
+          if (longPressTimer.current) clearTimeout(longPressTimer.current);
           longPressTimer.current = setTimeout(() => { 
             setPopupMsg(m); 
-          }, 400);
+          }, 500);
           
           // Memulai fitur drag drop admin/user
           startDrag(m, startX, startY);
@@ -334,18 +338,36 @@ function MessageItem({
         onMouseMove={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }}
         onMouseUp={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }}
         onTouchStart={(e) => {
-          setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY);
-          setSwipingId(m.id); setSwipeDelta(0); setIsHorizontalSwipe(false);
-          longPressTimer.current = setTimeout(() => { setPopupMsg(m); setSwipingId(null); }, 400);
+          setTouchStartX(e.touches[0].clientX); 
+          setTouchInitialY(e.touches[0].clientY);
+          setSwipingId(m.id); 
+          setSwipeDelta(0); 
+          setIsHorizontalSwipe(false);
+          
+          if (longPressTimer.current) clearTimeout(longPressTimer.current);
+          longPressTimer.current = setTimeout(() => { 
+            setPopupMsg(m); 
+            setSwipingId(null); 
+          }, 500);
         }}
         onTouchMove={(e) => {
-          if (longPressTimer.current) clearTimeout(longPressTimer.current);
+          const deltaX = e.touches[0].clientX - touchStartX; 
+          const deltaY = e.touches[0].clientY - touchInitialY;
+          
+          // Membatalkan long press/popup jika user sedang asik menggulir atau menyeret ke bawah
+          if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+            if (longPressTimer.current) clearTimeout(longPressTimer.current);
+          }
+
           if (swipingId !== m.id) return;
-          const deltaX = e.touches[0].clientX - touchStartX; const deltaY = e.touches[0].clientY - touchInitialY;
-          if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) setIsHorizontalSwipe(true);
+          if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+            setIsHorizontalSwipe(true);
+          }
+          
           if (isHorizontalSwipe) {
             let allowedDelta = deltaX;
-            if (allowedDelta > 0 && !(uiTab === 'admin' || isMsgMine)) allowedDelta = 0;
+            // Hanya izinkan swipe kiri (hapus) untuk admin / pengirim asli
+            if (allowedDelta < 0 && !(uiTab === 'admin' || isMsgMine)) allowedDelta = 0;
             setSwipeDelta(Math.max(-75, Math.min(75, allowedDelta)));
           }
         }}
@@ -353,9 +375,9 @@ function MessageItem({
           if (longPressTimer.current) clearTimeout(longPressTimer.current);
           if (swipingId === m.id && isHorizontalSwipe) {
             if (swipeDelta > 50) {
-              deleteMsg(m.id, m.created_at, m.device_id, m.username);
+              triggerReply(m); // Kanan memicu Balas
             } else if (swipeDelta < -50) {
-              triggerReply(m);
+              deleteMsg(m.id, m.created_at, m.device_id, m.username); // Kiri memicu Hapus
             }
           }
           setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false);
@@ -391,7 +413,11 @@ function MessageItem({
           
           <div className="flex items-center gap-1.5 shrink-0 text-[9px]">
             <span className="text-[8px] text-gray-400">{fmtTime(m.created_at)}</span>
-            <button type="button" onClick={() => triggerReply(m)} className="font-bold underline text-blue-600">Balas</button>
+            
+            {/* Tombol Balas hanya muncul jika di kotak pesan Private */}
+            {colType === 'private' && (
+              <button type="button" onClick={() => triggerReply(m)} className="font-bold underline text-blue-600">Balas</button>
+            )}
             
             {uiTab === 'admin' && (
               <div className="relative">
