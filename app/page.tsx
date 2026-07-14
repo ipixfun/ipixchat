@@ -5,7 +5,6 @@ import { supabase } from './supabaseClient';
 import Login from '../components/Login';
 import Block from '../components/Block';
 import ChatLayout from '../components/ChatLayout';
-// --- BERHASIL DITAMBAHKAN ---
 import MessageItem from '../components/MessageItem'; 
 
 export default function Home() {
@@ -134,6 +133,40 @@ export default function Home() {
     }
   }, [mounted, fetchData]);
 
+  const dbActions = {
+    editLmt: async (m: any) => { 
+      const c = parseInt(localStorage.getItem(`edit_${m.id}`) || '0'); 
+      if(c>=2) return alert("Batas 2x"); 
+      const nt = prompt("Edit:", m.pesan); 
+      if(nt && nt.trim() !== m.pesan) { 
+        await supabase.from('messages').update({ pesan: nt.trim(), is_edited: true }).eq('id', m.id); 
+        localStorage.setItem(`edit_${m.id}`, (c+1).toString()); 
+        localStorage.setItem(`edit_count_${m.id}`, '1'); 
+        fetchData(); 
+      } 
+    },
+    editMsg: async (id: number) => { 
+      const nt = prompt("Edit:", msgs.all.find(m => m.id === id)?.pesan || ""); 
+      if(nt) { 
+        await supabase.from('messages').update({ pesan: nt, is_edited: true }).eq('id', id); 
+        localStorage.setItem(`edit_count_${id}`, '1'); 
+        fetchData(); 
+      } 
+    },
+    editNm: async (id: number) => { const m = msgs.all.find(m => m.id === id); if(!m) return; const nn = prompt("Nama:", m.username); if(nn && isCensored(nn)) return alert("Terlarang!"); if(nn) { await Promise.all([supabase.from('profiles').update({ username: nn }).eq('device_id', m.device_id), supabase.from('messages').update({ username: nn }).eq('device_id', m.device_id)]); fetchData(); } },
+    delMsg: async (id: number) => { 
+      if (ui.tab === 'admin') {
+        await supabase.from('messages').delete().eq('id', id); 
+      } else {
+        await supabase.from('messages').update({ pesan: '___DELETED___', image_url: null }).eq('id', id);
+      }
+      fetchData(); 
+    },
+    blkUser: async (id: string, nm: string) => { if(confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: nm }]); fetchData(); } },
+    addWrd: async () => { if(censor.newWord.trim()) { await supabase.from('blocked_words').insert([{ word: censor.newWord.trim().toLowerCase() }]); setCensor(p => ({ ...p, newWord: '' })); fetchData(); } },
+    rmWrd: async (w: string) => { await supabase.from('blocked_words').delete().eq('word', w); fetchData(); }
+  };
+
   // Global handler for Drag and Drop Chat feature
   useEffect(() => {
     const handleGlobalMove = (e: TouchEvent | MouseEvent) => {
@@ -150,7 +183,23 @@ export default function Home() {
       const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : (e as MouseEvent).clientY;
       
       const el = document.elementFromPoint(clientX, clientY);
-      if (el && (el.id === 'chat-input' || el.closest('form'))) {
+      
+      // JIKA DRAG DILEPAS DI TOMBOL REFRESH / HAPUS PESAN
+      if (el && (el.id === 'btn-refresh-delete' || el.closest('#btn-refresh-delete'))) {
+        const targetMsg = dragMsg.msg;
+        const isUnder24h = Date.now() - new Date(targetMsg.created_at).getTime() < 24 * 60 * 60 * 1000;
+        const isMyMsg = targetMsg.device_id === currentDeviceId || targetMsg.username === auth.user;
+        
+        if (ui.tab === 'admin' || (isMyMsg && isUnder24h)) {
+          if (confirm("Hapus pesan ini lewat drag drop?")) {
+            dbActions.delMsg(targetMsg.id);
+          }
+        } else if (isMyMsg) {
+          alert("Pesan > 24 jam hanya dapat dihapus oleh Admin.");
+        } else {
+          alert("Anda tidak memiliki akses untuk menghapus pesan ini.");
+        }
+      } else if (el && (el.id === 'chat-input' || el.closest('form'))) {
         setInteract(p => ({ ...p, replyTo: dragMsg.msg }));
         setInput(p => ({ ...p, blink: true }));
         setTimeout(() => setInput(p => ({ ...p, blink: false })), 800);
@@ -171,7 +220,7 @@ export default function Home() {
       window.removeEventListener('mousemove', handleGlobalMove);
       window.removeEventListener('mouseup', handleGlobalUp);
     };
-  }, [dragMsg.active, dragMsg.msg]);
+  }, [dragMsg.active, dragMsg.msg, currentDeviceId, auth.user, ui.tab]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -238,23 +287,6 @@ export default function Home() {
     fetchData();
   };
 
-  const dbActions = {
-    editLmt: async (m: any) => { const c = parseInt(localStorage.getItem(`edit_${m.id}`) || '0'); if(c>=2) return alert("Batas 2x"); const nt = prompt("Edit:", m.pesan); if(nt && nt.trim() !== m.pesan) { await supabase.from('messages').update({ pesan: nt.trim() }).eq('id', m.id); localStorage.setItem(`edit_${m.id}`, (c+1).toString()); localStorage.setItem(`edit_count_${m.id}`, '1'); fetchData(); } },
-    editMsg: async (id: number) => { const nt = prompt("Edit:", msgs.all.find(m => m.id === id)?.pesan || ""); if(nt) { await supabase.from('messages').update({ pesan: nt }).eq('id', id); localStorage.setItem(`edit_count_${id}`, '1'); fetchData(); } },
-    editNm: async (id: number) => { const m = msgs.all.find(m => m.id === id); if(!m) return; const nn = prompt("Nama:", m.username); if(nn && isCensored(nn)) return alert("Terlarang!"); if(nn) { await Promise.all([supabase.from('profiles').update({ username: nn }).eq('device_id', m.device_id), supabase.from('messages').update({ username: nn }).eq('device_id', m.device_id)]); fetchData(); } },
-    delMsg: async (id: number) => { 
-      if (ui.tab === 'admin') {
-        await supabase.from('messages').delete().eq('id', id); 
-      } else {
-        await supabase.from('messages').update({ pesan: '___DELETED___', image_url: null }).eq('id', id);
-      }
-      fetchData(); 
-    },
-    blkUser: async (id: string, nm: string) => { if(confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: nm }]); fetchData(); } },
-    addWrd: async () => { if(censor.newWord.trim()) { await supabase.from('blocked_words').insert([{ word: censor.newWord.trim().toLowerCase() }]); setCensor(p => ({ ...p, newWord: '' })); fetchData(); } },
-    rmWrd: async (w: string) => { await supabase.from('blocked_words').delete().eq('word', w); fetchData(); }
-  };
-
   const hasInputReady = input.text.trim().length > 0 || input.image !== null;
 
   const renderMsgs = (arr: any[], colType: any) => arr.length === 0 ? <div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div> : arr.map((m, idx) => {
@@ -282,8 +314,8 @@ export default function Home() {
             <div className="bg-white p-3 rounded-xl border-[2.5px] border-blue-500 shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
                 <div className="text-[10px] font-bold text-blue-600 mb-1">{dragMsg.msg.username}</div>
                 <div className="text-xs truncate text-gray-800">{dragMsg.msg.pesan === '___DELETED___' ? 'Pesan dihapus' : dragMsg.msg.pesan}</div>
-                <div className="text-[9px] font-bold text-gray-400 mt-2 flex gap-1 items-center bg-gray-50 p-1 rounded">
-                   ↓ Lepas di input untuk balas
+                <div className="text-[9px] font-bold text-red-500 mt-2 flex gap-1 items-center bg-gray-50 p-1 rounded">
+                   ↓ Lepas di tombol REFRESH untuk hapus
                 </div>
             </div>
         </div>
@@ -376,6 +408,7 @@ export default function Home() {
               {auth.isAuth && currentHash !== '#block' && (
                 <button 
                   type="button"
+                  id="btn-refresh-delete"
                   onClick={() => {
                     if (hasInputReady) {
                        setInput(p => ({ ...p, text: '', image: null, uploadingImage: false }));
@@ -401,6 +434,7 @@ export default function Home() {
         </div>
       )}
 
+      {/* POPUP FULL TEXT MODAL */}
       {interact.popup && interact.popup.pesan !== '___DELETED___' && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={()=>setInteract(p=>({...p,popup:null}))}>
           <div className={`w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col ${interact.popup.is_private ? 'border-t-4 border-emerald-500' : 'border-t-4 border-blue-500'}`} onClick={e=>e.stopPropagation()}>
@@ -415,6 +449,75 @@ export default function Home() {
                 <img src={interact.popup.image_url} alt="Uploaded Image" className="w-full h-auto max-h-[50vh] object-contain rounded-lg border mb-3 shadow-sm bg-gray-50" />
               )}
               {interact.popup.pesan && applyCensor(interact.popup.pesan)}
+            </div>
+
+            {/* PILLS CONTAINER DI BAWAH POP-UP CHAT */}
+            <div className="flex flex-wrap items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
+              {interact.popup.image_url && (
+                <button 
+                  type="button" 
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      const response = await fetch(interact.popup.image_url);
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `ipix_image_${interact.popup.id}.jpg`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      window.URL.revokeObjectURL(url);
+                    } catch (err) {
+                      window.open(interact.popup.image_url, '_blank');
+                    }
+                  }} 
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1"
+                >
+                  📥 Unduh Gambar
+                </button>
+              )}
+              <button 
+                type="button" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyTxt(interact.popup.pesan, 'Pesan');
+                }} 
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all"
+              >
+                📋 Salin
+              </button>
+              {((ui.tab === 'admin') || (interact.popup.device_id === currentDeviceId && interact.popup.username !== 'Admin●ipix.my.id')) && (
+                <button 
+                  type="button" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const popupMsg = interact.popup;
+                    setInteract(p => ({ ...p, popup: null }));
+                    if (ui.tab === 'admin') {
+                      dbActions.editMsg(popupMsg.id);
+                    } else {
+                      dbActions.editLmt(popupMsg);
+                    }
+                  }} 
+                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all"
+                >
+                  ✏️ Edit
+                </button>
+              )}
+              <button 
+                type="button" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setInteract(p => ({ ...p, replyTo: interact.popup, popup: null }));
+                  setInput(p => ({ ...p, blink: true }));
+                  setTimeout(() => setInput(p => ({ ...p, blink: false })), 800);
+                }} 
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all"
+              >
+                💬 Balas
+              </button>
             </div>
           </div>
         </div>

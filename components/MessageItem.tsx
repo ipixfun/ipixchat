@@ -16,9 +16,11 @@ export default function MessageItem({
   const shortBrowser = m.user_browser ? m.user_browser.split('(')[0].trim() + (m.user_browser.includes('(') ? ` (${m.user_browser.split('(')[1].split(')')[0]})` : '') : 'Unknown Browser';
   const isMsgAdmin = m.username === 'Admin●ipix.my.id';
   const isMsgMine = m.device_id === currentDeviceId || m.username === authUser;
-  const isEdited = typeof window !== 'undefined' ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || '0') > 0 : false;
+  
+  // Edited status diubah agar mengecek properti dari database (m.is_edited) agar tersinkronisasi untuk seluruh user
+  const isEdited = m.is_edited || (typeof window !== 'undefined' ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || '0') > 0 : false);
 
-  // Render Tombstone
+  // Render Tombstone jika pesan terhapus
   if (m.pesan === '___DELETED___') {
     return (
       <div id={`msg-${m.id}`} className="relative w-full flex justify-start mb-2 z-10"
@@ -59,9 +61,24 @@ export default function MessageItem({
     );
   }
 
-  // Dinamis outline size: sama tebalnya (3px) pada bagian bawah & kanan.
-  const borderColorClass = isMsgAdmin ? 'border-b-red-600 border-r-red-600' : isMsgMine ? 'border-b-blue-500 border-r-blue-500' : 'border-b-gray-400 border-r-gray-400';
-  const borderThicknessClass = 'border-b-[3px] border-r-[3px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5';
+  // DINAMIS OUTLINE & BORDER THICKNESS
+  // 1. Admin: Outline tebal hanya di sebelah kanan (border-r-[3px])
+  // 2. User Private: Outline tebal di bawah & kanan dengan warna hijau (emerald-500)
+  // 3. Lainnya: Outline biru (jika milik sendiri) atau abu-abu (milik user lain)
+  const isPrivateAndNotAdmin = m.is_private && !isMsgAdmin;
+
+  const borderThicknessClass = isMsgAdmin 
+    ? 'border-r-[3px] border-b-[1px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5 border-b-black/5' 
+    : 'border-b-[3px] border-r-[3px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5';
+
+  const borderColorClass = isMsgAdmin 
+    ? 'border-r-red-600' 
+    : isPrivateAndNotAdmin
+      ? 'border-b-emerald-500 border-r-emerald-500'
+      : isMsgMine 
+        ? 'border-b-blue-500 border-r-blue-500' 
+        : 'border-b-gray-400 border-r-gray-400';
+
   const bgBubbleClass = m.is_private ? 'bg-emerald-50/95' : 'bg-blue-50/95';
 
   const renderContent = (text: string, isMin: boolean) => {
@@ -156,28 +173,29 @@ export default function MessageItem({
           </div>
         )}
 
+        {/* BAGIAN ATAS: Nama di kiri, Online/offline status di pojok kanan atas */}
         <div className={`flex justify-between items-start ${isMinimized ? 'mb-0.5' : 'mb-1'}`}>
           <div className="flex items-center gap-1.5 flex-wrap">
             <b onClick={() => handleTag(m.username)} className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMsgAdmin ? 'bg-red-600' : isMsgMine ? 'bg-blue-600' : 'bg-gray-700'} ${isMinimized ? 'text-[8px]' : 'text-[10px]'}`}>
               {m.username}
             </b>
+            {m.is_private && !isMinimized && <span className={`text-[10px] ${isMsgAdmin ? 'text-red-500' : 'text-emerald-600'}`}>🔒 Private</span>}
+          </div>
+          
+          {/* PINDAH KE POJOK KANAN ATAS */}
+          <div className="text-right shrink-0">
             {isMsgAdmin ? (
-              <span className={`px-1 rounded bg-white/50 text-[8px] ${isAdminOnline ? 'text-green-600 font-bold' : 'text-gray-500'}`}>
+              <span className={`px-1.5 py-0.5 rounded bg-white/60 text-[8px] ${isAdminOnline ? 'text-green-600 font-bold' : 'text-gray-500'}`}>
                 {isAdminOnline ? 'Online' : adminOfflineTime}
               </span>
             ) : (
               userStatus[m.username] && (
-                <span className={`px-1 rounded bg-white/50 text-[8px] ${userStatus[m.username].online ? 'text-green-600 font-bold' : 'text-gray-500'}`}>
+                <span className={`px-1.5 py-0.5 rounded bg-white/60 text-[8px] ${userStatus[m.username].online ? 'text-green-600 font-bold' : 'text-gray-500'}`}>
                   {userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}
                 </span>
               )
             )}
-            {m.is_private && !isMinimized && <span className={`text-[10px] ${isMsgAdmin ? 'text-red-500' : 'text-emerald-600'}`}>🔒 Private</span>}
           </div>
-          <span className="text-[8px] text-gray-400 font-medium flex items-center gap-1">
-            {formatMessageTime(m.created_at)}
-            {isEdited && <span className="text-yellow-500 font-bold text-[9px] lowercase">(edited)</span>}
-          </span>
         </div>
 
         {m.image_url && (
@@ -200,8 +218,12 @@ export default function MessageItem({
           </div>
         )}
         
+        {/* BAGIAN BAWAH: (edited) di pojok kiri bawah, Hari tanggal jam di pojok kanan bawah */}
         <div className={`${isMinimized ? 'mt-1 pt-1' : 'mt-2 pt-2'} border-t border-black/10 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
-          <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end">
+          
+          {/* POJOK KIRI BAWAH: edited & private info */}
+          <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end items-start text-left">
+            {isEdited && <span className="text-yellow-600 font-black text-[9px] lowercase bg-yellow-100/70 px-1 rounded shadow-sm">(edited)</span>}
             {m.is_private && isMinimized && <span className={`text-[8px] font-bold ${isMsgAdmin ? 'text-red-500' : 'text-emerald-600'}`}>🔒 Private</span>}
             {activeTab === 'admin' && (
               <div className="flex flex-col gap-1 text-[8px] text-gray-400 font-sans w-full">
@@ -211,32 +233,38 @@ export default function MessageItem({
             )}
           </div>
           
-          <div className="flex items-center gap-2 text-[10px] shrink-0 pb-0.5">
-            {!isMinimized && <button type="button" onClick={() => handleReply(m)} className={`font-bold underline mr-1 transition-colors ${colType === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'}`}>Balas</button>}
-            
-            {activeTab === 'admin' && (
-              <div className="relative">
-                <button type="button" onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === m.id ? null : m.id); }} className="text-gray-500 hover:text-gray-800 text-base font-bold px-2 py-1 rounded hover:bg-white/50 transition-colors">⋮</button>
-                {activeMenuId === m.id && (
-                  <>
-                    <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
-                    <div className="absolute right-0 bottom-full mb-2 w-48 bg-white border border-gray-200 shadow-2xl rounded-xl z-30 py-2 flex flex-col gap-0.5 animate-fade-in">
-                      <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-blue-600 hover:bg-gray-50">✏️ Edit Teks</button>
-                      <button type="button" onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-purple-600 hover:bg-gray-50">👤 Edit Nama</button>
-                      <button type="button" onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-gray-50">🗑️ Hapus Pesan</button>
-                      <button type="button" onClick={() => { copyToClipboard(m.pesan, 'Pesan'); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-gray-700 hover:bg-gray-50">📋 Salin Teks</button>
-                      {!isMsgAdmin && (
-                        <>
-                          <div className="h-px bg-gray-200 my-1 mx-2" />
-                          <button type="button" onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-orange-600 hover:bg-gray-50">🚫 Blokir User</button>
-                          <button type="button" onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-emerald-600 hover:bg-gray-50">🔒 Chat Private</button>
-                        </>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+          {/* POJOK KANAN BAWAH: Waktu dan tombol aksi */}
+          <div className="flex flex-col items-end gap-1 shrink-0 pb-0.5">
+            <span className="text-[8px] text-gray-400 font-bold bg-white/50 px-1 rounded">
+              {formatMessageTime(m.created_at)}
+            </span>
+            <div className="flex items-center gap-2 text-[10px]">
+              {!isMinimized && <button type="button" onClick={() => handleReply(m)} className={`font-bold underline mr-1 transition-colors ${colType === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'}`}>Balas</button>}
+              
+              {activeTab === 'admin' && (
+                <div className="relative">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === m.id ? null : m.id); }} className="text-gray-500 hover:text-gray-800 text-base font-bold px-2 py-1 rounded hover:bg-white/50 transition-colors">⋮</button>
+                  {activeMenuId === m.id && (
+                    <>
+                      <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
+                      <div className="absolute right-0 bottom-full mb-2 w-48 bg-white border border-gray-200 shadow-2xl rounded-xl z-30 py-2 flex flex-col gap-0.5 animate-fade-in">
+                        <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-blue-600 hover:bg-gray-50">✏️ Edit Teks</button>
+                        <button type="button" onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-purple-600 hover:bg-gray-50">👤 Edit Nama</button>
+                        <button type="button" onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-gray-50">🗑️ Hapus Pesan</button>
+                        <button type="button" onClick={() => { copyToClipboard(m.pesan, 'Pesan'); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-gray-700 hover:bg-gray-50">📋 Salin Teks</button>
+                        {!isMsgAdmin && (
+                          <>
+                            <div className="h-px bg-gray-200 my-1 mx-2" />
+                            <button type="button" onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-orange-600 hover:bg-gray-50">🚫 Blokir User</button>
+                            <button type="button" onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-emerald-600 hover:bg-gray-50">🔒 Chat Private</button>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
