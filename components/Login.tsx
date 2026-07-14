@@ -19,7 +19,7 @@ export default function Login({
   const [displayedNote, setDisplayedNote] = useState("");
   const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
   
-  // State untuk dropdown formulir (Hanya menyisakan umur dan berat)
+  // State untuk dropdown formulir
   const [umur, setUmur] = useState("");
   const [berat, setBerat] = useState("");
 
@@ -55,20 +55,19 @@ export default function Login({
     return () => clearInterval(interval);
   }, [isExistingUser]);
 
-  // Validasi tombol login user baru (hanya mengecek username, umur, berat, & checkbox)
+  // Validasi tombol login user baru
   const isFormValid = username?.trim().length > 0 && umur !== "" && berat !== "" && isUsernameAgreed;
 
   return (
-    // Background utama
-    <div className="fixed inset-0 flex flex-col items-center justify-center p-6 z-50 bg-black/35 backdrop-blur-sm overflow-hidden w-full font-sans">
+    // Background utama dibuat full bg-transparent & menghilangkan backdrop-blur
+    <div className="fixed inset-0 flex flex-col items-center justify-center p-6 z-50 bg-transparent overflow-hidden w-full font-sans">
       
-      {/* Siluet Gradasi Biru Ijo di belakang Card */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-gradient-to-tr from-emerald-500/20 to-blue-500/20 rounded-full blur-[90px] z-0 animate-pulse" style={{ animationDuration: '4s' }}></div>
+      {/* Siluet Gradasi belakang dihapus agar full transparan */}
 
       {/* Logo iPixChaT Dinamis (3D Gelombang Ijo-Biru dengan Putih Lembut) */}
       <div className="relative z-20 mb-10 flex justify-center pointer-events-none select-none">
         
-        {/* Container Gelembung Putih Semula (Stabil & Tidak Ikut Cepat) */}
+        {/* Container Gelembung Putih */}
         <div className="absolute inset-0 z-0 overflow-visible pointer-events-none">
           {bubbles.map((b) => (
             <motion.div
@@ -115,8 +114,8 @@ export default function Login({
         </div>
       </div>
 
-      {/* Main Card - Transparan 95% / Sisain 5% (bg-white/5) */}
-      <div className="w-full max-w-sm flex flex-col items-center bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-[2.5rem] shadow-[0_12px_40px_rgba(0,0,0,0.3)] z-20 relative overflow-hidden">
+      {/* Main Card - Diubah menjadi bg-transparent, tanpa border, shadow, atau blur */}
+      <div className="w-full max-w-sm flex flex-col items-center bg-transparent p-8 rounded-[2.5rem] z-20 relative overflow-hidden">
         
         {activeTab === 'user' ? (
           <div className="w-full flex flex-col items-center relative z-10">
@@ -196,7 +195,7 @@ export default function Login({
               {isExistingUser ? 'Masuk Chat' : 'Login'}
             </button>
 
-            {/* Kolom Centang warning username di bawah tombol login */}
+            {/* Kolom Centang warning username */}
             {!isExistingUser && (
               <motion.div 
                 whileHover={{ scale: 1.01 }}
@@ -241,7 +240,7 @@ export default function Login({
         )}
       </div>
 
-      {/* Footer Pill Responsif */}
+      {/* Footer Pill - Tetap dipertahankan background visual pill-nya */}
       <div className="absolute bottom-6 z-30 flex items-center justify-center w-full pointer-events-none">
         <motion.div 
           className="text-[11px] text-gray-200 flex items-center gap-1.5 font-medium bg-black/40 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/10 shadow-lg pointer-events-auto transition-colors hover:bg-black/50"
