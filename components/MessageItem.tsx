@@ -5,7 +5,7 @@ export default function MessageItem({
   m, colType, isMinimized, currentDeviceId, activeTab, isAdminOnline, adminOfflineTime,
   userStatus, activeMenuId, setActiveMenuId, longPressId, setLongPressId,
   swipingId, setSwipingId, handleTag, handleReply, deleteMsg, copyToClipboard, handleEditLimit,
-  editMsg, editNama, blockUser, inviteToPrivate, setPopupMsg, applyCensor, scrollToMessage, formatMessageTime, authUser
+  editMsg, editNama, blockUser, inviteToPrivate, setPopupMsg, applyCensor, scrollToMessage, formatMessageTime, authUser, startDrag
 }: any) {
   const [swipeDelta, setSwipeDelta] = useState(0);
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
@@ -18,8 +18,50 @@ export default function MessageItem({
   const isMsgMine = m.device_id === currentDeviceId || m.username === authUser;
   const isEdited = typeof window !== 'undefined' ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || '0') > 0 : false;
 
-  const borderColorClass = isMsgAdmin ? 'border-red-500' : isMsgMine ? (colType === 'private' ? 'border-emerald-500' : 'border-blue-500') : 'border-gray-300';
-  const borderThicknessClass = isMsgAdmin ? 'border-b-[1px] border-r-[1px]' : 'border-b-[2.5px] border-r-[2.5px]';
+  // Render Tombstone
+  if (m.pesan === '___DELETED___') {
+    return (
+      <div id={`msg-${m.id}`} className="relative w-full flex justify-start mb-2 z-10"
+           onTouchStart={(e) => {
+              setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); 
+              setSwipingId(m.id); setSwipeDelta(0); setIsHorizontalSwipe(false); 
+           }}
+           onTouchMove={(e) => {
+              if (swipingId !== m.id) return;
+              const deltaX = e.touches[0].clientX - touchStartX; const deltaY = e.touches[0].clientY - touchInitialY;
+              if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) setIsHorizontalSwipe(true);
+              if (isHorizontalSwipe) {
+                let allowedDelta = deltaX;
+                if (allowedDelta > 0 && activeTab !== 'admin') allowedDelta = 0; 
+                setSwipeDelta(Math.max(-75, Math.min(75, allowedDelta)));
+              }
+           }}
+           onTouchEnd={() => {
+              if (swipingId === m.id && isHorizontalSwipe) {
+                if (swipeDelta > 50 && activeTab === 'admin') { 
+                  if (window.confirm("Hapus permanen history dari user ini?")) deleteMsg(m.id); 
+                }
+              }
+              setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false); 
+           }}
+           style={{ transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)', transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
+          
+          <div className="bg-gray-100/80 border border-gray-200 border-dashed rounded-lg p-2.5 flex flex-col w-full max-w-[200px] shadow-sm ml-1">
+             <div className="flex items-center gap-1.5">
+                <span className="bg-gray-300 text-gray-600 text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm">🚫 Dihapus</span>
+                <span className="text-[10px] text-gray-500 font-medium">oleh user</span>
+             </div>
+             <div className="text-[9px] text-gray-400 mt-1.5 flex items-center gap-1 font-mono bg-white/50 w-max px-1 rounded">
+                📅 {formatMessageTime(m.created_at)}
+             </div>
+          </div>
+      </div>
+    );
+  }
+
+  // Dinamis outline size: sama tebalnya (3px) pada bagian bawah & kanan.
+  const borderColorClass = isMsgAdmin ? 'border-b-red-600 border-r-red-600' : isMsgMine ? 'border-b-blue-500 border-r-blue-500' : 'border-b-gray-400 border-r-gray-400';
+  const borderThicknessClass = 'border-b-[3px] border-r-[3px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5';
   const bgBubbleClass = m.is_private ? 'bg-emerald-50/95' : 'bg-blue-50/95';
 
   const renderContent = (text: string, isMin: boolean) => {
@@ -62,13 +104,25 @@ export default function MessageItem({
 
       <div 
         className={`relative z-10 ${bgBubbleClass} ${isMinimized ? 'p-1.5 rounded-md' : 'p-3 rounded-xl'} ${borderThicknessClass} shadow-sm w-full select-none ${borderColorClass}`}
-        onMouseDown={() => { longPressTimer.current = setTimeout(() => { setLongPressId(m.id); if (navigator.vibrate) navigator.vibrate(50); }, 500); }}
+        onMouseDown={(e) => { 
+          if (e.button !== 0) return;
+          longPressTimer.current = setTimeout(() => { 
+            setLongPressId(null);
+            startDrag(m, e.clientX, e.clientY);
+            if (navigator.vibrate) navigator.vibrate(50); 
+          }, 350); 
+        }}
         onMouseMove={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
         onMouseUp={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
         onTouchStart={(e) => { 
           setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); 
           setSwipingId(m.id); setSwipeDelta(0); setIsHorizontalSwipe(false); 
-          longPressTimer.current = setTimeout(() => { setLongPressId(m.id); if (navigator.vibrate) navigator.vibrate(50); }, 500);
+          longPressTimer.current = setTimeout(() => { 
+            setLongPressId(null);
+            setSwipingId(null);
+            startDrag(m, e.touches[0].clientX, e.touches[0].clientY); 
+            if (navigator.vibrate) navigator.vibrate(50); 
+          }, 350);
         }}
         onTouchMove={(e) => {
           if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
@@ -97,14 +151,14 @@ export default function MessageItem({
         
         {longPressId === m.id && (
           <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 rounded-xl flex items-center justify-center gap-3 shadow-sm border border-gray-200 animate-fade-in" onClick={(e) => { e.stopPropagation(); setLongPressId(null); }}>
-            <button className="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); copyToClipboard(m.pesan, 'Pesan'); setLongPressId(null); }}>Salin Teks</button>
-            {(activeTab !== 'admin' && isMsgMine) && <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); handleEditLimit(m); setLongPressId(null); }}>Edit Teks</button>}
+            <button type="button" className="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); copyToClipboard(m.pesan, 'Pesan'); setLongPressId(null); }}>Salin Teks</button>
+            {(activeTab !== 'admin' && isMsgMine) && <button type="button" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); handleEditLimit(m); setLongPressId(null); }}>Edit Teks</button>}
           </div>
         )}
 
         <div className={`flex justify-between items-start ${isMinimized ? 'mb-0.5' : 'mb-1'}`}>
           <div className="flex items-center gap-1.5 flex-wrap">
-            <b onClick={() => handleTag(m.username)} className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMsgMine ? 'bg-blue-600' : 'bg-gray-700'} ${isMinimized ? 'text-[8px]' : 'text-[10px]'}`}>
+            <b onClick={() => handleTag(m.username)} className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMsgAdmin ? 'bg-red-600' : isMsgMine ? 'bg-blue-600' : 'bg-gray-700'} ${isMinimized ? 'text-[8px]' : 'text-[10px]'}`}>
               {m.username}
             </b>
             {isMsgAdmin ? (
@@ -158,24 +212,24 @@ export default function MessageItem({
           </div>
           
           <div className="flex items-center gap-2 text-[10px] shrink-0 pb-0.5">
-            {!isMinimized && <button onClick={() => handleReply(m)} className={`font-bold underline mr-1 transition-colors ${colType === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'}`}>Balas</button>}
+            {!isMinimized && <button type="button" onClick={() => handleReply(m)} className={`font-bold underline mr-1 transition-colors ${colType === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'}`}>Balas</button>}
             
             {activeTab === 'admin' && (
               <div className="relative">
-                <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === m.id ? null : m.id); }} className="text-gray-500 hover:text-gray-800 text-base font-bold px-2 py-1 rounded hover:bg-white/50 transition-colors">⋮</button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === m.id ? null : m.id); }} className="text-gray-500 hover:text-gray-800 text-base font-bold px-2 py-1 rounded hover:bg-white/50 transition-colors">⋮</button>
                 {activeMenuId === m.id && (
                   <>
                     <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
                     <div className="absolute right-0 bottom-full mb-2 w-48 bg-white border border-gray-200 shadow-2xl rounded-xl z-30 py-2 flex flex-col gap-0.5 animate-fade-in">
-                      <button onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-blue-600 hover:bg-gray-50">✏️ Edit Teks</button>
-                      <button onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-purple-600 hover:bg-gray-50">👤 Edit Nama</button>
-                      <button onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-gray-50">🗑️ Hapus Pesan</button>
-                      <button onClick={() => { copyToClipboard(m.pesan, 'Pesan'); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-gray-700 hover:bg-gray-50">📋 Salin Teks</button>
+                      <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-blue-600 hover:bg-gray-50">✏️ Edit Teks</button>
+                      <button type="button" onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-purple-600 hover:bg-gray-50">👤 Edit Nama</button>
+                      <button type="button" onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-gray-50">🗑️ Hapus Pesan</button>
+                      <button type="button" onClick={() => { copyToClipboard(m.pesan, 'Pesan'); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-gray-700 hover:bg-gray-50">📋 Salin Teks</button>
                       {!isMsgAdmin && (
                         <>
                           <div className="h-px bg-gray-200 my-1 mx-2" />
-                          <button onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-orange-600 hover:bg-gray-50">🚫 Blokir User</button>
-                          <button onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-emerald-600 hover:bg-gray-50">🔒 Chat Private</button>
+                          <button type="button" onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-orange-600 hover:bg-gray-50">🚫 Blokir User</button>
+                          <button type="button" onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-emerald-600 hover:bg-gray-50">🔒 Chat Private</button>
                         </>
                       )}
                     </div>

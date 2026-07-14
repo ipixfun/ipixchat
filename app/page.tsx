@@ -4,8 +4,9 @@ import { usePathname } from 'next/navigation';
 import { supabase } from './supabaseClient';
 import Login from '../components/Login';
 import Block from '../components/Block';
-import MessageItem from '../components/MessageItem';
 import ChatLayout from '../components/ChatLayout';
+// --- BERHASIL DITAMBAHKAN ---
+import MessageItem from '../components/MessageItem'; 
 
 export default function Home() {
   const pathname = usePathname();
@@ -25,8 +26,7 @@ export default function Home() {
   const [currentHash, setCurrentHash] = useState('');
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
   const [refresh, setRefresh] = useState({ pos: { x: 20, y: 100 }, drag: false, hover: false });
-  const dragRef = useRef({ x: 0, y: 0, initX: 0, initY: 0, dragged: false });
-  const refs = { refTimer: useRef<NodeJS.Timeout | null>(null) };
+  const [dragMsg, setDragMsg] = useState({ active: false, msg: null as any, x: 0, y: 0 });
 
   const CLOUDINARY_CLOUD_NAME = 'bjamo8ld';
   const CLOUDINARY_UPLOAD_PRESET = 'ipixchat'; 
@@ -121,8 +121,9 @@ export default function Home() {
         setAuth(p => ({ ...p, isAuth: true, user: session ? 'Admin●ipix.my.id' : (p.isExist ? p.user : sessionStorage.getItem('saved_username') || '') }));
         if (session) setUi(p => ({ ...p, tab: 'admin' }));
       }
-      mounted && setMounted(true);
-    }; chk(); setMounted(true);
+      setMounted(true);
+    }; 
+    chk(); 
   }, [pathname]);
 
   useEffect(() => {
@@ -132,6 +133,45 @@ export default function Home() {
       return () => { supabase.removeChannel(messageSubscription); };
     }
   }, [mounted, fetchData]);
+
+  // Global handler for Drag and Drop Chat feature
+  useEffect(() => {
+    const handleGlobalMove = (e: TouchEvent | MouseEvent) => {
+      if (!dragMsg.active) return;
+      e.preventDefault(); 
+      const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+      setDragMsg(p => ({ ...p, x: clientX, y: clientY }));
+    };
+
+    const handleGlobalUp = (e: TouchEvent | MouseEvent) => {
+      if (!dragMsg.active) return;
+      const clientX = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as MouseEvent).clientX;
+      const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : (e as MouseEvent).clientY;
+      
+      const el = document.elementFromPoint(clientX, clientY);
+      if (el && (el.id === 'chat-input' || el.closest('form'))) {
+        setInteract(p => ({ ...p, replyTo: dragMsg.msg }));
+        setInput(p => ({ ...p, blink: true }));
+        setTimeout(() => setInput(p => ({ ...p, blink: false })), 800);
+      }
+      setDragMsg({ active: false, msg: null, x: 0, y: 0 });
+    };
+
+    if (dragMsg.active) {
+      window.addEventListener('touchmove', handleGlobalMove, { passive: false });
+      window.addEventListener('touchend', handleGlobalUp);
+      window.addEventListener('mousemove', handleGlobalMove);
+      window.addEventListener('mouseup', handleGlobalUp);
+    }
+
+    return () => {
+      window.removeEventListener('touchmove', handleGlobalMove);
+      window.removeEventListener('touchend', handleGlobalUp);
+      window.removeEventListener('mousemove', handleGlobalMove);
+      window.removeEventListener('mouseup', handleGlobalUp);
+    };
+  }, [dragMsg.active, dragMsg.msg]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -202,11 +242,20 @@ export default function Home() {
     editLmt: async (m: any) => { const c = parseInt(localStorage.getItem(`edit_${m.id}`) || '0'); if(c>=2) return alert("Batas 2x"); const nt = prompt("Edit:", m.pesan); if(nt && nt.trim() !== m.pesan) { await supabase.from('messages').update({ pesan: nt.trim() }).eq('id', m.id); localStorage.setItem(`edit_${m.id}`, (c+1).toString()); localStorage.setItem(`edit_count_${m.id}`, '1'); fetchData(); } },
     editMsg: async (id: number) => { const nt = prompt("Edit:", msgs.all.find(m => m.id === id)?.pesan || ""); if(nt) { await supabase.from('messages').update({ pesan: nt }).eq('id', id); localStorage.setItem(`edit_count_${id}`, '1'); fetchData(); } },
     editNm: async (id: number) => { const m = msgs.all.find(m => m.id === id); if(!m) return; const nn = prompt("Nama:", m.username); if(nn && isCensored(nn)) return alert("Terlarang!"); if(nn) { await Promise.all([supabase.from('profiles').update({ username: nn }).eq('device_id', m.device_id), supabase.from('messages').update({ username: nn }).eq('device_id', m.device_id)]); fetchData(); } },
-    delMsg: async (id: number) => { await supabase.from('messages').delete().eq('id', id); fetchData(); },
+    delMsg: async (id: number) => { 
+      if (ui.tab === 'admin') {
+        await supabase.from('messages').delete().eq('id', id); 
+      } else {
+        await supabase.from('messages').update({ pesan: '___DELETED___', image_url: null }).eq('id', id);
+      }
+      fetchData(); 
+    },
     blkUser: async (id: string, nm: string) => { if(confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: nm }]); fetchData(); } },
     addWrd: async () => { if(censor.newWord.trim()) { await supabase.from('blocked_words').insert([{ word: censor.newWord.trim().toLowerCase() }]); setCensor(p => ({ ...p, newWord: '' })); fetchData(); } },
     rmWrd: async (w: string) => { await supabase.from('blocked_words').delete().eq('word', w); fetchData(); }
   };
+
+  const hasInputReady = input.text.trim().length > 0 || input.image !== null;
 
   const renderMsgs = (arr: any[], colType: any) => arr.length === 0 ? <div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div> : arr.map((m, idx) => {
     return (
@@ -215,7 +264,7 @@ export default function Home() {
         className={`relative w-full group cursor-pointer`} 
         onClick={() => { setInteract(p => ({...p, popup: m})) }}
       >
-        <MessageItem index={idx} m={m} colType={colType} isMinimized={true} currentDeviceId={currentDeviceId} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} activeMenuId={interact.activeMenu} setActiveMenuId={(id:any)=>setInteract(p=>({...p,activeMenu:id}))} longPressId={interact.longPress} setLongPressId={(id:any)=>setInteract(p=>({...p,longPress:id}))} swipingId={interact.swipeId} setSwipingId={(id:any)=>setInteract(p=>({...p,swipeId:id}))} handleTag={(u:string)=>setInput(p=>({...p,text:`${p.text} @${u.split('●')[0]} `}))} handleReply={(m:any)=>{setInteract(p=>({...p,replyTo:m})); setInput(p=>({...p,blink:true})); setTimeout(()=>setInput(p=>({...p,blink:false})),800);}} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} editNama={dbActions.editNm} blockUser={dbActions.blkUser} inviteToPrivate={(id:string)=>{handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:id}));}} setPopupMsg={(m:any)=>setInteract(p=>({...p,popup:m}))} applyCensor={applyCensor} scrollToMessage={(t:string)=>{const x=msgs.all.find(x=>x.pesan.includes(t)); if(x) scrollMsg(x.id);}} formatMessageTime={getFmt.time} authUser={auth.user} />
+        <MessageItem index={idx} m={m} colType={colType} isMinimized={true} currentDeviceId={currentDeviceId} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} activeMenuId={interact.activeMenu} setActiveMenuId={(id:any)=>setInteract(p=>({...p,activeMenu:id}))} longPressId={interact.longPress} setLongPressId={(id:any)=>setInteract(p=>({...p,longPress:id}))} swipingId={interact.swipeId} setSwipingId={(id:any)=>setInteract(p=>({...p,swipeId:id}))} handleTag={(u:string)=>setInput(p=>({...p,text:`${p.text} @${u.split('●')[0]} `}))} handleReply={(m:any)=>{setInteract(p=>({...p,replyTo:m})); setInput(p=>({...p,blink:true})); setTimeout(()=>setInput(p=>({...p,blink:false})),800);}} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} editNama={dbActions.editNm} blockUser={dbActions.blkUser} inviteToPrivate={(id:string)=>{handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:id}));}} setPopupMsg={(m:any)=>setInteract(p=>({...p,popup:m}))} applyCensor={applyCensor} scrollToMessage={(t:string)=>{const x=msgs.all.find(x=>x.pesan.includes(t)); if(x) scrollMsg(x.id);}} formatMessageTime={getFmt.time} authUser={auth.user} startDrag={(msg:any, x:number, y:number)=>setDragMsg({active:true, msg, x, y})} />
       </div>
     );
   });
@@ -224,8 +273,22 @@ export default function Home() {
   
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans overscroll-none" onClick={() => setInteract(p => ({ ...p, activeMenu: null, longPress: null }))}>
-      <style dangerouslySetInnerHTML={{ __html: ` body{overscroll-behavior-y:none;} @keyframes sL{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(-4px);opacity:1;}} @keyframes sR{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(4px);opacity:1;}} .anim-slide-left{animation:sL 1.4s ease-in-out infinite;} .anim-slide-right{animation:sR 1.4s ease-in-out infinite;} @keyframes bC{0%,100%{background:inherit;}50%{background:#fef9c3;}} .anim-bg-blink-cream{animation:bC 1.5s ease-in-out;} @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} .anim-text-blink-white{animation:tW 1.5s ease-in-out infinite;} @keyframes dL{0%{top:-50%;opacity:0;}15%,85%{opacity:1;}100%{top:100%;opacity:0;}} .animate-drop-line{animation:dL 2.5s cubic-bezier(0.4,0,0.2,1) infinite;} `}} />
+      <style dangerouslySetInnerHTML={{ __html: ` body{overscroll-behavior-y:none;} @keyframes sL{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(-4px);opacity:1;}} @keyframes sR{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(4px);opacity:1;}} .anim-slide-left{animation:sL 1.4s ease-in-out infinite;} .anim-slide-right{animation:sR 1.4s ease-in-out infinite;} @keyframes bC{0%,100%{background:inherit;}50%{background:#fef9c3;}} .anim-bg-blink-cream{animation:bC 1.5s ease-in-out;} @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} .anim-text-blink-white{animation:tW 1.5s ease-in-out infinite;} `}} />
       
+      {/* Floating Drag Element */}
+      {dragMsg.active && dragMsg.msg && (
+        <div className="fixed z-[9999] pointer-events-none opacity-90 scale-105 shadow-2xl transition-none"
+             style={{ left: dragMsg.x - 100, top: dragMsg.y - 50, width: '220px' }}>
+            <div className="bg-white p-3 rounded-xl border-[2.5px] border-blue-500 shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
+                <div className="text-[10px] font-bold text-blue-600 mb-1">{dragMsg.msg.username}</div>
+                <div className="text-xs truncate text-gray-800">{dragMsg.msg.pesan === '___DELETED___' ? 'Pesan dihapus' : dragMsg.msg.pesan}</div>
+                <div className="text-[9px] font-bold text-gray-400 mt-2 flex gap-1 items-center bg-gray-50 p-1 rounded">
+                   ↓ Lepas di input untuk balas
+                </div>
+            </div>
+        </div>
+      )}
+
       {auth.isAuth && ui.tab === 'admin' && currentHash !== '#block' && (
         <div onClick={() => window.open(`${window.location.pathname}#block`, '_blank')} className="fixed z-[100] bottom-28 right-4 px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-red-600 border border-red-700 shadow-[0_3px_0_#991b1b,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150">BLOCK MGR</div>
       )}
@@ -266,7 +329,7 @@ export default function Home() {
       
       {currentHash !== '#block' && (
         <div className="bg-white sticky bottom-0 z-20 w-full flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-          {interact.replyTo && <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${ui.mode === 'private' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-blue-50 border-blue-300 text-blue-900'}`} onClick={() => scrollMsg(interact.replyTo.id)}><div className="truncate flex-1 pr-2"><span className="font-bold">Balas @{interact.replyTo.username.split('●')[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span></div><button onClick={(e)=>{e.stopPropagation();setInteract(p=>({...p,replyTo:null}));}} className="text-gray-400 font-bold px-1">×</button></div>}
+          {interact.replyTo && <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${ui.mode === 'private' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-blue-50 border-blue-300 text-blue-900'}`} onClick={() => scrollMsg(interact.replyTo.id)}><div className="truncate flex-1 pr-2"><span className="font-bold">Balas @{interact.replyTo.username.split('●')[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span></div><button type="button" onClick={(e)=>{e.stopPropagation();setInteract(p=>({...p,replyTo:null}));}} className="text-gray-400 font-bold px-1">×</button></div>}
           
           <form onSubmit={sendMsg} className="p-2 sm:p-3 bg-white border-t border-gray-100 flex gap-2 items-end w-full relative transition-all duration-300">
             <div className="relative shrink-0 flex items-center justify-center w-8 mb-2">
@@ -313,10 +376,17 @@ export default function Home() {
               {auth.isAuth && currentHash !== '#block' && (
                 <button 
                   type="button"
-                  onClick={() => fetchData()}
-                  className="absolute bottom-full mb-1.5 left-0 right-0 px-2 py-0.5 rounded-full font-black text-black tracking-widest text-[8px] bg-yellow-400 border border-yellow-500 shadow-sm active:scale-95 transition-all text-center select-none"
+                  onClick={() => {
+                    if (hasInputReady) {
+                       setInput(p => ({ ...p, text: '', image: null, uploadingImage: false }));
+                       setInteract(p => ({ ...p, replyTo: null }));
+                    } else {
+                       window.location.reload();
+                    }
+                  }}
+                  className={`absolute bottom-full mb-1.5 left-0 right-0 px-2 py-0.5 rounded-full font-black tracking-widest text-[8px] border shadow-sm active:scale-95 transition-all text-center select-none ${hasInputReady ? 'bg-red-500 text-white border-red-600' : 'bg-yellow-400 text-black border-yellow-500'}`}
                 >
-                  REFRESH
+                  {hasInputReady ? 'HAPUS PESAN' : 'REFRESH'}
                 </button>
               )}
               <button 
@@ -331,12 +401,12 @@ export default function Home() {
         </div>
       )}
 
-      {interact.popup && (
+      {interact.popup && interact.popup.pesan !== '___DELETED___' && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={()=>setInteract(p=>({...p,popup:null}))}>
           <div className={`w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col ${interact.popup.is_private ? 'border-t-4 border-emerald-500' : 'border-t-4 border-blue-500'}`} onClick={e=>e.stopPropagation()}>
-            <button onClick={()=>setInteract(p=>({...p,popup:null}))} className="absolute top-3 right-3 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center font-bold active:scale-95">×</button>
+            <button type="button" onClick={()=>setInteract(p=>({...p,popup:null}))} className="absolute top-3 right-3 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center font-bold active:scale-95">×</button>
             <div className="flex items-center gap-2 border-b pb-3 mb-3">
-              <span className={`px-2 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.device_id === currentDeviceId || interact.popup.username === auth.user ? 'bg-blue-600' : 'bg-gray-700'}`}>{interact.popup.username}</span>
+              <span className={`px-2 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === 'Admin●ipix.my.id' ? 'bg-red-600' : (interact.popup.device_id === currentDeviceId || interact.popup.username === auth.user ? 'bg-blue-600' : 'bg-gray-700')}`}>{interact.popup.username}</span>
               <span className="text-[10px] text-gray-400">{getFmt.time(interact.popup.created_at)}</span>
             </div>
             
