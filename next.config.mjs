@@ -1,16 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: true, // Membantu mendeteksi masalah di React selama development
   
-  // Menambahkan rewrite untuk sistem link otomatis
-  async rewrites() {
-    return [
+  /* 
+    Catatan Tambahan (Opsional): 
+    Karena aplikasi Anda adalah aplikasi chat yang mendukung gambar (m.image_url), 
+    jika ke depannya Anda ingin beralih menggunakan komponen bawaan Next.js `<Image />` 
+    dari `next/image` untuk optimasi gambar dari Supabase, Anda bisa membuka komentar (uncomment) blok di bawah ini:
+  */
+  /*
+  images: {
+    remotePatterns: [
       {
-        source: '/:id.png', // User akses ini
-        destination: '/api/resolve/:id', // Diarahkan ke API ini
+        protocol: 'https',
+        hostname: '*.supabase.co', // Mengizinkan URL gambar dari Supabase Storage
       },
-    ];
+    ],
   },
+  */
 };
 
 export default nextConfig;
