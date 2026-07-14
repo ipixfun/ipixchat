@@ -71,7 +71,30 @@ export default function Login({
     handleUserLogin();
   };
 
-  // Pengaturan Dinamis untuk Warna dan Teks Tombol Pill
+  // --- LOGIK STYLING OUTLINE DINAMIS ---
+  
+  // 1. Outline untuk Kolom Pilihan (Dropdown Umur & Berat)
+  const selectBorderClass = isFormValid
+    ? 'border-emerald-500 border-2' // Ijo jika semua terinput
+    : validationMsg
+      ? 'border-red-500 animate-pulse border-2' // Merah kedip² jika ada yang kosong/belum diceklist
+      : 'border-blue-400 border-2'; // Default Biru
+
+  // 2. Outline untuk Input Username
+  const usernameBorderClass = isFormValid
+    ? 'border-emerald-500 border-2'
+    : (validationMsg === "isi dulu sayang")
+      ? 'border-red-500 animate-pulse border-2'
+      : 'border-white/30 border';
+
+  // 3. Outline untuk Ceklist Warning
+  const checkboxBorderClass = isFormValid
+    ? 'border-emerald-500/50 border-2'
+    : (validationMsg === "ceklist dulu sayang")
+      ? 'border-red-500 animate-pulse border-2'
+      : 'border-white/20 border';
+
+  // 4. Pengaturan Tombol Utama (Pill)
   let buttonStyle = "";
   let buttonText = "";
 
@@ -99,12 +122,12 @@ export default function Login({
         {activeTab === 'user' ? (
           <div className="w-full flex flex-col items-center relative z-10">
             
-            {/* Input Nama / Username - Berubah jadi Pill Abu + Teks BIRU jika sudah gabung */}
+            {/* Input Nama / Username - Abu-abu blur default, teks biru cerah ketika diinput */}
             <input 
-              className={`w-full p-3.5 sm:p-4 border rounded-full focus:outline-none transition-all text-center text-base sm:text-lg tracking-wide mb-4 shadow-inner font-bold
+              className={`w-full p-3.5 sm:p-4 rounded-full focus:outline-none transition-all text-center text-base sm:text-lg tracking-wide mb-4 shadow-inner font-bold backdrop-blur-sm
                 ${isExistingUser 
                   ? 'bg-neutral-500/20 text-blue-400 border-neutral-500/30 cursor-not-allowed select-none' 
-                  : 'bg-white/40 text-gray-900 placeholder-gray-700 border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-300'
+                  : `bg-neutral-500/20 text-blue-400 placeholder-neutral-400 focus:ring-2 focus:ring-blue-300 ${usernameBorderClass}`
                 }`}
               placeholder="Username (Maks 20 huruf)" 
               value={username || ""} 
@@ -117,7 +140,7 @@ export default function Login({
             />
             
             {!isExistingUser && (
-              /* Kolom Pilihan Umur dan Berat - Grid Layout Responsif */
+              /* Kolom Pilihan Umur dan Berat (Pill User Kolom Pilih) */
               <div className="grid grid-cols-2 gap-3 w-full mb-5 sm:mb-6">
                 <div className="relative">
                   <select 
@@ -126,7 +149,7 @@ export default function Login({
                       setUmur(e.target.value);
                       if (validationMsg) setValidationMsg("");
                     }}
-                    className="w-full p-3 bg-white/40 backdrop-blur-sm text-gray-800 font-bold border border-white/30 rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-400 appearance-none shadow-sm cursor-pointer text-center text-xs sm:text-sm"
+                    className={`w-full p-3 bg-white/40 backdrop-blur-sm text-gray-800 font-bold rounded-3xl focus:outline-none appearance-none shadow-sm cursor-pointer text-center text-xs sm:text-sm transition-all duration-300 ${selectBorderClass}`}
                   >
                     <option value="" disabled>Umur</option>
                     <option value="20+">20+</option>
@@ -147,7 +170,7 @@ export default function Login({
                       setBerat(e.target.value);
                       if (validationMsg) setValidationMsg("");
                     }}
-                    className="w-full p-3 bg-white/40 backdrop-blur-sm text-gray-800 font-bold border border-white/30 rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-400 appearance-none shadow-sm cursor-pointer text-center text-xs sm:text-sm"
+                    className={`w-full p-3 bg-white/40 backdrop-blur-sm text-gray-800 font-bold rounded-3xl focus:outline-none appearance-none shadow-sm cursor-pointer text-center text-xs sm:text-sm transition-all duration-300 ${selectBorderClass}`}
                   >
                     <option value="" disabled>Berat</option>
                     <option value="<55">&lt;55</option>
@@ -189,7 +212,7 @@ export default function Login({
             {!isExistingUser && (
               <motion.div 
                 whileHover={{ scale: 1.01 }}
-                className="bg-white/20 backdrop-blur-sm px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-full border border-white/20 shadow-sm w-full flex items-center justify-center gap-2 transition-all select-none"
+                className={`bg-white/20 backdrop-blur-sm px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-full shadow-sm w-full flex items-center justify-center gap-2 transition-all select-none ${checkboxBorderClass}`}
               >
                 <input 
                   type="checkbox" 
