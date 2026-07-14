@@ -215,84 +215,90 @@ export default function Home() {
 
   const hasInputReady = input.text.trim().length > 0 || input.image !== null;
 
-  const renderMsgs = (arr: any[], colType: any) => arr.length === 0 ? <div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div> : arr.map((m, idx) => (
+  const renderMsgs = (arr: any[], colType: any) => arr.length === 0 ? <div className="text-center text-slate-400 italic mt-10 text-xs">Belum ada pesan.</div> : arr.map((m, idx) => (
     <div key={m.id} className="relative w-full group">
       <MessageItem index={idx} m={m} colType={colType} isMinimized={true} currentDeviceId={currentDeviceId} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} activeMenuId={interact.activeMenu} setActiveMenuId={(id:any)=>setInteract(p=>({...p,activeMenu:id}))} swipingId={interact.swipeId} setSwipingId={(id:any)=>setInteract(p=>({...p,swipeId:id}))} handleTag={(u:string)=>setInput(p=>({...p,text:`${p.text} @${u.split('●')[0]} `}))} handleReply={(m:any)=>{setInteract(p=>({...p,replyTo:m})); setInput(p=>({...p,blink:true})); setTimeout(()=>setInput(p=>({...p,blink:false})),800);}} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} editNama={dbActions.editNm} blockUser={dbActions.blkUser} inviteToPrivate={(id:string)=>{handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:id}));}} setPopupMsg={(m:any)=>setInteract(p=>({...p,popup:m}))} handleLongPress={(m:any)=>setInteract(p=>({...p,popup:m}))} approveImage={dbActions.approveImg} applyCensor={applyCensor} scrollToMessage={(t:string)=>{const x=msgs.all.find(x=>x.pesan.includes(t)); if(x) scrollMsg(x.id);}} formatMessageTime={getFmt.time} authUser={auth.user} />
     </div>
   ));
 
-  if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
+  if (!mounted) return (
+    <div className="h-screen flex flex-col items-center justify-center gap-3 bg-slate-950 text-white">
+      <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+      <span className="text-xs tracking-wide text-white/60">Memuat...</span>
+    </div>
+  );
 
   return (
-    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans overscroll-none" onClick={() => setInteract(p => ({ ...p, activeMenu: null }))}>
+    <div className="w-full h-dvh flex items-stretch justify-center bg-slate-200 sm:bg-slate-100 sm:py-6 sm:px-4">
+      <div className="w-full max-w-2xl lg:max-w-3xl mx-auto h-full sm:h-[calc(100dvh-3rem)] flex flex-col bg-slate-50 sm:rounded-2xl shadow-none sm:shadow-2xl sm:ring-1 sm:ring-black/5 overflow-hidden font-sans overscroll-none" onClick={() => setInteract(p => ({ ...p, activeMenu: null }))}>
       <style dangerouslySetInnerHTML={{ __html: ` body{overscroll-behavior-y:none;} @keyframes sL{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(-4px);opacity:1;}} @keyframes sR{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(4px);opacity:1;}} .anim-slide-left{animation:sL 1.4s ease-in-out infinite;} .anim-slide-right{animation:sR 1.4s ease-in-out infinite;} @keyframes bC{0%,100%{background:inherit;}50%{background:#fef9c3;}} .anim-bg-blink-cream{animation:bC 1.5s ease-in-out;} @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} .anim-text-blink-white{animation:tW 1.5s ease-in-out infinite;} `}} />
       
       {auth.isAuth && ui.tab === 'admin' && currentHash !== '#block' && (
-        <div onClick={() => window.open(`${window.location.pathname}#block`, '_blank')} className="fixed z-[100] bottom-28 right-4 px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-red-600 border border-red-700 shadow-[0_3px_0_#991b1b,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150">BLOCK MGR</div>
+        <div onClick={() => window.open(`${window.location.pathname}#block`, '_blank')} className="fixed z-[100] bottom-28 right-4 sm:right-[calc(50%-23rem)] px-3.5 py-2 rounded-full font-bold text-white tracking-widest text-[10px] cursor-pointer select-none bg-red-600 hover:bg-red-500 border border-red-700/60 shadow-[0_3px_0_#991b1b,0_8px_16px_rgba(0,0,0,0.25)] active:translate-y-[3px] active:shadow-none transition-all duration-150">🚫 BLOCK MGR</div>
       )}
       {currentHash !== '#block' && (
-        <div className={`sticky top-0 z-20 p-3 border-b border-white/40 ${ui.mode === 'public' ? 'bg-gradient-to-b from-blue-100 to-white' : 'bg-gradient-to-b from-emerald-100 to-white'}`}>
-          <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500 text-white px-3 py-1 rounded-full shadow">Keluar</button>
+        <div className={`sticky top-0 z-20 p-3 sm:p-4 border-b ${ui.mode === 'public' ? 'bg-gradient-to-b from-blue-600 to-blue-500' : 'bg-gradient-to-b from-emerald-600 to-emerald-500'} border-black/10 transition-colors duration-300`}>
+          <button onClick={handleLogout} className="absolute top-3 sm:top-4 right-3 sm:right-4 text-[10px] font-semibold bg-white/15 hover:bg-white/25 text-white px-3 py-1.5 rounded-full shadow-sm backdrop-blur-sm transition-colors">Keluar</button>
           <div className="flex justify-between items-center">
             <div className="flex flex-col max-w-[65%]">
-              <span className="text-[10px] text-gray-800 uppercase tracking-wider">{getFmt.greet()}</span>
+              <span className="text-[10px] text-white/70 uppercase tracking-wider font-medium">{getFmt.greet()}</span>
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[11px] font-bold text-blue-800">{auth.user || 'Guest'}</span>
-                {ui.tab === 'admin' && <span className="text-[9px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-mono break-all leading-tight">ID: {currentDeviceId}</span>}
+                <span className="text-[12px] sm:text-sm font-bold text-white truncate">{auth.user || 'Guest'}</span>
+                {ui.tab === 'admin' && <span className="text-[9px] bg-black/25 text-white/80 px-1.5 py-0.5 rounded font-mono break-all leading-tight">ID: {currentDeviceId}</span>}
               </div>
             </div>
-            <div className="text-center flex-1 flex flex-col items-end mr-16">
-              <a href="https://ipix.my.id" target="_blank" className="text-emerald-600 font-bold text-sm underline">ipix.my.id</a>
+            <div className="text-center flex-1 flex flex-col items-end mr-16 sm:mr-20">
+              <a href="https://ipix.my.id" target="_blank" className="text-white font-bold text-sm underline decoration-white/40 underline-offset-2 hover:decoration-white">ipix.my.id</a>
               {ui.tab === 'user' && (
-                <div className="text-[10px] text-gray-500 mt-0.5 flex items-center gap-1">
-                  <span className={`inline-block w-1.5 h-1.5 rounded-full ${adminStat.online ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                  {adminStat.online ? <span className="text-green-600 font-bold text-[9px]">Online</span> : <span className="text-[9px]">Offline • {adminStat.offlineTime}</span>}
+                <div className="text-[10px] text-white/80 mt-0.5 flex items-center gap-1">
+                  <span className={`inline-block w-1.5 h-1.5 rounded-full ${adminStat.online ? 'bg-emerald-300' : 'bg-white/40'}`}></span>
+                  {adminStat.online ? <span className="text-white font-bold text-[9px]">Online</span> : <span className="text-[9px]">Offline • {adminStat.offlineTime}</span>}
                 </div>
               )}
             </div>
           </div>
-          <div className="flex mt-3 bg-white border border-gray-200 rounded-full p-1 shadow-sm w-full relative">
-            <button onClick={() => { handleInteraction('public'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 ${ui.mode === 'public' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
-              <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.pub)}</span></div>
+          <div className="flex mt-3 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full p-1 shadow-inner w-full relative">
+            <button onClick={() => { handleInteraction('public'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all duration-200 ${ui.mode === 'public' ? 'bg-white text-blue-700 shadow' : 'bg-transparent text-white/90 hover:bg-white/10'}`}>
+              <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'public' ? 'bg-blue-600 text-white' : 'bg-white/25 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.pub)}</span></div>
               <span className="ml-2 sm:ml-4">🌐 Public Chat</span>
             </button>
-            <button onClick={() => { handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 ${ui.mode === 'private' ? 'bg-emerald-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-gray-100'}`}>
+            <button onClick={() => { handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all duration-200 ${ui.mode === 'private' ? 'bg-white text-emerald-700 shadow' : 'bg-transparent text-white/90 hover:bg-white/10'}`}>
               <span className="mr-2 sm:mr-4">🔒 Chat private</span>
-              <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'private' ? 'bg-white text-emerald-600' : 'bg-emerald-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.priv)}</span></div>
+              <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'private' ? 'bg-emerald-600 text-white' : 'bg-white/25 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.priv)}</span></div>
             </button>
           </div>
         </div>
       )}
-      <div className="flex-1 w-full relative bg-gray-50 flex overflow-hidden">
+      <div className="flex-1 w-full relative bg-slate-100 flex overflow-hidden">
         {ui.tab === 'admin' && currentHash === '#block' ? <Block blockedList={usersInfo.blockedList} unblock={async (id: string)=>{await supabase.from('blocked_users').delete().eq('device_id', id); fetchData();}} blockedWords={censor.words} newBadWord={censor.newWord} setNewBadWord={(w:string)=>setCensor(p=>({...p,newWord:w}))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} /> : (
           <ChatLayout cMode={ui.mode} hInteract={handleInteraction} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={msgs.pub} privMsgs={msgs.priv} isPill={pill.visible} pDelta={pill.delta} pTouchX={pill.startX} capIdx={pill.idx} setPTouchX={(x:number)=>setPill(p=>({...p,startX:x}))} setPDelta={(d:number)=>setPill(p=>({...p,delta:d}))} setCapPause={(v:boolean)=>setPill(p=>({...p,pause:v}))} setIsPill={(v:boolean)=>setPill(p=>({...p,visible:v}))} renderMsgs={renderMsgs} fmtTime={getFmt.time} setSelPriv={(u:string)=>setUsersInfo(p=>({...p,selPriv:u}))} />
         )}
       </div>
       {currentHash !== '#block' && (
-        <div className="bg-white sticky bottom-0 z-20 w-full flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-          {interact.replyTo && <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${ui.mode === 'private' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-blue-50 border-blue-300 text-blue-900'}`} onClick={() => scrollMsg(interact.replyTo.id)}><div className="truncate flex-1 pr-2"><span className="font-bold">Balas @{interact.replyTo.username.split('●')[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span></div><button type="button" onClick={(e)=>{e.stopPropagation();setInteract(p=>({...p,replyTo:null}));}} className="text-gray-400 font-bold px-1">×</button></div>}
-          <form onSubmit={sendMsg} className="p-2 sm:p-3 bg-white border-t border-gray-100 flex gap-2 items-end w-full relative transition-all duration-300">
-            <div className="relative shrink-0 flex items-center justify-center w-8 mb-2">
+        <div className="bg-white sticky bottom-0 z-20 w-full flex flex-col shadow-[0_-6px_16px_-4px_rgba(0,0,0,0.08)] border-t border-slate-200">
+          {interact.replyTo && <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${ui.mode === 'private' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-blue-50 border-blue-300 text-blue-900'}`} onClick={() => scrollMsg(interact.replyTo.id)}><div className="truncate flex-1 pr-2"><span className="font-bold">Balas @{interact.replyTo.username.split('●')[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span></div><button type="button" onClick={(e)=>{e.stopPropagation();setInteract(p=>({...p,replyTo:null}));}} className="text-gray-400 hover:text-gray-600 font-bold px-1 transition-colors">×</button></div>}
+          <form onSubmit={sendMsg} className="p-2.5 sm:p-3.5 bg-white border-t border-slate-100 flex gap-2 items-end w-full relative transition-all duration-300">
+            <div className="relative shrink-0 flex items-center justify-center w-9 h-9 mb-2 rounded-full bg-slate-100">
               <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={input.uploadingImage} />
-              <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full ${(ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv) ? 'text-gray-300 pointer-events-none' : 'text-gray-500 hover:text-blue-600 hover:bg-gray-100'}`}>
+              <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full flex items-center justify-center ${(ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv) ? 'text-slate-300 pointer-events-none' : 'text-slate-500 hover:text-blue-600'}`}>
                 {input.uploadingImage ? (
-                  <svg className="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
                 )}
               </label>
             </div>
             <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
-              <div className="text-[9px] text-gray-400 mb-1 px-1">{ui.mode === 'public' ? 'Chat publik mohon bijak' : (ui.tab === 'admin' && !usersInfo.selPriv ? 'Pilih obrolan di atas terlebih dahulu' : 'Chat private admin')}</div>
-              {input.image && <div className="relative mb-2 inline-block"><img src={input.image} alt="preview" className="h-16 w-16 object-cover rounded-lg border shadow-sm" /><button type="button" onClick={() => setInput(p => ({...p, image: null}))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] font-bold flex items-center justify-center">×</button></div>}
-              <textarea id="chat-input" onFocus={()=>setUi(p=>({...p,inputFocus:true}))} onBlur={()=>setUi(p=>({...p,inputFocus:false}))} className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm text-black resize-none focus:outline-none min-h-[32px] sm:min-h-[38px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${ui.mode === 'private' ? input.blink ? 'bg-emerald-600/30 border-emerald-500 ring-2 ring-emerald-400' : 'bg-emerald-600/10 border-emerald-500/20 focus:border-emerald-500 focus:bg-emerald-600/15' : input.blink ? 'bg-blue-600/30 border-blue-500 ring-2 ring-blue-400' : 'bg-blue-600/10 border-blue-500/20 focus:border-blue-500 focus:bg-blue-600/15'} ${(ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv) ? 'opacity-50 cursor-not-allowed bg-gray-200' : ''}`} value={input.text} onChange={e=>{setInput(p=>({...p,text:e.target.value})); e.target.style.height='auto'; e.target.style.height=`${Math.min(e.target.scrollHeight,100)}px`;}} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg(e as any);}}} placeholder={(ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv) ? "Pilih user terlebih dahulu..." : "Ketik pesan..."} maxLength={200} rows={1} disabled={input.sending || (ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv)} />
-              <div className="absolute right-3 bottom-1.5 text-[9px] text-gray-400 font-mono select-none opacity-80 bg-white/40 px-1 rounded">{200 - input.text.length}</div>
+              <div className="text-[9px] text-slate-400 mb-1 px-1">{ui.mode === 'public' ? 'Chat publik mohon bijak' : (ui.tab === 'admin' && !usersInfo.selPriv ? 'Pilih obrolan di atas terlebih dahulu' : 'Chat private admin')}</div>
+              {input.image && <div className="relative mb-2 inline-block"><img src={input.image} alt="preview" className="h-16 w-16 object-cover rounded-lg border border-slate-200 shadow-sm" /><button type="button" onClick={() => setInput(p => ({...p, image: null}))} className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 text-[10px] font-bold flex items-center justify-center shadow-sm transition-colors">×</button></div>}
+              <textarea id="chat-input" onFocus={()=>setUi(p=>({...p,inputFocus:true}))} onBlur={()=>setUi(p=>({...p,inputFocus:false}))} className={`w-full border p-2 rounded-2xl px-3.5 sm:px-4 pb-5 sm:pb-6 text-sm text-slate-900 resize-none focus:outline-none focus:ring-2 min-h-[36px] sm:min-h-[42px] max-h-[100px] transition-colors [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${ui.mode === 'private' ? input.blink ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-300' : 'bg-emerald-50/60 border-emerald-200 focus:border-emerald-400 focus:ring-emerald-200' : input.blink ? 'bg-blue-50 border-blue-400 ring-2 ring-blue-300' : 'bg-blue-50/60 border-blue-200 focus:border-blue-400 focus:ring-blue-200'} ${(ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv) ? 'opacity-50 cursor-not-allowed bg-slate-100' : ''}`} value={input.text} onChange={e=>{setInput(p=>({...p,text:e.target.value})); e.target.style.height='auto'; e.target.style.height=`${Math.min(e.target.scrollHeight,100)}px`;}} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg(e as any);}}} placeholder={(ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv) ? "Pilih user terlebih dahulu..." : "Ketik pesan..."} maxLength={200} rows={1} disabled={input.sending || (ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv)} />
+              <div className="absolute right-3 bottom-1.5 text-[9px] text-slate-400 font-mono select-none opacity-90 bg-white/60 px-1.5 rounded">{200 - input.text.length}</div>
             </div>
-            <div className="relative shrink-0 flex flex-col justify-end w-[85px] md:w-[110px] h-[32px] sm:h-[38px]">
+            <div className="relative shrink-0 flex flex-col justify-end w-[85px] md:w-[110px] h-[36px] sm:h-[42px]">
               {auth.isAuth && currentHash !== '#block' && (
-                <button type="button" id="btn-refresh-delete" onClick={() => { if (hasInputReady) { setInput(p => ({ ...p, text: '', image: null, uploadingImage: false })); setInteract(p => ({ ...p, replyTo: null })); } else { window.location.reload(); } }} className={`absolute bottom-full mb-1.5 left-0 right-0 px-2 py-0.5 rounded-full font-black tracking-widest text-[8px] border shadow-sm active:scale-95 transition-all text-center select-none ${hasInputReady ? 'bg-red-500 text-white border-red-600' : 'bg-yellow-400 text-black border-yellow-500'}`}>{hasInputReady ? 'HAPUS PESAN' : 'REFRESH'}</button>
+                <button type="button" id="btn-refresh-delete" onClick={() => { if (hasInputReady) { setInput(p => ({ ...p, text: '', image: null, uploadingImage: false })); setInteract(p => ({ ...p, replyTo: null })); } else { window.location.reload(); } }} className={`absolute bottom-full mb-1.5 left-0 right-0 px-2 py-1 rounded-full font-bold tracking-widest text-[8px] border shadow-sm active:scale-95 transition-all text-center select-none ${hasInputReady ? 'bg-red-500 hover:bg-red-600 text-white border-red-600' : 'bg-amber-400 hover:bg-amber-500 text-slate-900 border-amber-500'}`}>{hasInputReady ? 'HAPUS PESAN' : 'REFRESH'}</button>
               )}
-              <button type="submit" disabled={input.sending || (!input.text.trim() && !input.image) || (ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv)} className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${(ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv) ? 'bg-gray-400 text-white cursor-not-allowed' : (ui.mode === 'private' ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white')}`}>{input.sending ? '...' : 'Kirim'}</button>
+              <button type="submit" disabled={input.sending || (!input.text.trim() && !input.image) || (ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv)} className={`w-full h-[36px] sm:h-[42px] rounded-2xl font-bold text-[11px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-sm transition-all ${(ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv) ? 'bg-slate-300 text-white cursor-not-allowed' : (ui.mode === 'private' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white')}`}>{input.sending ? '...' : 'Kirim'}</button>
             </div>
           </form>
         </div>
@@ -300,18 +306,18 @@ export default function Home() {
       
       {/* POPUP BESAR SAAT LONG PRESS */}
       {interact.popup && interact.popup.pesan !== '___DELETED___' && (
-        <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={()=>setInteract(p=>({...p,popup:null}))}>
+        <div className="fixed inset-0 z-[200] bg-slate-950/60 flex items-center justify-center p-4 backdrop-blur-sm" onClick={()=>setInteract(p=>({...p,popup:null}))}>
           <div className={`w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col ${interact.popup.is_private ? 'border-t-4 border-emerald-500' : 'border-t-4 border-blue-500'}`} onClick={e=>e.stopPropagation()}>
-            <button type="button" onClick={()=>setInteract(p=>({...p,popup:null}))} className="absolute top-3 right-3 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center font-bold active:scale-95">×</button>
-            <div className="flex items-center gap-2 border-b pb-3 mb-3">
-              <span className={`px-2 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === 'Admin●ipix.my.id' ? 'bg-red-600' : (interact.popup.device_id === currentDeviceId || interact.popup.username === auth.user ? 'bg-blue-600' : 'bg-gray-700')}`}>{interact.popup.username}</span>
-              <span className="text-[10px] text-gray-400">{getFmt.time(interact.popup.created_at)}</span>
+            <button type="button" onClick={()=>setInteract(p=>({...p,popup:null}))} className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center font-bold active:scale-95 transition-colors">×</button>
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-3">
+              <span className={`px-2.5 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === 'Admin●ipix.my.id' ? 'bg-red-600' : (interact.popup.device_id === currentDeviceId || interact.popup.username === auth.user ? 'bg-blue-600' : 'bg-slate-700')}`}>{interact.popup.username}</span>
+              <span className="text-[10px] text-slate-400">{getFmt.time(interact.popup.created_at)}</span>
             </div>
             
-            <div className="overflow-y-auto pr-2 pb-2 text-sm text-black flex flex-col break-words break-all whitespace-pre-wrap">
+            <div className="overflow-y-auto pr-2 pb-2 text-sm text-slate-900 flex flex-col break-words break-all whitespace-pre-wrap">
               {interact.popup.image_url && (
                 <div className="relative mb-3 w-full">
-                  <img src={interact.popup.image_url} alt="Uploaded Image" className={`w-full h-auto max-h-[50vh] object-contain rounded-lg border shadow-sm bg-gray-50 ${(interact.popup.is_approved === false && ui.tab !== 'admin' && interact.popup.username !== 'Admin●ipix.my.id') ? 'blur-xl' : ''}`} />
+                  <img src={interact.popup.image_url} alt="Uploaded Image" className={`w-full h-auto max-h-[50vh] object-contain rounded-lg border border-slate-200 shadow-sm bg-slate-50 ${(interact.popup.is_approved === false && ui.tab !== 'admin' && interact.popup.username !== 'Admin●ipix.my.id') ? 'blur-xl' : ''}`} />
                   {interact.popup.is_approved === false && ui.tab !== 'admin' && interact.popup.username !== 'Admin●ipix.my.id' && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <span className="text-white text-xs sm:text-sm font-bold px-3 py-1.5 bg-black/60 rounded-full text-center">Menunggu Persetujuan Admin</span>
@@ -322,15 +328,15 @@ export default function Home() {
               {interact.popup.pesan && applyCensor(interact.popup.pesan)}
             </div>
             
-            <div className="flex flex-wrap items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
+            <div className="flex flex-wrap items-center justify-end gap-2 mt-4 pt-3 border-t border-slate-100">
               {interact.popup.image_url && !(interact.popup.is_approved === false && ui.tab !== 'admin' && interact.popup.username !== 'Admin●ipix.my.id') && (
-                <button type="button" onClick={async (e) => { e.stopPropagation(); try { const response = await fetch(interact.popup.image_url); const blob = await response.blob(); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `ipix_image_${interact.popup.id}.jpg`; document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url); } catch (err) { window.open(interact.popup.image_url, '_blank'); } }} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1">📥 Unduh Gambar</button>
+                <button type="button" onClick={async (e) => { e.stopPropagation(); try { const response = await fetch(interact.popup.image_url); const blob = await response.blob(); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `ipix_image_${interact.popup.id}.jpg`; document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url); } catch (err) { window.open(interact.popup.image_url, '_blank'); } }} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] sm:text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1">📥 Unduh Gambar</button>
               )}
-              <button type="button" onClick={(e) => { e.stopPropagation(); copyTxt(interact.popup.pesan, 'Pesan'); }} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all">📋 Salin</button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); copyTxt(interact.popup.pesan, 'Pesan'); }} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all">📋 Salin</button>
               {((ui.tab === 'admin') || (interact.popup.device_id === currentDeviceId && interact.popup.username !== 'Admin●ipix.my.id')) && (
-                <button type="button" onClick={(e) => { e.stopPropagation(); const popupMsg = interact.popup; setInteract(p => ({ ...p, popup: null })); if (ui.tab === 'admin') { dbActions.editMsg(popupMsg.id); } else { dbActions.editLmt(popupMsg); } }} className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all">✏️ Edit</button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); const popupMsg = interact.popup; setInteract(p => ({ ...p, popup: null })); if (ui.tab === 'admin') { dbActions.editMsg(popupMsg.id); } else { dbActions.editLmt(popupMsg); } }} className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] sm:text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all">✏️ Edit</button>
               )}
-              <button type="button" onClick={(e) => { e.stopPropagation(); setInteract(p => ({ ...p, replyTo: interact.popup, popup: null })); setInput(p => ({ ...p, blink: true })); setTimeout(() => setInput(p => ({ ...p, blink: false })), 800); }} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all">💬 Balas</button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setInteract(p => ({ ...p, replyTo: interact.popup, popup: null })); setInput(p => ({ ...p, blink: true })); setTimeout(() => setInput(p => ({ ...p, blink: false })), 800); }} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] sm:text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all">💬 Balas</button>
             </div>
           </div>
         </div>
@@ -339,6 +345,7 @@ export default function Home() {
       {!auth.isAuth && (
         <Login activeTab={ui.tab} username={auth.user} setUsername={(u:string)=>setAuth(p=>({...p,user:u}))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e:string)=>setAuth(p=>({...p,adminEmail:e}))} adminPass={auth.adminPass} setAdminPass={(ps:string)=>setAuth(p=>({...p,adminPass:ps}))} handleUserLogin={async () => { if(!auth.user.trim() || isCensored(auth.user)) return alert("Nama tidak valid"); try { const { data: existUser } = await supabase.from('profiles').select('device_id').ilike('username', auth.user.trim()).maybeSingle(); if (existUser && existUser.device_id !== (currentDeviceId || 'guest')) return alert("Username sudah digunakan orang lain."); await supabase.from('profiles').upsert({ device_id: currentDeviceId||'guest', username: auth.user.trim(), user_browser: navigator.userAgent }, { onConflict: 'device_id' }); } catch(e) {} setAuth(p=>({...p,isAuth:true})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username',auth.user.trim()); sessionStorage.setItem('active_tab','user'); }} handleAdminLogin={async () => { const { error } = await supabase.auth.signInWithPassword({ email: auth.adminEmail, password: auth.adminPass }); if (error) alert("Gagal"); else { setAuth(p=>({...p,isAuth:true,user:'Admin●ipix.my.id'})); setUi(p=>({...p,tab:'admin'})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username','Admin●ipix.my.id'); sessionStorage.setItem('active_tab','admin'); } }} />
       )}
+      </div>
     </div>
   );
 }
