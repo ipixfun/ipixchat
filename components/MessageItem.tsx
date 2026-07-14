@@ -1,7 +1,7 @@
 'use client';
 import React, { useRef, useState } from 'react';
 
-export default function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTab, isAdminOnline, adminOfflineTime, userStatus, activeMenuId, setActiveMenuId, longPressId, setLongPressId, swipingId, setSwipingId, handleTag, handleReply, deleteMsg, copyToClipboard, handleEditLimit, editMsg, editNama, blockUser, inviteToPrivate, setPopupMsg, applyCensor, scrollToMessage, formatMessageTime, authUser, startDrag }: any) {
+export default function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTab, isAdminOnline, adminOfflineTime, userStatus, activeMenuId, setActiveMenuId, swipingId, setSwipingId, handleTag, handleReply, deleteMsg, copyToClipboard, handleEditLimit, editMsg, editNama, blockUser, inviteToPrivate, setPopupMsg, handleLongPress, approveImage, applyCensor, scrollToMessage, formatMessageTime, authUser }: any) {
   const [swipeDelta, setSwipeDelta] = useState(0);
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
   const [touchStartX, setTouchStartX] = useState(0);
@@ -36,6 +36,9 @@ export default function MessageItem({ m, colType, isMinimized, currentDeviceId, 
   const borderColorClass = isMsgAdmin ? 'border-r-red-600' : isPrivateAndNotAdmin ? 'border-b-emerald-500 border-r-emerald-500' : isMsgMine ? 'border-b-blue-500 border-r-blue-500' : 'border-b-gray-400 border-r-gray-400';
   const bgBubbleClass = m.is_private ? 'bg-emerald-50/95' : 'bg-blue-50/95';
 
+  const needsApproval = m.image_url && m.is_approved === false && !isMsgAdmin;
+  const showBlurred = needsApproval && activeTab !== 'admin';
+
   const renderContent = (text: string, isMin: boolean) => {
     if (!text) return null;
     const match = text.match(/^@(\w+)\s\("(.*?)"\)\s?(.*)$/);
@@ -66,17 +69,44 @@ export default function MessageItem({ m, colType, isMinimized, currentDeviceId, 
         </div>
       )}
       <div className={`relative z-10 ${bgBubbleClass} ${isMinimized ? 'p-1.5 rounded-md' : 'p-3 rounded-xl'} ${borderThicknessClass} shadow-sm w-full select-none ${borderColorClass}`}
-        onMouseDown={(e) => { if (e.button !== 0) return; longPressTimer.current = setTimeout(() => { setLongPressId(null); startDrag(m, e.clientX, e.clientY); if (navigator.vibrate) navigator.vibrate(50); }, 350); }}
+        onMouseDown={(e) => { 
+          if (e.button !== 0) return; 
+          longPressTimer.current = setTimeout(() => { 
+            handleLongPress(m);
+            if (navigator.vibrate) navigator.vibrate(50); 
+          }, 350); 
+        }}
         onMouseMove={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
         onMouseUp={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
-        onTouchStart={(e) => { setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); setSwipingId(m.id); setSwipeDelta(0); setIsHorizontalSwipe(false); longPressTimer.current = setTimeout(() => { setLongPressId(null); setSwipingId(null); startDrag(m, e.touches[0].clientX, e.touches[0].clientY); if (navigator.vibrate) navigator.vibrate(50); }, 350); }}
-        onTouchMove={(e) => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } if (swipingId !== m.id) return; const deltaX = e.touches[0].clientX - touchStartX; const deltaY = e.touches[0].clientY - touchInitialY; if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) setIsHorizontalSwipe(true); if (isHorizontalSwipe) { let allowedDelta = deltaX; if (allowedDelta > 0 && !(activeTab === 'admin' || isMsgMine)) allowedDelta = 0; setSwipeDelta(Math.max(-75, Math.min(75, allowedDelta))); } }}
+        onTouchStart={(e) => { 
+          setTouchStartX(e.touches[0].clientX); 
+          setTouchInitialY(e.touches[0].clientY); 
+          setSwipingId(m.id); 
+          setSwipeDelta(0); 
+          setIsHorizontalSwipe(false); 
+          longPressTimer.current = setTimeout(() => { 
+            setSwipingId(null);
+            handleLongPress(m);
+            if (navigator.vibrate) navigator.vibrate(50); 
+          }, 350); 
+        }}
+        onTouchMove={(e) => { 
+          if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } 
+          if (swipingId !== m.id) return; 
+          const deltaX = e.touches[0].clientX - touchStartX; 
+          const deltaY = e.touches[0].clientY - touchInitialY; 
+          if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) setIsHorizontalSwipe(true); 
+          if (isHorizontalSwipe) { 
+            let allowedDelta = deltaX; 
+            if (allowedDelta > 0 && !(activeTab === 'admin' || isMsgMine)) allowedDelta = 0; 
+            setSwipeDelta(Math.max(-75, Math.min(75, allowedDelta))); 
+          } 
+        }}
         onTouchEnd={() => { 
           if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } 
           if (swipingId === m.id && isHorizontalSwipe) {
             if (swipeDelta > 50) { 
               const isUnder24h = Date.now() - new Date(m.created_at).getTime() < 24 * 60 * 60 * 1000;
-              // PERBAIKAN: hapus konfirmasi, langsung hapus
               if (activeTab === 'admin' || (isMsgMine && isUnder24h)) { deleteMsg(m.id); } 
               else if (isMsgMine) alert("Pesan > 24 jam hanya dapat dihapus admin.");
             } else if (swipeDelta < -50) handleReply(m);
@@ -85,16 +115,9 @@ export default function MessageItem({ m, colType, isMinimized, currentDeviceId, 
         }}
         style={{ transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)', transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}
       >
-        {/* ... sisa kode MessageItem tetap sama persis, tidak ada perubahan lain ... */}
-        {longPressId === m.id && (
-          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 rounded-xl flex items-center justify-center gap-3 shadow-sm border border-gray-200 animate-fade-in" onClick={(e) => { e.stopPropagation(); setLongPressId(null); }}>
-            <button type="button" className="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); copyToClipboard(m.pesan, 'Pesan'); setLongPressId(null); }}>Salin Teks</button>
-            {(activeTab !== 'admin' && isMsgMine) && <button type="button" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); handleEditLimit(m); setLongPressId(null); }}>Edit Teks</button>}
-          </div>
-        )}
         <div className={`flex justify-between items-start ${isMinimized ? 'mb-0.5' : 'mb-1'}`}>
           <div className="flex items-center gap-1.5 flex-wrap">
-            <b onClick={() => handleTag(m.username)} className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMsgAdmin ? 'bg-red-600' : isMsgMine ? 'bg-blue-600' : 'bg-gray-700'} ${isMinimized ? 'text-[8px]' : 'text-[10px]'}`}>{m.username}</b>
+            <b onClick={(e) => { e.stopPropagation(); handleTag(m.username); }} className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMsgAdmin ? 'bg-red-600' : isMsgMine ? 'bg-blue-600' : 'bg-gray-700'} ${isMinimized ? 'text-[8px]' : 'text-[10px]'}`}>{m.username}</b>
             {m.is_private && !isMinimized && <span className={`text-[10px] ${isMsgAdmin ? 'text-red-500' : 'text-emerald-600'}`}>🔒 Private</span>}
           </div>
           <div className="text-right shrink-0">
@@ -106,15 +129,30 @@ export default function MessageItem({ m, colType, isMinimized, currentDeviceId, 
             )}
           </div>
         </div>
-        {m.image_url && <div className="mt-2 mb-1 relative cursor-zoom-in group w-max" onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }}><img src={m.image_url} alt="attachment" className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? 'w-20 h-20' : 'w-28 h-28 sm:w-36 sm:h-36'}`} loading="lazy" /></div>}
-        {m.pesan && <div className="mt-1 min-w-0 break-words whitespace-pre-wrap cursor-pointer hover:bg-black/5 transition-colors rounded" onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }}>{renderContent(m.pesan, isMinimized)}</div>}
+        
+        {m.image_url && (
+          <div className="mt-2 mb-1 relative cursor-zoom-in group w-max">
+            <img src={m.image_url} alt="attachment" className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? 'w-20 h-20' : 'w-28 h-28 sm:w-36 sm:h-36'} ${showBlurred ? 'blur-md' : ''}`} loading="lazy" />
+            {showBlurred && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg pointer-events-none">
+                <span className="text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-1 bg-black/60 rounded text-center leading-tight">Menunggu<br/>Persetujuan</span>
+              </div>
+            )}
+            {needsApproval && activeTab === 'admin' && (
+              <button onClick={(e) => { e.stopPropagation(); approveImage(m.id); }} className="absolute -top-2 -right-2 bg-green-500 hover:bg-green-600 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-md active:scale-95 transition-all">Setujui</button>
+            )}
+          </div>
+        )}
+        
+        {m.pesan && <div className="mt-1 min-w-0 break-words whitespace-pre-wrap">{renderContent(m.pesan, isMinimized)}</div>}
+        
         <div className={`${isMinimized ? 'mt-1 pt-1' : 'mt-2 pt-2'} border-t border-black/10 flex justify-between gap-3 ${activeTab === 'admin' ? 'items-end' : 'items-center'}`}>
           <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end items-start text-left">
             {isEdited && <span className="text-yellow-600 font-black text-[9px] lowercase bg-yellow-100/70 px-1 rounded shadow-sm">(edited)</span>}
             {m.is_private && isMinimized && <span className={`text-[8px] font-bold ${isMsgAdmin ? 'text-red-500' : 'text-emerald-600'}`}>🔒 Private</span>}
             {activeTab === 'admin' && (
               <div className="flex flex-col gap-1 text-[8px] text-gray-400 font-sans w-full">
-                <span className="text-blue-600 font-mono cursor-pointer hover:underline break-all leading-tight" onClick={() => copyToClipboard(m.device_id, 'Device ID')}>ID: {m.device_id}</span>
+                <span className="text-blue-600 font-mono cursor-pointer hover:underline break-all leading-tight" onClick={(e) => { e.stopPropagation(); copyToClipboard(m.device_id, 'Device ID'); }}>ID: {m.device_id}</span>
                 <span className="text-orange-600 truncate font-medium max-w-[200px]" title={m.user_browser || ''}>🌐 {shortBrowser}</span>
               </div>
             )}
@@ -122,14 +160,14 @@ export default function MessageItem({ m, colType, isMinimized, currentDeviceId, 
           <div className="flex flex-col items-end gap-1 shrink-0 pb-0.5">
             <span className="text-[8px] text-gray-400 font-bold bg-white/50 px-1 rounded">{formatMessageTime(m.created_at)}</span>
             <div className="flex items-center gap-2 text-[10px]">
-              {!isMinimized && <button type="button" onClick={() => handleReply(m)} className={`font-bold underline mr-1 transition-colors ${colType === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'}`}>Balas</button>}
+              {!isMinimized && <button type="button" onClick={(e) => { e.stopPropagation(); handleReply(m); }} className={`font-bold underline mr-1 transition-colors ${colType === 'private' ? 'text-emerald-600 hover:text-emerald-700' : 'text-blue-600 hover:text-blue-700'}`}>Balas</button>}
               {activeTab === 'admin' && (
                 <div className="relative">
                   <button type="button" onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === m.id ? null : m.id); }} className="text-gray-500 hover:text-gray-800 text-base font-bold px-2 py-1 rounded hover:bg-white/50 transition-colors">⋮</button>
                   {activeMenuId === m.id && (
                     <>
-                      <div className="fixed inset-0 z-20" onClick={() => setActiveMenuId(null)} />
-                      <div className="absolute right-0 bottom-full mb-2 w-48 bg-white border border-gray-200 shadow-2xl rounded-xl z-30 py-2 flex flex-col gap-0.5 animate-fade-in">
+                      <div className="fixed inset-0 z-20" onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} />
+                      <div className="absolute right-0 bottom-full mb-2 w-48 bg-white border border-gray-200 shadow-2xl rounded-xl z-30 py-2 flex flex-col gap-0.5 animate-fade-in" onClick={(e)=>e.stopPropagation()}>
                         <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-blue-600 hover:bg-gray-50">✏️ Edit Teks</button>
                         <button type="button" onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-purple-600 hover:bg-gray-50">👤 Edit Nama</button>
                         <button type="button" onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-gray-50">🗑️ Hapus Pesan</button>

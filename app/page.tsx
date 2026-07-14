@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { supabase } from './supabaseClient';
 import Login from '../components/Login';
@@ -18,12 +18,11 @@ export default function Home() {
   const [usersInfo, setUsersInfo] = useState({ status: {} as Record<string, any>, blockedList: [] as any[], privUsers: [] as any[], selPriv: null as string|null });
   const [censor, setCensor] = useState({ words: [] as string[], newWord: '' });
   const [input, setInput] = useState({ text: '', sending: false, blink: false, image: null as string|null, uploadingImage: false });
-  const [interact, setInteract] = useState({ replyTo: null as any, activeMenu: null as number|null, popup: null as any, swipeId: null as number|null, longPress: null as number|null });
+  const [interact, setInteract] = useState({ replyTo: null as any, activeMenu: null as number|null, popup: null as any, swipeId: null as number|null });
   const [pill, setPill] = useState({ idx: 0 as 0|1, pause: false, visible: true, startX: 0, delta: 0 });
   const [currentHash, setCurrentHash] = useState('');
   const currentDeviceId = typeof window !== 'undefined' ? localStorage.getItem('device_id') : null;
   const [refresh, setRefresh] = useState({ pos: { x: 20, y: 100 }, drag: false, hover: false });
-  const [dragMsg, setDragMsg] = useState({ active: false, msg: null as any, x: 0, y: 0 });
   const CLOUDINARY_CLOUD_NAME = 'bjamo8ld';
   const CLOUDINARY_UPLOAD_PRESET = 'ipixchat';
 
@@ -42,7 +41,7 @@ export default function Home() {
 
   useEffect(() => { if (pill.pause) return; const i = setInterval(() => setPill(p => ({ ...p, idx: p.idx === 0 ? 1 : 0 })), 5000); return () => clearInterval(i); }, [pill.pause]);
 
-  const hScroll = () => setInteract(p => ({ ...p, longPress: null, activeMenu: null }));
+  const hScroll = () => setInteract(p => ({ ...p, activeMenu: null }));
   const isCensored = (t: string) => censor.words.some(w => w.trim() && t.toLowerCase().includes(w.toLowerCase()));
   const applyCensor = (t: string) => { let r = t; censor.words.forEach(w => { if (w.trim()) r = r.replace(new RegExp(`\\b${w}\\b`, 'gi'), '***'); }); return r; };
   const copyTxt = (t: string, l: string) => { navigator.clipboard.writeText(t); alert(`${l} disalin!`); };
@@ -127,7 +126,8 @@ export default function Home() {
     delMsg: async (id: number) => { if (ui.tab === 'admin') { await supabase.from('messages').delete().eq('id', id); } else { await supabase.from('messages').update({ pesan: '___DELETED___', image_url: null }).eq('id', id); } fetchData(); },
     blkUser: async (id: string, nm: string) => { if(confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: nm }]); fetchData(); } },
     addWrd: async () => { if(censor.newWord.trim()) { await supabase.from('blocked_words').insert([{ word: censor.newWord.trim().toLowerCase() }]); setCensor(p => ({ ...p, newWord: '' })); fetchData(); } },
-    rmWrd: async (w: string) => { await supabase.from('blocked_words').delete().eq('word', w); fetchData(); }
+    rmWrd: async (w: string) => { await supabase.from('blocked_words').delete().eq('word', w); fetchData(); },
+    approveImg: async (id: number) => { await supabase.from('messages').update({ is_approved: true }).eq('id', id); fetchData(); }
   };
 
   useEffect(() => {
@@ -156,44 +156,24 @@ export default function Home() {
     }
   }, [mounted, fetchData]);
 
-  useEffect(() => {
-    const handleGlobalMove = (e: TouchEvent | MouseEvent) => { if (!dragMsg.active) return; e.preventDefault(); const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX; const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY; setDragMsg(p => ({ ...p, x: clientX, y: clientY })); };
-    const handleGlobalUp = (e: TouchEvent | MouseEvent) => {
-      if (!dragMsg.active) return;
-      const clientX = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as MouseEvent).clientX;
-      const clientY = 'changedTouches' in e ? e.changedTouches[0].clientY : (e as MouseEvent).clientY;
-      const el = document.elementFromPoint(clientX, clientY);
-      if (el && (el.id === 'btn-refresh-delete' || el.closest('#btn-refresh-delete'))) {
-        const targetMsg = dragMsg.msg;
-        const isUnder24h = Date.now() - new Date(targetMsg.created_at).getTime() < 24 * 60 * 60 * 1000;
-        const isMyMsg = targetMsg.device_id === currentDeviceId || targetMsg.username === auth.user;
-        if (ui.tab === 'admin' || (isMyMsg && isUnder24h)) { dbActions.delMsg(targetMsg.id); }
-        else if (isMyMsg) alert("Pesan > 24 jam hanya dapat dihapus oleh Admin.");
-        else alert("Anda tidak memiliki akses untuk menghapus pesan ini.");
-      } else if (el && (el.id === 'chat-input' || el.closest('form'))) {
-        setInteract(p => ({ ...p, replyTo: dragMsg.msg }));
-        setInput(p => ({ ...p, blink: true }));
-        setTimeout(() => setInput(p => ({ ...p, blink: false })), 800);
-      }
-      setDragMsg({ active: false, msg: null, x: 0, y: 0 });
-    };
-    if (dragMsg.active) {
-      window.addEventListener('touchmove', handleGlobalMove, { passive: false });
-      window.addEventListener('touchend', handleGlobalUp);
-      window.addEventListener('mousemove', handleGlobalMove);
-      window.addEventListener('mouseup', handleGlobalUp);
-    }
-    return () => {
-      window.removeEventListener('touchmove', handleGlobalMove);
-      window.removeEventListener('touchend', handleGlobalUp);
-      window.removeEventListener('mousemove', handleGlobalMove);
-      window.removeEventListener('mouseup', handleGlobalUp);
-    };
-  }, [dragMsg.active, dragMsg.msg, currentDeviceId, auth.user, ui.tab]);
-
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
     if (file.size > 5 * 1024 * 1024) { alert("Ukuran gambar maksimal 5MB!"); return; }
+
+    // Cek limit upload (Maks 2x dalam 24 jam) untuk user non-admin
+    if (auth.user !== 'Admin●ipix.my.id') {
+      const { count } = await supabase.from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('device_id', currentDeviceId || 'guest')
+        .not('image_url', 'is', null)
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+      
+      if (count && count >= 2) {
+        alert("Batas maksimal upload gambar adalah 2x dalam 24 jam. Silakan coba lagi besok.");
+        return;
+      }
+    }
+
     setInput(p => ({ ...p, uploadingImage: true }));
     const formData = new FormData(); formData.append('file', file); formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     try {
@@ -213,7 +193,19 @@ export default function Home() {
       const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('device_id', currentDeviceId || 'guest').gte('created_at', new Date(Date.now() - 300000).toISOString());
       if (count && count >= 5) { alert("Batas 5 pesan per 5 menit."); setInput(p => ({ ...p, sending: false })); return; }
     }
-    await supabase.from('messages').insert([{ username: auth.user, pesan: txt, image_url: input.image, device_id: currentDeviceId || 'guest', is_private: ui.mode === 'private', private_with: ui.mode === 'private' ? (ui.tab === 'user' ? 'admin' : usersInfo.selPriv) : null, user_browser: navigator.userAgent }]);
+    
+    // Tambahkan flag is_approved (Otomatis true untuk admin, false untuk user biasa)
+    await supabase.from('messages').insert([{ 
+      username: auth.user, 
+      pesan: txt, 
+      image_url: input.image,
+      is_approved: auth.user === 'Admin●ipix.my.id',
+      device_id: currentDeviceId || 'guest', 
+      is_private: ui.mode === 'private', 
+      private_with: ui.mode === 'private' ? (ui.tab === 'user' ? 'admin' : usersInfo.selPriv) : null, 
+      user_browser: navigator.userAgent 
+    }]);
+
     setInput({ text: '', sending: false, blink: false, image: null, uploadingImage: false });
     setInteract(p => ({ ...p, replyTo: null }));
     setUi(p => ({ ...p, inputFocus: false }));
@@ -224,25 +216,17 @@ export default function Home() {
   const hasInputReady = input.text.trim().length > 0 || input.image !== null;
 
   const renderMsgs = (arr: any[], colType: any) => arr.length === 0 ? <div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div> : arr.map((m, idx) => (
-    <div key={m.id} className="relative w-full group cursor-pointer" onClick={() => setInteract(p => ({...p, popup: m}))}>
-      <MessageItem index={idx} m={m} colType={colType} isMinimized={true} currentDeviceId={currentDeviceId} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} activeMenuId={interact.activeMenu} setActiveMenuId={(id:any)=>setInteract(p=>({...p,activeMenu:id}))} longPressId={interact.longPress} setLongPressId={(id:any)=>setInteract(p=>({...p,longPress:id}))} swipingId={interact.swipeId} setSwipingId={(id:any)=>setInteract(p=>({...p,swipeId:id}))} handleTag={(u:string)=>setInput(p=>({...p,text:`${p.text} @${u.split('●')[0]} `}))} handleReply={(m:any)=>{setInteract(p=>({...p,replyTo:m})); setInput(p=>({...p,blink:true})); setTimeout(()=>setInput(p=>({...p,blink:false})),800);}} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} editNama={dbActions.editNm} blockUser={dbActions.blkUser} inviteToPrivate={(id:string)=>{handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:id}));}} setPopupMsg={(m:any)=>setInteract(p=>({...p,popup:m}))} applyCensor={applyCensor} scrollToMessage={(t:string)=>{const x=msgs.all.find(x=>x.pesan.includes(t)); if(x) scrollMsg(x.id);}} formatMessageTime={getFmt.time} authUser={auth.user} startDrag={(msg:any, x:number, y:number)=>setDragMsg({active:true, msg, x, y})} />
+    <div key={m.id} className="relative w-full group">
+      <MessageItem index={idx} m={m} colType={colType} isMinimized={true} currentDeviceId={currentDeviceId} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} activeMenuId={interact.activeMenu} setActiveMenuId={(id:any)=>setInteract(p=>({...p,activeMenu:id}))} swipingId={interact.swipeId} setSwipingId={(id:any)=>setInteract(p=>({...p,swipeId:id}))} handleTag={(u:string)=>setInput(p=>({...p,text:`${p.text} @${u.split('●')[0]} `}))} handleReply={(m:any)=>{setInteract(p=>({...p,replyTo:m})); setInput(p=>({...p,blink:true})); setTimeout(()=>setInput(p=>({...p,blink:false})),800);}} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} editNama={dbActions.editNm} blockUser={dbActions.blkUser} inviteToPrivate={(id:string)=>{handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:id}));}} setPopupMsg={(m:any)=>setInteract(p=>({...p,popup:m}))} handleLongPress={(m:any)=>setInteract(p=>({...p,popup:m}))} approveImage={dbActions.approveImg} applyCensor={applyCensor} scrollToMessage={(t:string)=>{const x=msgs.all.find(x=>x.pesan.includes(t)); if(x) scrollMsg(x.id);}} formatMessageTime={getFmt.time} authUser={auth.user} />
     </div>
   ));
 
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
 
   return (
-    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans overscroll-none" onClick={() => setInteract(p => ({ ...p, activeMenu: null, longPress: null }))}>
+    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-gray-100 shadow-xl overflow-hidden font-sans overscroll-none" onClick={() => setInteract(p => ({ ...p, activeMenu: null }))}>
       <style dangerouslySetInnerHTML={{ __html: ` body{overscroll-behavior-y:none;} @keyframes sL{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(-4px);opacity:1;}} @keyframes sR{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(4px);opacity:1;}} .anim-slide-left{animation:sL 1.4s ease-in-out infinite;} .anim-slide-right{animation:sR 1.4s ease-in-out infinite;} @keyframes bC{0%,100%{background:inherit;}50%{background:#fef9c3;}} .anim-bg-blink-cream{animation:bC 1.5s ease-in-out;} @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} .anim-text-blink-white{animation:tW 1.5s ease-in-out infinite;} `}} />
-      {dragMsg.active && dragMsg.msg && (
-        <div className="fixed z-[9999] pointer-events-none opacity-90 scale-105 shadow-2xl transition-none" style={{ left: dragMsg.x - 100, top: dragMsg.y - 50, width: '220px' }}>
-          <div className="bg-white p-3 rounded-xl border-[2.5px] border-blue-500 shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
-            <div className="text-[10px] font-bold text-blue-600 mb-1">{dragMsg.msg.username}</div>
-            <div className="text-xs truncate text-gray-800">{dragMsg.msg.pesan === '___DELETED___' ? 'Pesan dihapus' : dragMsg.msg.pesan}</div>
-            <div className="text-[9px] font-bold text-red-500 mt-2 flex gap-1 items-center bg-gray-50 p-1 rounded">↓ Lepas di tombol REFRESH untuk hapus</div>
-          </div>
-        </div>
-      )}
+      
       {auth.isAuth && ui.tab === 'admin' && currentHash !== '#block' && (
         <div onClick={() => window.open(`${window.location.pathname}#block`, '_blank')} className="fixed z-[100] bottom-28 right-4 px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-red-600 border border-red-700 shadow-[0_3px_0_#991b1b,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150">BLOCK MGR</div>
       )}
@@ -313,6 +297,8 @@ export default function Home() {
           </form>
         </div>
       )}
+      
+      {/* POPUP BESAR SAAT LONG PRESS */}
       {interact.popup && interact.popup.pesan !== '___DELETED___' && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={()=>setInteract(p=>({...p,popup:null}))}>
           <div className={`w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col ${interact.popup.is_private ? 'border-t-4 border-emerald-500' : 'border-t-4 border-blue-500'}`} onClick={e=>e.stopPropagation()}>
@@ -321,12 +307,23 @@ export default function Home() {
               <span className={`px-2 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === 'Admin●ipix.my.id' ? 'bg-red-600' : (interact.popup.device_id === currentDeviceId || interact.popup.username === auth.user ? 'bg-blue-600' : 'bg-gray-700')}`}>{interact.popup.username}</span>
               <span className="text-[10px] text-gray-400">{getFmt.time(interact.popup.created_at)}</span>
             </div>
+            
             <div className="overflow-y-auto pr-2 pb-2 text-sm text-black flex flex-col break-words break-all whitespace-pre-wrap">
-              {interact.popup.image_url && <img src={interact.popup.image_url} alt="Uploaded Image" className="w-full h-auto max-h-[50vh] object-contain rounded-lg border mb-3 shadow-sm bg-gray-50" />}
+              {interact.popup.image_url && (
+                <div className="relative mb-3 w-full">
+                  <img src={interact.popup.image_url} alt="Uploaded Image" className={`w-full h-auto max-h-[50vh] object-contain rounded-lg border shadow-sm bg-gray-50 ${(interact.popup.is_approved === false && ui.tab !== 'admin' && interact.popup.username !== 'Admin●ipix.my.id') ? 'blur-xl' : ''}`} />
+                  {interact.popup.is_approved === false && ui.tab !== 'admin' && interact.popup.username !== 'Admin●ipix.my.id' && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-white text-xs sm:text-sm font-bold px-3 py-1.5 bg-black/60 rounded-full text-center">Menunggu Persetujuan Admin</span>
+                    </div>
+                  )}
+                </div>
+              )}
               {interact.popup.pesan && applyCensor(interact.popup.pesan)}
             </div>
+            
             <div className="flex flex-wrap items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
-              {interact.popup.image_url && (
+              {interact.popup.image_url && !(interact.popup.is_approved === false && ui.tab !== 'admin' && interact.popup.username !== 'Admin●ipix.my.id') && (
                 <button type="button" onClick={async (e) => { e.stopPropagation(); try { const response = await fetch(interact.popup.image_url); const blob = await response.blob(); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `ipix_image_${interact.popup.id}.jpg`; document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url); } catch (err) { window.open(interact.popup.image_url, '_blank'); } }} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1">📥 Unduh Gambar</button>
               )}
               <button type="button" onClick={(e) => { e.stopPropagation(); copyTxt(interact.popup.pesan, 'Pesan'); }} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all">📋 Salin</button>
@@ -338,6 +335,7 @@ export default function Home() {
           </div>
         </div>
       )}
+      
       {!auth.isAuth && (
         <Login activeTab={ui.tab} username={auth.user} setUsername={(u:string)=>setAuth(p=>({...p,user:u}))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e:string)=>setAuth(p=>({...p,adminEmail:e}))} adminPass={auth.adminPass} setAdminPass={(ps:string)=>setAuth(p=>({...p,adminPass:ps}))} handleUserLogin={async () => { if(!auth.user.trim() || isCensored(auth.user)) return alert("Nama tidak valid"); try { const { data: existUser } = await supabase.from('profiles').select('device_id').ilike('username', auth.user.trim()).maybeSingle(); if (existUser && existUser.device_id !== (currentDeviceId || 'guest')) return alert("Username sudah digunakan orang lain."); await supabase.from('profiles').upsert({ device_id: currentDeviceId||'guest', username: auth.user.trim(), user_browser: navigator.userAgent }, { onConflict: 'device_id' }); } catch(e) {} setAuth(p=>({...p,isAuth:true})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username',auth.user.trim()); sessionStorage.setItem('active_tab','user'); }} handleAdminLogin={async () => { const { error } = await supabase.auth.signInWithPassword({ email: auth.adminEmail, password: auth.adminPass }); if (error) alert("Gagal"); else { setAuth(p=>({...p,isAuth:true,user:'Admin●ipix.my.id'})); setUi(p=>({...p,tab:'admin'})); sessionStorage.setItem('is_auth','true'); sessionStorage.setItem('saved_username','Admin●ipix.my.id'); sessionStorage.setItem('active_tab','admin'); } }} />
       )}
