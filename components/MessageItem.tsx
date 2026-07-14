@@ -18,7 +18,7 @@ export default function MessageItem({ m, colType, isMinimized, currentDeviceId, 
       <div id={`msg-${m.id}`} className="relative w-full flex justify-start mb-2 z-10"
            onTouchStart={(e) => { setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); setSwipingId(m.id); setSwipeDelta(0); setIsHorizontalSwipe(false); }}
            onTouchMove={(e) => { if (swipingId !== m.id) return; const deltaX = e.touches[0].clientX - touchStartX; const deltaY = e.touches[0].clientY - touchInitialY; if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) setIsHorizontalSwipe(true); if (isHorizontalSwipe) { let allowedDelta = deltaX; if (allowedDelta > 0 && activeTab !== 'admin') allowedDelta = 0; setSwipeDelta(Math.max(-75, Math.min(75, allowedDelta))); } }}
-           onTouchEnd={() => { if (swipingId === m.id && isHorizontalSwipe) { if (swipeDelta > 50 && activeTab === 'admin') { if (window.confirm("Hapus permanen history dari user ini?")) deleteMsg(m.id); } } setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false); }}
+           onTouchEnd={() => { if (swipingId === m.id && isHorizontalSwipe) { if (swipeDelta > 50 && activeTab === 'admin') { deleteMsg(m.id); } } setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false); }}
            style={{ transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)', transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
         <div className="bg-gray-100/80 border border-gray-200 border-dashed rounded-lg p-2.5 flex flex-col w-full max-w-[200px] shadow-sm ml-1">
           <div className="flex items-center gap-1.5">
@@ -71,9 +71,21 @@ export default function MessageItem({ m, colType, isMinimized, currentDeviceId, 
         onMouseUp={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
         onTouchStart={(e) => { setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); setSwipingId(m.id); setSwipeDelta(0); setIsHorizontalSwipe(false); longPressTimer.current = setTimeout(() => { setLongPressId(null); setSwipingId(null); startDrag(m, e.touches[0].clientX, e.touches[0].clientY); if (navigator.vibrate) navigator.vibrate(50); }, 350); }}
         onTouchMove={(e) => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } if (swipingId !== m.id) return; const deltaX = e.touches[0].clientX - touchStartX; const deltaY = e.touches[0].clientY - touchInitialY; if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) setIsHorizontalSwipe(true); if (isHorizontalSwipe) { let allowedDelta = deltaX; if (allowedDelta > 0 && !(activeTab === 'admin' || isMsgMine)) allowedDelta = 0; setSwipeDelta(Math.max(-75, Math.min(75, allowedDelta))); } }}
-        onTouchEnd={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } if (swipingId === m.id && isHorizontalSwipe) { if (swipeDelta > 50) { const isUnder24h = Date.now() - new Date(m.created_at).getTime() < 24 * 60 * 60 * 1000; if (activeTab === 'admin' || (isMsgMine && isUnder24h)) { if (window.confirm("Hapus pesan ini?")) deleteMsg(m.id); } else if (isMsgMine) alert("Pesan > 24 jam hanya dapat dihapus admin."); } else if (swipeDelta < -50) handleReply(m); } setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false); }}
+        onTouchEnd={() => { 
+          if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } 
+          if (swipingId === m.id && isHorizontalSwipe) {
+            if (swipeDelta > 50) { 
+              const isUnder24h = Date.now() - new Date(m.created_at).getTime() < 24 * 60 * 60 * 1000;
+              // PERBAIKAN: hapus konfirmasi, langsung hapus
+              if (activeTab === 'admin' || (isMsgMine && isUnder24h)) { deleteMsg(m.id); } 
+              else if (isMsgMine) alert("Pesan > 24 jam hanya dapat dihapus admin.");
+            } else if (swipeDelta < -50) handleReply(m);
+          }
+          setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false); 
+        }}
         style={{ transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)', transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}
       >
+        {/* ... sisa kode MessageItem tetap sama persis, tidak ada perubahan lain ... */}
         {longPressId === m.id && (
           <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 rounded-xl flex items-center justify-center gap-3 shadow-sm border border-gray-200 animate-fade-in" onClick={(e) => { e.stopPropagation(); setLongPressId(null); }}>
             <button type="button" className="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2 rounded-full text-xs font-bold shadow-md active:scale-95 transition-all" onClick={(e) => { e.stopPropagation(); copyToClipboard(m.pesan, 'Pesan'); setLongPressId(null); }}>Salin Teks</button>

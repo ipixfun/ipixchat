@@ -94,6 +94,42 @@ export default function Home() {
     } catch (e) {}
   }, [ui.tab, usersInfo.selPriv, currentDeviceId, auth.isAuth]);
 
+  const updateMsgLocal = (id: number, newText: string, isEdited: boolean) => {
+    setMsgs(prev => {
+      const update = (arr: any[]) => arr.map(m => m.id === id ? { ...m, pesan: newText, is_edited: isEdited || m.is_edited } : m);
+      return { all: update(prev.all), pub: update(prev.pub), priv: update(prev.priv) };
+    });
+  };
+
+  const dbActions = {
+    editLmt: async (m: any) => {
+      const c = parseInt(localStorage.getItem(`edit_${m.id}`) || '0');
+      if(c>=2) return alert("Batas 2x");
+      const nt = prompt("Edit:", m.pesan);
+      if(nt && nt.trim() !== m.pesan) {
+        await supabase.from('messages').update({ pesan: nt.trim(), is_edited: true }).eq('id', m.id);
+        localStorage.setItem(`edit_${m.id}`, (c+1).toString());
+        localStorage.setItem(`edit_count_${m.id}`, '1');
+        updateMsgLocal(m.id, nt.trim(), true);
+      }
+    },
+    editMsg: async (id: number) => {
+      const m = msgs.all.find(x => x.id === id);
+      if (!m) return;
+      const nt = prompt("Edit:", m.pesan);
+      if(nt && nt !== m.pesan) {
+        await supabase.from('messages').update({ pesan: nt, is_edited: true }).eq('id', id);
+        localStorage.setItem(`edit_count_${id}`, '1');
+        updateMsgLocal(id, nt, true);
+      }
+    },
+    editNm: async (id: number) => { const m = msgs.all.find(m => m.id === id); if(!m) return; const nn = prompt("Nama:", m.username); if(nn && isCensored(nn)) return alert("Terlarang!"); if(nn) { await Promise.all([supabase.from('profiles').update({ username: nn }).eq('device_id', m.device_id), supabase.from('messages').update({ username: nn }).eq('device_id', m.device_id)]); fetchData(); } },
+    delMsg: async (id: number) => { if (ui.tab === 'admin') { await supabase.from('messages').delete().eq('id', id); } else { await supabase.from('messages').update({ pesan: '___DELETED___', image_url: null }).eq('id', id); } fetchData(); },
+    blkUser: async (id: string, nm: string) => { if(confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: nm }]); fetchData(); } },
+    addWrd: async () => { if(censor.newWord.trim()) { await supabase.from('blocked_words').insert([{ word: censor.newWord.trim().toLowerCase() }]); setCensor(p => ({ ...p, newWord: '' })); fetchData(); } },
+    rmWrd: async (w: string) => { await supabase.from('blocked_words').delete().eq('word', w); fetchData(); }
+  };
+
   useEffect(() => {
     if (!localStorage.getItem('device_id')) localStorage.setItem('device_id', Math.random().toString(36).substring(2, 15));
     const chk = async () => {
@@ -120,16 +156,6 @@ export default function Home() {
     }
   }, [mounted, fetchData]);
 
-  const dbActions = {
-    editLmt: async (m: any) => { const c = parseInt(localStorage.getItem(`edit_${m.id}`) || '0'); if(c>=2) return alert("Batas 2x"); const nt = prompt("Edit:", m.pesan); if(nt && nt.trim() !== m.pesan) { await supabase.from('messages').update({ pesan: nt.trim(), is_edited: true }).eq('id', m.id); localStorage.setItem(`edit_${m.id}`, (c+1).toString()); localStorage.setItem(`edit_count_${m.id}`, '1'); fetchData(); } },
-    editMsg: async (id: number) => { const nt = prompt("Edit:", msgs.all.find(m => m.id === id)?.pesan || ""); if(nt) { await supabase.from('messages').update({ pesan: nt, is_edited: true }).eq('id', id); localStorage.setItem(`edit_count_${id}`, '1'); fetchData(); } },
-    editNm: async (id: number) => { const m = msgs.all.find(m => m.id === id); if(!m) return; const nn = prompt("Nama:", m.username); if(nn && isCensored(nn)) return alert("Terlarang!"); if(nn) { await Promise.all([supabase.from('profiles').update({ username: nn }).eq('device_id', m.device_id), supabase.from('messages').update({ username: nn }).eq('device_id', m.device_id)]); fetchData(); } },
-    delMsg: async (id: number) => { if (ui.tab === 'admin') { await supabase.from('messages').delete().eq('id', id); } else { await supabase.from('messages').update({ pesan: '___DELETED___', image_url: null }).eq('id', id); } fetchData(); },
-    blkUser: async (id: string, nm: string) => { if(confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: nm }]); fetchData(); } },
-    addWrd: async () => { if(censor.newWord.trim()) { await supabase.from('blocked_words').insert([{ word: censor.newWord.trim().toLowerCase() }]); setCensor(p => ({ ...p, newWord: '' })); fetchData(); } },
-    rmWrd: async (w: string) => { await supabase.from('blocked_words').delete().eq('word', w); fetchData(); }
-  };
-
   useEffect(() => {
     const handleGlobalMove = (e: TouchEvent | MouseEvent) => { if (!dragMsg.active) return; e.preventDefault(); const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX; const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY; setDragMsg(p => ({ ...p, x: clientX, y: clientY })); };
     const handleGlobalUp = (e: TouchEvent | MouseEvent) => {
@@ -141,7 +167,7 @@ export default function Home() {
         const targetMsg = dragMsg.msg;
         const isUnder24h = Date.now() - new Date(targetMsg.created_at).getTime() < 24 * 60 * 60 * 1000;
         const isMyMsg = targetMsg.device_id === currentDeviceId || targetMsg.username === auth.user;
-        if (ui.tab === 'admin' || (isMyMsg && isUnder24h)) { if (confirm("Hapus pesan ini lewat drag drop?")) dbActions.delMsg(targetMsg.id); }
+        if (ui.tab === 'admin' || (isMyMsg && isUnder24h)) { dbActions.delMsg(targetMsg.id); }
         else if (isMyMsg) alert("Pesan > 24 jam hanya dapat dihapus oleh Admin.");
         else alert("Anda tidak memiliki akses untuk menghapus pesan ini.");
       } else if (el && (el.id === 'chat-input' || el.closest('form'))) {
