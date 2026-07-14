@@ -69,7 +69,7 @@ export default function MessageItem({ m, colType, isMinimized, currentDeviceId, 
         </div>
       )}
       <div className={`relative z-10 ${bgBubbleClass} ${isMinimized ? 'p-1.5 rounded-md' : 'p-3 rounded-xl'} ${borderThicknessClass} shadow-sm w-full select-none ${borderColorClass} outline-none`}
-        onContextMenu={(e) => { e.preventDefault(); return false; }} // Cegah popup OS Native
+        onContextMenu={(e) => { e.preventDefault(); return false; }}
         onMouseDown={(e) => { 
           if (e.button !== 0) return; 
           longPressTimer.current = setTimeout(() => { 
@@ -115,7 +115,7 @@ export default function MessageItem({ m, colType, isMinimized, currentDeviceId, 
           setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false); 
         }}
         style={{ 
-          WebkitTouchCallout: 'none', // Matikan menu klik tahan (copy, dsb) di iOS
+          WebkitTouchCallout: 'none',
           WebkitUserSelect: 'none',
           userSelect: 'none',
           transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)', 
@@ -140,7 +140,7 @@ export default function MessageItem({ m, colType, isMinimized, currentDeviceId, 
         {m.image_url && (
           <div 
             className="mt-2 mb-1 relative cursor-pointer group w-max"
-            onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} // Klik sekali -> Buka pop-up
+            onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }}
           >
             <img src={m.image_url} alt="attachment" className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? 'w-20 h-20' : 'w-28 h-28 sm:w-36 sm:h-36'} ${showBlurred ? 'blur-md' : ''}`} loading="lazy" />
             {showBlurred && (
@@ -186,7 +186,7 @@ export default function MessageItem({ m, colType, isMinimized, currentDeviceId, 
                           <>
                             <div className="h-px bg-gray-200 my-1 mx-2" />
                             <button type="button" onClick={() => { blockUser(m.device_id, m.username); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-orange-600 hover:bg-gray-50">🚫 Blokir User</button>
-                            <button type="button" onClick={() => { inviteToPrivate(m.device_id, m.username); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-emerald-600 hover:bg-gray-50">🔒 Chat Private</button>
+                            <button type="button" onClick={() => { inviteToPrivate(m.device_id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-emerald-600 hover:bg-gray-50">🔒 Chat Private</button>
                           </>
                         )}
                       </div>
