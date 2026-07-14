@@ -5,7 +5,7 @@ import { supabase } from './supabaseClient'; // Sesuaikan path jika perlu
 import Login from '../components/Login';
 import Block from '../components/Block';
 import ChatLayout from '../components/ChatLayout';
-import { MessageItem } from './message'; // Import dipisah
+import { MessageItem } from '../components/MessageItem'; // Import dipisah
 
 export default function Home() {
   const pathname = usePathname(); 
