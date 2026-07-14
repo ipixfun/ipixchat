@@ -1,6 +1,6 @@
 'use client';
 import { motion } from 'framer-motion';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Login({
   activeTab,
@@ -26,17 +26,6 @@ export default function Login({
   // State untuk persetujuan username permanen
   const [isUsernameAgreed, setIsUsernameAgreed] = useState(false);
 
-  // Mengunci data gelembung agar tidak terpengaruh re-render dari efek mengetik teks
-  const bubbles = useMemo(() => {
-    return Array.from({ length: 14 }).map((_, i) => ({
-      id: i,
-      left: `${2 + Math.random() * 96}%`,
-      size: Math.random() * 12 + 6,
-      delay: Math.random() * 4,
-      duration: Math.random() * 5 + 7,
-    }));
-  }, []);
-
   // Typing effect untuk existing user note
   useEffect(() => {
     if (!isExistingUser) return;
@@ -59,48 +48,18 @@ export default function Login({
   const isFormValid = username?.trim().length > 0 && umur !== "" && berat !== "" && isUsernameAgreed;
 
   return (
-    // Background utama dibuat full bg-transparent & menghilangkan backdrop-blur
+    // Background utama dibuat full bg-transparent
     <div className="fixed inset-0 flex flex-col items-center justify-center p-6 z-50 bg-transparent overflow-hidden w-full font-sans">
       
-      {/* Siluet Gradasi belakang dihapus agar full transparan */}
-
-      {/* Logo iPixChaT Dinamis (3D Gelombang Ijo-Biru dengan Putih Lembut) */}
+      {/* Logo iPixChaT Dinamis (3D Gelombang Ijo-Biru dengan Font Rounded) */}
       <div className="relative z-20 mb-10 flex justify-center pointer-events-none select-none">
-        
-        {/* Container Gelembung Putih */}
-        <div className="absolute inset-0 z-0 overflow-visible pointer-events-none">
-          {bubbles.map((b) => (
-            <motion.div
-              key={b.id}
-              className="absolute rounded-full border border-white/40 bg-white/10 shadow-sm"
-              style={{ 
-                left: b.left, 
-                width: b.size, 
-                height: b.size, 
-                bottom: -50,
-              }}
-              animate={{ 
-                y: [0, -520], 
-                opacity: [0, 0.7, 0.7, 0],
-                x: [0, Math.sin(b.id) * 20]
-              }}
-              transition={{ 
-                repeat: Infinity, 
-                duration: b.duration, 
-                delay: b.delay, 
-                ease: "linear" 
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Teks Gelombang 3D */}
+        {/* Teks Gelombang 3D dengan Ujung Bulat (Rounded) */}
         <div className="flex relative z-10">
           {title.split('').map((letter, index) => (
             <motion.span
               key={index}
-              className="inline-block text-6xl sm:text-7xl font-black tracking-[-2px] text-transparent bg-clip-text bg-gradient-to-b from-emerald-400 via-teal-300 to-blue-600 drop-shadow-[0_6px_3px_rgba(4,120,87,0.7)]"
-              style={{ fontFamily: "'Nunito', system-ui, sans-serif" }}
+              className="inline-block text-6xl sm:text-7xl font-black tracking-[-1px] text-transparent bg-clip-text bg-gradient-to-b from-emerald-400 via-teal-300 to-blue-600 drop-shadow-[0_6px_3px_rgba(4,120,87,0.7)]"
+              style={{ fontFamily: "'Comfortaa', 'Quicksand', 'Nunito', system-ui, sans-serif" }}
               animate={{
                 y: [0, -18, 0],
               }}
@@ -114,8 +73,8 @@ export default function Login({
         </div>
       </div>
 
-      {/* Main Card - Diubah menjadi bg-transparent, tanpa border, shadow, atau blur */}
-      <div className="w-full max-w-sm flex flex-col items-center bg-transparent p-8 rounded-[2.5rem] z-20 relative overflow-hidden">
+      {/* Main Card - Menggunakan bg-white/5 (Opasitas 5%) dan Efek Blur Ringan */}
+      <div className="w-full max-w-sm flex flex-col items-center bg-white/5 backdrop-blur-sm border border-white/10 p-8 rounded-[2.5rem] shadow-[0_12px_40px_rgba(0,0,0,0.2)] z-20 relative overflow-hidden">
         
         {activeTab === 'user' ? (
           <div className="w-full flex flex-col items-center relative z-10">
@@ -182,14 +141,14 @@ export default function Login({
               </motion.div>
             )}
 
-            {/* Tombol Login */}
+            {/* Tombol Login dengan Outline Biru Ijo (Teal) */}
             <button 
               onClick={handleUserLogin} 
               disabled={!isExistingUser && !isFormValid} 
-              className={`w-full py-4 mb-4 text-white font-bold text-md shadow-lg transition-all rounded-full tracking-wider border border-transparent 
+              className={`w-full py-4 mb-4 text-white font-bold text-md shadow-lg transition-all rounded-full tracking-wider
                 ${(!isExistingUser && !isFormValid) 
-                  ? 'bg-gray-400/40 cursor-not-allowed opacity-60 backdrop-blur-sm' 
-                  : 'bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 hover:shadow-xl active:scale-95 cursor-pointer'
+                  ? 'bg-gray-400/40 cursor-not-allowed opacity-60 backdrop-blur-sm border border-transparent' 
+                  : 'bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 hover:shadow-xl active:scale-95 cursor-pointer border-2 border-teal-400'
                 }`}
             >
               {isExistingUser ? 'Masuk Chat' : 'Login'}
@@ -233,14 +192,14 @@ export default function Login({
             
             <button 
               onClick={handleAdminLogin} 
-              className="w-full py-4 bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold text-md shadow-lg hover:shadow-xl active:scale-95 transition-all rounded-full tracking-wider border border-transparent">
+              className="w-full py-4 bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold text-md shadow-lg hover:shadow-xl active:scale-95 transition-all rounded-full tracking-wider border-2 border-teal-400">
               Login Admin
             </button>
           </div>
         )}
       </div>
 
-      {/* Footer Pill - Tetap dipertahankan background visual pill-nya */}
+      {/* Footer Pill */}
       <div className="absolute bottom-6 z-30 flex items-center justify-center w-full pointer-events-none">
         <motion.div 
           className="text-[11px] text-gray-200 flex items-center gap-1.5 font-medium bg-black/40 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/10 shadow-lg pointer-events-auto transition-colors hover:bg-black/50"
