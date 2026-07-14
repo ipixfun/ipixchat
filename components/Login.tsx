@@ -15,7 +15,7 @@ export default function Login({
   handleAdminLogin
 }: any) {
   // Teks berjalan 2 paragraf (\n\n)
-  const existingNote = "Mohon maaf nama anda tidak bisa diubah lagi.\n\nHubungi admin di chat jika anda ingin merubahnya.";
+  const existingNote = "Hubungi admin di chat jika anda ingin merubah nama anda.\n\n @admin●ipix.my.id.";
   const [displayedNote, setDisplayedNote] = useState("");
   const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
   
@@ -54,7 +54,7 @@ export default function Login({
   const handleUserLoginWrapper = () => {
     if (!isExistingUser) {
       if (!username || username.trim().length === 0) {
-        setValidationMsg("isi dulu sayang");
+        setValidationMsg("isi nama dulu sayang");
         return;
       }
       if (!umur || !berat) {
@@ -71,30 +71,37 @@ export default function Login({
     handleUserLogin();
   };
 
-  // --- LOGIK STYLING OUTLINE DINAMIS ---
+  // --- LOGIK STYLING OUTLINE DINAMIS (MANDIRI & SPESIFIK) ---
   
-  // 1. Outline untuk Kolom Pilihan (Dropdown Umur & Berat)
-  const selectBorderClass = isFormValid
-    ? 'border-emerald-500 border-2' // Ijo jika semua terinput
-    : validationMsg
-      ? 'border-red-500 animate-pulse border-2' // Merah kedip² jika ada yang kosong/belum diceklist
-      : 'border-blue-400 border-2'; // Default Biru
-
-  // 2. Outline untuk Input Username
+  // 1. Outline untuk Kolom Input Username
   const usernameBorderClass = isFormValid
     ? 'border-emerald-500 border-2'
-    : (validationMsg === "isi dulu sayang")
+    : (validationMsg === "isi nama dulu sayang")
       ? 'border-red-500 animate-pulse border-2'
       : 'border-white/30 border';
 
-  // 3. Outline untuk Ceklist Warning
+  // 2. Outline Mandiri untuk Dropdown Umur
+  const umurBorderClass = isFormValid
+    ? 'border-emerald-500 border-2'
+    : (validationMsg && !umur)
+      ? 'border-red-500 animate-pulse border-2' // Hanya kedip jika validasi error dipicu DAN umur kosong
+      : 'border-blue-400 border-2'; // Default Biru
+
+  // 3. Outline Mandiri untuk Dropdown Berat
+  const beratBorderClass = isFormValid
+    ? 'border-emerald-500 border-2'
+    : (validationMsg && !berat)
+      ? 'border-red-500 animate-pulse border-2' // Hanya kedip jika validasi error dipicu DAN berat kosong
+      : 'border-blue-400 border-2'; // Default Biru
+
+  // 4. Outline untuk Ceklist Warning
   const checkboxBorderClass = isFormValid
     ? 'border-emerald-500/50 border-2'
     : (validationMsg === "ceklist dulu sayang")
       ? 'border-red-500 animate-pulse border-2'
       : 'border-white/20 border';
 
-  // 4. Pengaturan Tombol Utama (Pill)
+  // 5. Pengaturan Tombol Utama (Pill)
   let buttonStyle = "";
   let buttonText = "";
 
@@ -122,11 +129,11 @@ export default function Login({
         {activeTab === 'user' ? (
           <div className="w-full flex flex-col items-center relative z-10">
             
-            {/* Input Nama / Username - Abu-abu blur default, teks biru cerah ketika diinput */}
+            {/* Input Nama / Username - Abu-abu blur default, teks biru ketika diinput */}
             <input 
               className={`w-full p-3.5 sm:p-4 rounded-full focus:outline-none transition-all text-center text-base sm:text-lg tracking-wide mb-4 shadow-inner font-bold backdrop-blur-sm
                 ${isExistingUser 
-                  ? 'bg-neutral-500/20 text-blue-400 border-neutral-500/30 cursor-not-allowed select-none' 
+                  ? 'bg-neutral-500/20 text-blue-900 border-neutral-500/30 cursor-not-allowed select-none' 
                   : `bg-neutral-500/20 text-blue-400 placeholder-neutral-400 focus:ring-2 focus:ring-blue-300 ${usernameBorderClass}`
                 }`}
               placeholder="Username (Maks 20 huruf)" 
@@ -140,7 +147,7 @@ export default function Login({
             />
             
             {!isExistingUser && (
-              /* Kolom Pilihan Umur dan Berat (Pill User Kolom Pilih) */
+              /* Kolom Pilihan Umur dan Berat (Pill User Kolom Pilih dengan animasi kedip terpisah) */
               <div className="grid grid-cols-2 gap-3 w-full mb-5 sm:mb-6">
                 <div className="relative">
                   <select 
@@ -149,7 +156,7 @@ export default function Login({
                       setUmur(e.target.value);
                       if (validationMsg) setValidationMsg("");
                     }}
-                    className={`w-full p-3 bg-white/40 backdrop-blur-sm text-gray-800 font-bold rounded-3xl focus:outline-none appearance-none shadow-sm cursor-pointer text-center text-xs sm:text-sm transition-all duration-300 ${selectBorderClass}`}
+                    className={`w-full p-3 bg-white/40 backdrop-blur-sm text-gray-900 font-bold rounded-3xl focus:outline-none appearance-none shadow-sm cursor-pointer text-center text-xs sm:text-sm transition-all duration-300 ${umurBorderClass}`}
                   >
                     <option value="" disabled>Umur</option>
                     <option value="20+">20+</option>
@@ -170,7 +177,7 @@ export default function Login({
                       setBerat(e.target.value);
                       if (validationMsg) setValidationMsg("");
                     }}
-                    className={`w-full p-3 bg-white/40 backdrop-blur-sm text-gray-800 font-bold rounded-3xl focus:outline-none appearance-none shadow-sm cursor-pointer text-center text-xs sm:text-sm transition-all duration-300 ${selectBorderClass}`}
+                    className={`w-full p-3 bg-white/40 backdrop-blur-sm text-gray-800 font-bold rounded-3xl focus:outline-none appearance-none shadow-sm cursor-pointer text-center text-xs sm:text-sm transition-all duration-300 ${beratBorderClass}`}
                   >
                     <option value="" disabled>Berat</option>
                     <option value="<55">&lt;55</option>
@@ -195,7 +202,7 @@ export default function Login({
               >
                 <span className="w-full block">
                   {displayedNote}
-                  {!isNoteTypingDone && <span className="animate-pulse ml-0.5 text-blue-500 font-bold">|</span>}
+                  {!isNoteTypingDone && <span className="animate-pulse ml-0.5 text-blue-900 font-bold">|</span>}
                 </span>
               </motion.div>
             )}
@@ -224,8 +231,8 @@ export default function Login({
                     if (validationMsg) setValidationMsg(""); 
                   }}
                 />
-                <label htmlFor="username-agree" className="text-[10px] sm:text-[11px] font-bold tracking-wide text-gray-800 drop-shadow-sm cursor-pointer leading-none">
-                  *Username permanen & tidak dapat diubah
+                <label htmlFor="username-agree" className="text-[10px] sm:text-[11px] font-small tracking-wide text-gray-500 drop-shadow-sm cursor-pointer leading-none">
+                  *Mengikuti aturan di dalam chat  
                 </label>
               </motion.div>
             )}
