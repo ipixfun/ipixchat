@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
-import { supabase } from './supabaseClient'; // Sesuaikan path jika perlu
+import { supabase } from './lib/supabaseClient'; // Sesuaikan path jika perlu
 import Login from '../components/Login';
 import Block from '../components/Block';
 import ChatLayout from '../components/ChatLayout';
