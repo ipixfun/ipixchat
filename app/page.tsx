@@ -190,55 +190,10 @@ export default function Home() {
             <div className="text-center flex-1 flex flex-col items-end mr-16"><a href="https://ipix.my.id" target="_blank" className="text-emerald-600 font-bold text-sm underline">ipix.my.id</a>{ui.tab === 'user' && <div className="text-[10px] text-gray-500 mt-0.5 flex items-center gap-1"><span className={`inline-block w-1.5 h-1.5 rounded-full ${adminStat.online ? 'bg-green-500' : 'bg-gray-400'}`}></span>{adminStat.online ? <span className="text-green-600 font-bold text-[9px]">Online</span> : <span className="text-[9px]">Offline • {adminStat.offlineTime}</span>}</div>}</div>
           </div>
           
-          {/* Header Tab - Animasi Expand (Full Kolom) & Shrink */}
-          <div className="flex mt-3 bg-white/70 rounded-full p-1 shadow-sm w-full relative overflow-hidden gap-1">
-            
-            {/* TAB PUBLIC (Biru) */}
-            <button 
-              onClick={() => { handleInteraction('public'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); }} 
-              className={`relative py-2 h-[42px] sm:h-[46px] rounded-full flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${
-                ui.mode === 'public' 
-                  ? 'flex-[5] bg-blue-600 text-white shadow-md' 
-                  : 'flex-[1] bg-transparent hover:bg-blue-100/50'
-              } min-w-[45px]`}
-            >
-              {/* Lingkaran Angka Notifikasi */}
-              <div className={`absolute w-6 sm:w-7 h-6 sm:h-7 flex items-center justify-center transition-all duration-500 ${ui.mode === 'public' ? 'left-1.5' : 'left-1/2 -translate-x-1/2'}`}>
-                <span className={`${ui.mode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-500`}>
-                  {getFmt.notif(counts.pub)}
-                </span>
-              </div>
-              {/* Teks Tab (Hanya Muncul Saat Aktif) */}
-              <div className={`flex items-center whitespace-nowrap transition-all duration-500 ${ui.mode === 'public' ? 'opacity-100 translate-x-3 sm:translate-x-4 scale-100 delay-100' : 'opacity-0 translate-x-8 scale-90 pointer-events-none absolute'}`}>
-                <span className="text-xs sm:text-sm font-bold flex items-center gap-1.5">
-                  🌐 Public Chat
-                </span>
-              </div>
-            </button>
-
-            {/* TAB PRIVATE (Hijau) */}
-            <button 
-              onClick={() => { handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); }} 
-              className={`relative py-2 h-[42px] sm:h-[46px] rounded-full flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${
-                ui.mode === 'private' 
-                  ? 'flex-[5] bg-emerald-600 text-white shadow-md' 
-                  : 'flex-[1] bg-transparent hover:bg-emerald-100/50'
-              } min-w-[45px]`}
-            >
-              {/* Teks Tab (Hanya Muncul Saat Aktif) */}
-              <div className={`flex items-center whitespace-nowrap transition-all duration-500 ${ui.mode === 'private' ? 'opacity-100 -translate-x-3 sm:-translate-x-4 scale-100 delay-100' : 'opacity-0 -translate-x-8 scale-90 pointer-events-none absolute'}`}>
-                <span className="text-xs sm:text-sm font-bold flex items-center gap-1.5">
-                  🔒 Chat Private
-                </span>
-              </div>
-              {/* Lingkaran Angka Notifikasi */}
-              <div className={`absolute w-6 sm:w-7 h-6 sm:h-7 flex items-center justify-center transition-all duration-500 ${ui.mode === 'private' ? 'right-1.5' : 'right-1/2 translate-x-1/2'}`}>
-                <span className={`${ui.mode === 'private' ? 'bg-white text-emerald-600' : 'bg-emerald-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors duration-500`}>
-                  {getFmt.notif(counts.priv)}
-                </span>
-              </div>
-            </button>
-            
+          {/* Header Tab - Hilangkan garis tengah (border) */}
+          <div className="flex mt-3 bg-white/70 rounded-full p-1 shadow-sm w-full relative">
+            <button onClick={() => { handleInteraction('public'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all ${ui.mode === 'public' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-white/50'}`}><div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.pub)}</span></div><span className="ml-2 sm:ml-4">🌐 Public Chat</span></button>
+            <button onClick={() => { handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all ${ui.mode === 'private' ? 'bg-emerald-600 text-white shadow' : 'bg-transparent text-gray-700 hover:bg-white/50'}`}><span className="mr-2 sm:mr-4">🔒 Chat private</span><div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'private' ? 'bg-white text-emerald-600' : 'bg-emerald-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.priv)}</span></div></button>
           </div>
         </div>
       )}
