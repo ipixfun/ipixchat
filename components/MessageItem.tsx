@@ -38,15 +38,13 @@ export function MessageItem({
   const [isExpanded, setIsExpanded] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // States untuk Menu Admin
-  const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
-
   const shortBrowser = m.user_browser
     ? m.user_browser.split("(")[0].trim() +
       (m.user_browser.includes("(")
         ? ` (${m.user_browser.split("(")[1].split(")")[0]})`
         : "")
     : "Unknown Browser";
+    
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
   const isMsgMine = m.device_id === currentDeviceId || m.username === authUser;
   const isEdited =
@@ -105,16 +103,20 @@ export function MessageItem({
   }
 
   const isPrivateAndNotAdmin = m.is_private && !isMsgAdmin;
+  
+  // MERAH TUA DI KANAN DAN BAWAH UNTUK ADMIN
   const borderThicknessClass = isMsgAdmin
-    ? "border-r-[3px] border-b-[1px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5 border-b-black/5"
+    ? "border-r-[3px] border-b-[3px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5"
     : "border-b-[3px] border-r-[3px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5";
+    
   const borderColorClass = isMsgAdmin
-    ? "border-r-red-600"
+    ? "border-r-red-800 border-b-red-800"
     : isPrivateAndNotAdmin
     ? "border-b-emerald-500 border-r-emerald-500"
     : isMsgMine
     ? "border-b-blue-500 border-r-blue-500"
     : "border-b-gray-400 border-r-gray-400";
+    
   const bgBubbleClass = m.is_private ? "bg-emerald-50/95" : "bg-blue-50/95";
   const needsApproval = m.image_url && m.is_approved === false && !isMsgAdmin;
   const showBlurred = needsApproval && activeTab !== "admin";
@@ -535,25 +537,12 @@ export function MessageItem({
                 </button>
               )}
               {activeTab === "admin" && (
-                <div className="relative">
+                <div className="relative flex items-center">
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      const isOpening = activeMenuId !== m.id;
-                      setActiveMenuId(isOpening ? m.id : null);
-                      if (isOpening) {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        // Tampil di atas teks secara horizontal
-                        let newX = rect.left - 130; 
-                        let newY = rect.top - 36;
-                        
-                        // Proteksi layar mobile
-                        if (newX < 10) newX = 10;
-                        if (newY < 10) newY = rect.bottom + 10; 
-                        
-                        setMenuPos({ x: newX, y: newY });
-                      }
+                      setActiveMenuId(activeMenuId !== m.id ? m.id : null);
                     }}
                     className="text-gray-500 hover:text-gray-800 text-base font-bold px-2 py-1 rounded hover:bg-white/50 transition-colors"
                   >
@@ -562,16 +551,15 @@ export function MessageItem({
                   {activeMenuId === m.id && (
                     <>
                       <div
-                        className="fixed inset-0 z-[99998]"
+                        className="fixed inset-0 z-[90]"
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveMenuId(null);
                         }}
                       />
-                      {/* --- Pop up Di Atas Teks, Horizontal, Minimalis --- */}
+                      {/* --- Pop up Di Atas Titik Tiga, Horizontal, Dinamis, Warna-Warni --- */}
                       <div
-                        className="fixed bg-white border border-gray-200 shadow-md rounded-lg z-[99999] py-1 px-2 flex flex-row items-center animate-fade-in"
-                        style={{ left: `${menuPos.x}px`, top: `${menuPos.y}px` }}
+                        className="absolute right-0 bottom-full mb-2 bg-white/95 backdrop-blur-md shadow-xl border border-gray-200 rounded-full z-[100] p-1.5 flex flex-row items-center gap-1 min-w-max origin-bottom-right"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
@@ -580,43 +568,40 @@ export function MessageItem({
                             editMsg(m.id);
                             setActiveMenuId(null);
                           }}
-                          className="px-2 py-1 text-[10px] font-bold text-gray-700 hover:text-blue-600 transition-colors"
+                          className="px-3 py-1.5 text-[10px] font-black text-white bg-blue-500 hover:bg-blue-600 rounded-full shadow-sm transition-all active:scale-95"
                         >
                           Edit Teks
                         </button>
-                        <div className="w-px h-3 bg-gray-300 mx-1" />
                         <button
                           type="button"
                           onClick={() => {
                             editNama(m.id);
                             setActiveMenuId(null);
                           }}
-                          className="px-2 py-1 text-[10px] font-bold text-gray-700 hover:text-purple-600 transition-colors"
+                          className="px-3 py-1.5 text-[10px] font-black text-white bg-purple-500 hover:bg-purple-600 rounded-full shadow-sm transition-all active:scale-95"
                         >
-                          Edit Nama
+                          Ubah Nama
                         </button>
                         
                         {!isMsgAdmin && (
                           <>
-                            <div className="w-px h-3 bg-gray-300 mx-1" />
                             <button
                               type="button"
                               onClick={() => {
                                 blockUser(m.device_id, m.username);
                                 setActiveMenuId(null);
                               }}
-                              className="px-2 py-1 text-[10px] font-bold text-gray-700 hover:text-red-600 transition-colors"
+                              className="px-3 py-1.5 text-[10px] font-black text-white bg-red-600 hover:bg-red-700 rounded-full shadow-sm transition-all active:scale-95"
                             >
                               Blokir
                             </button>
-                            <div className="w-px h-3 bg-gray-300 mx-1" />
                             <button
                               type="button"
                               onClick={() => {
                                 inviteToPrivate(m.device_id, m.username);
                                 setActiveMenuId(null);
                               }}
-                              className="px-2 py-1 text-[10px] font-bold text-gray-700 hover:text-emerald-600 transition-colors"
+                              className="px-3 py-1.5 text-[10px] font-black text-white bg-emerald-500 hover:bg-emerald-600 rounded-full shadow-sm transition-all active:scale-95"
                             >
                               Private
                             </button>

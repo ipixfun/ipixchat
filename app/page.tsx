@@ -5,7 +5,7 @@ import { supabase } from "./lib/supabaseClient";
 import Login from "../components/Login";
 import Block from "../components/Block";
 import ChatLayout from "../components/ChatLayout";
-import { MessageItem } from "../components/MessageItem"; // Dipanggil terpisah
+import { MessageItem } from "../components/MessageItem"; // Pastikan path ini tepat
 
 export default function Home() {
   const pathname = usePathname();
@@ -118,8 +118,7 @@ export default function Home() {
     }
   }, []);
 
-  // AUTO SCROLL - Ketika panjang pesan bertambah (pesan terkirim/masuk) 
-  // Layar akan otomatis meluncur ke "bottom-anchor"
+  // AUTO SCROLL
   useEffect(() => {
     const timer = setTimeout(() => {
       const el = document.getElementById(`bottom-anchor-${ui.mode}`);
@@ -588,7 +587,6 @@ export default function Home() {
       t.blur();
     }
     
-    // Auto Scroll tambahan saat selesai mengirim agar responsif
     setTimeout(() => {
       const el = document.getElementById(`bottom-anchor-${ui.mode}`);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -659,7 +657,6 @@ export default function Home() {
     return (
       <div className="w-full flex flex-col">
         {messageContent}
-        {/* Anchor Point untuk Auto-Scroll keluar di atas input chat */}
         <div id={`bottom-anchor-${colType}`} className="h-1 shrink-0 mt-2" />
       </div>
     );
