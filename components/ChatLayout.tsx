@@ -55,8 +55,9 @@ export default function ChatLayout({
       `}</style>
 
       <div className="flex w-full h-full relative transition-all duration-500 ease-in-out">
-        <div className={`h-full flex flex-col transition-all duration-500 ease-out relative bg-white ${is2Col?'w-1/2':(isExp&&cMode==='private'?'w-0 opacity-0 pointer-events-none':isExp&&cMode==='public'?'w-full':'w-1/2')}`}
+                <div className={`h-full flex flex-col transition-all duration-500 ease-out relative bg-transparent ${is2Col?'w-1/2':(isExp&&cMode==='private'?'w-0 opacity-0 pointer-events-none':isExp&&cMode==='public'?'w-full':'w-1/2')}`}
           onClick={()=>hInteract('public')} onTouchStart={()=>hInteract('public')} onWheel={()=>hInteract('public')}>
+
           <TrianglesTop mode="public" />
           <WavesBottom mode="public" />
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
@@ -66,8 +67,9 @@ export default function ChatLayout({
           </div>
         </div>
 
-        <div className={`h-full flex flex-col transition-all duration-500 ease-out relative bg-white ${is2Col?'w-1/2':(isExp&&cMode==='public'?'w-0 opacity-0 pointer-events-none':isExp&&cMode==='private'?'w-full':'w-1/2')}`}
+                <div className={`h-full flex flex-col transition-all duration-500 ease-out relative bg-transparent ${is2Col?'w-1/2':(isExp&&cMode==='public'?'w-0 opacity-0 pointer-events-none':isExp&&cMode==='private'?'w-full':'w-1/2')}`}
           onClick={()=>hInteract('private')} onTouchStart={()=>hInteract('private')} onWheel={()=>hInteract('private')}>
+
           <TrianglesTop mode="private" />
           <WavesBottom mode="private" />
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
