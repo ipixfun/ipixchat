@@ -9,33 +9,8 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
   const [isExpanded, setIsExpanded] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // States untuk Draggable Menu Admin
-  const [menuPos, setMenuPos] = useState({ x: 30, y: 150 });
-  const [isDraggingMenu, setIsDraggingMenu] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-
-  // Inisialisasi posisi awal menu admin di tengah saat dibuka agar mudah diraih
-  useEffect(() => {
-    if (activeMenuId === m.id && typeof window !== "undefined") {
-      setMenuPos({ x: window.innerWidth / 2 - 60, y: window.innerHeight / 2 - 100 });
-    }
-  }, [activeMenuId, m.id]);
-
-  const handleMenuDragStart = (e: any) => {
-    const clientX = e.type.includes("mouse") ? e.clientX : e.touches[0].clientX;
-    const clientY = e.type.includes("mouse") ? e.clientY : e.touches[0].clientY;
-    setIsDraggingMenu(true);
-    setDragOffset({ x: clientX - menuPos.x, y: clientY - menuPos.y });
-  };
-
-  const handleMenuDragMove = (e: any) => {
-    if (!isDraggingMenu) return;
-    const clientX = e.type.includes("mouse") ? e.clientX : e.touches[0].clientX;
-    const clientY = e.type.includes("mouse") ? e.clientY : e.touches[0].clientY;
-    setMenuPos({ x: clientX - dragOffset.x, y: clientY - dragOffset.y });
-  };
-
-  const handleMenuDragEnd = () => setIsDraggingMenu(false);
+  // States untuk Menu Admin
+  const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
 
   const shortBrowser = m.user_browser ? m.user_browser.split("(")[0].trim() + (m.user_browser.includes("(") ? ` (${m.user_browser.split("(")[1].split(")")[0]})` : "") : "Unknown Browser";
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
@@ -47,6 +22,11 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
     return (
       <div id={`msg-${m.id}`} className="relative w-full flex justify-start mb-2 z-10 px-2 group">
         <div className="bg-white/10 backdrop-blur-md border border-white/20 border-dashed rounded-xl p-2.5 flex flex-col w-full max-w-[240px] shadow-sm relative">
+          {activeTab === "admin" && (
+            <div className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border border-white shadow-sm z-20 cursor-help" title="Dihapus (Dilihat oleh Admin)">
+              X
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <span className="bg-gray-500/20 text-gray-400 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">🚫 Dihapus</span>
             <span className={`text-[10px] font-bold ${isDeletedByAdmin ? "text-red-600" : "text-blue-600"}`}>oleh {isDeletedByAdmin ? "Admin" : m.username}</span>
@@ -78,28 +58,47 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
   const needsApproval = m.image_url && m.is_approved === false && !isMsgAdmin;
   const showBlurred = needsApproval && activeTab !== "admin";
 
+  const renderTextWithTags = (t: string) => {
+    const parts = t.split(/(@\w+)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith("@")) {
+        const uname = part.substring(1).toLowerCase();
+        let color = "text-green-600";
+        if (uname === "admin") color = "text-red-600";
+        else if (authUser && uname === authUser.split("●")[0].toLowerCase()) color = "text-blue-600";
+        return <span key={i} className={`font-bold ${color} cursor-pointer hover:underline`} onClick={(e) => {e.stopPropagation(); handleTag(part.substring(1));}}>{part}</span>;
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
   const renderContent = (text: string, isMin: boolean) => {
     if (!text) return null;
     const match = text.match(/^@(\w+)\s\("(.*?)"\)\s?(.*)$/);
     const textSize = isMin ? "text-[11px] leading-tight" : "text-sm leading-relaxed";
+    
     if (match) {
       const [_, user, quotedText, replyText] = match;
+      let tagColor = "text-green-600";
+      if (user.toLowerCase() === "admin") tagColor = "text-red-600";
+      else if (authUser && user.toLowerCase() === authUser.split("●")[0].toLowerCase()) tagColor = "text-blue-600";
+
       return (
         <>
           <div
-            className={`text-[9px] text-gray-500 italic bg-white/70 ${isMin ? "p-1.5" : "p-2"} rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 ${colType === "private" ? "border-emerald-500" : "border-blue-500"}`}
+            className={`text-[9px] text-gray-500 italic bg-white/70 ${isMin ? "p-1.5" : "p-2"} rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 transition-colors ${colType === "private" ? "border-emerald-500" : "border-blue-500"}`}
             onClick={(e) => {
               e.stopPropagation();
               scrollToMessage(quotedText);
             }}
           >
-            <span className="font-bold">@{user}</span>: "{applyCensor(quotedText)}"
+            <span className={`font-bold ${tagColor}`}>@{user}</span>: "{applyCensor(quotedText)}"
           </div>
-          <div className={`${textSize} text-gray-800 break-words`}>{applyCensor(replyText)}</div>
+          <div className={`${textSize} text-gray-800 break-words`}>{renderTextWithTags(applyCensor(replyText))}</div>
         </>
       );
     }
-    return <div className={`${textSize} text-gray-800 break-words`}>{applyCensor(text)}</div>;
+    return <div className={`${textSize} text-gray-800 break-words`}>{renderTextWithTags(applyCensor(text))}</div>;
   };
 
   const isOtherOnline = userStatus && userStatus[m.username] && userStatus[m.username].online;
@@ -125,7 +124,7 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
       )}
       <div
         id={`msg-bubble-${m.id}`}
-        className={`relative z-10 ${bgBubbleClass} ${isMinimized ? "p-1.5 rounded-md" : "p-3 rounded-xl"} ${borderThicknessClass} shadow-sm w-full select-none ${borderColorClass}`}
+        className={`relative z-10 ${bgBubbleClass} transition-colors duration-300 ${isMinimized ? "p-1.5 rounded-md" : "p-3 rounded-xl"} ${borderThicknessClass} shadow-sm w-full select-none ${borderColorClass}`}
         onMouseDown={(e) => {
           if (e.button !== 0) return;
           longPressTimer.current = setTimeout(() => {
@@ -309,7 +308,19 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setActiveMenuId(activeMenuId === m.id ? null : m.id);
+                      const isOpening = activeMenuId !== m.id;
+                      setActiveMenuId(isOpening ? m.id : null);
+                      if (isOpening) {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        let newX = rect.left - 130; // Muncul di kiri tombol
+                        let newY = rect.top;
+                        
+                        // Batasan layar supaya tidak off-screen di mobile
+                        if (newX < 10) newX = 10;
+                        if (newY > window.innerHeight - 200) newY = window.innerHeight - 200;
+                        
+                        setMenuPos({ x: newX, y: newY });
+                      }
                     }}
                     className="text-gray-500 hover:text-gray-800 text-base font-bold px-2 py-1 rounded hover:bg-white/50 transition-colors"
                   >
@@ -318,35 +329,24 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                   {activeMenuId === m.id && (
                     <>
                       <div
-                        className="fixed inset-0 z-[110]"
+                        className="fixed inset-0 z-[99998]"
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveMenuId(null);
                         }}
-                        onMouseMove={handleMenuDragMove}
-                        onMouseUp={handleMenuDragEnd}
-                        onTouchMove={handleMenuDragMove}
-                        onTouchEnd={handleMenuDragEnd}
                       />
                       <div
-                        className="fixed bg-white border border-gray-200 shadow-[0_10px_25px_rgba(0,0,0,0.2)] rounded-xl z-[120] py-1 flex flex-col gap-0 animate-fade-in w-36 overflow-hidden"
-                        style={{ left: `${menuPos.x}px`, top: `${menuPos.y}px`, touchAction: "none" }}
+                        className="fixed bg-white border border-gray-200 shadow-[0_10px_25px_rgba(0,0,0,0.3)] rounded-xl z-[99999] py-1 flex flex-col gap-0 animate-fade-in w-32 overflow-hidden"
+                        style={{ left: `${menuPos.x}px`, top: `${menuPos.y}px` }}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <div
-                          className="w-full h-5 bg-gray-200 cursor-move flex items-center justify-center hover:bg-gray-300 transition-colors"
-                          onMouseDown={handleMenuDragStart}
-                          onTouchStart={handleMenuDragStart}
-                        >
-                          <div className="w-8 h-1 bg-gray-400 rounded-full"></div>
-                        </div>
                         <button
                           type="button"
                           onClick={() => {
                             editMsg(m.id);
                             setActiveMenuId(null);
                           }}
-                          className="px-3 py-1.5 text-left text-[10px] font-bold text-blue-600 hover:bg-gray-50 active:bg-gray-100"
+                          className="px-3 py-1.5 text-left text-[9px] font-bold text-blue-600 hover:bg-gray-50 active:bg-gray-100"
                         >
                           ✏️ Edit Teks
                         </button>
@@ -356,7 +356,7 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                             editNama(m.id);
                             setActiveMenuId(null);
                           }}
-                          className="px-3 py-1.5 text-left text-[10px] font-bold text-purple-600 hover:bg-gray-50 active:bg-gray-100"
+                          className="px-3 py-1.5 text-left text-[9px] font-bold text-purple-600 hover:bg-gray-50 active:bg-gray-100"
                         >
                           👤 Edit Nama
                         </button>
@@ -366,9 +366,9 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                             deleteMsg(m, false);
                             setActiveMenuId(null);
                           }}
-                          className="px-3 py-1.5 text-left text-[10px] font-bold text-red-600 hover:bg-gray-50 active:bg-gray-100"
+                          className="px-3 py-1.5 text-left text-[9px] font-bold text-red-600 hover:bg-gray-50 active:bg-gray-100"
                         >
-                          🗑️ Ke Tong Sampah
+                          🗑️ Ke Sampah
                         </button>
                         <button
                           type="button"
@@ -376,7 +376,7 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                             copyToClipboard(m.pesan, "Pesan");
                             setActiveMenuId(null);
                           }}
-                          className="px-3 py-1.5 text-left text-[10px] font-bold text-gray-700 hover:bg-gray-50 active:bg-gray-100"
+                          className="px-3 py-1.5 text-left text-[9px] font-bold text-gray-700 hover:bg-gray-50 active:bg-gray-100"
                         >
                           📋 Salin Teks
                         </button>
@@ -389,9 +389,9 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                                 blockUser(m.device_id, m.username);
                                 setActiveMenuId(null);
                               }}
-                              className="px-3 py-1.5 text-left text-[10px] font-bold text-orange-600 hover:bg-gray-50 active:bg-gray-100"
+                              className="px-3 py-1.5 text-left text-[9px] font-bold text-orange-600 hover:bg-gray-50 active:bg-gray-100"
                             >
-                              🚫 Blokir User
+                              🚫 Blokir
                             </button>
                             <button
                               type="button"
@@ -399,7 +399,7 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                                 inviteToPrivate(m.device_id, m.username);
                                 setActiveMenuId(null);
                               }}
-                              className="px-3 py-1.5 text-left text-[10px] font-bold text-emerald-600 hover:bg-gray-50 active:bg-gray-100"
+                              className="px-3 py-1.5 text-left text-[9px] font-bold text-emerald-600 hover:bg-gray-50 active:bg-gray-100"
                             >
                               🔒 Chat Private
                             </button>

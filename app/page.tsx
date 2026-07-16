@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { supabase } from "./lib/supabaseClient"; // Sesuaikan path jika perlu
+import { supabase } from "./lib/supabaseClient"; 
 import Login from "../components/Login";
 import Block from "../components/Block";
 import ChatLayout from "../components/ChatLayout";
@@ -177,11 +177,15 @@ export default function Home() {
     navigator.clipboard.writeText(t);
     alert(`${l} disalin!`);
   };
+  
   const scrollMsg = (id: number) => {
     const el = document.getElementById(`msg-bubble-${id}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       const bc = "anim-bg-blink-cream";
+      // Reset animasi kalau sudah ada
+      el.classList.remove(bc);
+      void el.offsetWidth; // trigger reflow
       el.classList.add(bc);
       setTimeout(() => el.classList.remove(bc), 1500);
     }
@@ -334,7 +338,6 @@ export default function Home() {
 
       if (!confirm(confirmMsg)) return;
 
-      // OPTIMISTIC UPDATE: Ubah di UI langsung tanpa nunggu loading database
       if (!isAlreadyDeleted) {
         updateMsgLocal(m.id, "___DELETED___", m.is_edited, m.edited_by, null, auth.user === "Admin●ipix.my.id");
       }
@@ -342,7 +345,6 @@ export default function Home() {
       if (auth.user !== "Admin●ipix.my.id") {
         if (isAlreadyDeleted) return;
 
-        // Cek Pemilik Pesan
         if (m.device_id !== currentDeviceId) {
           alert("Anda hanya diizinkan menghapus pesan milik Anda sendiri!");
           fetchData(); 
@@ -364,7 +366,6 @@ export default function Home() {
           return;
         }
 
-        // Soft delete user
         const { error } = await supabase
           .from("messages")
           .update({
@@ -382,14 +383,12 @@ export default function Home() {
 
         localStorage.setItem("del_count", (count + 1).toString());
       } else {
-        // Logika Admin
         if (isAlreadyDeleted) {
-          await supabase.from("messages").delete().eq("id", m.id); // Hard Delete
+          await supabase.from("messages").delete().eq("id", m.id); 
         } else {
           const { error } = await supabase
             .from("messages")
             .update({
-              // Soft delete Admin
               pesan: "___DELETED___",
               image_url: null,
               deleted_by_admin: true,
@@ -534,7 +533,12 @@ export default function Home() {
     }
     setInput((p) => ({ ...p, sending: true }));
 
-    let txt = interact.replyTo ? `@${interact.replyTo.username.split("●")[0]} ("${interact.replyTo.pesan.substring(0, 30)}...") ${input.text.trim()}` : input.text.trim();
+    let txt = input.text.trim();
+    if (interact.replyTo) {
+      const q = interact.replyTo.pesan;
+      const quote = q.length > 30 ? q.substring(0, 30) + "..." : q;
+      txt = `@${interact.replyTo.username.split("●")[0]} ("${quote}") ${input.text.trim()}`;
+    }
 
     if (auth.user !== "Admin●ipix.my.id") {
       const fiveMinsAgo = new Date(Date.now() - 300000).toISOString();
@@ -629,7 +633,8 @@ export default function Home() {
             approveImage={dbActions.approveImg}
             applyCensor={applyCensor}
             scrollToMessage={(t: string) => {
-              const x = msgs.all.find((x) => x.pesan.includes(t));
+              const cleanText = t.endsWith("...") ? t.slice(0, -3) : t;
+              const x = msgs.all.find((m) => m.pesan.includes(cleanText));
               if (x) scrollMsg(x.id);
             }}
             formatMessageTime={getFmt.time}
