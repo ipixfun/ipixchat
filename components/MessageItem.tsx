@@ -13,14 +13,25 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
   const isMsgMine = m.device_id === currentDeviceId || m.username === authUser;
   const isEdited = m.is_edited || (typeof window !== 'undefined' ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || '0') > 0 : false);
 
-  if (m.pesan === '___DELETED___') {
-    const deleterName = m.deleted_by_admin ? 'Admin' : m.username;
+    if (m.pesan === '___DELETED___') {
+    const isDeletedByAdmin = m.deleted_by_admin === true;
     return (
-      <div id={`msg-${m.id}`} className="relative w-full flex justify-start mb-2 z-10" onTouchStart={(e) => { if (activeTab !== 'admin') return; setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); setSwipingId(m.id); setSwipeDelta(0); setIsHorizontalSwipe(false); }} onTouchMove={(e) => { if (activeTab !== 'admin' || swipingId !== m.id) return; const deltaX = e.touches[0].clientX - touchStartX; const deltaY = e.touches[0].clientY - touchInitialY; if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) setIsHorizontalSwipe(true); if (isHorizontalSwipe) { let allowedDelta = deltaX; if (allowedDelta > 0 && activeTab !== 'admin') allowedDelta = 0; setSwipeDelta(Math.max(-75, Math.min(75, allowedDelta))); } }} onTouchEnd={() => { if (activeTab !== 'admin') return; if (swipingId === m.id && isHorizontalSwipe) { if (swipeDelta > 50 && activeTab === 'admin') { deleteMsg(m.id); } } setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false); }} style={{ transform: swipingId === m.id && activeTab === 'admin' ? `translateX(${swipeDelta}px)` : 'translateX(0px)', transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
-        <div className="bg-gray-100/80 border border-gray-200 border-dashed rounded-lg p-2.5 flex flex-col w-full max-w-[200px] shadow-sm ml-1"><div className="flex items-center gap-1.5"><span className="bg-gray-300 text-gray-600 text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm">🚫 Dihapus</span><span className="text-[10px] text-gray-500 font-medium">oleh {deleterName}</span></div><div className="text-[9px] text-gray-400 mt-1.5 flex items-center gap-1 font-mono bg-white/50 w-max px-1 rounded">📅 {formatMessageTime(m.created_at)}</div></div>
+      <div id={`msg-${m.id}`} className="relative w-full flex justify-start mb-2 z-10">
+        <div className="bg-white/10 backdrop-blur-sm border border-gray-200/20 border-dashed rounded-lg p-2.5 flex flex-col w-full max-w-[220px] shadow-sm ml-1">
+          <div className="flex items-center gap-1.5">
+            <span className="bg-gray-300/50 text-gray-600 text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm">🚫 Pesan Dihapus</span>
+            <span className={`text-[10px] font-bold ${isDeletedByAdmin ? 'text-red-500' : 'text-blue-500'}`}>
+              oleh {isDeletedByAdmin ? 'Admin' : m.username}
+            </span>
+          </div>
+          <div className="text-[9px] text-gray-400 mt-1.5 flex items-center gap-1 font-mono bg-white/30 w-max px-1 rounded">
+            📅 {formatMessageTime(m.created_at)}
+          </div>
+        </div>
       </div>
     );
   }
+
 
 
   const isPrivateAndNotAdmin = m.is_private && !isMsgAdmin;
