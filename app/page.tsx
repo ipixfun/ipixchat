@@ -195,7 +195,24 @@ export default function Home() {
     editLmt: async (m: any) => { const c = parseInt(localStorage.getItem(`edit_${m.id}`) || '0'); if(c>=2) return alert("Batas 2x"); const nt = prompt("Edit:", m.pesan); if(nt && nt.trim() !== m.pesan) { await supabase.from('messages').update({ pesan: nt.trim(), is_edited: true }).eq('id', m.id); localStorage.setItem(`edit_${m.id}`, (c+1).toString()); localStorage.setItem(`edit_count_${m.id}`, '1'); updateMsgLocal(m.id, nt.trim(), true); } },
     editMsg: async (id: number) => { const m = msgs.all.find(x => x.id === id); if (!m) return; const nt = prompt("Edit:", m.pesan); if(nt && nt !== m.pesan) { await supabase.from('messages').update({ pesan: nt, is_edited: true }).eq('id', id); localStorage.setItem(`edit_count_${id}`, '1'); updateMsgLocal(id, nt, true); } },
     editNm: async (id: number) => { const m = msgs.all.find(m => m.id === id); if(!m) return; const nn = prompt("Nama:", m.username); if(nn && isCensored(nn)) return alert("Terlarang!"); if(nn) { await Promise.all([supabase.from('profiles').update({ username: nn }).eq('device_id', m.device_id), supabase.from('messages').update({ username: nn }).eq('device_id', m.device_id)]); fetchData(); } },
-    delMsg: async (id: number) => { if(!confirm("Apakah Anda yakin ingin menghapus pesan ini?")) return; if (ui.tab === 'admin') { await supabase.from('messages').delete().eq('id', id); } else { await supabase.from('messages').update({ pesan: '___DELETED___', image_url: null }).eq('id', id); } fetchData(); },
+        delMsg: async (id: number) => {
+      if (!confirm("Apakah Anda yakin ingin menghapus pesan ini?")) return;
+      if (ui.tab === 'admin') {
+        await supabase.from('messages').update({
+          pesan: '___DELETED___',
+          image_url: null,
+          deleted_by_admin: true
+        }).eq('id', id);
+      } else {
+        await supabase.from('messages').update({
+          pesan: '___DELETED___',
+          image_url: null,
+          deleted_by_admin: false
+        }).eq('id', id);
+      }
+      fetchData();
+    },
+
     blkUser: async (id: string, nm: string) => { if(confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: nm }]); fetchData(); } },
     addWrd: async () => { if(censor.newWord.trim()) { await supabase.from('blocked_words').insert([{ word: censor.newWord.trim().toLowerCase() }]); setCensor(p => ({ ...p, newWord: '' })); fetchData(); } },
     rmWrd: async (w: string) => { await supabase.from('blocked_words').delete().eq('word', w); fetchData(); },
