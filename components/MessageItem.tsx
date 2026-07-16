@@ -13,10 +13,34 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
   const isMsgMine = m.device_id === currentDeviceId || m.username === authUser;
   const isEdited = m.is_edited || (typeof window !== 'undefined' ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || '0') > 0 : false);
 
+  // LOGIKA PESAN DIHAPUS
   if (m.pesan === '___DELETED___') {
+    const isDeletedByAdmin = m.deleted_by_admin === true;
     return (
-      <div id={`msg-${m.id}`} className="relative w-full flex justify-start mb-2 z-10" onTouchStart={(e) => { if (activeTab !== 'admin') return; setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); setSwipingId(m.id); setSwipeDelta(0); setIsHorizontalSwipe(false); }} onTouchMove={(e) => { if (activeTab !== 'admin' || swipingId !== m.id) return; const deltaX = e.touches[0].clientX - touchStartX; const deltaY = e.touches[0].clientY - touchInitialY; if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) setIsHorizontalSwipe(true); if (isHorizontalSwipe) { let allowedDelta = deltaX; if (allowedDelta > 0 && activeTab !== 'admin') allowedDelta = 0; setSwipeDelta(Math.max(-75, Math.min(75, allowedDelta))); } }} onTouchEnd={() => { if (activeTab !== 'admin') return; if (swipingId === m.id && isHorizontalSwipe) { if (swipeDelta > 50 && activeTab === 'admin') { deleteMsg(m.id); } } setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false); }} style={{ transform: swipingId === m.id && activeTab === 'admin' ? `translateX(${swipeDelta}px)` : 'translateX(0px)', transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
-        <div className="bg-gray-100/80 border border-gray-200 border-dashed rounded-lg p-2.5 flex flex-col w-full max-w-[200px] shadow-sm ml-1"><div className="flex items-center gap-1.5"><span className="bg-gray-300 text-gray-600 text-[9px] px-1.5 py-0.5 rounded font-bold shadow-sm">🚫 Dihapus</span><span className="text-[10px] text-gray-500 font-medium">oleh user</span></div><div className="text-[9px] text-gray-400 mt-1.5 flex items-center gap-1 font-mono bg-white/50 w-max px-1 rounded">📅 {formatMessageTime(m.created_at)}</div></div>
+      <div id={`msg-${m.id}`} className="relative w-full flex justify-start mb-2 z-10 px-2 group">
+        <div className="bg-white/10 backdrop-blur-md border border-white/20 border-dashed rounded-xl p-2.5 flex flex-col w-full max-w-[240px] shadow-sm relative">
+          <div className="flex items-center gap-2">
+            <span className="bg-gray-500/20 text-gray-400 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">🚫 Dihapus</span>
+            {/* Warna nama sesuai role: Merah untuk Admin, Biru untuk User */}
+            <span className={`text-[10px] font-bold ${isDeletedByAdmin ? 'text-red-600' : 'text-blue-600'}`}>
+              oleh {isDeletedByAdmin ? 'Admin' : m.username}
+            </span>
+          </div>
+          <div className="text-[8px] text-gray-500 mt-1 flex items-center gap-1 font-mono">
+            <span>{formatMessageTime(m.created_at)}</span>
+          </div>
+          
+          {/* Fitur Khusus Admin: Hapus Permanen (Hard Delete) untuk pesan yang sudah terhapus */}
+          {activeTab === 'admin' && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); deleteMsg(m, false); }} 
+              className="absolute right-2 top-2 text-[10px] bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity font-bold"
+              title="Hapus Permanen dari Database"
+            >
+              🗑️ Hapus
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -44,13 +68,29 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
           {swipeDelta > 0 ? <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> : <div className="flex items-center gap-1 text-white font-bold text-sm opacity-90"><span>Balas</span><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg></div>}
         </div>
       )}
-      <div id={`msg-bubble-${m.id}`} className={`relative z-10 ${bgBubbleClass} ${isMinimized ? 'p-1.5 rounded-md' : 'p-3 rounded-xl'} ${borderThicknessClass} shadow-sm w-full select-none ${borderColorClass}`} onMouseDown={(e) => { if (e.button !== 0) return; longPressTimer.current = setTimeout(() => { handleLongPress(m); if (navigator.vibrate) navigator.vibrate(50); }, 350); }} onMouseMove={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }} onMouseUp={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }} onTouchStart={(e) => { setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); setSwipingId(m.id); setSwipeDelta(0); setIsHorizontalSwipe(false); longPressTimer.current = setTimeout(() => { setSwipingId(null); handleLongPress(m); if (navigator.vibrate) navigator.vibrate(50); }, 350); }} onTouchMove={(e) => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } if (swipingId !== m.id) return; const deltaX = e.touches[0].clientX - touchStartX; const deltaY = e.touches[0].clientY - touchInitialY; if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) setIsHorizontalSwipe(true); if (isHorizontalSwipe) { let allowedDelta = deltaX; if (allowedDelta > 0 && !(activeTab === 'admin' || isMsgMine)) allowedDelta = 0; setSwipeDelta(Math.max(-75, Math.min(75, allowedDelta))); } }} onTouchEnd={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } if (swipingId === m.id && isHorizontalSwipe) { if (swipeDelta > 50) { const isUnder24h = Date.now() - new Date(m.created_at).getTime() < 24 * 60 * 60 * 1000; if (activeTab === 'admin' || (isMsgMine && isUnder24h)) { deleteMsg(m.id); } else if (isMsgMine) alert("Pesan > 24 jam hanya dapat dihapus admin."); } else if (swipeDelta < -50) handleReply(m); } setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false); }} style={{ transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)', transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
+      <div id={`msg-bubble-${m.id}`} className={`relative z-10 ${bgBubbleClass} ${isMinimized ? 'p-1.5 rounded-md' : 'p-3 rounded-xl'} ${borderThicknessClass} shadow-sm w-full select-none ${borderColorClass}`} onMouseDown={(e) => { if (e.button !== 0) return; longPressTimer.current = setTimeout(() => { handleLongPress(m); if (navigator.vibrate) navigator.vibrate(50); }, 350); }} onMouseMove={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }} onMouseUp={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }} onTouchStart={(e) => { setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY); setSwipingId(m.id); setSwipeDelta(0); setIsHorizontalSwipe(false); longPressTimer.current = setTimeout(() => { setSwipingId(null); handleLongPress(m); if (navigator.vibrate) navigator.vibrate(50); }, 350); }} onTouchMove={(e) => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } if (swipingId !== m.id) return; const deltaX = e.touches[0].clientX - touchStartX; const deltaY = e.touches[0].clientY - touchInitialY; if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) setIsHorizontalSwipe(true); if (isHorizontalSwipe) { let allowedDelta = deltaX; if (allowedDelta > 0 && !(activeTab === 'admin' || isMsgMine)) allowedDelta = 0; setSwipeDelta(Math.max(-75, Math.min(75, allowedDelta))); } }} onTouchEnd={() => {
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+        if (swipingId === m.id && isHorizontalSwipe) {
+          if (swipeDelta > 60) {
+            const isUnder24h = Date.now() - new Date(m.created_at).getTime() < 24 * 60 * 60 * 1000;
+            if (activeTab === 'admin' || (isMsgMine && isUnder24h)) {
+              deleteMsg(m, true); // Kirim object pesan m secara utuh
+            } else if (isMsgMine) alert("Pesan > 24 jam hanya dapat dihapus admin.");
+          } else if (swipeDelta < -60) handleReply(m);
+        }
+        setSwipingId(null);
+        setSwipeDelta(0);
+        setIsHorizontalSwipe(false);
+      }}
+      style={{ transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)', transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
         <div className={`flex justify-between items-start ${isMinimized ? 'mb-0.5' : 'mb-1'}`}>
           <div className="flex items-center gap-1.5 flex-wrap"><b onClick={(e) => { e.stopPropagation(); handleTag(m.username); }} className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMsgAdmin ? 'bg-red-600' : isMsgMine ? 'bg-blue-600' : 'bg-gray-700'} ${isMinimized ? 'text-[8px]' : 'text-[10px]'}`}>{m.username}</b>{m.is_private && !isMinimized && <span className={`text-[10px] ${isMsgAdmin ? 'text-red-500' : 'text-emerald-600'}`}>🔒 Private</span>}</div>
           <div className="text-right shrink-0">{isMsgAdmin ? <span className={`px-1.5 py-0.5 rounded bg-white/60 text-[8px] ${isAdminOnline ? 'text-green-600 font-bold' : 'text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span> : (userStatus[m.username] && <span className={`px-1.5 py-0.5 rounded bg-white/60 text-[8px] ${userStatus[m.username].online ? 'text-green-600 font-bold' : 'text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>)}</div>
         </div>
         
-        {/* Layout Baru: Teks dan Foto Berdampingan (Side by Side) di Dalam Obrolan */}
         <div className="flex items-start gap-3 mt-1.5 mb-1">
           {m.image_url && (
             <div className="relative cursor-zoom-in group shrink-0 w-max">
@@ -81,7 +121,10 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                       <div className="absolute right-0 bottom-full mb-2 w-48 bg-white border border-gray-200 shadow-2xl rounded-xl z-30 py-2 flex flex-col gap-0.5 animate-fade-in" onClick={(e)=>e.stopPropagation()}>
                         <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-blue-600 hover:bg-gray-50">✏️ Edit Teks</button>
                         <button type="button" onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-purple-600 hover:bg-gray-50">👤 Edit Nama</button>
-                        <button type="button" onClick={() => { deleteMsg(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-gray-50">🗑️ Hapus Pesan</button>
+                        
+                        {/* Kirim object m ke fungsi hapus pesan */}
+                        <button type="button" onClick={() => { deleteMsg(m, false); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-gray-50">🗑️ Hapus Pesan</button>
+
                         <button type="button" onClick={() => { copyToClipboard(m.pesan, 'Pesan'); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-gray-700 hover:bg-gray-50">📋 Salin Teks</button>
                         {!isMsgAdmin && (
                           <>

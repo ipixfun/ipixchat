@@ -5,12 +5,12 @@ import { supabase } from './lib/supabaseClient'; // Sesuaikan path jika perlu
 import Login from '../components/Login';
 import Block from '../components/Block';
 import ChatLayout from '../components/ChatLayout';
-import { MessageItem } from '../components/MessageItem'; // Import dipisah
+import { MessageItem } from '../components/MessageItem'; 
 
 export default function Home() {
   const pathname = usePathname(); 
   const [mounted, setMounted] = useState(false);
-    const [msgs, setMsgs] = useState({
+  const [msgs, setMsgs] = useState({
     all: [] as any[],
     pub: [] as any[],
     priv: [] as any[]
@@ -71,7 +71,6 @@ export default function Home() {
   const CLOUDINARY_CLOUD_NAME = 'bjamo8ld'; 
   const CLOUDINARY_UPLOAD_PRESET = 'ipixchat';
 
-    // Helper Formatter
   const getFmt = useMemo(() => ({
     notif: (n: number) => n >= 1000 ? (n / 1000).toFixed(1).replace('.0', '') + 'k' : n.toString(),
     time: (d: string) => new Date(d).toLocaleDateString('id-ID', {
@@ -119,8 +118,6 @@ export default function Home() {
     return () => clearInterval(i);
   }, [pill.pause]);
 
-
-  // Fitur Online/Offline Dinamis (update otomatis setiap 15 detik)
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
@@ -169,7 +166,6 @@ export default function Home() {
       const vPriv = prD?.filter(m => !bD?.map(b => b.device_id).includes(m.device_id)) || [];
       setMsgs({ all: [...vPub, ...vPriv], pub: vPub, priv: vPriv });
       
-      // Update tracking terakhir online
       const lAdmin = [...vPub, ...vPriv].filter(m => m.username === 'Admin●ipix.my.id').pop(); 
       if (lAdmin) {
         const adminTime = new Date(lAdmin.created_at).getTime();
@@ -195,7 +191,56 @@ export default function Home() {
     editLmt: async (m: any) => { const c = parseInt(localStorage.getItem(`edit_${m.id}`) || '0'); if(c>=2) return alert("Batas 2x"); const nt = prompt("Edit:", m.pesan); if(nt && nt.trim() !== m.pesan) { await supabase.from('messages').update({ pesan: nt.trim(), is_edited: true }).eq('id', m.id); localStorage.setItem(`edit_${m.id}`, (c+1).toString()); localStorage.setItem(`edit_count_${m.id}`, '1'); updateMsgLocal(m.id, nt.trim(), true); } },
     editMsg: async (id: number) => { const m = msgs.all.find(x => x.id === id); if (!m) return; const nt = prompt("Edit:", m.pesan); if(nt && nt !== m.pesan) { await supabase.from('messages').update({ pesan: nt, is_edited: true }).eq('id', id); localStorage.setItem(`edit_count_${id}`, '1'); updateMsgLocal(id, nt, true); } },
     editNm: async (id: number) => { const m = msgs.all.find(m => m.id === id); if(!m) return; const nn = prompt("Nama:", m.username); if(nn && isCensored(nn)) return alert("Terlarang!"); if(nn) { await Promise.all([supabase.from('profiles').update({ username: nn }).eq('device_id', m.device_id), supabase.from('messages').update({ username: nn }).eq('device_id', m.device_id)]); fetchData(); } },
-    delMsg: async (id: number) => { if(!confirm("Apakah Anda yakin ingin menghapus pesan ini?")) return; if (ui.tab === 'admin') { await supabase.from('messages').delete().eq('id', id); } else { await supabase.from('messages').update({ pesan: '___DELETED___', image_url: null }).eq('id', id); } fetchData(); },
+    
+    // LOGIKA PERBAIKAN HAPUS PESAN
+    delMsg: async (m: any, isSwipe = false) => {
+      const isAlreadyDeleted = m.pesan === '___DELETED___';
+
+      if (!isSwipe && !confirm(isAlreadyDeleted ? "Hapus permanen pesan ini dari database?" : "Apakah Anda yakin ingin menghapus pesan ini?")) return;
+
+      if (auth.user !== 'Admin●ipix.my.id') {
+        // User tidak boleh menghapus yang sudah terhapus (hard delete)
+        if (isAlreadyDeleted) return;
+
+        const lastReset = localStorage.getItem('del_reset_date');
+        const today = new Date().toLocaleDateString();
+        let count = parseInt(localStorage.getItem('del_count') || '0');
+
+        if (lastReset !== today) {
+          count = 0;
+          localStorage.setItem('del_reset_date', today);
+        }
+
+        // Limit user 10 chat per hari
+        if (count >= 10) {
+          alert("Batas hapus pesan maksimal 10x per hari!");
+          return;
+        }
+
+        await supabase.from('messages').update({
+          pesan: '___DELETED___',
+          image_url: null,
+          deleted_by_admin: false
+        }).eq('id', m.id);
+
+        localStorage.setItem('del_count', (count + 1).toString());
+      } else {
+        // Logika Admin
+        if (isAlreadyDeleted) {
+          // Hard Delete jika sebelumnya sudah soft delete (___DELETED___)
+          await supabase.from('messages').delete().eq('id', m.id);
+        } else {
+          // Soft Delete & Tandai admin
+          await supabase.from('messages').update({
+            pesan: '___DELETED___',
+            image_url: null,
+            deleted_by_admin: true
+          }).eq('id', m.id);
+        }
+      }
+      fetchData();
+    },
+
     blkUser: async (id: string, nm: string) => { if(confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: nm }]); fetchData(); } },
     addWrd: async () => { if(censor.newWord.trim()) { await supabase.from('blocked_words').insert([{ word: censor.newWord.trim().toLowerCase() }]); setCensor(p => ({ ...p, newWord: '' })); fetchData(); } },
     rmWrd: async (w: string) => { await supabase.from('blocked_words').delete().eq('word', w); fetchData(); },
@@ -211,7 +256,6 @@ export default function Home() {
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return; if (file.size > 5 * 1024 * 1024) { alert("Ukuran gambar maksimal 5MB!"); return; }
-    // Upload image validation
     if (auth.user !== 'Admin●ipix.my.id') { const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('device_id', currentDeviceId || 'guest').not('image_url', 'is', null).gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()); if (count && count >= 2) { alert("Batas maksimal upload gambar adalah 2x dalam 24 jam."); return; } }
     setInput(p => ({ ...p, uploadingImage: true })); const formData = new FormData(); formData.append('file', file); formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     try { const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: formData }); const data = await res.json(); if (data.secure_url) setInput(p => ({ ...p, image: data.secure_url, uploadingImage: false })); else throw new Error('Upload gagal'); } catch (err) { alert("Gagal mengunggah gambar. Pastikan konfigurasi Cloudinary benar."); setInput(p => ({ ...p, uploadingImage: false })); }
@@ -224,7 +268,6 @@ export default function Home() {
     
     let txt = interact.replyTo ? `@${interact.replyTo.username.split('●')[0]} ("${interact.replyTo.pesan.substring(0,30)}...") ${input.text.trim()}` : input.text.trim();
     
-    // Fix: Limit Input Text 5 per 5 Menit
     if (auth.user !== 'Admin●ipix.my.id') { 
       const fiveMinsAgo = new Date(Date.now() - 300000).toISOString();
       const { count } = await supabase.from('messages')
@@ -256,7 +299,7 @@ export default function Home() {
 
   if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
 
-    return (
+  return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-transparent shadow-xl overflow-hidden font-sans overscroll-none" onClick={() => setInteract(p => ({ ...p, activeMenu: null }))}>
       <style dangerouslySetInnerHTML={{ __html: ` body{overscroll-behavior-y:none;} @keyframes sL{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(-4px);opacity:1;}} @keyframes sR{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(4px);opacity:1;}} .anim-slide-left{animation:sL 1.4s ease-in-out infinite;} .anim-slide-right{animation:sR 1.4s ease-in-out infinite;} @keyframes bC{0%,100%{filter:brightness(1);}50%{background-color:#fef9c3 !important;filter:brightness(0.9);}} .anim-bg-blink-cream{animation:bC 1.5s ease-in-out;} @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} .anim-text-blink-white{animation:tW 1.5s ease-in-out infinite;} `}} />
       
@@ -270,7 +313,6 @@ export default function Home() {
             <div className="text-center flex-1 flex flex-col items-end mr-16"><a href="https://ipix.my.id" target="_blank" className="text-emerald-400 font-bold text-sm underline">ipix.my.id</a>{ui.tab === 'user' && <div className="text-[10px] text-white/60 mt-0.5 flex items-center gap-1"><span className={`inline-block w-1.5 h-1.5 rounded-full ${adminStat.online ? 'bg-green-500' : 'bg-gray-400'}`}></span>{adminStat.online ? <span className="text-green-400 font-bold text-[9px]">Online</span> : <span className="text-[9px]">Offline • {adminStat.offlineTime}</span>}</div>}</div>
           </div>
           
-          {/* Header Tab - Hilangkan garis tengah (border) */}
           <div className="flex mt-3 bg-white/10 backdrop-blur-lg rounded-full p-1 shadow-sm w-full relative">
             <button onClick={() => { handleInteraction('public'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all ${ui.mode === 'public' ? 'bg-blue-600/80 text-white shadow' : 'bg-transparent text-white/70 hover:bg-white/10'}`}><div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'public' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.pub)}</span></div><span className="ml-2 sm:ml-4">🌐 Public Chat</span></button>
             <button onClick={() => { handleInteraction('private'); setUsersInfo(p=>({...p,selPriv:null})); setInteract(p=>({...p,replyTo:null})); }} className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all ${ui.mode === 'private' ? 'bg-emerald-600/80 text-white shadow' : 'bg-transparent text-white/70 hover:bg-white/10'}`}><span className="mr-2 sm:mr-4">🔒 Chat private</span><div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center"><span className={`${ui.mode === 'private' ? 'bg-white text-emerald-600' : 'bg-emerald-600 text-white'} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.priv)}</span></div></button>
@@ -278,7 +320,6 @@ export default function Home() {
         </div>
       )}
       
-      {/* Background Tab Warna Dinamis */}
       <div className={`flex-1 w-full relative flex overflow-hidden transition-colors duration-300 ${ui.mode === 'public' ? 'bg-blue-900/10' : 'bg-emerald-900/10'}`}>
         {ui.tab === 'admin' && currentHash === '#block' ? <Block blockedList={usersInfo.blockedList} unblock={async (id: string)=>{await supabase.from('blocked_users').delete().eq('device_id', id); fetchData();}} blockedWords={censor.words} newBadWord={censor.newWord} setNewBadWord={(w:string)=>setCensor(p=>({...p,newWord:w}))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} /> : <ChatLayout cMode={ui.mode} hInteract={handleInteraction} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={msgs.pub} privMsgs={msgs.priv} isPill={pill.visible} pDelta={pill.delta} pTouchX={pill.startX} capIdx={pill.idx} setPTouchX={(x:number)=>setPill(p=>({...p,startX:x}))} setPDelta={(d:number)=>setPill(p=>({...p,delta:d}))} setCapPause={(v:boolean)=>setPill(p=>({...p,pause:v}))} setIsPill={(v:boolean)=>setPill(p=>({...p,visible:v}))} renderMsgs={renderMsgs} fmtTime={getFmt.time} setSelPriv={(u:string)=>setUsersInfo(p=>({...p,selPriv:u}))} />}
       </div>
@@ -295,7 +336,6 @@ export default function Home() {
             <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
               <div className="text-[9px] text-white/40 mb-1 px-1">{ui.mode === 'public' ? 'Chat publik mohon bijak' : (ui.tab === 'admin' && !usersInfo.selPriv ? 'Pilih obrolan di atas' : 'Chat private admin')}</div>
               
-              {/* Box Input: Foto di samping Input Teks */}
               <div className="flex items-end gap-2 w-full">
                 {input.image && (
                   <div className="relative shrink-0 mb-1">
@@ -319,8 +359,6 @@ export default function Home() {
         </div>
       )}
 
-      
-      {/* (Bagian Popup Modal dsb tetap sama) */}
       {interact.popup && interact.popup.pesan !== '___DELETED___' && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={()=>setInteract(p=>({...p,popup:null}))}>
           <div className={`w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col ${interact.popup.is_private ? 'border-t-4 border-emerald-500' : 'border-t-4 border-blue-500'}`} onClick={e=>e.stopPropagation()}>
