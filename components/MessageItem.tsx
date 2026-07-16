@@ -9,31 +9,41 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   
   const shortBrowser = m.user_browser ? m.user_browser.split('(')[0].trim() + (m.user_browser.includes('(') ? ` (${m.user_browser.split('(')[1].split(')')[0]})` : '') : 'Unknown Browser';
-    const isMsgAdmin = m.username === 'Admin●ipix.my.id'; 
+  const isMsgAdmin = m.username === 'Admin●ipix.my.id'; 
   const isMsgMine = m.device_id === currentDeviceId || m.username === authUser;
   const isEdited = m.is_edited || (typeof window !== 'undefined' ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || '0') > 0 : false);
 
-    if (m.pesan === '___DELETED___') {
-      const isDeletedByAdmin = m.deleted_by_admin === true;
-      return (
-        <div id={`msg-${m.id}`} className="relative w-full flex justify-start mb-2 z-10 px-2">
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 border-dashed rounded-xl p-2.5 flex flex-col w-full max-w-[240px] shadow-sm">
-            <div className="flex items-center gap-2">
-              <span className="bg-gray-500/20 text-gray-400 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">🚫 Dihapus</span>
-              <span className={`text-[10px] font-bold ${isDeletedByAdmin ? 'text-red-500' : 'text-blue-400'}`}>
-                oleh {isDeletedByAdmin ? 'Admin' : m.username}
-              </span>
-            </div>
-            <div className="text-[8px] text-gray-500 mt-1 flex items-center gap-1 font-mono">
-              <span>{formatMessageTime(m.created_at)}</span>
-            </div>
+  // LOGIKA PESAN DIHAPUS
+  if (m.pesan === '___DELETED___') {
+    const isDeletedByAdmin = m.deleted_by_admin === true;
+    return (
+      <div id={`msg-${m.id}`} className="relative w-full flex justify-start mb-2 z-10 px-2 group">
+        <div className="bg-white/10 backdrop-blur-md border border-white/20 border-dashed rounded-xl p-2.5 flex flex-col w-full max-w-[240px] shadow-sm relative">
+          <div className="flex items-center gap-2">
+            <span className="bg-gray-500/20 text-gray-400 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">🚫 Dihapus</span>
+            {/* Warna nama sesuai role: Merah untuk Admin, Biru untuk User */}
+            <span className={`text-[10px] font-bold ${isDeletedByAdmin ? 'text-red-600' : 'text-blue-600'}`}>
+              oleh {isDeletedByAdmin ? 'Admin' : m.username}
+            </span>
           </div>
+          <div className="text-[8px] text-gray-500 mt-1 flex items-center gap-1 font-mono">
+            <span>{formatMessageTime(m.created_at)}</span>
+          </div>
+          
+          {/* Fitur Khusus Admin: Hapus Permanen (Hard Delete) untuk pesan yang sudah terhapus */}
+          {activeTab === 'admin' && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); deleteMsg(m, false); }} 
+              className="absolute right-2 top-2 text-[10px] bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity font-bold"
+              title="Hapus Permanen dari Database"
+            >
+              🗑️ Hapus
+            </button>
+          )}
         </div>
-      );
-    }
-
-
-
+      </div>
+    );
+  }
 
   const isPrivateAndNotAdmin = m.is_private && !isMsgAdmin;
   const borderThicknessClass = isMsgAdmin ? 'border-r-[3px] border-b-[1px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5 border-b-black/5' : 'border-b-[3px] border-r-[3px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5';
@@ -65,10 +75,9 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
         }
         if (swipingId === m.id && isHorizontalSwipe) {
           if (swipeDelta > 60) {
-            // Langsung hapus tanpa confirm jika swipe (lebih lancar di mobile)
             const isUnder24h = Date.now() - new Date(m.created_at).getTime() < 24 * 60 * 60 * 1000;
             if (activeTab === 'admin' || (isMsgMine && isUnder24h)) {
-              deleteMsg(m.id, true); // Tambahkan flag isSwipe = true
+              deleteMsg(m, true); // Kirim object pesan m secara utuh
             } else if (isMsgMine) alert("Pesan > 24 jam hanya dapat dihapus admin.");
           } else if (swipeDelta < -60) handleReply(m);
         }
@@ -76,13 +85,12 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
         setSwipeDelta(0);
         setIsHorizontalSwipe(false);
       }}
- style={{ transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)', transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
+      style={{ transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : 'translateX(0px)', transition: swipingId === m.id ? 'none' : 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
         <div className={`flex justify-between items-start ${isMinimized ? 'mb-0.5' : 'mb-1'}`}>
           <div className="flex items-center gap-1.5 flex-wrap"><b onClick={(e) => { e.stopPropagation(); handleTag(m.username); }} className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMsgAdmin ? 'bg-red-600' : isMsgMine ? 'bg-blue-600' : 'bg-gray-700'} ${isMinimized ? 'text-[8px]' : 'text-[10px]'}`}>{m.username}</b>{m.is_private && !isMinimized && <span className={`text-[10px] ${isMsgAdmin ? 'text-red-500' : 'text-emerald-600'}`}>🔒 Private</span>}</div>
           <div className="text-right shrink-0">{isMsgAdmin ? <span className={`px-1.5 py-0.5 rounded bg-white/60 text-[8px] ${isAdminOnline ? 'text-green-600 font-bold' : 'text-gray-500'}`}>{isAdminOnline ? 'Online' : adminOfflineTime}</span> : (userStatus[m.username] && <span className={`px-1.5 py-0.5 rounded bg-white/60 text-[8px] ${userStatus[m.username].online ? 'text-green-600 font-bold' : 'text-gray-500'}`}>{userStatus[m.username].online ? 'Online' : userStatus[m.username].offlineTime}</span>)}</div>
         </div>
         
-        {/* Layout Baru: Teks dan Foto Berdampingan (Side by Side) di Dalam Obrolan */}
         <div className="flex items-start gap-3 mt-1.5 mb-1">
           {m.image_url && (
             <div className="relative cursor-zoom-in group shrink-0 w-max">
@@ -113,7 +121,9 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                       <div className="absolute right-0 bottom-full mb-2 w-48 bg-white border border-gray-200 shadow-2xl rounded-xl z-30 py-2 flex flex-col gap-0.5 animate-fade-in" onClick={(e)=>e.stopPropagation()}>
                         <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-blue-600 hover:bg-gray-50">✏️ Edit Teks</button>
                         <button type="button" onClick={() => { editNama(m.id); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-purple-600 hover:bg-gray-50">👤 Edit Nama</button>
-                                                <button type="button" onClick={() => { deleteMsg(m.id, false); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-gray-50">🗑️ Hapus Pesan</button>
+                        
+                        {/* Kirim object m ke fungsi hapus pesan */}
+                        <button type="button" onClick={() => { deleteMsg(m, false); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-gray-50">🗑️ Hapus Pesan</button>
 
                         <button type="button" onClick={() => { copyToClipboard(m.pesan, 'Pesan'); setActiveMenuId(null); }} className="px-4 py-2 text-left text-xs font-bold text-gray-700 hover:bg-gray-50">📋 Salin Teks</button>
                         {!isMsgAdmin && (
