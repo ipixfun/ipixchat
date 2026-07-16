@@ -559,7 +559,7 @@ export function MessageItem({
                       />
                       {/* --- Pop up Di Atas Titik Tiga, Horizontal, Dinamis, Warna-Warni --- */}
                       <div
-                        className="absolute right-0 bottom-full mb-2 bg-white/95 backdrop-blur-md shadow-xl border border-gray-200 rounded-full z-[100] p-1.5 flex flex-row items-center gap-1 min-w-max origin-bottom-right"
+                        className="absolute right-0 bottom-full mb-2 bg-gray/95 backdrop-blur-md shadow-xl border border-gray-200 rounded-full z-[100] p-1.5 flex flex-row items-center gap-1 min-w-max origin-bottom-right"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
@@ -568,9 +568,9 @@ export function MessageItem({
                             editMsg(m.id);
                             setActiveMenuId(null);
                           }}
-                          className="px-3 py-1.5 text-[10px] font-black text-white bg-blue-500 hover:bg-blue-600 rounded-full shadow-sm transition-all active:scale-95"
+                          className="px-3 py-1.5 text-[5px] font-black text-white bg-blue-500 hover:bg-blue-600 rounded-full shadow-sm transition-all active:scale-95"
                         >
-                          Edit Teks
+                          Edit
                         </button>
                         <button
                           type="button"
@@ -578,9 +578,9 @@ export function MessageItem({
                             editNama(m.id);
                             setActiveMenuId(null);
                           }}
-                          className="px-3 py-1.5 text-[10px] font-black text-white bg-purple-500 hover:bg-purple-600 rounded-full shadow-sm transition-all active:scale-95"
+                          className="px-3 py-1.5 text-[5px] font-black text-white bg-purple-500 hover:bg-purple-600 rounded-full shadow-sm transition-all active:scale-95"
                         >
-                          Ubah Nama
+                          Nama
                         </button>
                         
                         {!isMsgAdmin && (
@@ -591,7 +591,7 @@ export function MessageItem({
                                 blockUser(m.device_id, m.username);
                                 setActiveMenuId(null);
                               }}
-                              className="px-3 py-1.5 text-[10px] font-black text-white bg-red-600 hover:bg-red-700 rounded-full shadow-sm transition-all active:scale-95"
+                              className="px-3 py-1.5 text-[5px] font-black text-white bg-red-600 hover:bg-red-700 rounded-full shadow-sm transition-all active:scale-95"
                             >
                               Blokir
                             </button>
@@ -601,7 +601,7 @@ export function MessageItem({
                                 inviteToPrivate(m.device_id, m.username);
                                 setActiveMenuId(null);
                               }}
-                              className="px-3 py-1.5 text-[10px] font-black text-white bg-emerald-500 hover:bg-emerald-600 rounded-full shadow-sm transition-all active:scale-95"
+                              className="px-3 py-1.5 text-[5px] font-black text-white bg-emerald-500 hover:bg-emerald-600 rounded-full shadow-sm transition-all active:scale-95"
                             >
                               Private
                             </button>
