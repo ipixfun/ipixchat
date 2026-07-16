@@ -195,10 +195,11 @@ export default function Home() {
     editLmt: async (m: any) => { const c = parseInt(localStorage.getItem(`edit_${m.id}`) || '0'); if(c>=2) return alert("Batas 2x"); const nt = prompt("Edit:", m.pesan); if(nt && nt.trim() !== m.pesan) { await supabase.from('messages').update({ pesan: nt.trim(), is_edited: true }).eq('id', m.id); localStorage.setItem(`edit_${m.id}`, (c+1).toString()); localStorage.setItem(`edit_count_${m.id}`, '1'); updateMsgLocal(m.id, nt.trim(), true); } },
     editMsg: async (id: number) => { const m = msgs.all.find(x => x.id === id); if (!m) return; const nt = prompt("Edit:", m.pesan); if(nt && nt !== m.pesan) { await supabase.from('messages').update({ pesan: nt, is_edited: true }).eq('id', id); localStorage.setItem(`edit_count_${id}`, '1'); updateMsgLocal(id, nt, true); } },
     editNm: async (id: number) => { const m = msgs.all.find(m => m.id === id); if(!m) return; const nn = prompt("Nama:", m.username); if(nn && isCensored(nn)) return alert("Terlarang!"); if(nn) { await Promise.all([supabase.from('profiles').update({ username: nn }).eq('device_id', m.device_id), supabase.from('messages').update({ username: nn }).eq('device_id', m.device_id)]); fetchData(); } },
-        delMsg: async (id: number) => {
-          if (!confirm("Apakah Anda yakin ingin menghapus pesan ini?")) return;
+        delMsg: async (id: number, isSwipe = false) => {
+          if (!isSwipe && !confirm("Apakah Anda yakin ingin menghapus pesan ini?")) return;
 
           if (auth.user !== 'Admin●ipix.my.id') {
+
             const lastReset = localStorage.getItem('del_reset_date');
             const today = new Date().toLocaleDateString();
             let count = parseInt(localStorage.getItem('del_count') || '0');
