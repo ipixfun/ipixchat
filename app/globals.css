@@ -10,12 +10,13 @@
 
 /* (Opsional) Jika kamu mau tulis CSS custom sendiri, tulis di bawah sini: */
 :root {
-  --background: #000000;
+  --background: transparent;
   --foreground: #b3b1b1;
 }
 
 body {
   color: var(--foreground);
-  background: var(--background);
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  background-attachment: fixed;
   font-family: Arial, Helvetica, sans-serif;
 }
