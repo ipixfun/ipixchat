@@ -5,7 +5,7 @@ import { supabase } from "./lib/supabaseClient";
 import Login from "../components/Login";
 import Block from "../components/Block";
 import ChatLayout from "../components/ChatLayout";
-import { MessageItem } from "../components/MessageItem";
+import { MessageItem } from "../components/MessageItem"; // Dipanggil terpisah
 
 export default function Home() {
   const pathname = usePathname();
@@ -118,6 +118,18 @@ export default function Home() {
     }
   }, []);
 
+  // AUTO SCROLL - Ketika panjang pesan bertambah (pesan terkirim/masuk) 
+  // Layar akan otomatis meluncur ke "bottom-anchor"
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`bottom-anchor-${ui.mode}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [msgs.pub.length, msgs.priv.length, ui.mode]);
+
   const handleInteraction = useCallback((m: "public" | "private") => {
     setUi((p) => ({ ...p, mode: m }));
   }, []);
@@ -183,9 +195,8 @@ export default function Home() {
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       const bc = "anim-bg-blink-cream";
-      // Reset animasi kalau sudah ada
       el.classList.remove(bc);
-      void el.offsetWidth; // trigger reflow
+      void el.offsetWidth;
       el.classList.add(bc);
       setTimeout(() => el.classList.remove(bc), 1500);
     }
@@ -330,12 +341,9 @@ export default function Home() {
         fetchData();
       }
     },
-
     delMsg: async (m: any, isSwipe = false) => {
       const isAlreadyDeleted = m.pesan === "___DELETED___";
-
       const confirmMsg = isAlreadyDeleted ? "Hapus permanen pesan ini dari database?" : isSwipe ? "Swipe terdeteksi. Pindahkan pesan ini ke tong sampah?" : "Pindahkan pesan ini ke tong sampah?";
-
       if (!confirm(confirmMsg)) return;
 
       if (!isAlreadyDeleted) {
@@ -344,7 +352,6 @@ export default function Home() {
 
       if (auth.user !== "Admin●ipix.my.id") {
         if (isAlreadyDeleted) return;
-
         if (m.device_id !== currentDeviceId) {
           alert("Anda hanya diizinkan menghapus pesan milik Anda sendiri!");
           fetchData(); 
@@ -404,7 +411,6 @@ export default function Home() {
       }
       fetchData(); 
     },
-    
     emptyTrash: async () => {
       if (confirm("Kosongkan semua pesan yang telah dihapus di tong sampah secara permanen?")) {
         const { error } = await supabase.from("messages").delete().eq("pesan", "___DELETED___");
@@ -413,7 +419,6 @@ export default function Home() {
         fetchData();
       }
     },
-
     blkUser: async (id: string, nm: string) => {
       if (confirm("Blokir?")) {
         await supabase.from("blocked_users").insert([{ device_id: id, username: nm }]);
@@ -582,13 +587,20 @@ export default function Home() {
       t.style.height = "auto";
       t.blur();
     }
+    
+    // Auto Scroll tambahan saat selesai mengirim agar responsif
+    setTimeout(() => {
+      const el = document.getElementById(`bottom-anchor-${ui.mode}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "end" });
+    }, 150);
+
     fetchData();
   };
 
   const hasInputReady = input.text.trim().length > 0 || input.image !== null;
 
-  const renderMsgs = (arr: any[], colType: any) =>
-    arr.length === 0 ? (
+  const renderMsgs = (arr: any[], colType: any) => {
+    const messageContent = arr.length === 0 ? (
       <div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div>
     ) : (
       arr.map((m, idx) => (
@@ -643,6 +655,15 @@ export default function Home() {
         </div>
       ))
     );
+
+    return (
+      <div className="w-full flex flex-col">
+        {messageContent}
+        {/* Anchor Point untuk Auto-Scroll keluar di atas input chat */}
+        <div id={`bottom-anchor-${colType}`} className="h-1 shrink-0 mt-2" />
+      </div>
+    );
+  };
 
   if (!mounted) {
     return (

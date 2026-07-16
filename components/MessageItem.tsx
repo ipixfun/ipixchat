@@ -1,7 +1,36 @@
 "use client";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 
-export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTab, isAdminOnline, adminOfflineTime, userStatus, activeMenuId, setActiveMenuId, swipingId, setSwipingId, handleTag, handleReply, deleteMsg, copyToClipboard, handleEditLimit, editMsg, editNama, blockUser, inviteToPrivate, setPopupMsg, handleLongPress, approveImage, applyCensor, scrollToMessage, formatMessageTime, authUser }: any) {
+export function MessageItem({
+  m,
+  colType,
+  isMinimized,
+  currentDeviceId,
+  activeTab,
+  isAdminOnline,
+  adminOfflineTime,
+  userStatus,
+  activeMenuId,
+  setActiveMenuId,
+  swipingId,
+  setSwipingId,
+  handleTag,
+  handleReply,
+  deleteMsg,
+  copyToClipboard,
+  handleEditLimit,
+  editMsg,
+  editNama,
+  blockUser,
+  inviteToPrivate,
+  setPopupMsg,
+  handleLongPress,
+  approveImage,
+  applyCensor,
+  scrollToMessage,
+  formatMessageTime,
+  authUser,
+}: any) {
   const [swipeDelta, setSwipeDelta] = useState(0);
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
   const [touchStartX, setTouchStartX] = useState(0);
@@ -12,24 +41,48 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
   // States untuk Menu Admin
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
 
-  const shortBrowser = m.user_browser ? m.user_browser.split("(")[0].trim() + (m.user_browser.includes("(") ? ` (${m.user_browser.split("(")[1].split(")")[0]})` : "") : "Unknown Browser";
+  const shortBrowser = m.user_browser
+    ? m.user_browser.split("(")[0].trim() +
+      (m.user_browser.includes("(")
+        ? ` (${m.user_browser.split("(")[1].split(")")[0]})`
+        : "")
+    : "Unknown Browser";
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
   const isMsgMine = m.device_id === currentDeviceId || m.username === authUser;
-  const isEdited = m.is_edited === true || m.edited_by != null || (typeof window !== "undefined" ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || "0") > 0 : false);
+  const isEdited =
+    m.is_edited === true ||
+    m.edited_by != null ||
+    (typeof window !== "undefined"
+      ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || "0") > 0
+      : false);
 
   if (m.pesan === "___DELETED___") {
     const isDeletedByAdmin = m.deleted_by_admin === true;
     return (
-      <div id={`msg-${m.id}`} className="relative w-full flex justify-start mb-2 z-10 px-2 group">
+      <div
+        id={`msg-${m.id}`}
+        className="relative w-full flex justify-start mb-2 z-10 px-2 group"
+      >
         <div className="bg-white/10 backdrop-blur-md border border-white/20 border-dashed rounded-xl p-2.5 flex flex-col w-full max-w-[240px] shadow-sm relative">
           {activeTab === "admin" && (
-            <div className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border border-white shadow-sm z-20 cursor-help" title="Dihapus (Dilihat oleh Admin)">
+            <div
+              className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border border-white shadow-sm z-20 cursor-help"
+              title="Dihapus (Dilihat oleh Admin)"
+            >
               X
             </div>
           )}
           <div className="flex items-center gap-2">
-            <span className="bg-gray-500/20 text-gray-400 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">🚫 Dihapus</span>
-            <span className={`text-[10px] font-bold ${isDeletedByAdmin ? "text-red-600" : "text-blue-600"}`}>oleh {isDeletedByAdmin ? "Admin" : m.username}</span>
+            <span className="bg-gray-500/20 text-gray-400 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">
+              🚫 Dihapus
+            </span>
+            <span
+              className={`text-[10px] font-bold ${
+                isDeletedByAdmin ? "text-red-600" : "text-blue-600"
+              }`}
+            >
+              oleh {isDeletedByAdmin ? "Admin" : m.username}
+            </span>
           </div>
           <div className="text-[8px] text-gray-500 mt-1 flex items-center gap-1 font-mono">
             <span>{formatMessageTime(m.created_at)}</span>
@@ -52,8 +105,16 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
   }
 
   const isPrivateAndNotAdmin = m.is_private && !isMsgAdmin;
-  const borderThicknessClass = isMsgAdmin ? "border-r-[3px] border-b-[1px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5 border-b-black/5" : "border-b-[3px] border-r-[3px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5";
-  const borderColorClass = isMsgAdmin ? "border-r-red-600" : isPrivateAndNotAdmin ? "border-b-emerald-500 border-r-emerald-500" : isMsgMine ? "border-b-blue-500 border-r-blue-500" : "border-b-gray-400 border-r-gray-400";
+  const borderThicknessClass = isMsgAdmin
+    ? "border-r-[3px] border-b-[1px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5 border-b-black/5"
+    : "border-b-[3px] border-r-[3px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5";
+  const borderColorClass = isMsgAdmin
+    ? "border-r-red-600"
+    : isPrivateAndNotAdmin
+    ? "border-b-emerald-500 border-r-emerald-500"
+    : isMsgMine
+    ? "border-b-blue-500 border-r-blue-500"
+    : "border-b-gray-400 border-r-gray-400";
   const bgBubbleClass = m.is_private ? "bg-emerald-50/95" : "bg-blue-50/95";
   const needsApproval = m.image_url && m.is_approved === false && !isMsgAdmin;
   const showBlurred = needsApproval && activeTab !== "admin";
@@ -65,8 +126,23 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
         const uname = part.substring(1).toLowerCase();
         let color = "text-green-600";
         if (uname === "admin") color = "text-red-600";
-        else if (authUser && uname === authUser.split("●")[0].toLowerCase()) color = "text-blue-600";
-        return <span key={i} className={`font-bold ${color} cursor-pointer hover:underline`} onClick={(e) => {e.stopPropagation(); handleTag(part.substring(1));}}>{part}</span>;
+        else if (
+          authUser &&
+          uname === authUser.split("●")[0].toLowerCase()
+        )
+          color = "text-blue-600";
+        return (
+          <span
+            key={i}
+            className={`font-bold ${color} cursor-pointer hover:underline`}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleTag(part.substring(1));
+            }}
+          >
+            {part}
+          </span>
+        );
       }
       return <span key={i}>{part}</span>;
     });
@@ -76,47 +152,101 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
     if (!text) return null;
     const match = text.match(/^@(\w+)\s\("(.*?)"\)\s?(.*)$/);
     const textSize = isMin ? "text-[11px] leading-tight" : "text-sm leading-relaxed";
-    
+
     if (match) {
       const [_, user, quotedText, replyText] = match;
       let tagColor = "text-green-600";
       if (user.toLowerCase() === "admin") tagColor = "text-red-600";
-      else if (authUser && user.toLowerCase() === authUser.split("●")[0].toLowerCase()) tagColor = "text-blue-600";
+      else if (
+        authUser &&
+        user.toLowerCase() === authUser.split("●")[0].toLowerCase()
+      )
+        tagColor = "text-blue-600";
 
       return (
         <>
           <div
-            className={`text-[9px] text-gray-500 italic bg-white/70 ${isMin ? "p-1.5" : "p-2"} rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 transition-colors ${colType === "private" ? "border-emerald-500" : "border-blue-500"}`}
+            className={`text-[9px] text-gray-500 italic bg-white/70 ${
+              isMin ? "p-1.5" : "p-2"
+            } rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 transition-colors ${
+              colType === "private" ? "border-emerald-500" : "border-blue-500"
+            }`}
             onClick={(e) => {
               e.stopPropagation();
               scrollToMessage(quotedText);
             }}
           >
-            <span className={`font-bold ${tagColor}`}>@{user}</span>: "{applyCensor(quotedText)}"
+            <span className={`font-bold ${tagColor}`}>@{user}</span>: "
+            {applyCensor(quotedText)}"
           </div>
-          <div className={`${textSize} text-gray-800 break-words`}>{renderTextWithTags(applyCensor(replyText))}</div>
+          <div className={`${textSize} text-gray-800 break-words`}>
+            {renderTextWithTags(applyCensor(replyText))}
+          </div>
         </>
       );
     }
-    return <div className={`${textSize} text-gray-800 break-words`}>{renderTextWithTags(applyCensor(text))}</div>;
+    return (
+      <div className={`${textSize} text-gray-800 break-words`}>
+        {renderTextWithTags(applyCensor(text))}
+      </div>
+    );
   };
 
-  const isOtherOnline = userStatus && userStatus[m.username] && userStatus[m.username].online;
-  const pillColor = isMsgAdmin ? "bg-red-600" : isMsgMine ? "bg-blue-600" : isOtherOnline ? "bg-green-600" : "bg-gray-700";
+  const isOtherOnline =
+    userStatus && userStatus[m.username] && userStatus[m.username].online;
+  const pillColor = isMsgAdmin
+    ? "bg-red-600"
+    : isMsgMine
+    ? "bg-blue-600"
+    : isOtherOnline
+    ? "bg-green-600"
+    : "bg-gray-700";
 
   return (
     <div id={`msg-${m.id}`} className="relative w-full">
       {swipingId === m.id && swipeDelta !== 0 && (
-        <div className={`absolute inset-0 flex items-center px-5 transition-colors duration-200 ${isMinimized ? "rounded-md" : "rounded-xl"} ${swipeDelta > 0 ? "bg-red-500 justify-start" : colType === "private" ? "bg-emerald-500 justify-end" : "bg-blue-500 justify-end"}`}>
+        <div
+          className={`absolute inset-0 flex items-center px-5 transition-colors duration-200 ${
+            isMinimized ? "rounded-md" : "rounded-xl"
+          } ${
+            swipeDelta > 0
+              ? "bg-red-500 justify-start"
+              : colType === "private"
+              ? "bg-emerald-500 justify-end"
+              : "bg-blue-500 justify-end"
+          }`}
+        >
           {swipeDelta > 0 ? (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 text-white opacity-90"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
             </svg>
           ) : (
             <div className="flex items-center gap-1 text-white font-bold text-sm opacity-90">
               <span>Balas</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                />
               </svg>
             </div>
           )}
@@ -124,7 +254,9 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
       )}
       <div
         id={`msg-bubble-${m.id}`}
-        className={`relative z-10 ${bgBubbleClass} transition-colors duration-300 ${isMinimized ? "p-1.5 rounded-md" : "p-3 rounded-xl"} ${borderThicknessClass} shadow-sm w-full select-none ${borderColorClass}`}
+        className={`relative z-10 ${bgBubbleClass} transition-colors duration-300 ${
+          isMinimized ? "p-1.5 rounded-md" : "p-3 rounded-xl"
+        } ${borderThicknessClass} shadow-sm w-full select-none ${borderColorClass}`}
         onMouseDown={(e) => {
           if (e.button !== 0) return;
           longPressTimer.current = setTimeout(() => {
@@ -164,10 +296,16 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
           if (swipingId !== m.id) return;
           const deltaX = e.touches[0].clientX - touchStartX;
           const deltaY = e.touches[0].clientY - touchInitialY;
-          if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) setIsHorizontalSwipe(true);
+          if (
+            !isHorizontalSwipe &&
+            Math.abs(deltaX) > Math.abs(deltaY) &&
+            Math.abs(deltaX) > 10
+          )
+            setIsHorizontalSwipe(true);
           if (isHorizontalSwipe) {
             let allowedDelta = deltaX;
-            if (allowedDelta > 0 && !(activeTab === "admin" || isMsgMine)) allowedDelta = 0;
+            if (allowedDelta > 0 && !(activeTab === "admin" || isMsgMine))
+              allowedDelta = 0;
             setSwipeDelta(Math.max(-75, Math.min(75, allowedDelta)));
           }
         }}
@@ -189,22 +327,69 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
           setSwipeDelta(0);
           setIsHorizontalSwipe(false);
         }}
-        style={{ transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : "translateX(0px)", transition: swipingId === m.id ? "none" : "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)" }}
+        style={{
+          transform:
+            swipingId === m.id ? `translateX(${swipeDelta}px)` : "translateX(0px)",
+          transition:
+            swipingId === m.id
+              ? "none"
+              : "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+        }}
       >
-        <div className={`flex justify-between items-start ${isMinimized ? "mb-0.5" : "mb-1"}`}>
+        <div
+          className={`flex justify-between items-start ${
+            isMinimized ? "mb-0.5" : "mb-1"
+          }`}
+        >
           <div className="flex items-center gap-1.5 flex-wrap">
             <b
               onClick={(e) => {
                 e.stopPropagation();
                 handleTag(m.username);
               }}
-              className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${pillColor} ${isMinimized ? "text-[8px]" : "text-[10px]"}`}
+              className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${pillColor} ${
+                isMinimized ? "text-[8px]" : "text-[10px]"
+              }`}
             >
               {m.username}
             </b>
-            {m.is_private && !isMinimized && <span className={`text-[10px] ${isMsgAdmin ? "text-red-500" : "text-emerald-600"}`}>🔒 Private</span>}
+            {m.is_private && !isMinimized && (
+              <span
+                className={`text-[10px] ${
+                  isMsgAdmin ? "text-red-500" : "text-emerald-600"
+                }`}
+              >
+                🔒 Private
+              </span>
+            )}
           </div>
-          <div className="text-right shrink-0">{isMsgAdmin ? <span className={`px-1.5 py-0.5 rounded bg-white/60 text-[8px] ${isAdminOnline ? "text-green-600 font-bold" : "text-gray-500"}`}>{isAdminOnline ? "Online" : adminOfflineTime}</span> : userStatus[m.username] && <span className={`px-1.5 py-0.5 rounded bg-white/60 text-[8px] ${userStatus[m.username].online ? "text-green-600 font-bold" : "text-gray-500"}`}>{userStatus[m.username].online ? "Online" : userStatus[m.username].offlineTime}</span>}</div>
+          <div className="text-right shrink-0">
+            {isMsgAdmin ? (
+              <span
+                className={`px-1.5 py-0.5 rounded bg-white/60 text-[8px] ${
+                  isAdminOnline
+                    ? "text-green-600 font-bold"
+                    : "text-gray-500"
+                }`}
+              >
+                {isAdminOnline ? "Online" : adminOfflineTime}
+              </span>
+            ) : (
+              userStatus[m.username] && (
+                <span
+                  className={`px-1.5 py-0.5 rounded bg-white/60 text-[8px] ${
+                    userStatus[m.username].online
+                      ? "text-green-600 font-bold"
+                      : "text-gray-500"
+                  }`}
+                >
+                  {userStatus[m.username].online
+                    ? "Online"
+                    : userStatus[m.username].offlineTime}
+                </span>
+              )
+            )}
+          </div>
         </div>
 
         <div className="flex items-start gap-3 mt-1.5 mb-1">
@@ -217,7 +402,9 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                   e.stopPropagation();
                   setPopupMsg(m);
                 }}
-                className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? "w-16 h-16" : "w-24 h-24 sm:w-28 sm:h-28"} ${showBlurred ? "blur-md" : ""}`}
+                className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${
+                  isMinimized ? "w-16 h-16" : "w-24 h-24 sm:w-28 sm:h-28"
+                } ${showBlurred ? "blur-md" : ""}`}
                 loading="lazy"
               />
               {showBlurred && (
@@ -244,32 +431,68 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
           )}
           {m.pesan && (
             <div className="min-w-0 flex-1">
-              <div className={`break-words whitespace-pre-wrap ${m.image_url && !isExpanded ? "line-clamp-5" : ""}`}>{renderContent(m.pesan, isMinimized)}</div>
-              {m.image_url && (m.pesan.length > 150 || m.pesan.split("\n").length > 5) && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsExpanded(!isExpanded);
-                  }}
-                  className="text-blue-600 hover:text-blue-800 text-[10px] font-black mt-1 bg-white/50 px-2 py-0.5 rounded shadow-sm transition-colors block"
-                >
-                  {isExpanded ? "Tampilkan lebih sedikit" : "Selengkapnya..."}
-                </button>
-              )}
+              <div
+                className={`break-words whitespace-pre-wrap ${
+                  m.image_url && !isExpanded ? "line-clamp-5" : ""
+                }`}
+              >
+                {renderContent(m.pesan, isMinimized)}
+              </div>
+              {m.image_url &&
+                (m.pesan.length > 150 || m.pesan.split("\n").length > 5) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsExpanded(!isExpanded);
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-[10px] font-black mt-1 bg-white/50 px-2 py-0.5 rounded shadow-sm transition-colors block"
+                  >
+                    {isExpanded ? "Tampilkan lebih sedikit" : "Selengkapnya..."}
+                  </button>
+                )}
             </div>
           )}
         </div>
 
-        <div className={`${isMinimized ? "mt-1 pt-1" : "mt-2 pt-2"} border-t border-black/10 flex justify-between gap-3 ${activeTab === "admin" ? "items-end" : "items-center"}`}>
+        <div
+          className={`${
+            isMinimized ? "mt-1 pt-1" : "mt-2 pt-2"
+          } border-t border-black/10 flex justify-between gap-3 ${
+            activeTab === "admin" ? "items-end" : "items-center"
+          }`}
+        >
           <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end items-start text-left">
             {isEdited && (
               <div className="flex items-center flex-wrap gap-1 mt-0.5">
-                <span className="text-yellow-600 font-black text-[9px] lowercase bg-yellow-100/70 px-1 rounded shadow-sm">(edited)</span>
-                {m.edited_by && <span className={`text-[9px] font-bold ${m.edited_by === "Admin●ipix.my.id" ? "text-red-600" : "text-blue-600"}`}>oleh {m.edited_by === "Admin●ipix.my.id" ? "Admin" : m.edited_by.split("●")[0]}</span>}
+                <span className="text-yellow-600 font-black text-[9px] lowercase bg-yellow-100/70 px-1 rounded shadow-sm">
+                  (edited)
+                </span>
+                {m.edited_by && (
+                  <span
+                    className={`text-[9px] font-bold ${
+                      m.edited_by === "Admin●ipix.my.id"
+                        ? "text-red-600"
+                        : "text-blue-600"
+                    }`}
+                  >
+                    oleh{" "}
+                    {m.edited_by === "Admin●ipix.my.id"
+                      ? "Admin"
+                      : m.edited_by.split("●")[0]}
+                  </span>
+                )}
               </div>
             )}
 
-            {m.is_private && isMinimized && <span className={`text-[8px] font-bold ${isMsgAdmin ? "text-red-500" : "text-emerald-600"}`}>🔒 Private</span>}
+            {m.is_private && isMinimized && (
+              <span
+                className={`text-[8px] font-bold ${
+                  isMsgAdmin ? "text-red-500" : "text-emerald-600"
+                }`}
+              >
+                🔒 Private
+              </span>
+            )}
             {activeTab === "admin" && (
               <div className="flex flex-col gap-1 text-[8px] text-gray-400 font-sans w-full">
                 <span
@@ -281,14 +504,19 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                 >
                   ID: {m.device_id}
                 </span>
-                <span className="text-orange-600 truncate font-medium max-w-[200px]" title={m.user_browser || ""}>
+                <span
+                  className="text-orange-600 truncate font-medium max-w-[200px]"
+                  title={m.user_browser || ""}
+                >
                   🌐 {shortBrowser}
                 </span>
               </div>
             )}
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0 pb-0.5">
-            <span className="text-[8px] text-gray-400 font-bold bg-white/50 px-1 rounded">{formatMessageTime(m.created_at)}</span>
+            <span className="text-[8px] text-gray-400 font-bold bg-white/50 px-1 rounded">
+              {formatMessageTime(m.created_at)}
+            </span>
             <div className="flex items-center gap-2 text-[10px]">
               {!isMinimized && (
                 <button
@@ -297,7 +525,11 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                     e.stopPropagation();
                     handleReply(m);
                   }}
-                  className={`font-bold underline mr-1 transition-colors ${colType === "private" ? "text-emerald-600 hover:text-emerald-700" : "text-blue-600 hover:text-blue-700"}`}
+                  className={`font-bold underline mr-1 transition-colors ${
+                    colType === "private"
+                      ? "text-emerald-600 hover:text-emerald-700"
+                      : "text-blue-600 hover:text-blue-700"
+                  }`}
                 >
                   Balas
                 </button>
@@ -312,12 +544,13 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                       setActiveMenuId(isOpening ? m.id : null);
                       if (isOpening) {
                         const rect = e.currentTarget.getBoundingClientRect();
-                        let newX = rect.left - 130; // Muncul di kiri tombol
-                        let newY = rect.top;
+                        // Tampil di atas teks secara horizontal
+                        let newX = rect.left - 130; 
+                        let newY = rect.top - 36;
                         
-                        // Batasan layar supaya tidak off-screen di mobile
+                        // Proteksi layar mobile
                         if (newX < 10) newX = 10;
-                        if (newY > window.innerHeight - 200) newY = window.innerHeight - 200;
+                        if (newY < 10) newY = rect.bottom + 10; 
                         
                         setMenuPos({ x: newX, y: newY });
                       }
@@ -335,8 +568,9 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                           setActiveMenuId(null);
                         }}
                       />
+                      {/* --- Pop up Di Atas Teks, Horizontal, Minimalis --- */}
                       <div
-                        className="fixed bg-white border border-gray-200 shadow-[0_10px_25px_rgba(0,0,0,0.3)] rounded-xl z-[99999] py-1 flex flex-col gap-0 animate-fade-in w-32 overflow-hidden"
+                        className="fixed bg-white border border-gray-200 shadow-md rounded-lg z-[99999] py-1 px-2 flex flex-row items-center animate-fade-in"
                         style={{ left: `${menuPos.x}px`, top: `${menuPos.y}px` }}
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -346,62 +580,45 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                             editMsg(m.id);
                             setActiveMenuId(null);
                           }}
-                          className="px-3 py-1.5 text-left text-[9px] font-bold text-blue-600 hover:bg-gray-50 active:bg-gray-100"
+                          className="px-2 py-1 text-[10px] font-bold text-gray-700 hover:text-blue-600 transition-colors"
                         >
-                          ✏️ Edit Teks
+                          Edit Teks
                         </button>
+                        <div className="w-px h-3 bg-gray-300 mx-1" />
                         <button
                           type="button"
                           onClick={() => {
                             editNama(m.id);
                             setActiveMenuId(null);
                           }}
-                          className="px-3 py-1.5 text-left text-[9px] font-bold text-purple-600 hover:bg-gray-50 active:bg-gray-100"
+                          className="px-2 py-1 text-[10px] font-bold text-gray-700 hover:text-purple-600 transition-colors"
                         >
-                          👤 Edit Nama
+                          Edit Nama
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            deleteMsg(m, false);
-                            setActiveMenuId(null);
-                          }}
-                          className="px-3 py-1.5 text-left text-[9px] font-bold text-red-600 hover:bg-gray-50 active:bg-gray-100"
-                        >
-                          🗑️ Ke Sampah
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            copyToClipboard(m.pesan, "Pesan");
-                            setActiveMenuId(null);
-                          }}
-                          className="px-3 py-1.5 text-left text-[9px] font-bold text-gray-700 hover:bg-gray-50 active:bg-gray-100"
-                        >
-                          📋 Salin Teks
-                        </button>
+                        
                         {!isMsgAdmin && (
                           <>
-                            <div className="h-px bg-gray-200 my-1 mx-2" />
+                            <div className="w-px h-3 bg-gray-300 mx-1" />
                             <button
                               type="button"
                               onClick={() => {
                                 blockUser(m.device_id, m.username);
                                 setActiveMenuId(null);
                               }}
-                              className="px-3 py-1.5 text-left text-[9px] font-bold text-orange-600 hover:bg-gray-50 active:bg-gray-100"
+                              className="px-2 py-1 text-[10px] font-bold text-gray-700 hover:text-red-600 transition-colors"
                             >
-                              🚫 Blokir
+                              Blokir
                             </button>
+                            <div className="w-px h-3 bg-gray-300 mx-1" />
                             <button
                               type="button"
                               onClick={() => {
                                 inviteToPrivate(m.device_id, m.username);
                                 setActiveMenuId(null);
                               }}
-                              className="px-3 py-1.5 text-left text-[9px] font-bold text-emerald-600 hover:bg-gray-50 active:bg-gray-100"
+                              className="px-2 py-1 text-[10px] font-bold text-gray-700 hover:text-emerald-600 transition-colors"
                             >
-                              🔒 Chat Private
+                              Private
                             </button>
                           </>
                         )}
