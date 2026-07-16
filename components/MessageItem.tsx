@@ -568,7 +568,7 @@ export function MessageItem({
                             editMsg(m.id);
                             setActiveMenuId(null);
                           }}
-                          className="px-3 py-1.5 text-[5px] font-black text-white bg-blue-500 hover:bg-blue-600 rounded-full shadow-sm transition-all active:scale-95"
+                          className="px-3 py-1.5 text-[8px] font-black text-white bg-blue-500 hover:bg-blue-600 rounded-full shadow-sm transition-all active:scale-95"
                         >
                           Edit
                         </button>
@@ -578,7 +578,7 @@ export function MessageItem({
                             editNama(m.id);
                             setActiveMenuId(null);
                           }}
-                          className="px-3 py-1.5 text-[5px] font-black text-white bg-purple-500 hover:bg-purple-600 rounded-full shadow-sm transition-all active:scale-95"
+                          className="px-3 py-1.5 text-[8px] font-black text-white bg-purple-500 hover:bg-purple-600 rounded-full shadow-sm transition-all active:scale-95"
                         >
                           Nama
                         </button>
@@ -591,7 +591,7 @@ export function MessageItem({
                                 blockUser(m.device_id, m.username);
                                 setActiveMenuId(null);
                               }}
-                              className="px-3 py-1.5 text-[5px] font-black text-white bg-red-600 hover:bg-red-700 rounded-full shadow-sm transition-all active:scale-95"
+                              className="px-3 py-1.5 text-[8px] font-black text-white bg-red-600 hover:bg-red-700 rounded-full shadow-sm transition-all active:scale-95"
                             >
                               Blokir
                             </button>
@@ -601,7 +601,7 @@ export function MessageItem({
                                 inviteToPrivate(m.device_id, m.username);
                                 setActiveMenuId(null);
                               }}
-                              className="px-3 py-1.5 text-[5px] font-black text-white bg-emerald-500 hover:bg-emerald-600 rounded-full shadow-sm transition-all active:scale-95"
+                              className="px-3 py-1.5 text-[8px] font-black text-white bg-emerald-500 hover:bg-emerald-600 rounded-full shadow-sm transition-all active:scale-95"
                             >
                               Private
                             </button>
