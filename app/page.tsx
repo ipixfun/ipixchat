@@ -185,22 +185,77 @@ export default function Home() {
     } catch (e) {}
   }, [ui.tab, usersInfo.selPriv, currentDeviceId, auth.isAuth, getFmt]);
 
-  const updateMsgLocal = (id: number, newText: string, isEdited: boolean) => { setMsgs(prev => { const update = (arr: any[]) => arr.map(m => m.id === id ? { ...m, pesan: newText, is_edited: isEdited || m.is_edited } : m); return { all: update(prev.all), pub: update(prev.pub), priv: update(prev.priv) }; }); };
+  const updateMsgLocal = (id: number, newText: string, isEdited: boolean, editedBy: string, imageUrl?: any, deletedByAdmin?: boolean) => { 
+    setMsgs(prev => { 
+      const update = (arr: any[]) => arr.map(m => m.id === id ? { 
+        ...m, 
+        pesan: newText, 
+        is_edited: isEdited !== undefined ? isEdited : m.is_edited, 
+        edited_by: editedBy !== undefined ? editedBy : m.edited_by,
+        ...(imageUrl !== undefined ? { image_url: imageUrl } : {}),
+        ...(deletedByAdmin !== undefined ? { deleted_by_admin: deletedByAdmin } : {})
+      } : m); 
+      return { all: update(prev.all), pub: update(prev.pub), priv: update(prev.priv) }; 
+    }); 
+  };
 
   const dbActions = {
-    editLmt: async (m: any) => { const c = parseInt(localStorage.getItem(`edit_${m.id}`) || '0'); if(c>=2) return alert("Batas 2x"); const nt = prompt("Edit:", m.pesan); if(nt && nt.trim() !== m.pesan) { await supabase.from('messages').update({ pesan: nt.trim(), is_edited: true }).eq('id', m.id); localStorage.setItem(`edit_${m.id}`, (c+1).toString()); localStorage.setItem(`edit_count_${m.id}`, '1'); updateMsgLocal(m.id, nt.trim(), true); } },
-    editMsg: async (id: number) => { const m = msgs.all.find(x => x.id === id); if (!m) return; const nt = prompt("Edit:", m.pesan); if(nt && nt !== m.pesan) { await supabase.from('messages').update({ pesan: nt, is_edited: true }).eq('id', id); localStorage.setItem(`edit_count_${id}`, '1'); updateMsgLocal(id, nt, true); } },
-    editNm: async (id: number) => { const m = msgs.all.find(m => m.id === id); if(!m) return; const nn = prompt("Nama:", m.username); if(nn && isCensored(nn)) return alert("Terlarang!"); if(nn) { await Promise.all([supabase.from('profiles').update({ username: nn }).eq('device_id', m.device_id), supabase.from('messages').update({ username: nn }).eq('device_id', m.device_id)]); fetchData(); } },
+    editLmt: async (m: any) => { 
+      const c = parseInt(localStorage.getItem(`edit_${m.id}`) || '0'); 
+      if(c>=2) return alert("Batas 2x edit!"); 
+      const nt = prompt("Edit Pesan:", m.pesan); 
+      if(nt && nt.trim() !== m.pesan) { 
+        await supabase.from('messages').update({ pesan: nt.trim(), is_edited: true, edited_by: auth.user }).eq('id', m.id); 
+        localStorage.setItem(`edit_${m.id}`, (c+1).toString()); 
+        localStorage.setItem(`edit_count_${m.id}`, '1'); 
+        updateMsgLocal(m.id, nt.trim(), true, auth.user); 
+      } 
+    },
+    editMsg: async (id: number) => { 
+      const m = msgs.all.find(x => x.id === id); 
+      if (!m) return; 
+      const nt = prompt("Edit Pesan:", m.pesan); 
+      if(nt && nt !== m.pesan) { 
+        await supabase.from('messages').update({ pesan: nt, is_edited: true, edited_by: auth.user }).eq('id', id); 
+        localStorage.setItem(`edit_count_${id}`, '1'); 
+        updateMsgLocal(id, nt, true, auth.user); 
+      } 
+    },
+    editNm: async (id: number) => { 
+      const m = msgs.all.find(m => m.id === id); 
+      if(!m) return; 
+      const nn = prompt("Nama:", m.username); 
+      if(nn && isCensored(nn)) return alert("Terlarang!"); 
+      if(nn) { 
+        await Promise.all([supabase.from('profiles').update({ username: nn }).eq('device_id', m.device_id), supabase.from('messages').update({ username: nn }).eq('device_id', m.device_id)]); 
+        fetchData(); 
+      } 
+    },
     
-    // LOGIKA PERBAIKAN HAPUS PESAN
     delMsg: async (m: any, isSwipe = false) => {
       const isAlreadyDeleted = m.pesan === '___DELETED___';
 
-      if (!isSwipe && !confirm(isAlreadyDeleted ? "Hapus permanen pesan ini dari database?" : "Apakah Anda yakin ingin menghapus pesan ini?")) return;
+      // Konfirmasi selalu muncul agar jelas fungsi swipenya bekerja
+      const confirmMsg = isAlreadyDeleted 
+        ? "Hapus permanen pesan ini dari database?" 
+        : (isSwipe ? "Swipe terdeteksi. Apakah Anda yakin ingin menghapus pesan ini?" : "Apakah Anda yakin ingin menghapus pesan ini?");
+
+      if (!confirm(confirmMsg)) return;
+
+      // OPTIMISTIC UPDATE: Ubah di UI langsung tanpa nunggu loading database
+      if (!isAlreadyDeleted) {
+        updateMsgLocal(m.id, '___DELETED___', m.is_edited, m.edited_by, null, auth.user === 'Admin●ipix.my.id');
+      }
 
       if (auth.user !== 'Admin●ipix.my.id') {
-        // User tidak boleh menghapus yang sudah terhapus (hard delete)
         if (isAlreadyDeleted) return;
+        
+        // Cek Pemilik Pesan
+        if (m.device_id !== currentDeviceId) {
+          alert("Anda hanya diizinkan menghapus pesan milik Anda sendiri!");
+          fetchData(); // Kembalikan UI jika gagal
+          return;
+        }
 
         const lastReset = localStorage.getItem('del_reset_date');
         const today = new Date().toLocaleDateString();
@@ -211,12 +266,13 @@ export default function Home() {
           localStorage.setItem('del_reset_date', today);
         }
 
-        // Limit user 10 chat per hari
         if (count >= 10) {
           alert("Batas hapus pesan maksimal 10x per hari!");
+          fetchData(); // Kembalikan UI jika gagal
           return;
         }
 
+        // Soft delete user
         await supabase.from('messages').update({
           pesan: '___DELETED___',
           image_url: null,
@@ -227,18 +283,16 @@ export default function Home() {
       } else {
         // Logika Admin
         if (isAlreadyDeleted) {
-          // Hard Delete jika sebelumnya sudah soft delete (___DELETED___)
-          await supabase.from('messages').delete().eq('id', m.id);
+          await supabase.from('messages').delete().eq('id', m.id); // Hard Delete
         } else {
-          // Soft Delete & Tandai admin
-          await supabase.from('messages').update({
+          await supabase.from('messages').update({ // Soft delete Admin
             pesan: '___DELETED___',
             image_url: null,
             deleted_by_admin: true
           }).eq('id', m.id);
         }
       }
-      fetchData();
+      fetchData(); // Sync ulang dengan server
     },
 
     blkUser: async (id: string, nm: string) => { if(confirm("Blokir?")) { await supabase.from('blocked_users').insert([{ device_id: id, username: nm }]); fetchData(); } },
@@ -352,7 +406,7 @@ export default function Home() {
             </div>
             
             <div className="relative shrink-0 flex flex-col justify-end w-[85px] md:w-[110px] h-[32px] sm:h-[38px]">
-              {auth.isAuth && currentHash !== '#block' && <button type="button" id="btn-refresh-delete" onClick={() => { if (hasInputReady) { setInput(p => ({ ...p, text: '', image: null, uploadingImage: false })); setInteract(p => ({ ...p, replyTo: null })); } else { window.location.reload(); } }} className={`absolute bottom-full mb-1.5 left-0 right-0 px-2 py-0.5 rounded-full font-black tracking-widest text-[8px] border shadow-sm active:scale-95 transition-all text-center select-none ${hasInputReady ? 'bg-red-500/80 text-white border-red-600' : 'bg-yellow-400/80 text-black border-yellow-500'}`}>{hasInputReady ? 'HAPUS PESAN' : 'REFRESH'}</button>}
+              {auth.isAuth && currentHash !== '#block' && <button type="button" id="btn-refresh-delete" onClick={() => { if (hasInputReady) { setInput(p => ({ ...p, text: '', image: null, uploadingImage: false })); setInteract(p => ({ ...p, replyTo: null })); } else { window.location.reload(); } }} className={`absolute bottom-full mb-1.5 left-0 right-0 px-2 py-0.5 rounded-full font-black tracking-widest text-[8px] border shadow-sm active:scale-95 transition-all text-center select-none ${hasInputReady ? 'bg-red-500/80 text-white border-red-600' : 'bg-yellow-400/80 text-black border-yellow-500'}`}>{hasInputReady ? 'BATAL' : 'REFRESH'}</button>}
               <button type="submit" disabled={input.sending || (!input.text.trim() && !input.image) || (ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv)} className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${(ui.tab === 'admin' && ui.mode === 'private' && !usersInfo.selPriv) ? 'bg-white/10 text-white/30 cursor-not-allowed' : (ui.mode === 'private' ? 'bg-emerald-600/80 text-white' : 'bg-blue-600/80 text-white')}`}>{input.sending ? '...' : 'Kirim'}</button>
             </div>
           </form>
@@ -369,6 +423,9 @@ export default function Home() {
               {interact.popup.pesan && applyCensor(interact.popup.pesan)}
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
+              {((interact.popup.device_id === currentDeviceId && interact.popup.username !== 'Admin●ipix.my.id') || ui.tab === 'admin') && (
+                 <button type="button" onClick={(e) => { e.stopPropagation(); const popupMsg = interact.popup; setInteract(p => ({ ...p, popup: null })); dbActions.delMsg(popupMsg, false); }} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1">🗑️ Hapus</button>
+              )}
               {interact.popup.image_url && !(interact.popup.is_approved === false && ui.tab !== 'admin' && interact.popup.username !== 'Admin●ipix.my.id') && <button type="button" onClick={async (e) => { e.stopPropagation(); try { const response = await fetch(interact.popup.image_url); const blob = await response.blob(); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `ipix_image_${interact.popup.id}.jpg`; document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url); } catch (err) { window.open(interact.popup.image_url, '_blank'); } }} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1">📥 Unduh</button>}
               <button type="button" onClick={(e) => { e.stopPropagation(); copyTxt(interact.popup.pesan, 'Pesan'); }} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all">📋 Salin</button>
               {((ui.tab === 'admin') || (interact.popup.device_id === currentDeviceId && interact.popup.username !== 'Admin●ipix.my.id')) && <button type="button" onClick={(e) => { e.stopPropagation(); const popupMsg = interact.popup; setInteract(p => ({ ...p, popup: null })); if (ui.tab === 'admin') { dbActions.editMsg(popupMsg.id); } else { dbActions.editLmt(popupMsg); } }} className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all">✏️ Edit</button>}
