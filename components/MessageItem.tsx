@@ -1,18 +1,45 @@
 "use client";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 
 export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTab, isAdminOnline, adminOfflineTime, userStatus, activeMenuId, setActiveMenuId, swipingId, setSwipingId, handleTag, handleReply, deleteMsg, copyToClipboard, handleEditLimit, editMsg, editNama, blockUser, inviteToPrivate, setPopupMsg, handleLongPress, approveImage, applyCensor, scrollToMessage, formatMessageTime, authUser }: any) {
   const [swipeDelta, setSwipeDelta] = useState(0);
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchInitialY, setTouchInitialY] = useState(0);
-  const [isExpanded, setIsExpanded] = useState(false); // State untuk Toggle teks selengkapnya
+  const [isExpanded, setIsExpanded] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // States untuk Draggable Menu Admin
+  const [menuPos, setMenuPos] = useState({ x: 30, y: 150 });
+  const [isDraggingMenu, setIsDraggingMenu] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  // Inisialisasi posisi awal menu admin di tengah saat dibuka agar mudah diraih
+  useEffect(() => {
+    if (activeMenuId === m.id && typeof window !== "undefined") {
+      setMenuPos({ x: window.innerWidth / 2 - 60, y: window.innerHeight / 2 - 100 });
+    }
+  }, [activeMenuId, m.id]);
+
+  const handleMenuDragStart = (e: any) => {
+    const clientX = e.type.includes("mouse") ? e.clientX : e.touches[0].clientX;
+    const clientY = e.type.includes("mouse") ? e.clientY : e.touches[0].clientY;
+    setIsDraggingMenu(true);
+    setDragOffset({ x: clientX - menuPos.x, y: clientY - menuPos.y });
+  };
+
+  const handleMenuDragMove = (e: any) => {
+    if (!isDraggingMenu) return;
+    const clientX = e.type.includes("mouse") ? e.clientX : e.touches[0].clientX;
+    const clientY = e.type.includes("mouse") ? e.clientY : e.touches[0].clientY;
+    setMenuPos({ x: clientX - dragOffset.x, y: clientY - dragOffset.y });
+  };
+
+  const handleMenuDragEnd = () => setIsDraggingMenu(false);
 
   const shortBrowser = m.user_browser ? m.user_browser.split("(")[0].trim() + (m.user_browser.includes("(") ? ` (${m.user_browser.split("(")[1].split(")")[0]})` : "") : "Unknown Browser";
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
   const isMsgMine = m.device_id === currentDeviceId || m.username === authUser;
-  // Deteksi edit yang kuat (kolom boolean is_edited, ATAU text edited_by sudah terisi, ATAU localstorage fallback)
   const isEdited = m.is_edited === true || m.edited_by != null || (typeof window !== "undefined" ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || "0") > 0 : false);
 
   if (m.pesan === "___DELETED___") {
@@ -74,6 +101,9 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
     }
     return <div className={`${textSize} text-gray-800 break-words`}>{applyCensor(text)}</div>;
   };
+
+  const isOtherOnline = userStatus && userStatus[m.username] && userStatus[m.username].online;
+  const pillColor = isMsgAdmin ? "bg-red-600" : isMsgMine ? "bg-blue-600" : isOtherOnline ? "bg-green-600" : "bg-gray-700";
 
   return (
     <div id={`msg-${m.id}`} className="relative w-full">
@@ -148,7 +178,6 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
             longPressTimer.current = null;
           }
           if (swipingId === m.id && isHorizontalSwipe) {
-            // Threshold diperkecil agar mudah memicu Swipe to Delete
             if (swipeDelta > 50) {
               if (activeTab === "admin" || isMsgMine) {
                 deleteMsg(m, true);
@@ -170,7 +199,7 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                 e.stopPropagation();
                 handleTag(m.username);
               }}
-              className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMsgAdmin ? "bg-red-600" : isMsgMine ? "bg-blue-600" : "bg-gray-700"} ${isMinimized ? "text-[8px]" : "text-[10px]"}`}
+              className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${pillColor} ${isMinimized ? "text-[8px]" : "text-[10px]"}`}
             >
               {m.username}
             </b>
@@ -217,7 +246,6 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
           {m.pesan && (
             <div className="min-w-0 flex-1">
               <div className={`break-words whitespace-pre-wrap ${m.image_url && !isExpanded ? "line-clamp-5" : ""}`}>{renderContent(m.pesan, isMinimized)}</div>
-              {/* TOMBOL SELENGKAPNYA jika ada gambar dan teks panjang */}
               {m.image_url && (m.pesan.length > 150 || m.pesan.split("\n").length > 5) && (
                 <button
                   onClick={(e) => {
@@ -235,7 +263,6 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
 
         <div className={`${isMinimized ? "mt-1 pt-1" : "mt-2 pt-2"} border-t border-black/10 flex justify-between gap-3 ${activeTab === "admin" ? "items-end" : "items-center"}`}>
           <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end items-start text-left">
-            {/* TAMPILAN STATUS EDITED & NAMA PENGEDIT YANG SUDAH DIPUBLIKASIKAN */}
             {isEdited && (
               <div className="flex items-center flex-wrap gap-1 mt-0.5">
                 <span className="text-yellow-600 font-black text-[9px] lowercase bg-yellow-100/70 px-1 rounded shadow-sm">(edited)</span>
@@ -291,20 +318,35 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                   {activeMenuId === m.id && (
                     <>
                       <div
-                        className="fixed inset-0 z-20"
+                        className="fixed inset-0 z-[110]"
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveMenuId(null);
                         }}
+                        onMouseMove={handleMenuDragMove}
+                        onMouseUp={handleMenuDragEnd}
+                        onTouchMove={handleMenuDragMove}
+                        onTouchEnd={handleMenuDragEnd}
                       />
-                      <div className="absolute right-0 bottom-full mb-2 w-48 bg-white border border-gray-200 shadow-2xl rounded-xl z-30 py-2 flex flex-col gap-0.5 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                      <div
+                        className="fixed bg-white border border-gray-200 shadow-[0_10px_25px_rgba(0,0,0,0.2)] rounded-xl z-[120] py-1 flex flex-col gap-0 animate-fade-in w-36 overflow-hidden"
+                        style={{ left: `${menuPos.x}px`, top: `${menuPos.y}px`, touchAction: "none" }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div
+                          className="w-full h-5 bg-gray-200 cursor-move flex items-center justify-center hover:bg-gray-300 transition-colors"
+                          onMouseDown={handleMenuDragStart}
+                          onTouchStart={handleMenuDragStart}
+                        >
+                          <div className="w-8 h-1 bg-gray-400 rounded-full"></div>
+                        </div>
                         <button
                           type="button"
                           onClick={() => {
                             editMsg(m.id);
                             setActiveMenuId(null);
                           }}
-                          className="px-4 py-2 text-left text-xs font-bold text-blue-600 hover:bg-gray-50"
+                          className="px-3 py-1.5 text-left text-[10px] font-bold text-blue-600 hover:bg-gray-50 active:bg-gray-100"
                         >
                           ✏️ Edit Teks
                         </button>
@@ -314,7 +356,7 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                             editNama(m.id);
                             setActiveMenuId(null);
                           }}
-                          className="px-4 py-2 text-left text-xs font-bold text-purple-600 hover:bg-gray-50"
+                          className="px-3 py-1.5 text-left text-[10px] font-bold text-purple-600 hover:bg-gray-50 active:bg-gray-100"
                         >
                           👤 Edit Nama
                         </button>
@@ -324,9 +366,9 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                             deleteMsg(m, false);
                             setActiveMenuId(null);
                           }}
-                          className="px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-gray-50"
+                          className="px-3 py-1.5 text-left text-[10px] font-bold text-red-600 hover:bg-gray-50 active:bg-gray-100"
                         >
-                          🗑️ Hapus Pesan
+                          🗑️ Ke Tong Sampah
                         </button>
                         <button
                           type="button"
@@ -334,7 +376,7 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                             copyToClipboard(m.pesan, "Pesan");
                             setActiveMenuId(null);
                           }}
-                          className="px-4 py-2 text-left text-xs font-bold text-gray-700 hover:bg-gray-50"
+                          className="px-3 py-1.5 text-left text-[10px] font-bold text-gray-700 hover:bg-gray-50 active:bg-gray-100"
                         >
                           📋 Salin Teks
                         </button>
@@ -347,7 +389,7 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                                 blockUser(m.device_id, m.username);
                                 setActiveMenuId(null);
                               }}
-                              className="px-4 py-2 text-left text-xs font-bold text-orange-600 hover:bg-gray-50"
+                              className="px-3 py-1.5 text-left text-[10px] font-bold text-orange-600 hover:bg-gray-50 active:bg-gray-100"
                             >
                               🚫 Blokir User
                             </button>
@@ -357,7 +399,7 @@ export function MessageItem({ m, colType, isMinimized, currentDeviceId, activeTa
                                 inviteToPrivate(m.device_id, m.username);
                                 setActiveMenuId(null);
                               }}
-                              className="px-4 py-2 text-left text-xs font-bold text-emerald-600 hover:bg-gray-50"
+                              className="px-3 py-1.5 text-left text-[10px] font-bold text-emerald-600 hover:bg-gray-50 active:bg-gray-100"
                             >
                               🔒 Chat Private
                             </button>

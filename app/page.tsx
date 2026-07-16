@@ -330,8 +330,7 @@ export default function Home() {
     delMsg: async (m: any, isSwipe = false) => {
       const isAlreadyDeleted = m.pesan === "___DELETED___";
 
-      // Konfirmasi selalu muncul agar jelas fungsi swipenya bekerja
-      const confirmMsg = isAlreadyDeleted ? "Hapus permanen pesan ini dari database?" : isSwipe ? "Swipe terdeteksi. Apakah Anda yakin ingin menghapus pesan ini?" : "Apakah Anda yakin ingin menghapus pesan ini?";
+      const confirmMsg = isAlreadyDeleted ? "Hapus permanen pesan ini dari database?" : isSwipe ? "Swipe terdeteksi. Pindahkan pesan ini ke tong sampah?" : "Pindahkan pesan ini ke tong sampah?";
 
       if (!confirm(confirmMsg)) return;
 
@@ -346,7 +345,7 @@ export default function Home() {
         // Cek Pemilik Pesan
         if (m.device_id !== currentDeviceId) {
           alert("Anda hanya diizinkan menghapus pesan milik Anda sendiri!");
-          fetchData(); // Kembalikan UI jika gagal
+          fetchData(); 
           return;
         }
 
@@ -361,12 +360,12 @@ export default function Home() {
 
         if (count >= 10) {
           alert("Batas hapus pesan maksimal 10x per hari!");
-          fetchData(); // Kembalikan UI jika gagal
+          fetchData();
           return;
         }
 
         // Soft delete user
-        await supabase
+        const { error } = await supabase
           .from("messages")
           .update({
             pesan: "___DELETED___",
@@ -375,13 +374,19 @@ export default function Home() {
           })
           .eq("id", m.id);
 
+        if (error) {
+          alert("Gagal menghapus pesan, silakan coba lagi.");
+          fetchData();
+          return;
+        }
+
         localStorage.setItem("del_count", (count + 1).toString());
       } else {
         // Logika Admin
         if (isAlreadyDeleted) {
           await supabase.from("messages").delete().eq("id", m.id); // Hard Delete
         } else {
-          await supabase
+          const { error } = await supabase
             .from("messages")
             .update({
               // Soft delete Admin
@@ -390,9 +395,24 @@ export default function Home() {
               deleted_by_admin: true,
             })
             .eq("id", m.id);
+            
+          if (error) {
+            alert("Gagal menghapus pesan ke tong sampah.");
+            fetchData();
+            return;
+          }
         }
       }
-      fetchData(); // Sync ulang dengan server
+      fetchData(); 
+    },
+    
+    emptyTrash: async () => {
+      if (confirm("Kosongkan semua pesan yang telah dihapus di tong sampah secara permanen?")) {
+        const { error } = await supabase.from("messages").delete().eq("pesan", "___DELETED___");
+        if (error) alert("Gagal mengosongkan tempat sampah.");
+        else alert("Tempat sampah berhasil dikosongkan!");
+        fetchData();
+      }
     },
 
     blkUser: async (id: string, nm: string) => {
@@ -619,7 +639,14 @@ export default function Home() {
       ))
     );
 
-  if (!mounted) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Memuat...</div>;
+  if (!mounted) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-gray-900 text-white select-none">
+        <h1 className="text-3xl font-black tracking-widest text-white shadow-sm mb-2 drop-shadow-md">Welcome</h1>
+        <p className="text-sm font-medium mt-1 text-white/50 italic">created by : ipix</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-transparent shadow-xl overflow-hidden font-sans overscroll-none" onClick={() => setInteract((p) => ({ ...p, activeMenu: null }))}>
@@ -630,8 +657,13 @@ export default function Home() {
       />
 
       {auth.isAuth && ui.tab === "admin" && currentHash !== "#block" && (
-        <div onClick={() => window.open(`${window.location.pathname}#block`, "_blank")} className="fixed z-[100] bottom-28 right-4 px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-red-600 border border-red-700 shadow-[0_3px_0_#991b1b,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150">
-          BLOCK MGR
+        <div className="fixed z-[100] bottom-28 right-4 flex flex-col gap-2">
+          <div onClick={() => window.open(`${window.location.pathname}#block`, "_blank")} className="px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-red-600 border border-red-700 shadow-[0_3px_0_#991b1b,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150 text-center">
+            BLOCK MGR
+          </div>
+          <div onClick={dbActions.emptyTrash} className="px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-orange-600 border border-orange-700 shadow-[0_3px_0_#c2410c,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150 text-center">
+            TRASH MGR
+          </div>
         </div>
       )}
 
