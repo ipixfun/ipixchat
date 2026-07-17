@@ -104,7 +104,6 @@ export function MessageItem({
 
   const isPrivateAndNotAdmin = m.is_private && !isMsgAdmin;
   
-  // MERAH TUA DI KANAN DAN BAWAH UNTUK ADMIN
   const borderThicknessClass = isMsgAdmin
     ? "border-r-[3px] border-b-[3px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5"
     : "border-b-[3px] border-r-[3px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5";
@@ -557,7 +556,6 @@ export function MessageItem({
                           setActiveMenuId(null);
                         }}
                       />
-                      {/* --- Pop up Di Atas Titik Tiga, Horizontal, Dinamis, Warna-Warni --- */}
                       <div
                         className="absolute right-0 bottom-full mb-2 bg-gray/95 backdrop-blur-md shadow-xl border border-gray-200 rounded-full z-[100] p-1.5 flex flex-row items-center gap-1 min-w-max origin-bottom-right"
                         onClick={(e) => e.stopPropagation()}

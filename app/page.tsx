@@ -1,11 +1,11 @@
 "use client";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { supabase } from "./lib/supabaseClient"; 
+import { supabase } from "./lib/supabaseClient";
 import Login from "../components/Login";
 import Block from "../components/Block";
 import ChatLayout from "../components/ChatLayout";
-import { MessageItem } from "../components/MessageItem"; // Pastikan path ini tepat
+import { MessageItem } from "../components/MessageItem";
 
 export default function Home() {
   const pathname = usePathname();
@@ -27,6 +27,9 @@ export default function Home() {
     mode: "public" as "public" | "private",
     inputFocus: false,
   });
+  // State untuk mode tampilan layar (2 kolom atau full page)
+  const [viewMode, setViewMode] = useState<"split" | "full-public" | "full-private">("split");
+
   const [counts, setCounts] = useState({ pub: 0, priv: 0 });
   const [adminStat, setAdminStat] = useState({
     online: false,
@@ -118,7 +121,6 @@ export default function Home() {
     }
   }, []);
 
-  // AUTO SCROLL
   useEffect(() => {
     const timer = setTimeout(() => {
       const el = document.getElementById(`bottom-anchor-${ui.mode}`);
@@ -662,6 +664,146 @@ export default function Home() {
     );
   };
 
+  // State dan Handler untuk fitur geser (swipe) pill mode
+  const [pillSwipe, setPillSwipe] = useState({ startX: 0 });
+
+  const handlePubTouchStart = (e: any) => setPillSwipe({ startX: e.touches ? e.touches[0].clientX : e.clientX });
+  const handlePubTouchEnd = (e: any) => {
+    const endX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+    const delta = endX - pillSwipe.startX;
+    if (delta > 40) {
+      // Geser Public ke kanan -> Full Page Public
+      setViewMode("full-public");
+      handleInteraction("public");
+    } else if (delta < -40) {
+      // Geser Public ke kiri -> 2 Kolom
+      setViewMode("split");
+    }
+  };
+
+  const handlePrivTouchStart = (e: any) => setPillSwipe({ startX: e.touches ? e.touches[0].clientX : e.clientX });
+  const handlePrivTouchEnd = (e: any) => {
+    const endX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+    const delta = endX - pillSwipe.startX;
+    if (delta < -40) {
+      // Geser Private ke kiri -> Full Page Private
+      setViewMode("full-private");
+      handleInteraction("private");
+    } else if (delta > 40) {
+      // Geser Private ke kanan -> 2 Kolom
+      setViewMode("split");
+    }
+  };
+
+  // Komponen Input Form yang akan dirender tepat di dalam ChatLayout
+  const renderInputForm = () => (
+    <div className="bg-white/10 backdrop-blur-xl sticky bottom-0 z-20 w-full flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+      {interact.replyTo && (
+        <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${ui.mode === "private" ? "bg-emerald-900/40 border-emerald-500/30 text-emerald-100" : "bg-blue-900/40 border-blue-500/30 text-blue-100"}`} onClick={() => scrollMsg(interact.replyTo.id)}>
+          <div className="truncate flex-1 pr-2">
+            <span className="font-bold">Balas @{interact.replyTo.username.split("●")[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span>
+          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setInteract((p) => ({ ...p, replyTo: null }));
+            }}
+            className="text-white/40 font-bold px-1"
+          >
+            ×
+          </button>
+        </div>
+      )}
+      <form onSubmit={sendMsg} className="p-2 sm:p-3 bg-transparent border-t border-white/10 flex gap-2 items-end w-full relative transition-all duration-300">
+        <div className="relative shrink-0 flex items-center justify-center w-8 mb-2">
+          <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={input.uploadingImage || input.image !== null} />
+          <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full ${(ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv) || input.image !== null ? "text-white/20 pointer-events-none" : "text-white/60 hover:text-blue-400 hover:bg-white/10"}`}>
+            {input.uploadingImage ? (
+              <svg className="animate-spin h-6 w-6 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+              </svg>
+            )}
+          </label>
+        </div>
+
+        <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
+          <div className="text-[9px] text-white/40 mb-1 px-1">{ui.mode === "public" ? "Chat publik mohon bijak" : ui.tab === "admin" && !usersInfo.selPriv ? "Pilih obrolan di atas" : "Chat private admin"}</div>
+
+          <div className="flex items-end gap-2 w-full">
+            {input.image && (
+              <div className="relative shrink-0 mb-1">
+                <img src={input.image} alt="preview" className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-lg border border-white/20 shadow-sm" />
+                <button type="button" onClick={() => setInput((p) => ({ ...p, image: null }))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[9px] font-bold flex items-center justify-center">
+                  ×
+                </button>
+              </div>
+            )}
+
+            <div className="relative flex-1 w-full">
+              <textarea
+                id="chat-input"
+                onFocus={() => setUi((p) => ({ ...p, inputFocus: true }))}
+                onBlur={() => setUi((p) => ({ ...p, inputFocus: false }))}
+                className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm text-white resize-none focus:outline-none min-h-[32px] sm:min-h-[38px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${ui.mode === "private" ? (input.blink ? "bg-emerald-600/40 border-emerald-400 ring-2 ring-emerald-400/50" : "bg-emerald-400/10 border-emerald-400/20 focus:border-emerald-400 focus:bg-emerald-400/20") : input.blink ? "bg-blue-600/40 border-blue-400 ring-2 ring-blue-400/50" : "bg-blue-400/10 border-blue-400/20 focus:border-blue-500 focus:bg-blue-400/20"} ${ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv ? "opacity-30 cursor-not-allowed bg-gray-800" : ""}`}
+                value={input.text}
+                onChange={(e) => {
+                  setInput((p) => ({ ...p, text: e.target.value }));
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMsg(e as any);
+                  }
+                }}
+                placeholder={ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv ? "Pilih user..." : "Ketik pesan..."}
+                maxLength={200}
+                rows={1}
+                disabled={input.sending || (ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv)}
+              />
+              <div className="absolute right-3 bottom-1.5 text-[9px] text-white/30 font-mono select-none opacity-80 bg-black/20 px-1 rounded">{200 - input.text.length}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative shrink-0 flex flex-col justify-end w-[85px] md:w-[110px] h-[32px] sm:h-[38px]">
+          {auth.isAuth && currentHash !== "#block" && (
+            <button
+              type="button"
+              id="btn-refresh-delete"
+              onClick={() => {
+                if (hasInputReady) {
+                  setInput((p) => ({
+                    ...p,
+                    text: "",
+                    image: null,
+                    uploadingImage: false,
+                  }));
+                  setInteract((p) => ({ ...p, replyTo: null }));
+                } else {
+                  window.location.reload();
+                }
+              }}
+              className={`absolute bottom-full mb-1.5 left-0 right-0 px-2 py-0.5 rounded-full font-black tracking-widest text-[8px] border shadow-sm active:scale-95 transition-all text-center select-none ${hasInputReady ? "bg-red-500/80 text-white border-red-600" : "bg-yellow-400/80 text-black border-yellow-500"}`}
+            >
+              {hasInputReady ? "BATAL" : "REFRESH"}
+            </button>
+          )}
+          <button type="submit" disabled={input.sending || (!input.text.trim() && !input.image) || (ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv)} className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv ? "bg-white/10 text-white/30 cursor-not-allowed" : ui.mode === "private" ? "bg-emerald-600/80 text-white" : "bg-blue-600/80 text-white"}`}>
+            {input.sending ? "..." : "Kirim"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+
   if (!mounted) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-gray-900 text-white select-none">
@@ -723,7 +865,11 @@ export default function Home() {
                 setUsersInfo((p) => ({ ...p, selPriv: null }));
                 setInteract((p) => ({ ...p, replyTo: null }));
               }}
-              className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all ${ui.mode === "public" ? "bg-blue-600/80 text-white shadow" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+              onTouchStart={handlePubTouchStart}
+              onTouchEnd={handlePubTouchEnd}
+              onMouseDown={handlePubTouchStart}
+              onMouseUp={handlePubTouchEnd}
+              className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all cursor-grab active:cursor-grabbing ${ui.mode === "public" ? "bg-blue-600/80 text-white shadow" : "bg-transparent text-white/70 hover:bg-white/10"}`}
             >
               <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center">
                 <span className={`${ui.mode === "public" ? "bg-white text-blue-600" : "bg-blue-600 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.pub)}</span>
@@ -736,7 +882,11 @@ export default function Home() {
                 setUsersInfo((p) => ({ ...p, selPriv: null }));
                 setInteract((p) => ({ ...p, replyTo: null }));
               }}
-              className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all ${ui.mode === "private" ? "bg-emerald-600/80 text-white shadow" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+              onTouchStart={handlePrivTouchStart}
+              onTouchEnd={handlePrivTouchEnd}
+              onMouseDown={handlePrivTouchStart}
+              onMouseUp={handlePrivTouchEnd}
+              className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all cursor-grab active:cursor-grabbing ${ui.mode === "private" ? "bg-emerald-600/80 text-white shadow" : "bg-transparent text-white/70 hover:bg-white/10"}`}
             >
               <span className="mr-2 sm:mr-4">🔒 Chat private</span>
               <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center">
@@ -763,117 +913,31 @@ export default function Home() {
             formatMessageTime={getFmt.time}
           />
         ) : (
-          <ChatLayout cMode={ui.mode} hInteract={handleInteraction} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={msgs.pub} privMsgs={msgs.priv} isPill={pill.visible} pDelta={pill.delta} pTouchX={pill.startX} capIdx={pill.idx} setPTouchX={(x: number) => setPill((p) => ({ ...p, startX: x }))} setPDelta={(d: number) => setPill((p) => ({ ...p, delta: d }))} setCapPause={(v: boolean) => setPill((p) => ({ ...p, pause: v }))} setIsPill={(v: boolean) => setPill((p) => ({ ...p, visible: v }))} renderMsgs={renderMsgs} fmtTime={getFmt.time} setSelPriv={(u: string) => setUsersInfo((p) => ({ ...p, selPriv: u }))} />
+          <ChatLayout 
+            cMode={ui.mode} 
+            viewMode={viewMode}
+            hInteract={handleInteraction} 
+            hScroll={hScroll} 
+            aTab={ui.tab} 
+            selPrivUser={usersInfo.selPriv} 
+            pUsers={usersInfo.privUsers} 
+            pubMsgs={msgs.pub} 
+            privMsgs={msgs.priv} 
+            isPill={pill.visible} 
+            pDelta={pill.delta} 
+            pTouchX={pill.startX} 
+            capIdx={pill.idx} 
+            setPTouchX={(x: number) => setPill((p) => ({ ...p, startX: x }))} 
+            setPDelta={(d: number) => setPill((p) => ({ ...p, delta: d }))} 
+            setCapPause={(v: boolean) => setPill((p) => ({ ...p, pause: v }))} 
+            setIsPill={(v: boolean) => setPill((p) => ({ ...p, visible: v }))} 
+            renderMsgs={renderMsgs} 
+            renderInput={renderInputForm}
+            fmtTime={getFmt.time} 
+            setSelPriv={(u: string) => setUsersInfo((p) => ({ ...p, selPriv: u }))} 
+          />
         )}
       </div>
-
-      {currentHash !== "#block" && (
-        <div className="bg-white/10 backdrop-blur-xl sticky bottom-0 z-20 w-full flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-          {interact.replyTo && (
-            <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${ui.mode === "private" ? "bg-emerald-900/40 border-emerald-500/30 text-emerald-100" : "bg-blue-900/40 border-blue-500/30 text-blue-100"}`} onClick={() => scrollMsg(interact.replyTo.id)}>
-              <div className="truncate flex-1 pr-2">
-                <span className="font-bold">Balas @{interact.replyTo.username.split("●")[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span>
-              </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setInteract((p) => ({ ...p, replyTo: null }));
-                }}
-                className="text-white/40 font-bold px-1"
-              >
-                ×
-              </button>
-            </div>
-          )}
-          <form onSubmit={sendMsg} className="p-2 sm:p-3 bg-transparent border-t border-white/10 flex gap-2 items-end w-full relative transition-all duration-300">
-            <div className="relative shrink-0 flex items-center justify-center w-8 mb-2">
-              <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={input.uploadingImage || input.image !== null} />
-              <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full ${(ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv) || input.image !== null ? "text-white/20 pointer-events-none" : "text-white/60 hover:text-blue-400 hover:bg-white/10"}`}>
-                {input.uploadingImage ? (
-                  <svg className="animate-spin h-6 w-6 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                  </svg>
-                )}
-              </label>
-            </div>
-
-            <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
-              <div className="text-[9px] text-white/40 mb-1 px-1">{ui.mode === "public" ? "Chat publik mohon bijak" : ui.tab === "admin" && !usersInfo.selPriv ? "Pilih obrolan di atas" : "Chat private admin"}</div>
-
-              <div className="flex items-end gap-2 w-full">
-                {input.image && (
-                  <div className="relative shrink-0 mb-1">
-                    <img src={input.image} alt="preview" className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-lg border border-white/20 shadow-sm" />
-                    <button type="button" onClick={() => setInput((p) => ({ ...p, image: null }))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[9px] font-bold flex items-center justify-center">
-                      ×
-                    </button>
-                  </div>
-                )}
-
-                <div className="relative flex-1 w-full">
-                  <textarea
-                    id="chat-input"
-                    onFocus={() => setUi((p) => ({ ...p, inputFocus: true }))}
-                    onBlur={() => setUi((p) => ({ ...p, inputFocus: false }))}
-                    className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm text-white resize-none focus:outline-none min-h-[32px] sm:min-h-[38px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${ui.mode === "private" ? (input.blink ? "bg-emerald-600/40 border-emerald-400 ring-2 ring-emerald-400/50" : "bg-emerald-400/10 border-emerald-400/20 focus:border-emerald-400 focus:bg-emerald-400/20") : input.blink ? "bg-blue-600/40 border-blue-400 ring-2 ring-blue-400/50" : "bg-blue-400/10 border-blue-400/20 focus:border-blue-500 focus:bg-blue-400/20"} ${ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv ? "opacity-30 cursor-not-allowed bg-gray-800" : ""}`}
-                    value={input.text}
-                    onChange={(e) => {
-                      setInput((p) => ({ ...p, text: e.target.value }));
-                      e.target.style.height = "auto";
-                      e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`;
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        sendMsg(e as any);
-                      }
-                    }}
-                    placeholder={ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv ? "Pilih user..." : "Ketik pesan..."}
-                    maxLength={200}
-                    rows={1}
-                    disabled={input.sending || (ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv)}
-                  />
-                  <div className="absolute right-3 bottom-1.5 text-[9px] text-white/30 font-mono select-none opacity-80 bg-black/20 px-1 rounded">{200 - input.text.length}</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="relative shrink-0 flex flex-col justify-end w-[85px] md:w-[110px] h-[32px] sm:h-[38px]">
-              {auth.isAuth && currentHash !== "#block" && (
-                <button
-                  type="button"
-                  id="btn-refresh-delete"
-                  onClick={() => {
-                    if (hasInputReady) {
-                      setInput((p) => ({
-                        ...p,
-                        text: "",
-                        image: null,
-                        uploadingImage: false,
-                      }));
-                      setInteract((p) => ({ ...p, replyTo: null }));
-                    } else {
-                      window.location.reload();
-                    }
-                  }}
-                  className={`absolute bottom-full mb-1.5 left-0 right-0 px-2 py-0.5 rounded-full font-black tracking-widest text-[8px] border shadow-sm active:scale-95 transition-all text-center select-none ${hasInputReady ? "bg-red-500/80 text-white border-red-600" : "bg-yellow-400/80 text-black border-yellow-500"}`}
-                >
-                  {hasInputReady ? "BATAL" : "REFRESH"}
-                </button>
-              )}
-              <button type="submit" disabled={input.sending || (!input.text.trim() && !input.image) || (ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv)} className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv ? "bg-white/10 text-white/30 cursor-not-allowed" : ui.mode === "private" ? "bg-emerald-600/80 text-white" : "bg-blue-600/80 text-white"}`}>
-                {input.sending ? "..." : "Kirim"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
       {interact.popup && interact.popup.pesan !== "___DELETED___" && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>

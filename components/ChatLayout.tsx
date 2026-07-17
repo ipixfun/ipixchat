@@ -45,7 +45,34 @@ const WavesBottom = ({ mode }: { mode: "public" | "private" }) => {
 };
 
 /* ---- Main layout ---- */
-export default function ChatLayout({ cMode, is2Col, isExp, hInteract, hScroll, aTab, selPrivUser, pUsers, pubMsgs, privMsgs, isPill, pDelta, pTouchX, capIdx, setPTouchX, setPDelta, setCapPause, setIsPill, renderMsgs, fmtTime, setSelPriv }: any) {
+export default function ChatLayout({ 
+  cMode, 
+  viewMode, 
+  hInteract, 
+  hScroll, 
+  aTab, 
+  selPrivUser, 
+  pUsers, 
+  pubMsgs, 
+  privMsgs, 
+  isPill, 
+  pDelta, 
+  pTouchX, 
+  capIdx, 
+  setPTouchX, 
+  setPDelta, 
+  setCapPause, 
+  setIsPill, 
+  renderMsgs,
+  renderInput, 
+  fmtTime, 
+  setSelPriv 
+}: any) {
+  
+  const isPublicFull = viewMode === "full-public";
+  const isPrivateFull = viewMode === "full-private";
+  // Kalau tidak full-public atau full-private, berarti state nya 'split' (2 Kolom)
+
   return (
     <>
       <style>{`
@@ -56,24 +83,47 @@ export default function ChatLayout({ cMode, is2Col, isExp, hInteract, hScroll, a
       `}</style>
 
       <div className="flex w-full h-full relative transition-all duration-500 ease-in-out">
-        <div className={`h-full flex flex-col transition-all duration-500 ease-out relative bg-transparent ${is2Col ? "w-1/2" : isExp && cMode === "private" ? "w-0 opacity-0 pointer-events-none" : isExp && cMode === "public" ? "w-full" : "w-1/2"}`} onClick={() => hInteract("public")} onTouchStart={() => hInteract("public")} onWheel={() => hInteract("public")}>
+        
+        {/* Kolom Public Chat */}
+        <div 
+          className={`h-full flex flex-col transition-all duration-500 ease-out relative bg-transparent overflow-hidden ${isPublicFull ? "w-full" : isPrivateFull ? "w-0 opacity-0 pointer-events-none" : "w-1/2"}`} 
+          onClick={() => hInteract("public")} 
+          onTouchStart={() => hInteract("public")} 
+          onWheel={() => hInteract("public")}
+        >
           <TrianglesTop mode="public" />
           <WavesBottom mode="public" />
+          
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <div className="text-center text-[9px] font-bold text-blue-500/70 mb-2 tracking-widest uppercase">Ruang Publik</div>
-            {renderMsgs(pubMsgs, "public", is2Col ? !0 : !isExp)}
+            {renderMsgs(pubMsgs, "public")}
             <div id="messages-end-public" className="h-0" />
           </div>
+          {/* Kotak Input melekat hanya di mode dan kolom yang aktif, akan melebar otomatis karena berada dalam flex-col */}
+          {cMode === "public" && renderInput()}
         </div>
 
-        <div className={`h-full flex flex-col transition-all duration-500 ease-out relative bg-transparent ${is2Col ? "w-1/2" : isExp && cMode === "public" ? "w-0 opacity-0 pointer-events-none" : isExp && cMode === "private" ? "w-full" : "w-1/2"}`} onClick={() => hInteract("private")} onTouchStart={() => hInteract("private")} onWheel={() => hInteract("private")}>
+        {/* Kolom Private Chat */}
+        <div 
+          className={`h-full flex flex-col transition-all duration-500 ease-out relative bg-transparent overflow-hidden ${isPrivateFull ? "w-full" : isPublicFull ? "w-0 opacity-0 pointer-events-none" : "w-1/2"}`} 
+          onClick={() => hInteract("private")} 
+          onTouchStart={() => hInteract("private")} 
+          onWheel={() => hInteract("private")}
+        >
           <TrianglesTop mode="private" />
           <WavesBottom mode="private" />
+          
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <div className="text-center text-[9px] font-bold text-emerald-500/70 mb-2 tracking-widest uppercase">Ruang Private</div>
-            {aTab === "admin" && cMode === "private" && !selPrivUser ? <Admin privateUsers={pUsers} setSelectedPrivateUser={setSelPriv} formatMessageTime={fmtTime} /> : renderMsgs(privMsgs, "private", is2Col ? !0 : !isExp)}
+            {aTab === "admin" && cMode === "private" && !selPrivUser ? (
+              <Admin privateUsers={pUsers} setSelectedPrivateUser={setSelPriv} formatMessageTime={fmtTime} />
+            ) : (
+              renderMsgs(privMsgs, "private")
+            )}
             <div id="messages-end-private" className="h-0" />
           </div>
+          {/* Kotak Input melekat hanya di mode dan kolom yang aktif, mengikuti lebar kolom ini (w-full atau w-1/2) */}
+          {cMode === "private" && renderInput()}
         </div>
 
         {isPill && (
