@@ -27,7 +27,7 @@ export default function Home() {
     mode: "public" as "public" | "private",
     inputFocus: false,
   });
-  // State untuk mode tampilan layar (2 kolom atau full page)
+  
   const [viewMode, setViewMode] = useState<"split" | "full-public" | "full-private">("split");
 
   const [counts, setCounts] = useState({ pub: 0, priv: 0 });
@@ -664,40 +664,132 @@ export default function Home() {
     );
   };
 
-  // State dan Handler untuk fitur geser (swipe) pill mode
-  const [pillSwipe, setPillSwipe] = useState({ startX: 0 });
+  // State dan Handler terbaru untuk fitur geser (swipe) pill mode
+  // Menggunakan deltaX untuk live drag tracking
+  const [pillSwipe, setPillSwipe] = useState({ startX: 0, deltaX: 0, dragging: false, activePill: null as "pub" | "priv" | null });
 
-  const handlePubTouchStart = (e: any) => setPillSwipe({ startX: e.touches ? e.touches[0].clientX : e.clientX });
-  const handlePubTouchEnd = (e: any) => {
-    const endX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-    const delta = endX - pillSwipe.startX;
-    if (delta > 40) {
-      // Geser Public ke kanan -> Full Page Public
-      setViewMode("full-public");
-      handleInteraction("public");
-    } else if (delta < -40) {
-      // Geser Public ke kiri -> 2 Kolom
-      setViewMode("split");
-    }
+  const handleTouchStart = (e: any, pill: "pub" | "priv") => {
+    setPillSwipe({
+      startX: e.touches ? e.touches[0].clientX : e.clientX,
+      deltaX: 0,
+      dragging: true,
+      activePill: pill
+    });
   };
 
-  const handlePrivTouchStart = (e: any) => setPillSwipe({ startX: e.touches ? e.touches[0].clientX : e.clientX });
-  const handlePrivTouchEnd = (e: any) => {
-    const endX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-    const delta = endX - pillSwipe.startX;
-    if (delta < -40) {
-      // Geser Private ke kiri -> Full Page Private
-      setViewMode("full-private");
-      handleInteraction("private");
-    } else if (delta > 40) {
-      // Geser Private ke kanan -> 2 Kolom
-      setViewMode("split");
-    }
+  const handleTouchMove = (e: any) => {
+    if (!pillSwipe.dragging) return;
+    const currentX = e.touches ? e.touches[0].clientX : e.clientX;
+    setPillSwipe((p) => ({ ...p, deltaX: currentX - p.startX }));
   };
 
-  // Komponen Input Form yang akan dirender tepat di dalam ChatLayout
+  const handleTouchEnd = (e: any, pill: "pub" | "priv") => {
+    if (!pillSwipe.dragging) return;
+    const delta = pillSwipe.deltaX;
+    
+    if (pill === "pub") {
+      if (delta > 40) {
+        setViewMode("full-public");
+        handleInteraction("public");
+      } else if (delta < -40) {
+        setViewMode("split");
+      }
+    } else {
+      if (delta < -40) {
+        setViewMode("full-private");
+        handleInteraction("private");
+      } else if (delta > 40) {
+        setViewMode("split");
+      }
+    }
+    setPillSwipe({ startX: 0, deltaX: 0, dragging: false, activePill: null });
+  };
+
+  // Komponen Input Form ditarik KELUAR agar menjadi lebar (full-width) pada mode split (2-kolom)
   const renderInputForm = () => (
-    <div className="bg-white/10 backdrop-blur-xl sticky bottom-0 z-20 w-full flex flex-col shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+    <div className="shrink-0 bg-white/5 backdrop-blur-xl z-20 w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] mt-auto border-t border-white/10 relative">
+      
+      {/* POSISI PILL BARU DENGAN ANIMASI GESER */}
+      <div className="shrink-0 flex w-full px-2 pt-2 pb-1 gap-1.5 relative z-30">
+        
+        {/* PILL PUBLIC */}
+        <button
+          onClick={() => {
+            handleInteraction("public");
+            setUsersInfo((p) => ({ ...p, selPriv: null }));
+            setInteract((p) => ({ ...p, replyTo: null }));
+            if (viewMode === "full-private") setViewMode("split");
+          }}
+          onTouchStart={(e) => handleTouchStart(e, "pub")}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={(e) => handleTouchEnd(e, "pub")}
+          onMouseDown={(e) => handleTouchStart(e, "pub")}
+          onMouseMove={handleTouchMove}
+          onMouseUp={(e) => handleTouchEnd(e, "pub")}
+          onMouseLeave={(e) => handleTouchEnd(e, "pub")}
+          style={{
+            transform: pillSwipe.activePill === "pub" && viewMode === "split"
+              ? `translateX(${Math.max(-25, Math.min(25, pillSwipe.deltaX))}px)`
+              : "none"
+          }}
+          className={`relative text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all duration-500 ease-in-out cursor-grab active:cursor-grabbing overflow-hidden ${
+            viewMode === "full-public"
+              ? "flex-[10] py-1.5 sm:py-2 bg-blue-600 shadow-lg text-white"
+              : viewMode === "full-private"
+              ? "flex-none w-0 py-0 opacity-0 min-w-0 pointer-events-none"
+              : `flex-1 py-1.5 sm:py-2 ${ui.mode === "public" ? "bg-blue-600/90 shadow-sm text-white" : "bg-white/10 hover:bg-white/20 text-white/60"}`
+          }`}
+        >
+          <div className="absolute left-2 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center">
+            <span className={`${ui.mode === "public" || viewMode === "full-public" ? "bg-white text-blue-600" : "bg-blue-600/50 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors`}>
+              {getFmt.notif(counts.pub)}
+            </span>
+          </div>
+          <span className={`ml-5 sm:ml-7 whitespace-nowrap overflow-hidden transition-all duration-300 ${viewMode === "full-private" ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
+            🌐 Public Chat
+          </span>
+        </button>
+
+        {/* PILL PRIVATE */}
+        <button
+          onClick={() => {
+            handleInteraction("private");
+            setUsersInfo((p) => ({ ...p, selPriv: null }));
+            setInteract((p) => ({ ...p, replyTo: null }));
+            if (viewMode === "full-public") setViewMode("split");
+          }}
+          onTouchStart={(e) => handleTouchStart(e, "priv")}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={(e) => handleTouchEnd(e, "priv")}
+          onMouseDown={(e) => handleTouchStart(e, "priv")}
+          onMouseMove={handleTouchMove}
+          onMouseUp={(e) => handleTouchEnd(e, "priv")}
+          onMouseLeave={(e) => handleTouchEnd(e, "priv")}
+          style={{
+            transform: pillSwipe.activePill === "priv" && viewMode === "split"
+              ? `translateX(${Math.max(-25, Math.min(25, pillSwipe.deltaX))}px)`
+              : "none"
+          }}
+          className={`relative text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all duration-500 ease-in-out cursor-grab active:cursor-grabbing overflow-hidden ${
+            viewMode === "full-private"
+              ? "flex-[10] py-1.5 sm:py-2 bg-emerald-600 shadow-lg text-white"
+              : viewMode === "full-public"
+              ? "flex-none w-0 py-0 opacity-0 min-w-0 pointer-events-none"
+              : `flex-1 py-1.5 sm:py-2 ${ui.mode === "private" ? "bg-emerald-600/90 shadow-sm text-white" : "bg-white/10 hover:bg-white/20 text-white/60"}`
+          }`}
+        >
+          <span className={`mr-5 sm:mr-7 whitespace-nowrap overflow-hidden transition-all duration-300 ${viewMode === "full-public" ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
+            🔒 Chat private
+          </span>
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center">
+            <span className={`${ui.mode === "private" || viewMode === "full-private" ? "bg-white text-emerald-600" : "bg-emerald-600/50 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors`}>
+              {getFmt.notif(counts.priv)}
+            </span>
+          </div>
+        </button>
+      </div>
+      {/* SELESAI POSISI PILL */}
+
       {interact.replyTo && (
         <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${ui.mode === "private" ? "bg-emerald-900/40 border-emerald-500/30 text-emerald-100" : "bg-blue-900/40 border-blue-500/30 text-blue-100"}`} onClick={() => scrollMsg(interact.replyTo.id)}>
           <div className="truncate flex-1 pr-2">
@@ -715,7 +807,9 @@ export default function Home() {
           </button>
         </div>
       )}
-      <form onSubmit={sendMsg} className="p-2 sm:p-3 bg-transparent border-t border-white/10 flex gap-2 items-end w-full relative transition-all duration-300">
+
+      {/* Kolom Input Form */}
+      <form onSubmit={sendMsg} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 items-end w-full relative transition-all duration-300">
         <div className="relative shrink-0 flex items-center justify-center w-8 mb-2">
           <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={input.uploadingImage || input.image !== null} />
           <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full ${(ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv) || input.image !== null ? "text-white/20 pointer-events-none" : "text-white/60 hover:text-blue-400 hover:bg-white/10"}`}>
@@ -822,7 +916,7 @@ export default function Home() {
       />
 
       {auth.isAuth && ui.tab === "admin" && currentHash !== "#block" && (
-        <div className="fixed z-[100] bottom-28 right-4 flex flex-col gap-2">
+        <div className="fixed z-[100] bottom-36 right-4 flex flex-col gap-2">
           <div onClick={() => window.open(`${window.location.pathname}#block`, "_blank")} className="px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-red-600 border border-red-700 shadow-[0_3px_0_#991b1b,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150 text-center">
             BLOCK MGR
           </div>
@@ -857,46 +951,10 @@ export default function Home() {
               )}
             </div>
           </div>
-
-          <div className="flex mt-3 bg-white/10 backdrop-blur-lg rounded-full p-1 shadow-sm w-full relative">
-            <button
-              onClick={() => {
-                handleInteraction("public");
-                setUsersInfo((p) => ({ ...p, selPriv: null }));
-                setInteract((p) => ({ ...p, replyTo: null }));
-              }}
-              onTouchStart={handlePubTouchStart}
-              onTouchEnd={handlePubTouchEnd}
-              onMouseDown={handlePubTouchStart}
-              onMouseUp={handlePubTouchEnd}
-              className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all cursor-grab active:cursor-grabbing ${ui.mode === "public" ? "bg-blue-600/80 text-white shadow" : "bg-transparent text-white/70 hover:bg-white/10"}`}
-            >
-              <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center">
-                <span className={`${ui.mode === "public" ? "bg-white text-blue-600" : "bg-blue-600 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.pub)}</span>
-              </div>
-              <span className="ml-2 sm:ml-4">🌐 Public Chat</span>
-            </button>
-            <button
-              onClick={() => {
-                handleInteraction("private");
-                setUsersInfo((p) => ({ ...p, selPriv: null }));
-                setInteract((p) => ({ ...p, replyTo: null }));
-              }}
-              onTouchStart={handlePrivTouchStart}
-              onTouchEnd={handlePrivTouchEnd}
-              onMouseDown={handlePrivTouchStart}
-              onMouseUp={handlePrivTouchEnd}
-              className={`relative flex-1 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all cursor-grab active:cursor-grabbing ${ui.mode === "private" ? "bg-emerald-600/80 text-white shadow" : "bg-transparent text-white/70 hover:bg-white/10"}`}
-            >
-              <span className="mr-2 sm:mr-4">🔒 Chat private</span>
-              <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center">
-                <span className={`${ui.mode === "private" ? "bg-white text-emerald-600" : "bg-emerald-600 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm`}>{getFmt.notif(counts.priv)}</span>
-              </div>
-            </button>
-          </div>
         </div>
       )}
 
+      {/* Bagian List Obrolan */}
       <div className={`flex-1 w-full relative flex overflow-hidden transition-colors duration-300 ${ui.mode === "public" ? "bg-blue-900/10" : "bg-emerald-900/10"}`}>
         {ui.tab === "admin" && currentHash === "#block" ? (
           <Block
@@ -932,12 +990,16 @@ export default function Home() {
             setCapPause={(v: boolean) => setPill((p) => ({ ...p, pause: v }))} 
             setIsPill={(v: boolean) => setPill((p) => ({ ...p, visible: v }))} 
             renderMsgs={renderMsgs} 
-            renderInput={renderInputForm}
+            // Sengaja melempar fungsi kosong ke ChatLayout agar menghindari double input pada mode split
+            renderInput={() => <></>}
             fmtTime={getFmt.time} 
             setSelPriv={(u: string) => setUsersInfo((p) => ({ ...p, selPriv: u }))} 
           />
         )}
       </div>
+
+      {/* RENDER FORM INPUT DI LUAR AGAR MENJADI 100% WIDTH (Membentang melewati 2 kolom obrolan) */}
+      {auth.isAuth && currentHash !== "#block" && renderInputForm()}
 
       {interact.popup && interact.popup.pesan !== "___DELETED___" && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
