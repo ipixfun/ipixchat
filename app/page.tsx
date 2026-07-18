@@ -27,7 +27,7 @@ export default function Home() {
     mode: "public" as "public" | "private",
     inputFocus: false,
   });
-  
+
   const [viewMode, setViewMode] = useState<"split" | "full-public" | "full-private">("split");
 
   const [counts, setCounts] = useState({ pub: 0, priv: 0 });
@@ -190,7 +190,7 @@ export default function Home() {
     navigator.clipboard.writeText(t);
     alert(`${l} disalin!`);
   };
-  
+
   const scrollMsg = (id: number) => {
     const el = document.getElementById(`msg-bubble-${id}`);
     if (el) {
@@ -355,7 +355,7 @@ export default function Home() {
         if (isAlreadyDeleted) return;
         if (m.device_id !== currentDeviceId) {
           alert("Anda hanya diizinkan menghapus pesan milik Anda sendiri!");
-          fetchData(); 
+          fetchData();
           return;
         }
 
@@ -392,7 +392,7 @@ export default function Home() {
         localStorage.setItem("del_count", (count + 1).toString());
       } else {
         if (isAlreadyDeleted) {
-          await supabase.from("messages").delete().eq("id", m.id); 
+          await supabase.from("messages").delete().eq("id", m.id);
         } else {
           const { error } = await supabase
             .from("messages")
@@ -402,7 +402,7 @@ export default function Home() {
               deleted_by_admin: true,
             })
             .eq("id", m.id);
-            
+
           if (error) {
             alert("Gagal menghapus pesan ke tong sampah.");
             fetchData();
@@ -410,7 +410,7 @@ export default function Home() {
           }
         }
       }
-      fetchData(); 
+      fetchData();
     },
     emptyTrash: async () => {
       if (confirm("Kosongkan semua pesan yang telah dihapus di tong sampah secara permanen?")) {
@@ -588,7 +588,7 @@ export default function Home() {
       t.style.height = "auto";
       t.blur();
     }
-    
+
     setTimeout(() => {
       const el = document.getElementById(`bottom-anchor-${ui.mode}`);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -599,73 +599,78 @@ export default function Home() {
 
   const hasInputReady = input.text.trim().length > 0 || input.image !== null;
 
+  // Modifikasi renderMsgs: Menyusun Kiri-Kanan Kekinian 
   const renderMsgs = (arr: any[], colType: any) => {
     const messageContent = arr.length === 0 ? (
       <div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div>
     ) : (
-      arr.map((m, idx) => (
-        <div key={m.id} className="relative w-full group">
-          <MessageItem
-            index={idx}
-            m={m}
-            colType={colType}
-            isMinimized={true}
-            currentDeviceId={currentDeviceId}
-            activeTab={ui.tab}
-            isAdminOnline={adminStat.online}
-            adminOfflineTime={adminStat.offlineTime}
-            userStatus={usersInfo.status}
-            activeMenuId={interact.activeMenu}
-            setActiveMenuId={(id: any) => setInteract((p) => ({ ...p, activeMenu: id }))}
-            swipingId={interact.swipeId}
-            setSwipingId={(id: any) => setInteract((p) => ({ ...p, swipeId: id }))}
-            handleTag={(u: string) =>
-              setInput((p) => ({
-                ...p,
-                text: `${p.text} @${u.split("●")[0]} `,
-              }))
-            }
-            handleReply={(m: any) => {
-              setInteract((p) => ({ ...p, replyTo: m }));
-              setInput((p) => ({ ...p, blink: true }));
-              setTimeout(() => setInput((p) => ({ ...p, blink: false })), 800);
-            }}
-            deleteMsg={dbActions.delMsg}
-            copyToClipboard={copyTxt}
-            handleEditLimit={dbActions.editLmt}
-            editMsg={dbActions.editMsg}
-            editNama={dbActions.editNm}
-            blockUser={dbActions.blkUser}
-            inviteToPrivate={(id: string) => {
-              handleInteraction("private");
-              setUsersInfo((p) => ({ ...p, selPriv: id }));
-            }}
-            setPopupMsg={(m: any) => setInteract((p) => ({ ...p, popup: m }))}
-            handleLongPress={(m: any) => setInteract((p) => ({ ...p, popup: m }))}
-            approveImage={dbActions.approveImg}
-            applyCensor={applyCensor}
-            scrollToMessage={(t: string) => {
-              const cleanText = t.endsWith("...") ? t.slice(0, -3) : t;
-              const x = msgs.all.find((m) => m.pesan.includes(cleanText));
-              if (x) scrollMsg(x.id);
-            }}
-            formatMessageTime={getFmt.time}
-            authUser={auth.user}
-          />
-        </div>
-      ))
+      arr.map((m, idx) => {
+        // Cek apakah pesan ini milik user saat ini
+        const isMine = m.device_id === currentDeviceId || m.username === auth.user;
+        return (
+          <div key={m.id} className={`w-full flex mb-3 px-2 ${isMine ? "justify-end pl-12 sm:pl-20" : "justify-start pr-12 sm:pr-20"}`}>
+            <div className={`relative max-w-full flex ${isMine ? "justify-end" : "justify-start"}`}>
+              <MessageItem
+                index={idx}
+                m={m}
+                colType={colType}
+                isMinimized={true}
+                currentDeviceId={currentDeviceId}
+                activeTab={ui.tab}
+                isAdminOnline={adminStat.online}
+                adminOfflineTime={adminStat.offlineTime}
+                userStatus={usersInfo.status}
+                activeMenuId={interact.activeMenu}
+                setActiveMenuId={(id: any) => setInteract((p) => ({ ...p, activeMenu: id }))}
+                swipingId={interact.swipeId}
+                setSwipingId={(id: any) => setInteract((p) => ({ ...p, swipeId: id }))}
+                handleTag={(u: string) =>
+                  setInput((p) => ({
+                    ...p,
+                    text: `${p.text} @${u.split("●")[0]} `,
+                  }))
+                }
+                handleReply={(m: any) => {
+                  setInteract((p) => ({ ...p, replyTo: m }));
+                  setInput((p) => ({ ...p, blink: true }));
+                  setTimeout(() => setInput((p) => ({ ...p, blink: false })), 800);
+                }}
+                deleteMsg={dbActions.delMsg}
+                copyToClipboard={copyTxt}
+                handleEditLimit={dbActions.editLmt}
+                editMsg={dbActions.editMsg}
+                editNama={dbActions.editNm}
+                blockUser={dbActions.blkUser}
+                inviteToPrivate={(id: string) => {
+                  handleInteraction("private");
+                  setUsersInfo((p) => ({ ...p, selPriv: id }));
+                }}
+                setPopupMsg={(m: any) => setInteract((p) => ({ ...p, popup: m }))}
+                handleLongPress={(m: any) => setInteract((p) => ({ ...p, popup: m }))}
+                approveImage={dbActions.approveImg}
+                applyCensor={applyCensor}
+                scrollToMessage={(t: string) => {
+                  const cleanText = t.endsWith("...") ? t.slice(0, -3) : t;
+                  const x = msgs.all.find((m) => m.pesan.includes(cleanText));
+                  if (x) scrollMsg(x.id);
+                }}
+                formatMessageTime={getFmt.time}
+                authUser={auth.user}
+              />
+            </div>
+          </div>
+        );
+      })
     );
 
     return (
-      <div className="w-full flex flex-col">
+      <div className="w-full flex flex-col py-2 overflow-x-hidden">
         {messageContent}
         <div id={`bottom-anchor-${colType}`} className="h-1 shrink-0 mt-2" />
       </div>
     );
   };
 
-  // State dan Handler terbaru untuk fitur geser (swipe) pill mode
-  // Menggunakan deltaX untuk live drag tracking
   const [pillSwipe, setPillSwipe] = useState({ startX: 0, deltaX: 0, dragging: false, activePill: null as "pub" | "priv" | null });
 
   const handleTouchStart = (e: any, pill: "pub" | "priv") => {
@@ -673,7 +678,7 @@ export default function Home() {
       startX: e.touches ? e.touches[0].clientX : e.clientX,
       deltaX: 0,
       dragging: true,
-      activePill: pill
+      activePill: pill,
     });
   };
 
@@ -686,7 +691,7 @@ export default function Home() {
   const handleTouchEnd = (e: any, pill: "pub" | "priv") => {
     if (!pillSwipe.dragging) return;
     const delta = pillSwipe.deltaX;
-    
+
     if (pill === "pub") {
       if (delta > 40) {
         setViewMode("full-public");
@@ -705,14 +710,24 @@ export default function Home() {
     setPillSwipe({ startX: 0, deltaX: 0, dragging: false, activePill: null });
   };
 
-  // Komponen Input Form ditarik KELUAR agar menjadi lebar (full-width) pada mode split (2-kolom)
+  // Kalkulasi efek elastis (karet) pada Pill ketika digeser (Delta x & ScaleX/Y distortion)
+  const calcPillStyle = (pillType: "pub" | "priv") => {
+    if (pillSwipe.activePill !== pillType || viewMode !== "split") return { transform: "none" };
+    const stretchLimit = 60;
+    const delta = pillType === "pub" ? Math.max(0, pillSwipe.deltaX) : Math.min(0, pillSwipe.deltaX);
+    const clampedDelta = Math.max(-stretchLimit, Math.min(stretchLimit, delta));
+    const stretchScale = 1 + Math.abs(clampedDelta) / 200;
+    const skewDeg = clampedDelta / 5;
+    return {
+      transform: `translateX(${clampedDelta}px) scaleX(${stretchScale}) skewX(${skewDeg}deg)`,
+    };
+  };
+
   const renderInputForm = () => (
     <div className="shrink-0 bg-white/5 backdrop-blur-xl z-20 w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] mt-auto border-t border-white/10 relative">
-      
-      {/* POSISI PILL BARU DENGAN ANIMASI GESER */}
-      <div className="shrink-0 flex w-full px-2 pt-2 pb-1 gap-1.5 relative z-30">
+      <div className="shrink-0 flex w-full px-2 pt-3 pb-1 gap-2 relative z-30">
         
-        {/* PILL PUBLIC */}
+        {/* PILL PUBLIC - LIQUID & EKSPRESIF */}
         <button
           onClick={() => {
             handleInteraction("public");
@@ -727,30 +742,30 @@ export default function Home() {
           onMouseMove={handleTouchMove}
           onMouseUp={(e) => handleTouchEnd(e, "pub")}
           onMouseLeave={(e) => handleTouchEnd(e, "pub")}
-          style={{
-            transform: pillSwipe.activePill === "pub" && viewMode === "split"
-              ? `translateX(${Math.max(-25, Math.min(25, pillSwipe.deltaX))}px)`
-              : "none"
-          }}
-          className={`relative text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all duration-500 ease-in-out cursor-grab active:cursor-grabbing overflow-hidden ${
+          style={calcPillStyle("pub")}
+          className={`relative text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-grab active:cursor-grabbing overflow-hidden ${
             viewMode === "full-public"
-              ? "flex-[10] py-1.5 sm:py-2 bg-blue-600 shadow-lg text-white"
+              ? "flex-[10] py-1.5 sm:py-2 shadow-[0_4px_20px_rgba(37,99,235,0.4)] text-white liquid-pill-blue"
               : viewMode === "full-private"
               ? "flex-none w-0 py-0 opacity-0 min-w-0 pointer-events-none"
-              : `flex-1 py-1.5 sm:py-2 ${ui.mode === "public" ? "bg-blue-600/90 shadow-sm text-white" : "bg-white/10 hover:bg-white/20 text-white/60"}`
+              : `flex-1 py-1.5 sm:py-2 ${ui.mode === "public" ? "shadow-md text-white liquid-pill-blue" : "bg-white/5 hover:bg-white/10 text-white/50 rounded-full border border-white/5"}`
           }`}
         >
-          <div className="absolute left-2 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center">
-            <span className={`${ui.mode === "public" || viewMode === "full-public" ? "bg-white text-blue-600" : "bg-blue-600/50 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors`}>
+          <div className="absolute left-2 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center z-10">
+            <span className={`${ui.mode === "public" || viewMode === "full-public" ? "bg-white text-blue-600 shadow-inner" : "bg-blue-600/30 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full transition-colors`}>
               {getFmt.notif(counts.pub)}
             </span>
           </div>
-          <span className={`ml-5 sm:ml-7 whitespace-nowrap overflow-hidden transition-all duration-300 ${viewMode === "full-private" ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
-            🌐 Public Chat
+          
+          <span className={`ml-6 sm:ml-8 whitespace-nowrap z-10 drop-shadow-md flex items-center transition-all duration-300 ${viewMode === "full-private" ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
+            🌐 Public Chat 
+            {viewMode === "split" && ui.mode !== "public" && (
+              <span className="ml-2 text-[9px] font-medium opacity-60 anim-swipe-right">Geser ⪢</span>
+            )}
           </span>
         </button>
 
-        {/* PILL PRIVATE */}
+        {/* PILL PRIVATE - LIQUID & EKSPRESIF */}
         <button
           onClick={() => {
             handleInteraction("private");
@@ -765,30 +780,29 @@ export default function Home() {
           onMouseMove={handleTouchMove}
           onMouseUp={(e) => handleTouchEnd(e, "priv")}
           onMouseLeave={(e) => handleTouchEnd(e, "priv")}
-          style={{
-            transform: pillSwipe.activePill === "priv" && viewMode === "split"
-              ? `translateX(${Math.max(-25, Math.min(25, pillSwipe.deltaX))}px)`
-              : "none"
-          }}
-          className={`relative text-xs sm:text-sm font-semibold rounded-full flex items-center justify-center gap-2 transition-all duration-500 ease-in-out cursor-grab active:cursor-grabbing overflow-hidden ${
+          style={calcPillStyle("priv")}
+          className={`relative text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-grab active:cursor-grabbing overflow-hidden ${
             viewMode === "full-private"
-              ? "flex-[10] py-1.5 sm:py-2 bg-emerald-600 shadow-lg text-white"
+              ? "flex-[10] py-1.5 sm:py-2 shadow-[0_4px_20px_rgba(5,150,105,0.4)] text-white liquid-pill-green"
               : viewMode === "full-public"
               ? "flex-none w-0 py-0 opacity-0 min-w-0 pointer-events-none"
-              : `flex-1 py-1.5 sm:py-2 ${ui.mode === "private" ? "bg-emerald-600/90 shadow-sm text-white" : "bg-white/10 hover:bg-white/20 text-white/60"}`
+              : `flex-1 py-1.5 sm:py-2 ${ui.mode === "private" ? "shadow-md text-white liquid-pill-green" : "bg-white/5 hover:bg-white/10 text-white/50 rounded-full border border-white/5"}`
           }`}
         >
-          <span className={`mr-5 sm:mr-7 whitespace-nowrap overflow-hidden transition-all duration-300 ${viewMode === "full-public" ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
+          <span className={`mr-6 sm:mr-8 whitespace-nowrap z-10 drop-shadow-md flex items-center transition-all duration-300 ${viewMode === "full-public" ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
+            {viewMode === "split" && ui.mode !== "private" && (
+              <span className="mr-2 text-[9px] font-medium opacity-60 anim-swipe-left">⪡ Geser</span>
+            )}
             🔒 Chat private
           </span>
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center">
-            <span className={`${ui.mode === "private" || viewMode === "full-private" ? "bg-white text-emerald-600" : "bg-emerald-600/50 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full shadow-sm transition-colors`}>
+
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center z-10">
+            <span className={`${ui.mode === "private" || viewMode === "full-private" ? "bg-white text-emerald-600 shadow-inner" : "bg-emerald-600/30 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full transition-colors`}>
               {getFmt.notif(counts.priv)}
             </span>
           </div>
         </button>
       </div>
-      {/* SELESAI POSISI PILL */}
 
       {interact.replyTo && (
         <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${ui.mode === "private" ? "bg-emerald-900/40 border-emerald-500/30 text-emerald-100" : "bg-blue-900/40 border-blue-500/30 text-blue-100"}`} onClick={() => scrollMsg(interact.replyTo.id)}>
@@ -911,7 +925,43 @@ export default function Home() {
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-transparent shadow-xl overflow-hidden font-sans overscroll-none" onClick={() => setInteract((p) => ({ ...p, activeMenu: null }))}>
       <style
         dangerouslySetInnerHTML={{
-          __html: ` body{overscroll-behavior-y:none;} @keyframes sL{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(-4px);opacity:1;}} @keyframes sR{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(4px);opacity:1;}} .anim-slide-left{animation:sL 1.4s ease-in-out infinite;} .anim-slide-right{animation:sR 1.4s ease-in-out infinite;} @keyframes bC{0%,100%{filter:brightness(1);}50%{background-color:#fef9c3 !important;filter:brightness(0.9);}} .anim-bg-blink-cream{animation:bC 1.5s ease-in-out;} @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} .anim-text-blink-white{animation:tW 1.5s ease-in-out infinite;} `,
+          __html: ` 
+          body{overscroll-behavior-y:none;} 
+          @keyframes sL{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(-4px);opacity:1;}} 
+          @keyframes sR{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(4px);opacity:1;}} 
+          .anim-slide-left{animation:sL 1.4s ease-in-out infinite;} 
+          .anim-slide-right{animation:sR 1.4s ease-in-out infinite;} 
+          
+          /* ANIMASI GESER PILL */
+          @keyframes swipeHRight { 0%, 100% { transform: translateX(0); opacity: 0.4; } 50% { transform: translateX(6px); opacity: 1; } }
+          @keyframes swipeHLeft { 0%, 100% { transform: translateX(0); opacity: 0.4; } 50% { transform: translateX(-6px); opacity: 1; } }
+          .anim-swipe-right { animation: swipeHRight 1.5s ease-in-out infinite; display: inline-block; }
+          .anim-swipe-left { animation: swipeHLeft 1.5s ease-in-out infinite; display: inline-block; }
+
+          /* ANIMASI LIQUID (BLOBBY + GRADIENT BERJALAN) */
+          @keyframes gradMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+          @keyframes liquidBorder { 
+            0% { border-radius: 999px; } 
+            33% { border-radius: 90px 110px 100px 90px / 100px 90px 110px 100px; } 
+            66% { border-radius: 110px 90px 90px 110px / 90px 110px 100px 90px; } 
+            100% { border-radius: 999px; } 
+          }
+          .liquid-pill-blue {
+            background: linear-gradient(120deg, #1d4ed8, #3b82f6, #60a5fa, #2563eb);
+            background-size: 200% 200%;
+            animation: gradMove 4s ease infinite, liquidBorder 4s ease-in-out infinite;
+          }
+          .liquid-pill-green {
+            background: linear-gradient(120deg, #047857, #10b981, #34d399, #059669);
+            background-size: 200% 200%;
+            animation: gradMove 4s ease infinite reverse, liquidBorder 4s ease-in-out infinite alternate;
+          }
+          
+          @keyframes bC{0%,100%{filter:brightness(1);}50%{background-color:#fef9c3 !important;filter:brightness(0.9);}} 
+          .anim-bg-blink-cream{animation:bC 1.5s ease-in-out;} 
+          @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} 
+          .anim-text-blink-white{animation:tW 1.5s ease-in-out infinite;} 
+          `,
         }}
       />
 
@@ -971,34 +1021,33 @@ export default function Home() {
             formatMessageTime={getFmt.time}
           />
         ) : (
-          <ChatLayout 
-            cMode={ui.mode} 
+          <ChatLayout
+            cMode={ui.mode}
             viewMode={viewMode}
-            hInteract={handleInteraction} 
-            hScroll={hScroll} 
-            aTab={ui.tab} 
-            selPrivUser={usersInfo.selPriv} 
-            pUsers={usersInfo.privUsers} 
-            pubMsgs={msgs.pub} 
-            privMsgs={msgs.priv} 
-            isPill={pill.visible} 
-            pDelta={pill.delta} 
-            pTouchX={pill.startX} 
-            capIdx={pill.idx} 
-            setPTouchX={(x: number) => setPill((p) => ({ ...p, startX: x }))} 
-            setPDelta={(d: number) => setPill((p) => ({ ...p, delta: d }))} 
-            setCapPause={(v: boolean) => setPill((p) => ({ ...p, pause: v }))} 
-            setIsPill={(v: boolean) => setPill((p) => ({ ...p, visible: v }))} 
-            renderMsgs={renderMsgs} 
-            // Sengaja melempar fungsi kosong ke ChatLayout agar menghindari double input pada mode split
+            hInteract={handleInteraction}
+            hScroll={hScroll}
+            aTab={ui.tab}
+            selPrivUser={usersInfo.selPriv}
+            pUsers={usersInfo.privUsers}
+            pubMsgs={msgs.pub}
+            privMsgs={msgs.priv}
+            isPill={pill.visible}
+            pDelta={pill.delta}
+            pTouchX={pill.startX}
+            capIdx={pill.idx}
+            setPTouchX={(x: number) => setPill((p) => ({ ...p, startX: x }))}
+            setPDelta={(d: number) => setPill((p) => ({ ...p, delta: d }))}
+            setCapPause={(v: boolean) => setPill((p) => ({ ...p, pause: v }))}
+            setIsPill={(v: boolean) => setPill((p) => ({ ...p, visible: v }))}
+            renderMsgs={renderMsgs}
             renderInput={() => <></>}
-            fmtTime={getFmt.time} 
-            setSelPriv={(u: string) => setUsersInfo((p) => ({ ...p, selPriv: u }))} 
+            fmtTime={getFmt.time}
+            setSelPriv={(u: string) => setUsersInfo((p) => ({ ...p, selPriv: u }))}
           />
         )}
       </div>
 
-      {/* RENDER FORM INPUT DI LUAR AGAR MENJADI 100% WIDTH (Membentang melewati 2 kolom obrolan) */}
+      {/* RENDER FORM INPUT DI LUAR AGAR MENJADI 100% WIDTH */}
       {auth.isAuth && currentHash !== "#block" && renderInputForm()}
 
       {interact.popup && interact.popup.pesan !== "___DELETED___" && (
