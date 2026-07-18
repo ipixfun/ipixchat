@@ -35,7 +35,6 @@ export function MessageItem({
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchInitialY, setTouchInitialY] = useState(0);
-  const [isExpanded, setIsExpanded] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
   const shortBrowser = m.user_browser
@@ -430,29 +429,32 @@ export function MessageItem({
               )}
             </div>
           )}
-          {m.pesan && (
-            <div className="min-w-0 flex-1">
-              <div
-                className={`break-words whitespace-pre-wrap ${
-                  m.image_url && !isExpanded ? "line-clamp-5" : ""
-                }`}
-              >
-                {renderContent(m.pesan, isMinimized)}
-              </div>
-              {m.image_url &&
-                (m.pesan.length > 150 || m.pesan.split("\n").length > 5) && (
+          {m.pesan && (() => {
+            const paragraphs = m.pesan.split("\n");
+            const isLongText = paragraphs.length > 4;
+            const displayedText = isLongText 
+              ? paragraphs.slice(0, 4).join("\n") + "..." 
+              : m.pesan;
+
+            return (
+              <div className="min-w-0 flex-1">
+                <div className="break-words whitespace-pre-wrap">
+                  {renderContent(displayedText, isMinimized)}
+                </div>
+                {isLongText && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setIsExpanded(!isExpanded);
+                      setPopupMsg(m);
                     }}
                     className="text-blue-600 hover:text-blue-800 text-[10px] font-black mt-1 bg-white/50 px-2 py-0.5 rounded shadow-sm transition-colors block"
                   >
-                    {isExpanded ? "Tampilkan lebih sedikit" : "Selengkapnya..."}
+                    Selengkapnya...
                   </button>
                 )}
-            </div>
-          )}
+              </div>
+            );
+          })()}
         </div>
 
         <div
