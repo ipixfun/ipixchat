@@ -6,6 +6,7 @@ import Login from "../components/Login";
 import Block from "../components/Block";
 import ChatLayout from "../components/ChatLayout";
 import { MessageItem } from "../components/MessageItem";
+import Loading from "./loading";
 
 export default function Home() {
   const pathname = usePathname();
@@ -939,12 +940,7 @@ export default function Home() {
   );
 
   if (!mounted) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center bg-gray-900 text-white select-none">
-        <h1 className="text-3xl font-black tracking-widest text-white shadow-sm mb-2 drop-shadow-md">Welcome</h1>
-        <p className="text-sm font-medium mt-1 text-white/50 italic">created by : ipix</p>
-      </div>
-    );
+    return <Loading />;
   }
 
   return (
