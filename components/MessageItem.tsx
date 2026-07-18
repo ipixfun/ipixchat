@@ -429,23 +429,48 @@ export function MessageItem({
               )}
             </div>
           )}
+          
+          {/* LOGIKA PEMOTONGAN TEKS BERDASARKAN KOLOM (UPDATED: CSS LINE-CLAMP) */}
           {m.pesan && (() => {
+            const isPage2Private = colType === "private";
+            
+            // Heuristik untuk memunculkan tombol "Selengkapnya"
+            const maxLines = isPage2Private ? 4 : 2;
+            const maxChars = isPage2Private ? 120 : 60; // Diperkecil agar teks tanpa spasi/enter cepat terdeteksi
+            
             const paragraphs = m.pesan.split("\n");
-            const isLongText = paragraphs.length > 4;
-            const displayedText = isLongText 
-              ? paragraphs.slice(0, 4).join("\n") + "..." 
-              : m.pesan;
+            
+            // Teks akan memunculkan tombol "Selengkapnya" jika enter > batas ATAU karakter > batas
+            const isLongText = paragraphs.length > maxLines || m.pesan.length > maxChars;
 
             return (
               <div className="min-w-0 flex-1">
-                <div className="break-words whitespace-pre-wrap">
-                  {renderContent(displayedText, isMinimized)}
+                {/* 
+                  Menggunakan CSS 'line-clamp' (Tailwind) untuk memaksa potong baris secara fisik.
+                  Teks asli tetap dikirim ke renderContent agar format Quote (@user) tidak rusak.
+                */}
+                <div 
+                  className={`break-words whitespace-pre-wrap ${
+                    isLongText 
+                      ? (isPage2Private ? "line-clamp-4" : "line-clamp-2") 
+                      : ""
+                  }`}
+                  // Fallback style jika Tailwind line-clamp plugin tidak terinstall
+                  style={isLongText ? {
+                    display: '-webkit-box',
+                    WebkitLineClamp: isPage2Private ? 4 : 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  } : {}}
+                >
+                  {renderContent(m.pesan, isMinimized)}
                 </div>
+                
                 {isLongText && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setPopupMsg(m);
+                      setPopupMsg(m); // Memanggil Pop-Up Besar ketika diklik
                     }}
                     className="text-blue-600 hover:text-blue-800 text-[10px] font-black mt-1 bg-white/50 px-2 py-0.5 rounded shadow-sm transition-colors block"
                   >
