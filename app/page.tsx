@@ -599,17 +599,23 @@ export default function Home() {
 
   const hasInputReady = input.text.trim().length > 0 || input.image !== null;
 
-  // Modifikasi renderMsgs: Menyusun Kiri-Kanan Kekinian 
+  // MODIFIKASI: Layout kotak chat dibuat dinamis & proporsional (horizontal memanjang)
   const renderMsgs = (arr: any[], colType: any) => {
     const messageContent = arr.length === 0 ? (
       <div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div>
     ) : (
       arr.map((m, idx) => {
-        // Cek apakah pesan ini milik user saat ini
         const isMine = m.device_id === currentDeviceId || m.username === auth.user;
+        
+        // Kotak Chat Dinamis Persegi Panjang:
+        // - Mode Split: melebar maksimal hingga 95% agar tidak terlalu square/kotak tertekan
+        // - Mode Full: membatasi maksimal 85% layaknya WhatsApp agar proporsional secara horizontal
+        const maxWidthClass = viewMode === "split" ? "max-w-[95%]" : "max-w-[85%] md:max-w-[75%]";
+
         return (
-          <div key={m.id} className={`w-full flex mb-3 px-2 ${isMine ? "justify-end pl-12 sm:pl-20" : "justify-start pr-12 sm:pr-20"}`}>
-            <div className={`relative max-w-full flex ${isMine ? "justify-end" : "justify-start"}`}>
+          <div key={m.id} className={`w-full flex mb-3 px-2 sm:px-4 ${isMine ? "justify-end" : "justify-start"}`}>
+            {/* Wrapper diatur sebagai flex-col dengan min-w-[35%] untuk memaksa bentuk persegi panjang dinamis */}
+            <div className={`relative flex flex-col chat-bubble-wrapper min-w-[35%] ${maxWidthClass} ${isMine ? "items-end" : "items-start"}`}>
               <MessageItem
                 index={idx}
                 m={m}
@@ -692,32 +698,38 @@ export default function Home() {
     if (!pillSwipe.dragging) return;
     const delta = pillSwipe.deltaX;
 
+    // Logika Swipe yang lebih ekspresif (Bisa ke Split atau Full)
     if (pill === "pub") {
-      if (delta > 40) {
+      if (delta > 40 && viewMode === "split") {
         setViewMode("full-public");
         handleInteraction("public");
-      } else if (delta < -40) {
+      } else if (delta < -40 && viewMode === "full-public") {
+        setViewMode("split");
+      } else if (delta < -40 && viewMode === "split") {
         setViewMode("split");
       }
     } else {
-      if (delta < -40) {
+      if (delta < -40 && viewMode === "split") {
         setViewMode("full-private");
         handleInteraction("private");
-      } else if (delta > 40) {
+      } else if (delta > 40 && viewMode === "full-private") {
+        setViewMode("split");
+      } else if (delta > 40 && viewMode === "split") {
         setViewMode("split");
       }
     }
     setPillSwipe({ startX: 0, deltaX: 0, dragging: false, activePill: null });
   };
 
-  // Kalkulasi efek elastis (karet) pada Pill ketika digeser (Delta x & ScaleX/Y distortion)
   const calcPillStyle = (pillType: "pub" | "priv") => {
-    if (pillSwipe.activePill !== pillType || viewMode !== "split") return { transform: "none" };
-    const stretchLimit = 60;
-    const delta = pillType === "pub" ? Math.max(0, pillSwipe.deltaX) : Math.min(0, pillSwipe.deltaX);
+    if (pillSwipe.activePill !== pillType) return { transform: "none" };
+    const stretchLimit = 65;
+    const delta = pillSwipe.deltaX;
+    
+    // Perhitungan arah tarikan (baik di Split maupun Full)
     const clampedDelta = Math.max(-stretchLimit, Math.min(stretchLimit, delta));
-    const stretchScale = 1 + Math.abs(clampedDelta) / 200;
-    const skewDeg = clampedDelta / 5;
+    const stretchScale = 1 + Math.abs(clampedDelta) / 180;
+    const skewDeg = clampedDelta / 6;
     return {
       transform: `translateX(${clampedDelta}px) scaleX(${stretchScale}) skewX(${skewDeg}deg)`,
     };
@@ -727,7 +739,7 @@ export default function Home() {
     <div className="shrink-0 bg-white/5 backdrop-blur-xl z-20 w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] mt-auto border-t border-white/10 relative">
       <div className="shrink-0 flex w-full px-2 pt-3 pb-1 gap-2 relative z-30">
         
-        {/* PILL PUBLIC - LIQUID & EKSPRESIF */}
+        {/* PILL PUBLIC - LIQUID & EKSPRESIF + INFO SWIPE DUA ARAH */}
         <button
           onClick={() => {
             handleInteraction("public");
@@ -751,21 +763,28 @@ export default function Home() {
               : `flex-1 py-1.5 sm:py-2 ${ui.mode === "public" ? "shadow-md text-white liquid-pill-blue" : "bg-white/5 hover:bg-white/10 text-white/50 rounded-full border border-white/5"}`
           }`}
         >
-          <div className="absolute left-2 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center z-10">
+          <div className={`absolute left-2 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center z-10 transition-opacity ${viewMode === "full-public" ? "opacity-100" : "opacity-100"}`}>
             <span className={`${ui.mode === "public" || viewMode === "full-public" ? "bg-white text-blue-600 shadow-inner" : "bg-blue-600/30 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full transition-colors`}>
               {getFmt.notif(counts.pub)}
             </span>
           </div>
           
           <span className={`ml-6 sm:ml-8 whitespace-nowrap z-10 drop-shadow-md flex items-center transition-all duration-300 ${viewMode === "full-private" ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
-            🌐 Public Chat 
-            {viewMode === "split" && ui.mode !== "public" && (
-              <span className="ml-2 text-[9px] font-medium opacity-60 anim-swipe-right">Geser ⪢</span>
+            {viewMode === "full-public" ? (
+              <span className="flex items-center gap-2">
+                <span className="text-[10px] font-medium opacity-80 anim-swipe-left">⪡ Geser Kembali</span>
+                🌐 Public Chat
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                🌐 Public Chat 
+                {ui.mode !== "public" && <span className="text-[9px] font-medium opacity-80 anim-swipe-right">Geser ⪢</span>}
+              </span>
             )}
           </span>
         </button>
 
-        {/* PILL PRIVATE - LIQUID & EKSPRESIF */}
+        {/* PILL PRIVATE - LIQUID & EKSPRESIF + INFO SWIPE DUA ARAH */}
         <button
           onClick={() => {
             handleInteraction("private");
@@ -790,10 +809,17 @@ export default function Home() {
           }`}
         >
           <span className={`mr-6 sm:mr-8 whitespace-nowrap z-10 drop-shadow-md flex items-center transition-all duration-300 ${viewMode === "full-public" ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
-            {viewMode === "split" && ui.mode !== "private" && (
-              <span className="mr-2 text-[9px] font-medium opacity-60 anim-swipe-left">⪡ Geser</span>
+            {viewMode === "full-private" ? (
+              <span className="flex items-center gap-2">
+                🔒 Chat Private
+                <span className="text-[10px] font-medium opacity-80 anim-swipe-right">Geser Kembali ⪢</span>
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                {ui.mode !== "private" && <span className="text-[9px] font-medium opacity-80 anim-swipe-left">⪡ Geser</span>}
+                🔒 Chat Private
+              </span>
             )}
-            🔒 Chat private
           </span>
 
           <div className="absolute right-2 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center z-10">
@@ -932,11 +958,11 @@ export default function Home() {
           .anim-slide-left{animation:sL 1.4s ease-in-out infinite;} 
           .anim-slide-right{animation:sR 1.4s ease-in-out infinite;} 
           
-          /* ANIMASI GESER PILL */
-          @keyframes swipeHRight { 0%, 100% { transform: translateX(0); opacity: 0.4; } 50% { transform: translateX(6px); opacity: 1; } }
-          @keyframes swipeHLeft { 0%, 100% { transform: translateX(0); opacity: 0.4; } 50% { transform: translateX(-6px); opacity: 1; } }
-          .anim-swipe-right { animation: swipeHRight 1.5s ease-in-out infinite; display: inline-block; }
-          .anim-swipe-left { animation: swipeHLeft 1.5s ease-in-out infinite; display: inline-block; }
+          /* ANIMASI GESER PILL YG LEBIH MENONJOL */
+          @keyframes swipeHRight { 0%, 100% { transform: translateX(0); opacity: 0.3; } 50% { transform: translateX(8px); opacity: 1; } }
+          @keyframes swipeHLeft { 0%, 100% { transform: translateX(0); opacity: 0.3; } 50% { transform: translateX(-8px); opacity: 1; } }
+          .anim-swipe-right { animation: swipeHRight 1.5s ease-in-out infinite; display: inline-block; font-weight: 800; }
+          .anim-swipe-left { animation: swipeHLeft 1.5s ease-in-out infinite; display: inline-block; font-weight: 800; }
 
           /* ANIMASI LIQUID (BLOBBY + GRADIENT BERJALAN) */
           @keyframes gradMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
@@ -957,6 +983,11 @@ export default function Home() {
             animation: gradMove 4s ease infinite reverse, liquidBorder 4s ease-in-out infinite alternate;
           }
           
+          /* MEMAKSA ANAK CHAT BUBBLE MENGISI LEBAR WRAPPER */
+          .chat-bubble-wrapper > div {
+             width: 100%;
+          }
+
           @keyframes bC{0%,100%{filter:brightness(1);}50%{background-color:#fef9c3 !important;filter:brightness(0.9);}} 
           .anim-bg-blink-cream{animation:bC 1.5s ease-in-out;} 
           @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} 
@@ -1014,8 +1045,8 @@ export default function Home() {
               fetchData();
             }}
             blockedWords={censor.words}
-            newBadWord={censor.newWord}
-            setNewBadWord={(w: string) => setCensor((p) => ({ ...p, newWord: w }))}
+            newWord={censor.newWord}
+            setNewWord={(w: string) => setCensor((p) => ({ ...p, newWord: w }))}
             addBlockedWord={dbActions.addWrd}
             removeBlockedWord={dbActions.rmWrd}
             formatMessageTime={getFmt.time}
