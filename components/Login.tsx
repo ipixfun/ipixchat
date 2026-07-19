@@ -6,12 +6,12 @@ export default function Login({
   activeTab,
   username,
   setUsername,
-  pin,              // <-- Tambahan Prop PIN
-  setPin,           // <-- Tambahan Prop PIN
-  umur,             // <-- Umur dijadikan prop agar bisa dibaca page.tsx untuk Supabase
-  setUmur,          // <-- Umur dijadikan prop
-  berat,            // <-- Berat dijadikan prop agar bisa dibaca page.tsx untuk Supabase
-  setBerat,         // <-- Berat dijadikan prop
+  pin,              
+  setPin,           
+  umur,             
+  setUmur,          
+  berat,            
+  setBerat,         
   isExistingUser,
   adminEmail,
   setAdminEmail,
@@ -181,6 +181,7 @@ export default function Login({
               <>
                 {/* Input Nama / Username - Abu-abu blur default, teks biru tua & bold ketika diinput */}
                 <input 
+                  autoComplete="off" // <-- Ditambahkan agar Google tidak menyarankan username
                   className={`w-full p-3.5 sm:p-4 rounded-full focus:outline-none transition-all text-center text-base sm:text-lg tracking-wide mb-3 shadow-inner font-bold backdrop-blur-sm bg-neutral-500/20 text-blue-900 placeholder-neutral-500 focus:ring-2 focus:ring-blue-300 ${usernameBorderClass}`}
                   placeholder={placeholderText} 
                   value={username || ""} 
@@ -195,6 +196,7 @@ export default function Login({
                 <input 
                   type="password"
                   inputMode="numeric"
+                  autoComplete="new-password" // <-- Ditambahkan agar pop-up password terekspos HILANG
                   className={`w-full p-3.5 sm:p-4 rounded-full focus:outline-none transition-all text-center text-base sm:text-lg tracking-wide mb-4 shadow-inner font-bold backdrop-blur-sm bg-neutral-500/20 text-blue-900 placeholder-neutral-500 focus:ring-2 focus:ring-blue-300 ${pinBorderClass}`}
                   placeholder="PIN 6 Digit (Angka)" 
                   value={pin || ""} 
@@ -319,6 +321,7 @@ export default function Login({
           <div className="w-full flex flex-col items-center relative z-10">
             {/* Input Admin */}
             <input 
+              autoComplete="off" // <-- Ditambahkan untuk Admin
               className="w-full p-3.5 sm:p-4 mb-3.5 bg-white/40 backdrop-blur-sm text-gray-900 placeholder-gray-700 border border-white/30 rounded-full focus:border-blue-400 focus:ring-2 focus:ring-blue-300 focus:outline-none transition-all text-center text-sm sm:text-md tracking-wide shadow-inner font-bold" 
               placeholder="Email Admin" 
               value={adminEmail || ""} 
@@ -326,6 +329,7 @@ export default function Login({
             />
             <input 
               type="password" 
+              autoComplete="new-password" // <-- Ditambahkan untuk Admin
               className="w-full p-3.5 sm:p-4 mb-6 sm:mb-8 bg-white/40 backdrop-blur-sm text-gray-900 placeholder-gray-700 border border-white/30 rounded-full focus:border-blue-400 focus:ring-2 focus:ring-blue-300 focus:outline-none transition-all text-center text-sm sm:text-md tracking-wide shadow-inner font-bold" 
               placeholder="Password Admin" 
               value={adminPass || ""} 
