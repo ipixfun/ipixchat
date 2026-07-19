@@ -201,13 +201,13 @@ export default function Home() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     sessionStorage.clear();
-    localStorage.removeItem("active_username"); // Hapus username aktif dari lokal
+    localStorage.removeItem("active_username"); 
     setAuth((p) => ({ ...p, isAuth: false, pin: "", umur: "", berat: "" }));
     window.location.replace("/");
   };
 
+  // PERUBAHAN UTAMA 1: Fetching data menggunakan USERNAME bukan DEVICE ID
   const fetchData = useCallback(async () => {
-    if (!currentDeviceId) return;
     try {
       const [{ data: bD }, { data: bW }, { data: pD }, { data: prD }] = await Promise.all([
         supabase.from("blocked_users").select("*"),
@@ -217,10 +217,18 @@ export default function Home() {
           .from("messages")
           .select("*")
           .eq("is_private", true)
-          .or(ui.tab === "user" ? `device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}` : usersInfo.selPriv ? `device_id.eq.${usersInfo.selPriv},private_with.eq.${usersInfo.selPriv}` : "device_id.eq.none")
+          // PERUBAHAN: Filter Private Chat berdasar Username
+          .or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},private_with.eq.${auth.user}` : usersInfo.selPriv ? `username.eq.${usersInfo.selPriv},private_with.eq.${usersInfo.selPriv}` : "id.eq.0")
           .order("created_at", { ascending: true }),
       ]);
+      
       if (bW) setCensor((p) => ({ ...p, words: bW.map((w) => w.word) }));
+      
+      // PERUBAHAN: Pengecekan blokir dilempar jika USERNAME ada di tabel blocked_users
+      if (auth.user && bD?.some((b) => b.username === auth.user)) {
+         return window.location.replace("https://ipix.my.id/chat");
+      }
+
       if (auth.isAuth) {
         const [{ count: pubC }, { count: privC }] = await Promise.all([
           supabase.from("messages").select("*", { count: "exact", head: true }).eq("is_private", false),
@@ -228,15 +236,15 @@ export default function Home() {
             .from("messages")
             .select("*", { count: "exact", head: true })
             .eq("is_private", true)
-            .or(ui.tab === "user" ? `device_id.eq.${currentDeviceId},private_with.eq.${currentDeviceId}` : `id.gt.0`),
+            // PERUBAHAN: Hitung total berdasar Username
+            .or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},private_with.eq.${auth.user}` : `id.gt.0`),
         ]);
         setCounts({ pub: pubC || 0, priv: privC || 0 });
       }
-      // Pengecekan blokir tetap by device ID untuk keamanan agar HP yang di-banned tidak bisa masuk
-      if (bD?.some((b) => b.device_id === currentDeviceId)) return window.location.replace("https://ipix.my.id/chat");
 
-      const vPub = pD?.filter((m) => !bD?.map((b) => b.device_id).includes(m.device_id)) || [];
-      const vPriv = prD?.filter((m) => !bD?.map((b) => b.device_id).includes(m.device_id)) || [];
+      // PERUBAHAN: Menyembunyikan chat dari user terblokir berdasar Username
+      const vPub = pD?.filter((m) => !bD?.map((b) => b.username).includes(m.username)) || [];
+      const vPriv = prD?.filter((m) => !bD?.map((b) => b.username).includes(m.username)) || [];
       setMsgs({ all: [...vPub, ...vPriv], pub: vPub, priv: vPriv });
 
       const lAdmin = [...vPub, ...vPriv].filter((m) => m.username === "Admin●ipix.my.id").pop();
@@ -262,27 +270,29 @@ export default function Home() {
       });
       setUsersInfo((p) => ({ ...p, status: sMap, blockedList: bD || [] }));
 
+      // PERUBAHAN: Grouping Private Users untuk Admin berdasar USERNAME, bukan device id
       if (ui.tab === "admin" && !usersInfo.selPriv) {
-        const { data: aP } = await supabase.from("messages").select("device_id, username, created_at").eq("is_private", true).order("created_at", { ascending: false });
+        const { data: aP } = await supabase.from("messages").select("username, created_at").eq("is_private", true).order("created_at", { ascending: false });
         if (aP) {
           const uMap = new Map();
           const c: Record<string, number> = {};
           aP.forEach((m) => {
-            if (m.username !== "Admin●ipix.my.id" && m.device_id !== currentDeviceId) c[m.device_id] = (c[m.device_id] || 0) + 1;
+            if (m.username !== "Admin●ipix.my.id") c[m.username] = (c[m.username] || 0) + 1;
           });
           aP.forEach((m) => {
-            if (m.username !== "Admin●ipix.my.id" && m.device_id !== currentDeviceId && !uMap.has(m.device_id))
-              uMap.set(m.device_id, {
+            if (m.username !== "Admin●ipix.my.id" && !uMap.has(m.username))
+              uMap.set(m.username, {
                 ...m,
                 last_active: m.created_at,
-                count: c[m.device_id] || 0,
+                count: c[m.username] || 0,
               });
           });
           setUsersInfo((p) => ({ ...p, privUsers: Array.from(uMap.values()) }));
         }
       }
     } catch (e) {}
-  }, [ui.tab, usersInfo.selPriv, currentDeviceId, auth.isAuth, getFmt]);
+  // Tambahkan auth.user sebagai dependency
+  }, [ui.tab, usersInfo.selPriv, currentDeviceId, auth.isAuth, auth.user, getFmt]); 
 
   const updateMsgLocal = (id: number, newText: string, isEdited: boolean, editedBy: string, imageUrl?: any, deletedByAdmin?: boolean) => {
     setMsgs((prev) => {
@@ -354,7 +364,6 @@ export default function Home() {
       if (auth.user !== "Admin●ipix.my.id") {
         if (isAlreadyDeleted) return;
         
-        // PERUBAHAN: Validasi hapus pesan sekarang berdasarkan USERNAME, bukan device_id
         if (m.username !== auth.user) {
           alert("Anda hanya diizinkan menghapus pesan milik Anda sendiri!");
           fetchData();
@@ -462,7 +471,6 @@ export default function Home() {
     const chk = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
-      // PERUBAHAN DISINI: Ambil dari localStorage ('active_username') atau sessionStorage sbg fallback
       const savedUsername = localStorage.getItem("active_username") || sessionStorage.getItem("saved_username");
       if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
           const { data: pD } = await supabase.from("profiles").select("username, pin, umur, berat").eq("username", savedUsername).single();
@@ -523,7 +531,6 @@ export default function Home() {
       const { count } = await supabase
         .from("messages")
         .select("*", { count: "exact", head: true })
-        // PERUBAHAN: Limit upload berdasar username, bukan device_id
         .eq("username", auth.user)
         .not("image_url", "is", null)
         .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
@@ -558,6 +565,14 @@ export default function Home() {
   const sendMsg = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!input.text.trim() && !input.image) || input.sending) return;
+
+    // PERUBAHAN: Validasi Blokir saat mengirim pesan
+    const isBlocked = usersInfo.blockedList.some((b) => b.username === auth.user);
+    if (isBlocked) {
+      alert("Akun Anda telah diblokir. Pesan tidak dapat dikirim.");
+      return;
+    }
+
     if (isCensored(input.text)) {
       alert("Pesan gagal dikirim karena mengandung kata terlarang!");
       return;
@@ -576,7 +591,6 @@ export default function Home() {
       const { count } = await supabase
         .from("messages")
         .select("*", { count: "exact", head: true })
-        // PERUBAHAN: Limit chat berdasar username, bukan device_id
         .eq("username", auth.user)
         .gte("created_at", fiveMinsAgo);
 
@@ -593,7 +607,7 @@ export default function Home() {
         pesan: txt,
         image_url: input.image,
         is_approved: auth.user === "Admin●ipix.my.id",
-        device_id: currentDeviceId || "guest", // Tetap disimpan untuk loging/banning level device
+        device_id: currentDeviceId || "guest",
         is_private: ui.mode === "private",
         private_with: ui.mode === "private" ? (ui.tab === "user" ? "admin" : usersInfo.selPriv) : null,
         user_browser: navigator.userAgent,
@@ -637,7 +651,6 @@ export default function Home() {
       <div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div>
     ) : (
       arr.map((m, idx) => {
-        // PERUBAHAN DISINI: Penentuan 'Pesan Saya' murni berdasarkan username yang login
         const isMine = m.username === auth.user;
         const maxWidthClass = viewMode === "split" ? "max-w-[95%]" : "max-w-[85%] md:max-w-[75%]";
 
@@ -675,9 +688,10 @@ export default function Home() {
                 editMsg={dbActions.editMsg}
                 editNama={dbActions.editNm}
                 blockUser={dbActions.blkUser}
-                inviteToPrivate={(id: string) => {
+                inviteToPrivate={() => {
+                  // PERUBAHAN: Set selPriv berdasarkan username dari map message
                   handleInteraction("private");
-                  setUsersInfo((p) => ({ ...p, selPriv: id }));
+                  setUsersInfo((p) => ({ ...p, selPriv: m.username }));
                 }}
                 setPopupMsg={(m: any) => setInteract((p) => ({ ...p, popup: m }))}
                 handleLongPress={(m: any) => setInteract((p) => ({ ...p, popup: m }))}
@@ -777,205 +791,212 @@ export default function Home() {
     };
   };
 
-  const renderInputForm = () => (
-    <div className="shrink-0 bg-white/5 backdrop-blur-xl z-20 w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] mt-auto border-t border-white/10 relative">
-      <div className="shrink-0 flex w-full px-2 pt-3 pb-1 gap-2 relative z-30">
-        
-        <button
-          onClick={() => {
-            handleInteraction("public");
-            setUsersInfo((p) => ({ ...p, selPriv: null }));
-            setInteract((p) => ({ ...p, replyTo: null }));
-            if (viewMode === "full-private") setViewMode("split");
-          }}
-          onTouchStart={(e) => handleTouchStart(e, "pub")}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={(e) => handleTouchEnd(e, "pub")}
-          onMouseDown={(e) => handleTouchStart(e, "pub")}
-          onMouseMove={handleTouchMove}
-          onMouseUp={(e) => handleTouchEnd(e, "pub")}
-          onMouseLeave={(e) => handleTouchEnd(e, "pub")}
-          style={calcPillStyle("pub")}
-          className={`relative text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-grab active:cursor-grabbing overflow-hidden ${
-            viewMode === "full-public"
-              ? "flex-[10] py-1.5 sm:py-2 shadow-[0_4px_20px_rgba(37,99,235,0.4)] text-white liquid-pill-blue"
-              : viewMode === "full-private"
-              ? "flex-none w-0 py-0 opacity-0 min-w-0 pointer-events-none"
-              : `flex-1 py-1.5 sm:py-2 ${ui.mode === "public" ? "shadow-md text-white liquid-pill-blue" : "bg-white/5 hover:bg-white/10 text-white/50 rounded-full border border-white/5"}`
-          }`}
-        >
-          <div className={`absolute left-2 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center z-10 transition-opacity ${viewMode === "full-public" ? "opacity-100" : "opacity-100"}`}>
-            <span className={`${ui.mode === "public" || viewMode === "full-public" ? "bg-white text-blue-600 shadow-inner" : "bg-blue-600/30 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full transition-colors`}>
-              {getFmt.notif(counts.pub)}
-            </span>
-          </div>
+  // PERUBAHAN: Render Input Form mematikan UI jika status isBlocked = true
+  const renderInputForm = () => {
+    const isBlocked = usersInfo.blockedList.some((b) => b.username === auth.user);
+
+    return (
+      <div className="shrink-0 bg-white/5 backdrop-blur-xl z-20 w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] mt-auto border-t border-white/10 relative">
+        <div className="shrink-0 flex w-full px-2 pt-3 pb-1 gap-2 relative z-30">
           
-          <span className={`ml-6 sm:ml-8 whitespace-nowrap z-10 drop-shadow-md flex items-center transition-all duration-300 ${viewMode === "full-private" ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
-            {viewMode === "full-public" ? (
-              <span className="flex items-center gap-2">
-                <span className="text-[10px] font-medium opacity-80 anim-swipe-left">⪡ Geser Kembali</span>
-                🌐 Public Chat
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                🌐 Public Chat 
-                {ui.mode !== "public" && <span className="text-[9px] font-medium opacity-80 anim-swipe-right">Geser ⪢</span>}
-              </span>
-            )}
-          </span>
-        </button>
-
-        <button
-          onClick={() => {
-            handleInteraction("private");
-            setUsersInfo((p) => ({ ...p, selPriv: null }));
-            setInteract((p) => ({ ...p, replyTo: null }));
-            if (viewMode === "full-public") setViewMode("split");
-          }}
-          onTouchStart={(e) => handleTouchStart(e, "priv")}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={(e) => handleTouchEnd(e, "priv")}
-          onMouseDown={(e) => handleTouchStart(e, "priv")}
-          onMouseMove={handleTouchMove}
-          onMouseUp={(e) => handleTouchEnd(e, "priv")}
-          onMouseLeave={(e) => handleTouchEnd(e, "priv")}
-          style={calcPillStyle("priv")}
-          className={`relative text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-grab active:cursor-grabbing overflow-hidden ${
-            viewMode === "full-private"
-              ? "flex-[10] py-1.5 sm:py-2 shadow-[0_4px_20px_rgba(5,150,105,0.4)] text-white liquid-pill-green"
-              : viewMode === "full-public"
-              ? "flex-none w-0 py-0 opacity-0 min-w-0 pointer-events-none"
-              : `flex-1 py-1.5 sm:py-2 ${ui.mode === "private" ? "shadow-md text-white liquid-pill-green" : "bg-white/5 hover:bg-white/10 text-white/50 rounded-full border border-white/5"}`
-          }`}
-        >
-          <span className={`mr-6 sm:mr-8 whitespace-nowrap z-10 drop-shadow-md flex items-center transition-all duration-300 ${viewMode === "full-public" ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
-            {viewMode === "full-private" ? (
-              <span className="flex items-center gap-2">
-                🔒 Chat Private
-                <span className="text-[10px] font-medium opacity-80 anim-swipe-right">Geser Kembali ⪢</span>
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                {ui.mode !== "private" && <span className="text-[9px] font-medium opacity-80 anim-swipe-left">⪡ Geser</span>}
-                🔒 Chat Private
-              </span>
-            )}
-          </span>
-
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center z-10">
-            <span className={`${ui.mode === "private" || viewMode === "full-private" ? "bg-white text-emerald-600 shadow-inner" : "bg-emerald-600/30 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full transition-colors`}>
-              {getFmt.notif(counts.priv)}
-            </span>
-          </div>
-        </button>
-      </div>
-
-      {interact.replyTo && (
-        <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${ui.mode === "private" ? "bg-emerald-900/40 border-emerald-500/30 text-emerald-100" : "bg-blue-900/40 border-blue-500/30 text-blue-100"}`} onClick={() => scrollMsg(interact.replyTo.id)}>
-          <div className="truncate flex-1 pr-2">
-            <span className="font-bold">Balas @{interact.replyTo.username.split("●")[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span>
-          </div>
           <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={() => {
+              handleInteraction("public");
+              setUsersInfo((p) => ({ ...p, selPriv: null }));
               setInteract((p) => ({ ...p, replyTo: null }));
+              if (viewMode === "full-private") setViewMode("split");
             }}
-            className="text-white/40 font-bold px-1"
+            onTouchStart={(e) => handleTouchStart(e, "pub")}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={(e) => handleTouchEnd(e, "pub")}
+            onMouseDown={(e) => handleTouchStart(e, "pub")}
+            onMouseMove={handleTouchMove}
+            onMouseUp={(e) => handleTouchEnd(e, "pub")}
+            onMouseLeave={(e) => handleTouchEnd(e, "pub")}
+            style={calcPillStyle("pub")}
+            className={`relative text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-grab active:cursor-grabbing overflow-hidden ${
+              viewMode === "full-public"
+                ? "flex-[10] py-1.5 sm:py-2 shadow-[0_4px_20px_rgba(37,99,235,0.4)] text-white liquid-pill-blue"
+                : viewMode === "full-private"
+                ? "flex-none w-0 py-0 opacity-0 min-w-0 pointer-events-none"
+                : `flex-1 py-1.5 sm:py-2 ${ui.mode === "public" ? "shadow-md text-white liquid-pill-blue" : "bg-white/5 hover:bg-white/10 text-white/50 rounded-full border border-white/5"}`
+            }`}
           >
-            ×
+            <div className={`absolute left-2 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center z-10 transition-opacity ${viewMode === "full-public" ? "opacity-100" : "opacity-100"}`}>
+              <span className={`${ui.mode === "public" || viewMode === "full-public" ? "bg-white text-blue-600 shadow-inner" : "bg-blue-600/30 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full transition-colors`}>
+                {getFmt.notif(counts.pub)}
+              </span>
+            </div>
+            
+            <span className={`ml-6 sm:ml-8 whitespace-nowrap z-10 drop-shadow-md flex items-center transition-all duration-300 ${viewMode === "full-private" ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
+              {viewMode === "full-public" ? (
+                <span className="flex items-center gap-2">
+                  <span className="text-[10px] font-medium opacity-80 anim-swipe-left">⪡ Geser Kembali</span>
+                  🌐 Public Chat
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  🌐 Public Chat 
+                  {ui.mode !== "public" && <span className="text-[9px] font-medium opacity-80 anim-swipe-right">Geser ⪢</span>}
+                </span>
+              )}
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              handleInteraction("private");
+              setUsersInfo((p) => ({ ...p, selPriv: null }));
+              setInteract((p) => ({ ...p, replyTo: null }));
+              if (viewMode === "full-public") setViewMode("split");
+            }}
+            onTouchStart={(e) => handleTouchStart(e, "priv")}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={(e) => handleTouchEnd(e, "priv")}
+            onMouseDown={(e) => handleTouchStart(e, "priv")}
+            onMouseMove={handleTouchMove}
+            onMouseUp={(e) => handleTouchEnd(e, "priv")}
+            onMouseLeave={(e) => handleTouchEnd(e, "priv")}
+            style={calcPillStyle("priv")}
+            className={`relative text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-grab active:cursor-grabbing overflow-hidden ${
+              viewMode === "full-private"
+                ? "flex-[10] py-1.5 sm:py-2 shadow-[0_4px_20px_rgba(5,150,105,0.4)] text-white liquid-pill-green"
+                : viewMode === "full-public"
+                ? "flex-none w-0 py-0 opacity-0 min-w-0 pointer-events-none"
+                : `flex-1 py-1.5 sm:py-2 ${ui.mode === "private" ? "shadow-md text-white liquid-pill-green" : "bg-white/5 hover:bg-white/10 text-white/50 rounded-full border border-white/5"}`
+            }`}
+          >
+            <span className={`mr-6 sm:mr-8 whitespace-nowrap z-10 drop-shadow-md flex items-center transition-all duration-300 ${viewMode === "full-public" ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
+              {viewMode === "full-private" ? (
+                <span className="flex items-center gap-2">
+                  🔒 Chat Private
+                  <span className="text-[10px] font-medium opacity-80 anim-swipe-right">Geser Kembali ⪢</span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  {ui.mode !== "private" && <span className="text-[9px] font-medium opacity-80 anim-swipe-left">⪡ Geser</span>}
+                  🔒 Chat Private
+                </span>
+              )}
+            </span>
+
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center z-10">
+              <span className={`${ui.mode === "private" || viewMode === "full-private" ? "bg-white text-emerald-600 shadow-inner" : "bg-emerald-600/30 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full transition-colors`}>
+                {getFmt.notif(counts.priv)}
+              </span>
+            </div>
           </button>
         </div>
-      )}
 
-      <form onSubmit={sendMsg} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 items-end w-full relative transition-all duration-300">
-        <div className="relative shrink-0 flex items-center justify-center w-8 mb-2">
-          <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={input.uploadingImage || input.image !== null} />
-          <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full ${(ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv) || input.image !== null ? "text-white/20 pointer-events-none" : "text-white/60 hover:text-blue-400 hover:bg-white/10"}`}>
-            {input.uploadingImage ? (
-              <svg className="animate-spin h-6 w-6 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-              </svg>
-            )}
-          </label>
-        </div>
-
-        <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
-          <div className="text-[9px] text-white/40 mb-1 px-1">{ui.mode === "public" ? "Chat publik mohon bijak" : ui.tab === "admin" && !usersInfo.selPriv ? "Pilih obrolan di atas" : "Chat private admin"}</div>
-
-          <div className="flex items-end gap-2 w-full">
-            {input.image && (
-              <div className="relative shrink-0 mb-1">
-                <img src={input.image} alt="preview" className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-lg border border-white/20 shadow-sm" />
-                <button type="button" onClick={() => setInput((p) => ({ ...p, image: null }))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[9px] font-bold flex items-center justify-center">
-                  ×
-                </button>
-              </div>
-            )}
-
-            <div className="relative flex-1 w-full">
-              <textarea
-                id="chat-input"
-                onFocus={() => setUi((p) => ({ ...p, inputFocus: true }))}
-                onBlur={() => setUi((p) => ({ ...p, inputFocus: false }))}
-                className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm text-white resize-none focus:outline-none min-h-[32px] sm:min-h-[38px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${ui.mode === "private" ? (input.blink ? "bg-emerald-600/40 border-emerald-400 ring-2 ring-emerald-400/50" : "bg-emerald-400/10 border-emerald-400/20 focus:border-emerald-400 focus:bg-emerald-400/20") : input.blink ? "bg-blue-600/40 border-blue-400 ring-2 ring-blue-400/50" : "bg-blue-400/10 border-blue-400/20 focus:border-blue-500 focus:bg-blue-400/20"} ${ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv ? "opacity-30 cursor-not-allowed bg-gray-800" : ""}`}
-                value={input.text}
-                onChange={(e) => {
-                  setInput((p) => ({ ...p, text: e.target.value }));
-                  e.target.style.height = "auto";
-                  e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`;
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMsg(e as any);
-                  }
-                }}
-                placeholder={ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv ? "Pilih user..." : "Ketik pesan..."}
-                maxLength={200}
-                rows={1}
-                disabled={input.sending || (ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv)}
-              />
-              <div className="absolute right-3 bottom-1.5 text-[9px] text-white/30 font-mono select-none opacity-80 bg-black/20 px-1 rounded">{200 - input.text.length}</div>
+        {interact.replyTo && (
+          <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${ui.mode === "private" ? "bg-emerald-900/40 border-emerald-500/30 text-emerald-100" : "bg-blue-900/40 border-blue-500/30 text-blue-100"}`} onClick={() => scrollMsg(interact.replyTo.id)}>
+            <div className="truncate flex-1 pr-2">
+              <span className="font-bold">Balas @{interact.replyTo.username.split("●")[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span>
             </div>
-          </div>
-        </div>
-
-        <div className="relative shrink-0 flex flex-col justify-end w-[85px] md:w-[110px] h-[32px] sm:h-[38px]">
-          {auth.isAuth && currentHash !== "#block" && (
             <button
               type="button"
-              id="btn-refresh-delete"
-              onClick={() => {
-                if (hasInputReady) {
-                  setInput((p) => ({
-                    ...p,
-                    text: "",
-                    image: null,
-                    uploadingImage: false,
-                  }));
-                  setInteract((p) => ({ ...p, replyTo: null }));
-                } else {
-                  window.location.reload();
-                }
+              onClick={(e) => {
+                e.stopPropagation();
+                setInteract((p) => ({ ...p, replyTo: null }));
               }}
-              className={`absolute bottom-full mb-1.5 left-0 right-0 px-2 py-0.5 rounded-full font-black tracking-widest text-[8px] border shadow-sm active:scale-95 transition-all text-center select-none ${hasInputReady ? "bg-red-500/80 text-white border-red-600" : "bg-yellow-400/80 text-black border-yellow-500"}`}
+              className="text-white/40 font-bold px-1"
             >
-              {hasInputReady ? "BATAL" : "REFRESH"}
+              ×
             </button>
-          )}
-          <button type="submit" disabled={input.sending || (!input.text.trim() && !input.image) || (ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv)} className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv ? "bg-white/10 text-white/30 cursor-not-allowed" : ui.mode === "private" ? "bg-emerald-600/80 text-white" : "bg-blue-600/80 text-white"}`}>
-            {input.sending ? "..." : "Kirim"}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
+          </div>
+        )}
+
+        <form onSubmit={sendMsg} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 items-end w-full relative transition-all duration-300">
+          <div className="relative shrink-0 flex items-center justify-center w-8 mb-2">
+            <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isBlocked || input.uploadingImage || input.image !== null} />
+            <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full ${(ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv) || input.image !== null || isBlocked ? "text-white/20 pointer-events-none" : "text-white/60 hover:text-blue-400 hover:bg-white/10"}`}>
+              {input.uploadingImage ? (
+                <svg className="animate-spin h-6 w-6 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                </svg>
+              )}
+            </label>
+          </div>
+
+          <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
+            <div className="text-[9px] text-white/40 mb-1 px-1">
+              {isBlocked ? "Anda telah diblokir." : ui.mode === "public" ? "Chat publik mohon bijak" : ui.tab === "admin" && !usersInfo.selPriv ? "Pilih obrolan di atas" : "Chat private admin"}
+            </div>
+
+            <div className="flex items-end gap-2 w-full">
+              {input.image && (
+                <div className="relative shrink-0 mb-1">
+                  <img src={input.image} alt="preview" className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-lg border border-white/20 shadow-sm" />
+                  <button type="button" onClick={() => setInput((p) => ({ ...p, image: null }))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[9px] font-bold flex items-center justify-center">
+                    ×
+                  </button>
+                </div>
+              )}
+
+              <div className="relative flex-1 w-full">
+                <textarea
+                  id="chat-input"
+                  onFocus={() => setUi((p) => ({ ...p, inputFocus: true }))}
+                  onBlur={() => setUi((p) => ({ ...p, inputFocus: false }))}
+                  className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm text-white resize-none focus:outline-none min-h-[32px] sm:min-h-[38px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${ui.mode === "private" ? (input.blink ? "bg-emerald-600/40 border-emerald-400 ring-2 ring-emerald-400/50" : "bg-emerald-400/10 border-emerald-400/20 focus:border-emerald-400 focus:bg-emerald-400/20") : input.blink ? "bg-blue-600/40 border-blue-400 ring-2 ring-blue-400/50" : "bg-blue-400/10 border-blue-400/20 focus:border-blue-500 focus:bg-blue-400/20"} ${(ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv) || isBlocked ? "opacity-30 cursor-not-allowed bg-gray-800" : ""}`}
+                  value={input.text}
+                  onChange={(e) => {
+                    setInput((p) => ({ ...p, text: e.target.value }));
+                    e.target.style.height = "auto";
+                    e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`;
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMsg(e as any);
+                    }
+                  }}
+                  placeholder={isBlocked ? "Akun Anda diblokir..." : (ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv ? "Pilih user..." : "Ketik pesan...")}
+                  maxLength={200}
+                  rows={1}
+                  disabled={input.sending || isBlocked || (ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv)}
+                />
+                <div className="absolute right-3 bottom-1.5 text-[9px] text-white/30 font-mono select-none opacity-80 bg-black/20 px-1 rounded">{200 - input.text.length}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative shrink-0 flex flex-col justify-end w-[85px] md:w-[110px] h-[32px] sm:h-[38px]">
+            {auth.isAuth && currentHash !== "#block" && (
+              <button
+                type="button"
+                id="btn-refresh-delete"
+                onClick={() => {
+                  if (hasInputReady) {
+                    setInput((p) => ({
+                      ...p,
+                      text: "",
+                      image: null,
+                      uploadingImage: false,
+                    }));
+                    setInteract((p) => ({ ...p, replyTo: null }));
+                  } else {
+                    window.location.reload();
+                  }
+                }}
+                className={`absolute bottom-full mb-1.5 left-0 right-0 px-2 py-0.5 rounded-full font-black tracking-widest text-[8px] border shadow-sm active:scale-95 transition-all text-center select-none ${hasInputReady ? "bg-red-500/80 text-white border-red-600" : "bg-yellow-400/80 text-black border-yellow-500"}`}
+              >
+                {hasInputReady ? "BATAL" : "REFRESH"}
+              </button>
+            )}
+            <button type="submit" disabled={isBlocked || input.sending || (!input.text.trim() && !input.image) || (ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv)} className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv ? "bg-white/10 text-white/30 cursor-not-allowed" : ui.mode === "private" ? "bg-emerald-600/80 text-white" : "bg-blue-600/80 text-white"}`}>
+              {input.sending ? "..." : "Kirim"}
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  };
 
   if (!mounted) {
     return <Loading />;
@@ -1088,6 +1109,8 @@ export default function Home() {
           <Block
             blockedList={usersInfo.blockedList}
             unblock={async (id: string) => {
+              // Note: Blokir dari database idealnya harus bisa menghapus berdasar username juga,
+              // namun saat ini menggunakan device_id masih diperbolehkan untuk referensi Block MGR
               await supabase.from("blocked_users").delete().eq("device_id", id);
               fetchData();
             }}
@@ -1167,7 +1190,6 @@ export default function Home() {
                 </button>
               )}
 
-              {/* PERUBAHAN: Validasi Hapus Popup Berdasarkan username */}
               {((interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id") || ui.tab === "admin") && (
                 <button
                   type="button"
@@ -1218,7 +1240,6 @@ export default function Home() {
                 📋 Salin
               </button>
 
-              {/* PERUBAHAN: Validasi Edit Popup Berdasarkan username */}
               {(ui.tab === "admin" || (interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id")) && (
                 <button
                   type="button"
@@ -1316,7 +1337,6 @@ export default function Home() {
             }
             
             setAuth((p) => ({ ...p, isAuth: true }));
-            // Menyimpan active_username ke localStorage supaya kalau user refresh tidak hilang!
             localStorage.setItem("active_username", auth.user.trim());
             sessionStorage.setItem("is_auth", "true");
             sessionStorage.setItem("saved_username", auth.user.trim());

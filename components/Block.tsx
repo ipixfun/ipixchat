@@ -101,19 +101,18 @@ export default function Block({
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {blockedList.map((b: any) => (
+              {blockedList.map((b: any, index: number) => (
                 <div
-                  key={b.device_id}
+                  // FOKUS USERNAME: Jadikan username sebagai key
+                  key={b.username || index}
                   className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-red-500/30 p-5 rounded-2xl transition-all"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-base truncate">
-                        {b.username || b.name || 'Tanpa Nama'}
+                        {b.username || 'Tanpa Nama'}
                       </p>
-                      <p className="font-mono text-xs text-white/60 mt-1 break-all">
-                        {b.device_id}
-                      </p>
+                      {/* device_id dihilangkan sepenuhnya, hanya menampilkan browser jika ada */}
                       {b.browser && (
                         <p className="text-xs text-white/50 mt-1 line-clamp-1">{b.browser}</p>
                       )}
@@ -126,7 +125,8 @@ export default function Block({
 
                   {/* Pill Unblock */}
                   <button
-                    onClick={() => unblock(b.device_id)}
+                    // FOKUS USERNAME: Patokan aksi unblock hanya butuh username
+                    onClick={() => unblock(b.username)}
                     className="w-full mt-2 bg-red-600/80 hover:bg-red-600 text-white text-sm font-medium py-2.5 rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                   >
                     <span>Unblock User</span>
