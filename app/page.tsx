@@ -24,7 +24,7 @@ export default function Home() {
     adminPass: "",
     pin: "",
     umur: "", 
-    berat: "", // <-- Tambahan State untuk Berat
+    berat: "", 
   });
   const [ui, setUi] = useState({
     tab: "user" as "user" | "admin",
@@ -333,7 +333,11 @@ export default function Home() {
       const nn = prompt("Nama:", m.username);
       if (nn && isCensored(nn)) return alert("Terlarang!");
       if (nn) {
-        await Promise.all([supabase.from("profiles").update({ username: nn }).eq("device_id", m.device_id), supabase.from("messages").update({ username: nn }).eq("device_id", m.device_id)]);
+        // PERUBAHAN DISINI: Update profile menggunakan acuan username
+        await Promise.all([
+            supabase.from("profiles").update({ username: nn }).eq("username", m.username), 
+            supabase.from("messages").update({ username: nn }).eq("username", m.username)
+        ]);
         fetchData();
       }
     },
@@ -450,17 +454,29 @@ export default function Home() {
   };
 
   useEffect(() => {
+    // Biarkan script membuat device id untuk pelengkap saja, bukan penentu database user
     if (!localStorage.getItem("device_id")) localStorage.setItem("device_id", Math.random().toString(36).substring(2, 15));
+    
     const chk = async () => {
-      const cid = localStorage.getItem("device_id")!;
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const { data: pD } = await supabase.from("profiles").select("username").eq("device_id", cid).single();
-      if (pD?.username) {
-        setAuth((p) => ({ ...p, isExist: true, user: pD.username }));
-        sessionStorage.setItem("saved_username", pD.username);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // PERUBAHAN DISINI: Meload data dari database berdasarkan saved username (Bukan dari device ID lagi)
+      const savedUsername = sessionStorage.getItem("saved_username");
+      if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
+          const { data: pD } = await supabase.from("profiles").select("username, pin, umur, berat").eq("username", savedUsername).single();
+          
+          if (pD?.username) {
+            setAuth((p) => ({ 
+              ...p, 
+              isExist: true, 
+              user: pD.username,
+              pin: pD.pin || "",
+              umur: pD.umur || "",
+              berat: pD.berat || ""
+            }));
+          }
       }
+
       const isAdmin = pathname?.endsWith("/admin") || window.location.hash === "#admin";
       setUi((p) => ({
         ...p,
@@ -1246,30 +1262,56 @@ export default function Home() {
           umur={auth.umur}
           setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))}
 
-          // ======== TAMBAHAN BARU UNTUK BERAT ======== 
           berat={auth.berat}
           setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))}
-          // ===========================================
 
           isExistingUser={auth.isExist}
           adminEmail={auth.adminEmail}
           setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))}
           adminPass={auth.adminPass}
           setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))}
+          
+          // PERUBAHAN DISINI: Fungsi Login fokus ke username dan pin, tanpa error device_id
           handleUserLogin={async () => {
             if (!auth.user.trim() || isCensored(auth.user)) return alert("Nama tidak valid");
             try {
-              const { data: existUser } = await supabase.from("profiles").select("device_id").ilike("username", auth.user.trim()).maybeSingle();
-              if (existUser && existUser.device_id !== (currentDeviceId || "guest")) return alert("Username sudah digunakan orang lain.");
-              await supabase.from("profiles").upsert(
+              // Mengecek apakah nama (username) sudah ada di database profiles
+              const { data: existUser } = await supabase
+                .from("profiles")
+                .select("username, pin")
+                .ilike("username", auth.user.trim())
+                .maybeSingle();
+
+              // Validasi PIN
+              if (existUser && existUser.pin !== auth.pin) {
+                return alert("Username sudah terdaftar dengan PIN yang berbeda!");
+              }
+              
+              // Masukkan atau perbarui database profil (upsert)
+              const { error: upsertError } = await supabase.from("profiles").upsert(
                 {
-                  device_id: currentDeviceId || "guest",
+                  email: "user@ipix.fun", // Mengirimkan email user@ipix.fun
                   username: auth.user.trim(),
                   user_browser: navigator.userAgent,
+                  pin: auth.pin,     
+                  umur: auth.umur,   
+                  berat: auth.berat, 
                 },
-                { onConflict: "device_id" },
+                { onConflict: "username" } // Patokan utamanya (Primary key) adalah username, BUKAN device_id
               );
-            } catch (e) {}
+
+              // Jika gagal upsert
+              if (upsertError) {
+                alert("Gagal simpan data ke database: " + upsertError.message);
+                console.error("Supabase Error:", upsertError);
+                return; 
+              }
+
+            } catch (e) {
+              console.error("Error saving profile:", e);
+              return;
+            }
+            
             setAuth((p) => ({ ...p, isAuth: true }));
             sessionStorage.setItem("is_auth", "true");
             sessionStorage.setItem("saved_username", auth.user.trim());
