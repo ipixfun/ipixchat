@@ -72,7 +72,6 @@ export default function Home() {
   });
 
   const currentHash = typeof window !== "undefined" ? window.location.hash : "";
-  const currentDeviceId = typeof window !== "undefined" ? localStorage.getItem("device_id") : null;
   const [refresh, setRefresh] = useState({
     pos: { x: 20, y: 100 },
     drag: false,
@@ -206,7 +205,6 @@ export default function Home() {
     window.location.replace("/");
   };
 
-  // PERUBAHAN UTAMA 1: Fetching data menggunakan USERNAME bukan DEVICE ID
   const fetchData = useCallback(async () => {
     try {
       const [{ data: bD }, { data: bW }, { data: pD }, { data: prD }] = await Promise.all([
@@ -217,14 +215,12 @@ export default function Home() {
           .from("messages")
           .select("*")
           .eq("is_private", true)
-          // PERUBAHAN: Filter Private Chat berdasar Username
           .or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},private_with.eq.${auth.user}` : usersInfo.selPriv ? `username.eq.${usersInfo.selPriv},private_with.eq.${usersInfo.selPriv}` : "id.eq.0")
           .order("created_at", { ascending: true }),
       ]);
       
       if (bW) setCensor((p) => ({ ...p, words: bW.map((w) => w.word) }));
       
-      // PERUBAHAN: Pengecekan blokir dilempar jika USERNAME ada di tabel blocked_users
       if (auth.user && bD?.some((b) => b.username === auth.user)) {
          return window.location.replace("https://ipix.my.id/chat");
       }
@@ -236,13 +232,11 @@ export default function Home() {
             .from("messages")
             .select("*", { count: "exact", head: true })
             .eq("is_private", true)
-            // PERUBAHAN: Hitung total berdasar Username
             .or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},private_with.eq.${auth.user}` : `id.gt.0`),
         ]);
         setCounts({ pub: pubC || 0, priv: privC || 0 });
       }
 
-      // PERUBAHAN: Menyembunyikan chat dari user terblokir berdasar Username
       const vPub = pD?.filter((m) => !bD?.map((b) => b.username).includes(m.username)) || [];
       const vPriv = prD?.filter((m) => !bD?.map((b) => b.username).includes(m.username)) || [];
       setMsgs({ all: [...vPub, ...vPriv], pub: vPub, priv: vPriv });
@@ -270,7 +264,6 @@ export default function Home() {
       });
       setUsersInfo((p) => ({ ...p, status: sMap, blockedList: bD || [] }));
 
-      // PERUBAHAN: Grouping Private Users untuk Admin berdasar USERNAME, bukan device id
       if (ui.tab === "admin" && !usersInfo.selPriv) {
         const { data: aP } = await supabase.from("messages").select("username, created_at").eq("is_private", true).order("created_at", { ascending: false });
         if (aP) {
@@ -291,8 +284,7 @@ export default function Home() {
         }
       }
     } catch (e) {}
-  // Tambahkan auth.user sebagai dependency
-  }, [ui.tab, usersInfo.selPriv, currentDeviceId, auth.isAuth, auth.user, getFmt]); 
+  }, [ui.tab, usersInfo.selPriv, auth.isAuth, auth.user, getFmt]); 
 
   const updateMsgLocal = (id: number, newText: string, isEdited: boolean, editedBy: string, imageUrl?: any, deletedByAdmin?: boolean) => {
     setMsgs((prev) => {
@@ -433,9 +425,11 @@ export default function Home() {
         fetchData();
       }
     },
-    blkUser: async (id: string, nm: string) => {
-      if (confirm("Blokir?")) {
-        await supabase.from("blocked_users").insert([{ device_id: id, username: nm }]);
+    blkUser: async (arg1: string, arg2?: string) => {
+      // Mendukung argumen dari versi sebelumnya (jika MessageItem masih mengirim (id, username))
+      const targetUsername = arg2 || arg1; 
+      if (confirm(`Blokir user ${targetUsername}?`)) {
+        await supabase.from("blocked_users").insert([{ username: targetUsername }]);
         fetchData();
       }
     },
@@ -466,8 +460,6 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (!localStorage.getItem("device_id")) localStorage.setItem("device_id", Math.random().toString(36).substring(2, 15));
-    
     const chk = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -566,7 +558,6 @@ export default function Home() {
     e.preventDefault();
     if ((!input.text.trim() && !input.image) || input.sending) return;
 
-    // PERUBAHAN: Validasi Blokir saat mengirim pesan
     const isBlocked = usersInfo.blockedList.some((b) => b.username === auth.user);
     if (isBlocked) {
       alert("Akun Anda telah diblokir. Pesan tidak dapat dikirim.");
@@ -607,7 +598,6 @@ export default function Home() {
         pesan: txt,
         image_url: input.image,
         is_approved: auth.user === "Admin●ipix.my.id",
-        device_id: currentDeviceId || "guest",
         is_private: ui.mode === "private",
         private_with: ui.mode === "private" ? (ui.tab === "user" ? "admin" : usersInfo.selPriv) : null,
         user_browser: navigator.userAgent,
@@ -662,7 +652,6 @@ export default function Home() {
                 m={m}
                 colType={colType}
                 isMinimized={true}
-                currentDeviceId={currentDeviceId}
                 activeTab={ui.tab}
                 isAdminOnline={adminStat.online}
                 adminOfflineTime={adminStat.offlineTime}
@@ -689,7 +678,6 @@ export default function Home() {
                 editNama={dbActions.editNm}
                 blockUser={dbActions.blkUser}
                 inviteToPrivate={() => {
-                  // PERUBAHAN: Set selPriv berdasarkan username dari map message
                   handleInteraction("private");
                   setUsersInfo((p) => ({ ...p, selPriv: m.username }));
                 }}
@@ -791,7 +779,6 @@ export default function Home() {
     };
   };
 
-  // PERUBAHAN: Render Input Form mematikan UI jika status isBlocked = true
   const renderInputForm = () => {
     const isBlocked = usersInfo.blockedList.some((b) => b.username === auth.user);
 
@@ -1073,7 +1060,6 @@ export default function Home() {
                 <span className="text-[10px] text-white/70 uppercase tracking-wider">{getFmt.greet()}</span>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-[11px] font-bold text-white">{auth.user || "Guest"}</span>
-                  {ui.tab === "admin" && <span className="text-[9px] bg-white/20 text-white/90 px-1.5 py-0.5 rounded font-mono break-all leading-tight">ID: {currentDeviceId}</span>}
                 </div>
               </div>
               <div className="text-center flex-1 flex flex-col items-end mr-16">
@@ -1108,10 +1094,12 @@ export default function Home() {
         {ui.tab === "admin" && currentHash === "#block" ? (
           <Block
             blockedList={usersInfo.blockedList}
-            unblock={async (id: string) => {
-              // Note: Blokir dari database idealnya harus bisa menghapus berdasar username juga,
-              // namun saat ini menggunakan device_id masih diperbolehkan untuk referensi Block MGR
-              await supabase.from("blocked_users").delete().eq("device_id", id);
+            unblock={async (identifier: string) => {
+              await supabase.from("blocked_users").delete().eq("username", identifier);
+              
+              if (!isNaN(Number(identifier))) {
+                await supabase.from("blocked_users").delete().eq("id", Number(identifier));
+              }
               fetchData();
             }}
             blockedWords={censor.words}
