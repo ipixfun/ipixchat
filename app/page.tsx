@@ -201,6 +201,7 @@ export default function Home() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     sessionStorage.clear();
+    localStorage.removeItem("active_username"); // Hapus username aktif dari lokal
     setAuth((p) => ({ ...p, isAuth: false, pin: "", umur: "", berat: "" }));
     window.location.replace("/");
   };
@@ -231,6 +232,7 @@ export default function Home() {
         ]);
         setCounts({ pub: pubC || 0, priv: privC || 0 });
       }
+      // Pengecekan blokir tetap by device ID untuk keamanan agar HP yang di-banned tidak bisa masuk
       if (bD?.some((b) => b.device_id === currentDeviceId)) return window.location.replace("https://ipix.my.id/chat");
 
       const vPub = pD?.filter((m) => !bD?.map((b) => b.device_id).includes(m.device_id)) || [];
@@ -333,7 +335,6 @@ export default function Home() {
       const nn = prompt("Nama:", m.username);
       if (nn && isCensored(nn)) return alert("Terlarang!");
       if (nn) {
-        // PERUBAHAN DISINI: Update profile menggunakan acuan username
         await Promise.all([
             supabase.from("profiles").update({ username: nn }).eq("username", m.username), 
             supabase.from("messages").update({ username: nn }).eq("username", m.username)
@@ -352,7 +353,9 @@ export default function Home() {
 
       if (auth.user !== "Admin●ipix.my.id") {
         if (isAlreadyDeleted) return;
-        if (m.device_id !== currentDeviceId) {
+        
+        // PERUBAHAN: Validasi hapus pesan sekarang berdasarkan USERNAME, bukan device_id
+        if (m.username !== auth.user) {
           alert("Anda hanya diizinkan menghapus pesan milik Anda sendiri!");
           fetchData();
           return;
@@ -454,14 +457,13 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Biarkan script membuat device id untuk pelengkap saja, bukan penentu database user
     if (!localStorage.getItem("device_id")) localStorage.setItem("device_id", Math.random().toString(36).substring(2, 15));
     
     const chk = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
-      // PERUBAHAN DISINI: Meload data dari database berdasarkan saved username (Bukan dari device ID lagi)
-      const savedUsername = sessionStorage.getItem("saved_username");
+      // PERUBAHAN DISINI: Ambil dari localStorage ('active_username') atau sessionStorage sbg fallback
+      const savedUsername = localStorage.getItem("active_username") || sessionStorage.getItem("saved_username");
       if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
           const { data: pD } = await supabase.from("profiles").select("username, pin, umur, berat").eq("username", savedUsername).single();
           
@@ -486,7 +488,7 @@ export default function Home() {
         setAuth((p) => ({
           ...p,
           isAuth: true,
-          user: session ? "Admin●ipix.my.id" : p.isExist ? p.user : sessionStorage.getItem("saved_username") || "",
+          user: session ? "Admin●ipix.my.id" : p.isExist ? p.user : savedUsername || "",
         }));
         if (session) setUi((p) => ({ ...p, tab: "admin" }));
       }
@@ -521,7 +523,8 @@ export default function Home() {
       const { count } = await supabase
         .from("messages")
         .select("*", { count: "exact", head: true })
-        .eq("device_id", currentDeviceId || "guest")
+        // PERUBAHAN: Limit upload berdasar username, bukan device_id
+        .eq("username", auth.user)
         .not("image_url", "is", null)
         .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
       if (count && count >= 2) {
@@ -573,7 +576,8 @@ export default function Home() {
       const { count } = await supabase
         .from("messages")
         .select("*", { count: "exact", head: true })
-        .eq("device_id", currentDeviceId || "guest")
+        // PERUBAHAN: Limit chat berdasar username, bukan device_id
+        .eq("username", auth.user)
         .gte("created_at", fiveMinsAgo);
 
       if (typeof count === "number" && count >= 5) {
@@ -589,7 +593,7 @@ export default function Home() {
         pesan: txt,
         image_url: input.image,
         is_approved: auth.user === "Admin●ipix.my.id",
-        device_id: currentDeviceId || "guest",
+        device_id: currentDeviceId || "guest", // Tetap disimpan untuk loging/banning level device
         is_private: ui.mode === "private",
         private_with: ui.mode === "private" ? (ui.tab === "user" ? "admin" : usersInfo.selPriv) : null,
         user_browser: navigator.userAgent,
@@ -633,7 +637,8 @@ export default function Home() {
       <div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div>
     ) : (
       arr.map((m, idx) => {
-        const isMine = m.device_id === currentDeviceId || m.username === auth.user;
+        // PERUBAHAN DISINI: Penentuan 'Pesan Saya' murni berdasarkan username yang login
+        const isMine = m.username === auth.user;
         const maxWidthClass = viewMode === "split" ? "max-w-[95%]" : "max-w-[85%] md:max-w-[75%]";
 
         return (
@@ -1129,7 +1134,7 @@ export default function Home() {
               ×
             </button>
             <div className="flex items-center gap-2 border-b pb-3 mb-3">
-              <span className={`px-2 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === "Admin●ipix.my.id" ? "bg-red-600" : interact.popup.device_id === currentDeviceId || interact.popup.username === auth.user ? "bg-blue-600" : "bg-gray-700"}`}>{interact.popup.username}</span>
+              <span className={`px-2 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === "Admin●ipix.my.id" ? "bg-red-600" : interact.popup.username === auth.user ? "bg-blue-600" : "bg-gray-700"}`}>{interact.popup.username}</span>
               <span className="text-[10px] text-gray-400">{getFmt.time(interact.popup.created_at)}</span>
             </div>
             <div className="overflow-y-auto pr-2 pb-2 text-sm text-black flex flex-col break-words break-all whitespace-pre-wrap">
@@ -1162,7 +1167,8 @@ export default function Home() {
                 </button>
               )}
 
-              {((interact.popup.device_id === currentDeviceId && interact.popup.username !== "Admin●ipix.my.id") || ui.tab === "admin") && (
+              {/* PERUBAHAN: Validasi Hapus Popup Berdasarkan username */}
+              {((interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id") || ui.tab === "admin") && (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -1211,7 +1217,9 @@ export default function Home() {
               >
                 📋 Salin
               </button>
-              {(ui.tab === "admin" || (interact.popup.device_id === currentDeviceId && interact.popup.username !== "Admin●ipix.my.id")) && (
+
+              {/* PERUBAHAN: Validasi Edit Popup Berdasarkan username */}
+              {(ui.tab === "admin" || (interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id")) && (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -1271,36 +1279,31 @@ export default function Home() {
           adminPass={auth.adminPass}
           setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))}
           
-          // PERUBAHAN DISINI: Fungsi Login fokus ke username dan pin, tanpa error device_id
           handleUserLogin={async () => {
             if (!auth.user.trim() || isCensored(auth.user)) return alert("Nama tidak valid");
             try {
-              // Mengecek apakah nama (username) sudah ada di database profiles
               const { data: existUser } = await supabase
                 .from("profiles")
                 .select("username, pin")
                 .ilike("username", auth.user.trim())
                 .maybeSingle();
 
-              // Validasi PIN
               if (existUser && existUser.pin !== auth.pin) {
                 return alert("Username sudah terdaftar dengan PIN yang berbeda!");
               }
               
-              // Masukkan atau perbarui database profil (upsert)
               const { error: upsertError } = await supabase.from("profiles").upsert(
                 {
-                  email: "user@ipix.fun", // Mengirimkan email user@ipix.fun
+                  email: "user@ipix.fun",
                   username: auth.user.trim(),
                   user_browser: navigator.userAgent,
                   pin: auth.pin,     
                   umur: auth.umur,   
                   berat: auth.berat, 
                 },
-                { onConflict: "username" } // Patokan utamanya (Primary key) adalah username, BUKAN device_id
+                { onConflict: "username" }
               );
 
-              // Jika gagal upsert
               if (upsertError) {
                 alert("Gagal simpan data ke database: " + upsertError.message);
                 console.error("Supabase Error:", upsertError);
@@ -1313,6 +1316,8 @@ export default function Home() {
             }
             
             setAuth((p) => ({ ...p, isAuth: true }));
+            // Menyimpan active_username ke localStorage supaya kalau user refresh tidak hilang!
+            localStorage.setItem("active_username", auth.user.trim());
             sessionStorage.setItem("is_auth", "true");
             sessionStorage.setItem("saved_username", auth.user.trim());
             sessionStorage.setItem("active_tab", "user");
@@ -1330,6 +1335,7 @@ export default function Home() {
                 user: "Admin●ipix.my.id",
               }));
               setUi((p) => ({ ...p, tab: "admin" }));
+              localStorage.setItem("active_username", "Admin●ipix.my.id");
               sessionStorage.setItem("is_auth", "true");
               sessionStorage.setItem("saved_username", "Admin●ipix.my.id");
               sessionStorage.setItem("active_tab", "admin");
