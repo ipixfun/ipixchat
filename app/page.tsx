@@ -22,6 +22,9 @@ export default function Home() {
     user: "",
     adminEmail: "",
     adminPass: "",
+    pin: "",
+    umur: "", 
+    berat: "", // <-- Tambahan State untuk Berat
   });
   const [ui, setUi] = useState({
     tab: "user" as "user" | "admin",
@@ -68,7 +71,7 @@ export default function Home() {
     delta: 0,
   });
 
-  const [currentHash, setCurrentHash] = useState("");
+  const currentHash = typeof window !== "undefined" ? window.location.hash : "";
   const currentDeviceId = typeof window !== "undefined" ? localStorage.getItem("device_id") : null;
   const [refresh, setRefresh] = useState({
     pos: { x: 20, y: 100 },
@@ -103,15 +106,6 @@ export default function Home() {
     }),
     [],
   );
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setCurrentHash(window.location.hash);
-      const handleHashChange = () => setCurrentHash(window.location.hash);
-      window.addEventListener("hashchange", handleHashChange);
-      return () => window.removeEventListener("hashchange", handleHashChange);
-    }
-  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -207,7 +201,7 @@ export default function Home() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     sessionStorage.clear();
-    setAuth((p) => ({ ...p, isAuth: false }));
+    setAuth((p) => ({ ...p, isAuth: false, pin: "", umur: "", berat: "" }));
     window.location.replace("/");
   };
 
@@ -381,6 +375,7 @@ export default function Home() {
             pesan: "___DELETED___",
             image_url: null,
             deleted_by_admin: false,
+            is_pinned: false,
           })
           .eq("id", m.id);
 
@@ -401,6 +396,7 @@ export default function Home() {
               pesan: "___DELETED___",
               image_url: null,
               deleted_by_admin: true,
+              is_pinned: false,
             })
             .eq("id", m.id);
 
@@ -442,6 +438,15 @@ export default function Home() {
       await supabase.from("messages").update({ is_approved: true }).eq("id", id);
       fetchData();
     },
+    pinMsg: async (m: any) => {
+      if (auth.user !== "Admin●ipix.my.id") return alert("Hanya admin yang dapat menyematkan (pin) pesan.");
+      const newStatus = !m.is_pinned;
+      const { error } = await supabase.from("messages").update({ is_pinned: newStatus }).eq("id", m.id);
+      if (error) {
+        alert("Gagal menyematkan pesan. Pastikan kolom is_pinned (boolean) ada di database.");
+      }
+      fetchData();
+    }
   };
 
   useEffect(() => {
@@ -600,22 +605,23 @@ export default function Home() {
 
   const hasInputReady = input.text.trim().length > 0 || input.image !== null;
 
-  // MODIFIKASI: Layout kotak chat dibuat dinamis & proporsional (horizontal memanjang)
+  const onlineUsers = Object.entries(usersInfo.status)
+    .filter(([_, data]) => data.online)
+    .map(([username]) => username);
+
+  const currentMsgs = ui.mode === "public" ? msgs.pub : msgs.priv;
+  const pinnedMsg = currentMsgs.find((m) => m.is_pinned && m.pesan !== "___DELETED___");
+
   const renderMsgs = (arr: any[], colType: any) => {
     const messageContent = arr.length === 0 ? (
       <div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div>
     ) : (
       arr.map((m, idx) => {
         const isMine = m.device_id === currentDeviceId || m.username === auth.user;
-        
-        // Kotak Chat Dinamis Persegi Panjang:
-        // - Mode Split: melebar maksimal hingga 95% agar tidak terlalu square/kotak tertekan
-        // - Mode Full: membatasi maksimal 85% layaknya WhatsApp agar proporsional secara horizontal
         const maxWidthClass = viewMode === "split" ? "max-w-[95%]" : "max-w-[85%] md:max-w-[75%]";
 
         return (
           <div key={m.id} className={`w-full flex mb-3 px-2 sm:px-4 ${isMine ? "justify-end" : "justify-start"}`}>
-            {/* Wrapper diatur sebagai flex-col dengan min-w-[35%] untuk memaksa bentuk persegi panjang dinamis */}
             <div className={`relative flex flex-col chat-bubble-wrapper min-w-[35%] ${maxWidthClass} ${isMine ? "items-end" : "items-start"}`}>
               <MessageItem
                 index={idx}
@@ -672,6 +678,22 @@ export default function Home() {
 
     return (
       <div className="w-full flex flex-col py-2 overflow-x-hidden">
+        {pinnedMsg && (
+          <div
+            onClick={() => scrollMsg(pinnedMsg.id)}
+            className={`mx-3 mb-4 p-2.5 rounded-lg cursor-pointer shadow-md transition-all active:scale-95 flex items-center gap-3 border-l-4 z-10 ${ui.mode === "public" ? "bg-blue-800/60 border-blue-400 hover:bg-blue-800/80" : "bg-emerald-800/60 border-emerald-400 hover:bg-emerald-800/80"}`}
+          >
+            <div className="text-xl drop-shadow-md">📌</div>
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <span className={`text-[10px] font-bold tracking-wide flex items-center gap-1.5 ${ui.mode === "public" ? "text-blue-300" : "text-emerald-300"}`}>
+                PESAN SEMATAN
+                <span className="opacity-50 text-[9px] font-normal">oleh Admin</span>
+              </span>
+              <span className="text-white text-xs truncate mt-0.5 opacity-90">{pinnedMsg.pesan}</span>
+            </div>
+          </div>
+        )}
+        
         {messageContent}
         <div id={`bottom-anchor-${colType}`} className="h-1 shrink-0 mt-2" />
       </div>
@@ -699,7 +721,6 @@ export default function Home() {
     if (!pillSwipe.dragging) return;
     const delta = pillSwipe.deltaX;
 
-    // Logika Swipe yang lebih ekspresif (Bisa ke Split atau Full)
     if (pill === "pub") {
       if (delta > 40 && viewMode === "split") {
         setViewMode("full-public");
@@ -727,7 +748,6 @@ export default function Home() {
     const stretchLimit = 65;
     const delta = pillSwipe.deltaX;
     
-    // Perhitungan arah tarikan (baik di Split maupun Full)
     const clampedDelta = Math.max(-stretchLimit, Math.min(stretchLimit, delta));
     const stretchScale = 1 + Math.abs(clampedDelta) / 180;
     const skewDeg = clampedDelta / 6;
@@ -740,7 +760,6 @@ export default function Home() {
     <div className="shrink-0 bg-white/5 backdrop-blur-xl z-20 w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] mt-auto border-t border-white/10 relative">
       <div className="shrink-0 flex w-full px-2 pt-3 pb-1 gap-2 relative z-30">
         
-        {/* PILL PUBLIC - LIQUID & EKSPRESIF + INFO SWIPE DUA ARAH */}
         <button
           onClick={() => {
             handleInteraction("public");
@@ -785,7 +804,6 @@ export default function Home() {
           </span>
         </button>
 
-        {/* PILL PRIVATE - LIQUID & EKSPRESIF + INFO SWIPE DUA ARAH */}
         <button
           onClick={() => {
             handleInteraction("private");
@@ -849,7 +867,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Kolom Input Form */}
       <form onSubmit={sendMsg} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 items-end w-full relative transition-all duration-300">
         <div className="relative shrink-0 flex items-center justify-center w-8 mb-2">
           <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={input.uploadingImage || input.image !== null} />
@@ -1004,34 +1021,47 @@ export default function Home() {
       )}
 
       {currentHash !== "#block" && (
-        <div className={`sticky top-0 z-20 p-3 transition-colors duration-300 ${ui.mode === "public" ? "bg-blue-900/30 backdrop-blur-md" : "bg-emerald-900/30 backdrop-blur-md"}`}>
-          <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500/80 text-white px-3 py-1 rounded-full shadow backdrop-blur-sm">
-            Keluar
-          </button>
-          <div className="flex justify-between items-center text-white">
-            <div className="flex flex-col max-w-[65%]">
-              <span className="text-[10px] text-white/70 uppercase tracking-wider">{getFmt.greet()}</span>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[11px] font-bold text-white">{auth.user || "Guest"}</span>
-                {ui.tab === "admin" && <span className="text-[9px] bg-white/20 text-white/90 px-1.5 py-0.5 rounded font-mono break-all leading-tight">ID: {currentDeviceId}</span>}
+        <div className={`sticky top-0 z-20 flex flex-col transition-colors duration-300 ${ui.mode === "public" ? "bg-blue-900/30 backdrop-blur-md" : "bg-emerald-900/30 backdrop-blur-md"}`}>
+          <div className="p-3 relative">
+            <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500/80 text-white px-3 py-1 rounded-full shadow backdrop-blur-sm z-30">
+              Keluar
+            </button>
+            <div className="flex justify-between items-center text-white relative z-20">
+              <div className="flex flex-col max-w-[65%]">
+                <span className="text-[10px] text-white/70 uppercase tracking-wider">{getFmt.greet()}</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[11px] font-bold text-white">{auth.user || "Guest"}</span>
+                  {ui.tab === "admin" && <span className="text-[9px] bg-white/20 text-white/90 px-1.5 py-0.5 rounded font-mono break-all leading-tight">ID: {currentDeviceId}</span>}
+                </div>
+              </div>
+              <div className="text-center flex-1 flex flex-col items-end mr-16">
+                <a href="https://ipix.my.id" target="_blank" className="text-emerald-400 font-bold text-sm underline">
+                  ipix.my.id
+                </a>
               </div>
             </div>
-            <div className="text-center flex-1 flex flex-col items-end mr-16">
-              <a href="https://ipix.my.id" target="_blank" className="text-emerald-400 font-bold text-sm underline">
-                ipix.my.id
-              </a>
-              {ui.tab === "user" && (
-                <div className="text-[10px] text-white/60 mt-0.5 flex items-center gap-1">
-                  <span className={`inline-block w-1.5 h-1.5 rounded-full ${adminStat.online ? "bg-green-500" : "bg-gray-400"}`}></span>
-                  {adminStat.online ? <span className="text-green-400 font-bold text-[9px]">Online</span> : <span className="text-[9px]">Offline • {adminStat.offlineTime}</span>}
-                </div>
+          </div>
+          
+          {auth.isAuth && (
+            <div className={`flex items-center overflow-x-auto gap-2 px-3 py-1.5 border-t border-b text-xs whitespace-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${ui.mode === "public" ? "border-blue-400/20 bg-blue-950/40" : "border-emerald-400/20 bg-emerald-950/40"}`}>
+              <span className="font-bold text-white flex items-center mr-1">
+                <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5 shadow-[0_0_5px_#22c55e] animate-pulse" />
+                Online ({onlineUsers.length + (adminStat.online ? 1 : 0)})
+              </span>
+              {adminStat.online && (
+                <span className="bg-red-600/90 text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-sm">Admin</span>
+              )}
+              {onlineUsers.map(u => (
+                <span key={u} className="bg-white/20 text-white/90 px-2.5 py-0.5 rounded-full text-[10px] border border-white/10 shadow-sm">{u.split("●")[0]}</span>
+              ))}
+              {onlineUsers.length === 0 && !adminStat.online && (
+                <span className="text-white/40 italic text-[10px]">Sepi...</span>
               )}
             </div>
-          </div>
+          )}
         </div>
       )}
 
-      {/* Bagian List Obrolan */}
       <div className={`flex-1 w-full relative flex overflow-hidden transition-colors duration-300 ${ui.mode === "public" ? "bg-blue-900/10" : "bg-emerald-900/10"}`}>
         {ui.tab === "admin" && currentHash === "#block" ? (
           <Block
@@ -1074,7 +1104,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* RENDER FORM INPUT DI LUAR AGAR MENJADI 100% WIDTH */}
       {auth.isAuth && currentHash !== "#block" && renderInputForm()}
 
       {interact.popup && interact.popup.pesan !== "___DELETED___" && (
@@ -1101,6 +1130,22 @@ export default function Home() {
               {interact.popup.pesan && applyCensor(interact.popup.pesan)}
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
+              
+              {ui.tab === "admin" && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const popupMsg = interact.popup;
+                    setInteract((p) => ({ ...p, popup: null }));
+                    dbActions.pinMsg(popupMsg);
+                  }}
+                  className={`px-3 py-1.5 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1 ${interact.popup.is_pinned ? "bg-gray-500 hover:bg-gray-600" : "bg-purple-600 hover:bg-purple-700"}`}
+                >
+                  📌 {interact.popup.is_pinned ? "Unpin" : "Pin"}
+                </button>
+              )}
+
               {((interact.popup.device_id === currentDeviceId && interact.popup.username !== "Admin●ipix.my.id") || ui.tab === "admin") && (
                 <button
                   type="button"
@@ -1194,6 +1239,18 @@ export default function Home() {
           activeTab={ui.tab}
           username={auth.user}
           setUsername={(u: string) => setAuth((p) => ({ ...p, user: u }))}
+          
+          pin={auth.pin}
+          setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))}
+          
+          umur={auth.umur}
+          setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))}
+
+          // ======== TAMBAHAN BARU UNTUK BERAT ======== 
+          berat={auth.berat}
+          setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))}
+          // ===========================================
+
           isExistingUser={auth.isExist}
           adminEmail={auth.adminEmail}
           setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))}
@@ -1210,7 +1267,6 @@ export default function Home() {
                   username: auth.user.trim(),
                   user_browser: navigator.userAgent,
                 },
-
                 { onConflict: "device_id" },
               );
             } catch (e) {}

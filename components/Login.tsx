@@ -6,6 +6,12 @@ export default function Login({
   activeTab,
   username,
   setUsername,
+  pin,              // <-- Tambahan Prop PIN
+  setPin,           // <-- Tambahan Prop PIN
+  umur,             // <-- Umur dijadikan prop agar bisa dibaca page.tsx untuk Supabase
+  setUmur,          // <-- Umur dijadikan prop
+  berat,            // <-- Berat dijadikan prop agar bisa dibaca page.tsx untuk Supabase
+  setBerat,         // <-- Berat dijadikan prop
   isExistingUser,
   adminEmail,
   setAdminEmail,
@@ -22,9 +28,8 @@ export default function Login({
   // State untuk efek ketikan placeholder username
   const [placeholderText, setPlaceholderText] = useState("");
 
-  // State untuk dropdown formulir
-  const [umur, setUmur] = useState("");
-  const [berat, setBerat] = useState("");
+  // State Mode: false = Daftar Baru, true = Login Akun Lama
+  const [isLoginMode, setIsLoginMode] = useState(false);
 
   // State untuk persetujuan username permanen
   const [isUsernameAgreed, setIsUsernameAgreed] = useState(false);
@@ -67,8 +72,10 @@ export default function Login({
     return () => clearInterval(interval);
   }, [isExistingUser]);
 
-  // Validasi apakah semua kolom untuk user baru sudah terisi lengkap & dicentang
-  const isFormValid = username?.trim().length > 0 && umur !== "" && berat !== "" && isUsernameAgreed;
+  // Validasi apakah form sudah terisi lengkap tergantung mode (Daftar vs Login)
+  const isFormValid = isLoginMode 
+    ? (username?.trim().length > 0 && pin?.length === 6) 
+    : (username?.trim().length > 0 && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed);
 
   // Handler Login User dengan Pemicu Notifikasi Merah
   const handleUserLoginWrapper = () => {
@@ -77,18 +84,26 @@ export default function Login({
         setValidationMsg("isi nama dulu sayang");
         return;
       }
-      if (!umur || !berat) {
-        setValidationMsg("pilih dulu sayang");
+      if (!pin || pin.length !== 6) {
+        setValidationMsg("PIN harus 6 angka sayang");
         return;
       }
-      if (!isUsernameAgreed) {
-        setValidationMsg("ceklist dulu sayang");
-        return;
+      // Validasi tambahan ini hanya jalan jika mode DAFTAR BARU
+      if (!isLoginMode) {
+        if (!umur || !berat) {
+          setValidationMsg("pilih dulu sayang");
+          return;
+        }
+        if (!isUsernameAgreed) {
+          setValidationMsg("ceklist dulu sayang");
+          return;
+        }
       }
     }
     
     setValidationMsg("");
-    handleUserLogin();
+    // Mengirim status isLoginMode ke parent (page.tsx)
+    handleUserLogin(isLoginMode);
   };
 
   // --- LOGIK STYLING OUTLINE DINAMIS (MANDIRI & SPESIFIK) ---
@@ -97,6 +112,13 @@ export default function Login({
   const usernameBorderClass = isFormValid
     ? 'border-emerald-500 border-2'
     : (validationMsg === "isi nama dulu sayang")
+      ? 'border-red-500 animate-pulse border-2'
+      : 'border-white/30 border';
+
+  // 1b. Outline untuk Input PIN (Baru)
+  const pinBorderClass = isFormValid
+    ? 'border-emerald-500 border-2'
+    : (validationMsg === "PIN harus 6 angka sayang")
       ? 'border-red-500 animate-pulse border-2'
       : 'border-white/30 border';
 
@@ -133,10 +155,10 @@ export default function Login({
     buttonText = validationMsg;
   } else if (isFormValid) {
     buttonStyle = "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-emerald-400 shadow-green-500/20";
-    buttonText = "Gabung";
+    buttonText = isLoginMode ? "Masuk" : "Gabung";
   } else {
     buttonStyle = "bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 border-cyan-400 shadow-blue-500/20";
-    buttonText = "Gabung";
+    buttonText = isLoginMode ? "Masuk" : "Gabung";
   }
 
   return (
@@ -156,21 +178,39 @@ export default function Login({
                 <span className="text-blue-900">{username}</span>
               </div>
             ) : (
-              /* Input Nama / Username - Abu-abu blur default, teks biru tua & bold ketika diinput */
-              <input 
-                className={`w-full p-3.5 sm:p-4 rounded-full focus:outline-none transition-all text-center text-base sm:text-lg tracking-wide mb-4 shadow-inner font-bold backdrop-blur-sm bg-neutral-500/20 text-blue-900 placeholder-neutral-500 focus:ring-2 focus:ring-blue-300 ${usernameBorderClass}`}
-                placeholder={placeholderText} 
-                value={username || ""} 
-                onChange={(e) => {
-                  setUsername(e.target.value.slice(0, 20));
-                  if (validationMsg) setValidationMsg(""); 
-                }} 
-                maxLength={20}
-              />
+              <>
+                {/* Input Nama / Username - Abu-abu blur default, teks biru tua & bold ketika diinput */}
+                <input 
+                  className={`w-full p-3.5 sm:p-4 rounded-full focus:outline-none transition-all text-center text-base sm:text-lg tracking-wide mb-3 shadow-inner font-bold backdrop-blur-sm bg-neutral-500/20 text-blue-900 placeholder-neutral-500 focus:ring-2 focus:ring-blue-300 ${usernameBorderClass}`}
+                  placeholder={placeholderText} 
+                  value={username || ""} 
+                  onChange={(e) => {
+                    setUsername(e.target.value.slice(0, 20));
+                    if (validationMsg) setValidationMsg(""); 
+                  }} 
+                  maxLength={20}
+                />
+                
+                {/* Input PIN 6 Digit (Baru) */}
+                <input 
+                  type="password"
+                  inputMode="numeric"
+                  className={`w-full p-3.5 sm:p-4 rounded-full focus:outline-none transition-all text-center text-base sm:text-lg tracking-wide mb-4 shadow-inner font-bold backdrop-blur-sm bg-neutral-500/20 text-blue-900 placeholder-neutral-500 focus:ring-2 focus:ring-blue-300 ${pinBorderClass}`}
+                  placeholder="PIN 6 Digit (Angka)" 
+                  value={pin || ""} 
+                  onChange={(e) => {
+                    // Regex hanya mengizinkan input angka
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setPin(val);
+                    if (validationMsg) setValidationMsg(""); 
+                  }} 
+                  maxLength={6}
+                />
+              </>
             )}
             
-            {!isExistingUser && (
-              /* Kolom Pilihan Umur dan Berat (Pill User Kolom Pilih) */
+            {/* Kolom Pilihan Umur dan Berat HANYA TAMPIL SAAT DAFTAR */}
+            {!isExistingUser && !isLoginMode && (
               <div className="grid grid-cols-2 gap-3 w-full mb-5 sm:mb-6">
                 <div className="relative">
                   <select 
@@ -233,13 +273,13 @@ export default function Login({
             {/* Tombol Login Pintar */}
             <button 
               onClick={handleUserLoginWrapper} 
-              className={`w-full py-3.5 sm:py-4 mb-4 text-white font-bold text-sm sm:text-md shadow-lg transition-all rounded-full tracking-wider border-2 active:scale-95 cursor-pointer ${buttonStyle}`}
+              className={`w-full py-3.5 sm:py-4 mb-3 text-white font-bold text-sm sm:text-md shadow-lg transition-all rounded-full tracking-wider border-2 active:scale-95 cursor-pointer ${buttonStyle}`}
             >
               {buttonText}
             </button>
 
-            {/* Kolom Centang warning username */}
-            {!isExistingUser && (
+            {/* Kolom Centang warning username HANYA TAMPIL SAAT DAFTAR */}
+            {!isExistingUser && !isLoginMode && (
               <motion.div 
                 whileHover={{ scale: 1.01 }}
                 className={`bg-white/20 backdrop-blur-sm px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-full shadow-sm w-full flex items-center justify-center gap-2 transition-all select-none ${checkboxBorderClass}`}
@@ -258,6 +298,21 @@ export default function Login({
                   *Mengikuti aturan di dalam chat  
                 </label>
               </motion.div>
+            )}
+
+            {/* Tombol Pindah Mode: Daftar Baru <--> Login Lama */}
+            {!isExistingUser && (
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => {
+                    setIsLoginMode(!isLoginMode);
+                    setValidationMsg(""); // Reset warning saat ganti mode
+                  }}
+                  className="text-[11px] sm:text-xs text-blue-900/70 hover:text-blue-900 font-bold underline transition-colors focus:outline-none"
+                >
+                  {isLoginMode ? "Belum punya akun? Buat Baru" : "Punya akun lama? Login pakai PIN"}
+                </button>
+              </div>
             )}
           </div>
         ) : (
