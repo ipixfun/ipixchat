@@ -1288,14 +1288,14 @@ export default function Home() {
           adminPass={auth.adminPass}
           setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))}
           
-          handleUserLogin={async () => {
+          handleUserLogin={async (isLoginMode?: boolean) => {
             const inputName = auth.user.trim();
             if (!inputName || isCensored(inputName)) return alert("Nama tidak valid");
             
             try {
               const { data: existUser } = await supabase
                 .from("profiles")
-                .select("username, pin, email")
+                .select("username, pin, email, umur, berat") // Menambahkan pengambilan data umur dan berat
                 .ilike("username", inputName)
                 .maybeSingle();
 
@@ -1304,8 +1304,31 @@ export default function Home() {
               }
               
               const finalUsername = existUser ? existUser.username : inputName.toLowerCase();
-              let finalEmail = "user@ipix.fun";
+              
+              // 🛑 JIKA MODE LOGIN: HANYA LOAD DATA, JANGAN UPSERT 🛑
+              if (isLoginMode) {
+                if (!existUser) {
+                  return alert("User tidak ditemukan, silakan register terlebih dahulu.");
+                }
+                
+                // Set state dengan data dari database (mencegah overwriting nilai kosong)
+                setAuth((p) => ({ 
+                  ...p, 
+                  isAuth: true, 
+                  user: finalUsername,
+                  umur: existUser.umur || "",
+                  berat: existUser.berat || ""
+                }));
+                localStorage.setItem("active_username", finalUsername);
+                localStorage.setItem("is_auth", "true");
+                localStorage.setItem("active_tab", "user");
+                
+                // Hentikan eksekusi di sini agar tidak lanjut ke blok upsert di bawah
+                return; 
+              }
 
+              // 🟢 JIKA MODE REGISTER: LAKUKAN UPSERT 🟢
+              let finalEmail = "user@ipix.fun";
               if (existUser?.email) {
                 finalEmail = existUser.email;
               } else {
