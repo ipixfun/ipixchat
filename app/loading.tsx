@@ -1,91 +1,100 @@
 export default function Loading() {
   return (
-    <div className="h-screen w-full flex flex-col items-center justify-center bg-[#07070a] text-white select-none overflow-hidden relative">
+    <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-white select-none overflow-hidden relative font-sans">
       
-      {/* Container 3D Motion Graphic */}
-      <div className="relative flex items-center justify-center transform-style-3d w-72 h-72 md:w-[400px] md:h-[400px]">
+      {/* 🟢🔵 BACKGROUND BLOBS ANIMATION - Bouncing & Glowing 🔵🟢 */}
+      <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none z-0">
         
-        {/* Cincin Animasi 3D (Background motion) */}
-        <div className="absolute w-full h-full border-t-[6px] border-green-400 rounded-full animate-spin-slow shadow-[0_0_25px_rgba(74,222,128,0.5)] opacity-80"></div>
+        {/* Blob 1: Bouncing Cyan */}
+        <div className="absolute w-[350px] h-[350px] md:w-[500px] md:h-[500px] bg-cyan-400/40 rounded-full blur-[80px] animate-blob-cyan"></div>
         
-        <div className="absolute w-5/6 h-5/6 border-r-[6px] border-blue-400 rounded-full animate-spin-3d-x shadow-[0_0_25px_rgba(96,165,250,0.5)] opacity-80"></div>
+        {/* Blob 2: Bouncing Emerald */}
+        <div className="absolute w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-emerald-400/40 rounded-full blur-[90px] animate-blob-emerald"></div>
         
-        <div className="absolute w-4/6 h-4/6 border-b-[6px] border-purple-500 rounded-full animate-spin-3d-y shadow-[0_0_25px_rgba(168,85,247,0.5)] opacity-80"></div>
-
-        {/* Teks IPIX (Rounded, Glassy, Gradasi Ijo-Biru, Outline Kaca, 3D & Jelly Bounce) */}
-        <div className="absolute z-20 flex items-center justify-center animate-jelly-bounce">
-          <h1 className="text-7xl md:text-9xl font-black tracking-tighter font-rounded glassy-3d-text">
-            IPIX
-          </h1>
-        </div>
-
-        {/* Efek Cahaya Inti di belakang teks */}
-        <div className="absolute w-20 h-20 bg-cyan-400 rounded-full blur-[40px] opacity-40 animate-pulse"></div>
+        {/* Blob 3: Bouncing Blue Glow (Tengah) */}
+        <div className="absolute w-[250px] h-[250px] md:w-[350px] md:h-[350px] bg-blue-500/30 rounded-full blur-[70px] animate-blob-blue"></div>
       </div>
 
-      {/* SOLUSI: Gunakan dangerouslySetInnerHTML */}
+      {/* Main Content (Teks IPIX Jelly Bounce) */}
+      <div className="relative z-20 flex flex-col items-center justify-center animate-jelly-bounce">
+        
+        {/* Teks IPIX (Glassy, Gradasi Tema Blob, 3D Outline) */}
+        <h1 className="text-7xl md:text-9xl font-black tracking-tighter font-rounded glassy-blob-text mb-4">
+          IPIX
+        </h1>
+
+        {/* Loading Dots Bouncing */}
+        <div className="flex gap-3">
+          <span className="w-3.5 h-3.5 bg-cyan-400 rounded-full animate-bounce shadow-[0_0_10px_rgba(34,211,238,0.8)]" style={{ animationDelay: '0s' }}></span>
+          <span className="w-3.5 h-3.5 bg-emerald-400 rounded-full animate-bounce shadow-[0_0_10px_rgba(52,211,153,0.8)]" style={{ animationDelay: '0.15s' }}></span>
+          <span className="w-3.5 h-3.5 bg-blue-400 rounded-full animate-bounce shadow-[0_0_10px_rgba(96,165,250,0.8)]" style={{ animationDelay: '0.3s' }}></span>
+        </div>
+      </div>
+
+      {/* STYLES & KEYFRAMES MURNI */}
       <style dangerouslySetInnerHTML={{
         __html: `
-        /* Import Font Rounded (Nunito) agar teks terlihat lebih gemas dan membulat */
+        /* Import Font Rounded (Nunito) */
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@900&display=swap');
 
         .font-rounded {
           font-family: 'Nunito', sans-serif;
         }
 
-        /* Efek Teks Glassy, Gradasi, Outline, & 3D */
-        .glassy-3d-text {
-          background: linear-gradient(135deg, #4ade80 0%, #3b82f6 100%);
+        /* Efek Teks Glassy dengan Warna Tema Blob (Cyan, Emerald, Blue) */
+        .glassy-blob-text {
+          background: linear-gradient(135deg, #22d3ee 0%, #34d399 50%, #3b82f6 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
-          -webkit-text-stroke: 3px rgba(255, 255, 255, 0.7);
-          filter: drop-shadow(0px 8px 0px rgba(59, 130, 246, 0.6))
-                  drop-shadow(0px 15px 25px rgba(74, 222, 128, 0.4));
+          -webkit-text-stroke: 2px rgba(255, 255, 255, 0.6);
+          filter: drop-shadow(0px 8px 0px rgba(15, 23, 42, 0.5)) /* Bayangan pekat di bawah */
+                  drop-shadow(0px 15px 30px rgba(34, 211, 238, 0.5)); /* Pendaran cyan */
         }
 
-        .transform-style-3d {
-          transform-style: preserve-3d;
-          perspective: 1200px;
+        /* --- ANIMASI BLOBS BOUNCING --- */
+        
+        .animate-blob-cyan {
+          animation: bounceGlowCyan 4s ease-in-out infinite;
         }
         
-        .animate-spin-slow {
-          animation: spin 5s linear infinite;
+        .animate-blob-emerald {
+          animation: bounceGlowEmerald 5s ease-in-out infinite;
+          animation-delay: 1s; /* Jeda agar tidak bersamaan */
         }
         
-        .animate-spin-3d-x {
-          animation: spin3dX 4s linear infinite;
-        }
-        
-        .animate-spin-3d-y {
-          animation: spin3dY 4.5s linear infinite;
+        .animate-blob-blue {
+          animation: bounceGlowBlue 3.5s ease-in-out infinite;
+          animation-delay: 0.5s;
         }
 
+        /* Pergerakan melambung, membesar, dan menyala (Bouncing & Glowing) */
+        @keyframes bounceGlowCyan {
+          0%, 100% { transform: translateY(30px) scale(1); opacity: 0.3; }
+          50%      { transform: translateY(-120px) scale(1.15); opacity: 0.7; }
+        }
+
+        @keyframes bounceGlowEmerald {
+          0%, 100% { transform: translateY(40px) scale(1); opacity: 0.2; }
+          50%      { transform: translateY(-150px) scale(1.25); opacity: 0.6; }
+        }
+
+        @keyframes bounceGlowBlue {
+          0%, 100% { transform: translate(-20px, -40px) scale(0.8); opacity: 0.4; }
+          50%      { transform: translate(30px, 60px) scale(1.3); opacity: 0.9; }
+        }
+
+        /* Animasi Jelly Bounce untuk Teks Utama */
         .animate-jelly-bounce {
-          animation: jelly-bounce 2s infinite ease-in-out;
+          animation: jelly-bounce 2.5s infinite ease-in-out;
           transform-origin: bottom center;
-        }
-
-        @keyframes spin3dX {
-          0% { transform: rotateX(0deg) rotateY(45deg) rotateZ(0deg); }
-          100% { transform: rotateX(360deg) rotateY(45deg) rotateZ(360deg); }
-        }
-        
-        @keyframes spin3dY {
-          0% { transform: rotateY(0deg) rotateX(45deg) rotateZ(0deg); }
-          100% { transform: rotateY(360deg) rotateX(45deg) rotateZ(-360deg); }
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
         }
 
         @keyframes jelly-bounce {
           0%, 100% { transform: scale(1, 1) translateY(0); }
-          10% { transform: scale(1.15, 0.85) translateY(0); }
-          30% { transform: scale(0.85, 1.15) translateY(-40px); }
-          50% { transform: scale(1.05, 0.95) translateY(0); }
-          65% { transform: scale(0.98, 1.02) translateY(-15px); }
+          10% { transform: scale(1.1, 0.9) translateY(0); }
+          30% { transform: scale(0.9, 1.1) translateY(-25px); }
+          50% { transform: scale(1.02, 0.98) translateY(0); }
+          65% { transform: scale(0.98, 1.02) translateY(-10px); }
           80% { transform: scale(1.01, 0.99) translateY(0); }
         }
         `
