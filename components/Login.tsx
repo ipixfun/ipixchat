@@ -2,12 +2,32 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
-// --- CONFIG SOSMED IPIX (Ganti link disini) ---
+// --- CONFIG SOSMED IPIX (Pill Warna-Warni Macaron) ---
 const socialPlatforms = [
-  { name: 'Twitter', label: 'X', color: 'hover:bg-black/80 hover:text-white hover:border-black', link: 'isi_link_disini' },
-  { name: 'Heesay', label: 'HS', color: 'hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-pink-500', link: 'isi_link_disini' },
-  { name: 'Growlr', label: 'GR', color: 'hover:bg-amber-600 hover:text-white hover:border-amber-600', link: 'isi_link_disini' },
-  { name: 'TikTok', label: 'TT', color: 'hover:bg-black hover:text-white hover:border-black', link: 'isi_link_disini' },
+  { 
+    name: 'Twitter', 
+    label: 'Twitter : sixripix', 
+    color: 'bg-sky-100 text-sky-700 border-sky-200 hover:bg-sky-200', 
+    link: 'https://x.com/sixripix' 
+  },
+  { 
+    name: 'TikTok', 
+    label: 'Tiktok : ipixaja', 
+    color: 'bg-rose-100 text-rose-700 border-rose-200 hover:bg-rose-200', 
+    link: 'https://tiktok.com/@ipixaja' 
+  },
+  { 
+    name: 'Heesay', 
+    label: 'Heesay/Walla : V206MN/ipiX', 
+    color: 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200', 
+    link: 'https://international.walla-app.com/user?id=V2O6MN&app=2' 
+  },
+  { 
+    name: 'Growlr', 
+    label: 'Growlr : pix', 
+    color: 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200', 
+    link: 'https://www.growlrapp.com' 
+  },
 ];
 
 // --- ICONS ---
@@ -196,8 +216,8 @@ export default function Login({
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
       
-      {/* ⚪ MAIN CARD - Glass Transparant Design */}
-      <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-white/10 backdrop-blur-2xl border border-white/20 sm:rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col z-10 transition-all duration-300">
+      {/* ⚪ MAIN CARD - Background Full Bening */}
+      <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-hidden flex flex-col z-10 transition-all duration-300">
         
         {activeTab === 'user' ? (
           <>
@@ -225,34 +245,14 @@ export default function Login({
                   style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
                 >
                   <h2 className="text-2xl sm:text-3xl font-bold mb-1 tracking-wide text-white drop-shadow-sm">Hello, Welcome</h2>
-                  <p className="text-sm text-gray-200 mb-4 font-light">
-                    {isExistingUser ? "Sosial Media Ipix" : "Don't have an Account"}
-                  </p>
-                  
-                  {/* SWITCH BUTTON / SOSMED BERJEJER */}
-                  {!isExistingUser ? (
+                  <p className="text-sm text-gray-200 mb-6 font-light">Don't have an Account</p>
+                  {!isExistingUser && (
                     <button 
                       onClick={() => { setIsLoginMode(false); setValidationMsg(""); }}
                       className="px-10 py-2.5 rounded-full border border-white/60 text-white font-extrabold hover:bg-white/20 transition-all text-sm backdrop-blur-sm active:scale-95 shadow-sm"
                     >
                       Register
                     </button>
-                  ) : (
-                    /* 🔗 SOSMED BERJEJER MENGGANTIKAN PILL HIJAU KETIKA USER SUDAH TERDAFTAR */
-                    <div className="flex justify-center gap-3 mt-1 animate-fadeIn">
-                      {socialPlatforms.map((platform) => (
-                        <a 
-                          key={platform.name} 
-                          href={platform.link} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          title={platform.name}
-                          className={`w-9 h-9 rounded-full border border-white/20 bg-white/10 text-white font-black flex items-center justify-center text-xs shadow-sm transition-all duration-300 backdrop-blur-md ${platform.color}`}
-                        >
-                          {platform.label}
-                        </a>
-                      ))}
-                    </div>
                   )}
                 </motion.div>
 
@@ -364,10 +364,10 @@ export default function Login({
                   {buttonText}
                 </button>
 
-                {/* --- SEPARATOR & SOSMED IPIX REGISTER --- */}
+                {/* --- SOSMED IPIX REGISTER --- */}
                 <div className="flex flex-col items-center mt-4 w-full">
                   <p className="text-[10px] sm:text-[11px] font-extrabold text-slate-600/80 mb-2.5 text-center tracking-wide uppercase">Sosial Media Ipix</p>
-                  <div className="flex justify-center gap-3">
+                  <div className="flex flex-wrap justify-center gap-2 px-2">
                     {socialPlatforms.map((platform) => (
                       <a 
                         key={platform.name} 
@@ -375,7 +375,7 @@ export default function Login({
                         target="_blank" 
                         rel="noopener noreferrer" 
                         title={platform.name}
-                        className={`w-9 h-9 rounded-full border border-[#235867]/30 bg-white/20 text-slate-800 font-black flex items-center justify-center text-xs shadow-sm transition-all duration-300 backdrop-blur-md ${platform.color}`}
+                        className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide shadow-sm transition-all duration-300 active:scale-95 ${platform.color}`}
                       >
                         {platform.label}
                       </a>
@@ -442,24 +442,26 @@ export default function Login({
                   {buttonText}
                 </button>
 
-                {/* --- SEPARATOR & SOSMED IPIX LOGIN --- */}
-                <div className="flex flex-col items-center mt-5 w-full">
-                  <p className="text-[10px] sm:text-[11px] font-extrabold text-slate-600/80 mb-2.5 text-center tracking-wide uppercase">Sosial Media Ipix</p>
-                  <div className="flex justify-center gap-3">
-                    {socialPlatforms.map((platform) => (
-                      <a 
-                        key={platform.name} 
-                        href={platform.link} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        title={platform.name}
-                        className={`w-9 h-9 rounded-full border border-[#235867]/30 bg-white/20 text-slate-800 font-black flex items-center justify-center text-xs shadow-sm transition-all duration-300 backdrop-blur-md ${platform.color}`}
-                      >
-                        {platform.label}
-                      </a>
-                    ))}
+                {/* --- SOSMED IPIX LOGIN (Hanya tampil jika bukan user terikat login) --- */}
+                {!isExistingUser && (
+                  <div className="flex flex-col items-center mt-5 w-full">
+                    <p className="text-[10px] sm:text-[11px] font-extrabold text-slate-600/80 mb-2.5 text-center tracking-wide uppercase">Sosial Media Ipix</p>
+                    <div className="flex flex-wrap justify-center gap-2 px-2">
+                      {socialPlatforms.map((platform) => (
+                        <a 
+                          key={platform.name} 
+                          href={platform.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          title={platform.name}
+                          className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide shadow-sm transition-all duration-300 active:scale-95 ${platform.color}`}
+                        >
+                          {platform.label}
+                        </a>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </motion.div>
 
             </div>
