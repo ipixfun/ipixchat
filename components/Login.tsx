@@ -53,7 +53,7 @@ const EyeOffIcon = () => (
   <svg className="w-5 h-5 text-slate-500 cursor-pointer hover:text-slate-800 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>
 );
 
-// --- REUSABLE COMPONENTS DENGAN ABU MUDA (TANPA BLUR) ---
+// --- REUSABLE COMPONENTS ---
 const InputField = ({ icon, suffix, readOnly, className, ...props }: any) => (
   <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border transition-all duration-300 ${className}`}>
     <div className="mr-3 flex-shrink-0 opacity-60">
@@ -61,7 +61,7 @@ const InputField = ({ icon, suffix, readOnly, className, ...props }: any) => (
     </div>
     <input 
       readOnly={readOnly}
-      className="bg-transparent outline-none flex-1 text-sm font-extrabold w-full placeholder-slate-400 disabled:cursor-not-allowed text-slate-900"
+      className="bg-transparent outline-none flex-1 text-sm font-extrabold w-full placeholder-slate-400 disabled:cursor-not-allowed text-inherit"
       {...props}
     />
     {suffix && <div className="ml-2 flex-shrink-0 flex items-center">{suffix}</div>}
@@ -224,7 +224,6 @@ export default function Login({
     }
   } else {
     if (isLoginMode) {
-      // KETIKA DI HALAMAN LOGIN (BELUM LENGKAP) -> SEKARANG SUDAH JADI IJO ("Login")
       buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_15px_rgba(34,197,94,0.4)] text-white";
       buttonText = "Login";
     } else {
@@ -444,7 +443,7 @@ export default function Login({
                     if (validationMsg) setValidationMsg(""); 
                   }}
                   readOnly={isExistingUser}
-                  className={isExistingUser ? 'bg-gray-200/60 text-slate-500 border-gray-300 cursor-not-allowed opacity-75' : usernameBorderClass}
+                  className={isExistingUser ? 'bg-gray-200 text-black border-gray-300 cursor-not-allowed font-extrabold' : usernameBorderClass}
                   autoComplete="off"
                 />
                 
@@ -467,16 +466,16 @@ export default function Login({
                     </button>
                   }
                   readOnly={isExistingUser}
-                  className={isExistingUser ? 'bg-gray-200/60 text-slate-500 border-gray-300 cursor-not-allowed opacity-75' : pinBorderClass}
+                  className={isExistingUser ? 'bg-gray-200 text-black border-gray-300 cursor-not-allowed font-extrabold' : pinBorderClass}
                   maxLength={6}
                 />
 
-                {/* LOGIN OTOMATIS NOTE CONTAINER (TANPA BLUR) */}
+                {/* LOGIN OTOMATIS NOTE CONTAINER (TEKS JALAN ABU-ABU MUDA & TEKS HITAM) */}
                 {isExistingUser && (
-                  <div className="w-full text-xs text-[#0B2027] bg-gray-100 p-4 border border-gray-300 rounded-3xl mb-4 font-extrabold text-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center">
+                  <div className="w-full text-xs text-black bg-gray-200 p-4 border border-gray-300 rounded-3xl mb-4 font-extrabold text-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center">
                     <span className="w-full block drop-shadow-sm">
                       {displayedNote}
-                      {!isNoteTypingDone && <span className="animate-pulse ml-0.5 text-[#0B2027]">|</span>}
+                      {!isNoteTypingDone && <span className="animate-pulse ml-0.5 text-black">|</span>}
                     </span>
                   </div>
                 )}
