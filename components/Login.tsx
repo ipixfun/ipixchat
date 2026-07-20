@@ -2,30 +2,30 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
-// --- CONFIG SOSMED IPIX (Pill Warna-Warni Macaron) ---
+// --- CONFIG SOSMED IPIX (Glassmorphism Style) ---
 const socialPlatforms = [
   { 
     name: 'Twitter', 
     label: 'Twitter : sixripix', 
-    color: 'bg-sky-100 text-sky-700 border-sky-200 hover:bg-sky-200', 
+    color: 'bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm', 
     link: 'https://x.com/sixripix' 
   },
   { 
     name: 'TikTok', 
     label: 'Tiktok : ipixaja', 
-    color: 'bg-rose-100 text-rose-700 border-rose-200 hover:bg-rose-200', 
+    color: 'bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm', 
     link: 'https://tiktok.com/@ipixaja' 
   },
   { 
     name: 'Heesay', 
     label: 'Heesay/Walla : V206MN/ipiX', 
-    color: 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200', 
+    color: 'bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm', 
     link: 'https://international.walla-app.com/user?id=V2O6MN&app=2' 
   },
   { 
     name: 'Growlr', 
     label: 'Growlr : pix', 
-    color: 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200', 
+    color: 'bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm', 
     link: 'https://www.growlrapp.com' 
   },
 ];
@@ -47,34 +47,34 @@ const MailIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
 );
 
-// --- REUSABLE COMPONENTS WITH GLASS STYLE ---
+// --- REUSABLE COMPONENTS DENGAN ABU MUDA (TANPA BLUR) ---
 const InputField = ({ icon, readOnly, className, ...props }: any) => (
-  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border backdrop-blur-md transition-all duration-300 ${className}`}>
-    <div className="mr-3 flex-shrink-0 opacity-70">
+  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border transition-all duration-300 ${className}`}>
+    <div className="mr-3 flex-shrink-0 opacity-60">
       {icon}
     </div>
     <input 
       readOnly={readOnly}
-      className="bg-transparent outline-none flex-1 text-sm font-extrabold w-full placeholder-slate-600/60 disabled:cursor-not-allowed"
+      className="bg-transparent outline-none flex-1 text-sm font-extrabold w-full placeholder-slate-400 disabled:cursor-not-allowed text-slate-900"
       {...props}
     />
   </div>
 );
 
 const SelectField = ({ icon, options, value, onChange, placeholder, className }: any) => (
-  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border backdrop-blur-md relative transition-all duration-300 ${className}`}>
-    <div className="mr-3 flex-shrink-0 opacity-70">
+  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border relative transition-all duration-300 ${className}`}>
+    <div className="mr-3 flex-shrink-0 opacity-60">
       {icon}
     </div>
     <select 
       value={value}
       onChange={onChange}
-      className="bg-transparent outline-none flex-1 text-sm font-extrabold w-full appearance-none cursor-pointer"
+      className="bg-transparent outline-none flex-1 text-sm font-extrabold w-full appearance-none cursor-pointer text-slate-900"
     >
       <option value="" disabled className="text-slate-900">{placeholder}</option>
       {options.map((opt: string) => <option key={opt} value={opt} className="text-slate-900">{opt}</option>)}
     </select>
-    <div className="pointer-events-none absolute right-4 opacity-70">
+    <div className="pointer-events-none absolute right-4 opacity-60 text-slate-900">
       <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
     </div>
   </div>
@@ -165,31 +165,30 @@ export default function Login({
     handleUserLogin(isLoginMode);
   };
 
-  // --- LOGIK STYLING ---
+  // --- LOGIK STYLING ABU MUDA ---
   const usernameBorderClass = isFormValid
-    ? 'border-green-400 bg-white/20 text-green-950 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05),0_0_15px_rgba(34,197,94,0.4)] font-extrabold' 
+    ? 'border-green-400 bg-green-50 text-green-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] font-extrabold' 
     : (validationMsg === "Isi nama dulu sayang")
-      ? 'border-red-400 animate-pulse bg-white/20 text-red-950 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05),0_0_15px_rgba(239,68,68,0.5)] font-extrabold' 
-      : 'border-[#235867]/40 bg-white/20 text-slate-900 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05)] focus-within:border-[#0B2027] focus-within:shadow-[0_0_15px_rgba(11,32,39,0.2)] font-extrabold';
+      ? 'border-red-400 animate-pulse bg-red-50 text-red-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] font-extrabold' 
+      : 'border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] focus-within:bg-gray-50 font-extrabold';
 
-  // Modifikasi kondisional PIN berkedip merah saat regis belum input PIN sempurna
   const pinBorderClass = isFormValid
-    ? 'border-green-400 bg-white/20 text-green-950 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05),0_0_15px_rgba(34,197,94,0.4)] font-extrabold'
+    ? 'border-green-400 bg-green-50 text-green-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] font-extrabold'
     : (validationMsg === "PIN harus 6 angka sayang" || (!isLoginMode && validationMsg && (!pin || pin.length !== 6)))
-      ? 'border-red-400 animate-pulse bg-white/20 text-red-950 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05),0_0_15px_rgba(239,68,68,0.5)] font-extrabold'
-      : 'border-[#235867]/40 bg-white/20 text-slate-900 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05)] focus-within:border-[#0B2027] focus-within:shadow-[0_0_15px_rgba(11,32,39,0.2)] font-extrabold';
+      ? 'border-red-400 animate-pulse bg-red-50 text-red-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] font-extrabold'
+      : 'border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] focus-within:bg-gray-50 font-extrabold';
 
   const umurBorderClass = isFormValid
-    ? 'border-green-400 bg-white/20 text-green-950 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05),0_0_15px_rgba(34,197,94,0.3)]'
+    ? 'border-green-400 bg-green-50 text-green-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]'
     : (validationMsg && !umur)
-      ? 'border-red-400 animate-pulse bg-white/20 text-red-950 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05),0_0_15px_rgba(239,68,68,0.4)]'
-      : 'border-[#235867]/40 bg-white/20 text-slate-900 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05)] focus-within:border-[#0B2027]';
+      ? 'border-red-400 animate-pulse bg-red-50 text-red-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]'
+      : 'border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] focus-within:bg-gray-50';
 
   const beratBorderClass = isFormValid
-    ? 'border-green-400 bg-white/20 text-green-950 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05),0_0_15px_rgba(34,197,94,0.3)]'
+    ? 'border-green-400 bg-green-50 text-green-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]'
     : (validationMsg && !berat)
-      ? 'border-red-400 animate-pulse bg-white/20 text-red-950 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05),0_0_15px_rgba(239,68,68,0.4)]'
-      : 'border-[#235867]/40 bg-white/20 text-slate-900 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05)] focus-within:border-[#0B2027]';
+      ? 'border-red-400 animate-pulse bg-red-50 text-red-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]'
+      : 'border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] focus-within:bg-gray-50';
 
   const checkboxBorderClass = isFormValid
     ? 'border-green-400/60 bg-white/20 shadow-[0_0_15px_rgba(34,197,94,0.2)]'
@@ -238,56 +237,67 @@ export default function Login({
             >
               <div className="relative w-full h-full flex items-center justify-center">
                 
-                {/* Text For Login Mode */}
+                {/* View For Login Mode (Menggantikan Hello Welcome dengan Glass Sosmed) */}
                 <motion.div
                   animate={{ opacity: isLoginMode ? 1 : 0, scale: isLoginMode ? 1 : 0.95 }}
                   transition={{ duration: 0.3 }}
                   className="absolute flex flex-col items-center text-center w-full"
                   style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
                 >
-                  <h2 className="text-2xl sm:text-3xl font-bold mb-1 tracking-wide text-white drop-shadow-sm">Hello, Welcome</h2>
-                  <p className="text-sm text-gray-200 mb-4 font-light">Don't have an Account</p>
+                  <div className="flex flex-col items-center mb-4 w-full">
+                    <p className="text-[10px] font-extrabold text-white/50 mb-2.5 tracking-wide uppercase">Sosial Media Ipix</p>
+                    <div className="flex flex-wrap justify-center gap-2 px-4">
+                      {socialPlatforms.map((platform) => (
+                        <a 
+                          key={platform.name} 
+                          href={platform.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide shadow-sm transition-all duration-300 active:scale-95 ${platform.color}`}
+                        >
+                          {platform.label}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
                   
-                  {/* Tampilkan Tombol Register Jika Bukan User Terikat */}
-                  {!isExistingUser ? (
+                  {!isExistingUser && (
                     <button 
                       onClick={() => { setIsLoginMode(false); setValidationMsg(""); }}
-                      className="px-10 py-2.5 rounded-full border border-white/60 text-white font-extrabold hover:bg-white/20 transition-all text-sm backdrop-blur-sm active:scale-95 shadow-sm"
+                      className="px-10 py-2.5 mt-1 rounded-full border border-white/60 text-white font-extrabold hover:bg-white/20 transition-all text-sm backdrop-blur-sm active:scale-95 shadow-sm"
                     >
                       Register
                     </button>
-                  ) : (
-                    /* Pindah Sosial Media Ke Sini Saat Login Otomatis (isExistingUser) */
-                    <div className="flex flex-col items-center mt-1 w-full animate-fade-in">
-                      <div className="flex flex-wrap justify-center gap-2 px-4">
-                        {socialPlatforms.map((platform) => (
-                          <a 
-                            key={platform.name} 
-                            href={platform.link} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide shadow-sm transition-all duration-300 active:scale-95 ${platform.color}`}
-                          >
-                            {platform.label}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
                   )}
                 </motion.div>
 
-                {/* Text For Register Mode */}
+                {/* View For Register Mode (Menggantikan Welcome Back dengan Glass Sosmed) */}
                 <motion.div
                   animate={{ opacity: !isLoginMode ? 1 : 0, scale: !isLoginMode ? 1 : 0.95 }}
                   transition={{ duration: 0.3 }}
-                  className="absolute flex flex-col items-center text-center"
+                  className="absolute flex flex-col items-center text-center w-full"
                   style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
                 >
-                  <h2 className="text-2xl sm:text-3xl font-bold mb-1 tracking-wide text-white drop-shadow-sm">Welcome Back!</h2>
-                  <p className="text-sm text-gray-200 mb-6 font-light">Already have an Account</p>
+                  <div className="flex flex-col items-center mb-4 w-full">
+                    <p className="text-[10px] font-extrabold text-white/50 mb-2.5 tracking-wide uppercase">Sosial Media Ipix</p>
+                    <div className="flex flex-wrap justify-center gap-2 px-4">
+                      {socialPlatforms.map((platform) => (
+                        <a 
+                          key={platform.name} 
+                          href={platform.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide shadow-sm transition-all duration-300 active:scale-95 ${platform.color}`}
+                        >
+                          {platform.label}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                  
                   <button 
                     onClick={() => { setIsLoginMode(true); setValidationMsg(""); }}
-                    className="px-10 py-2.5 rounded-full border border-white/60 text-white font-extrabold hover:bg-white/20 transition-all text-sm backdrop-blur-sm active:scale-95 shadow-sm"
+                    className="px-10 py-2.5 mt-1 rounded-full border border-white/60 text-white font-extrabold hover:bg-white/20 transition-all text-sm backdrop-blur-sm active:scale-95 shadow-sm"
                   >
                     Login
                   </button>
@@ -383,25 +393,6 @@ export default function Login({
                 >
                   {buttonText}
                 </button>
-
-                {/* --- SOSMED IPIX REGISTER --- */}
-                <div className="flex flex-col items-center mt-4 w-full">
-                  <p className="text-[10px] sm:text-[11px] font-extrabold text-slate-600/80 mb-2.5 text-center tracking-wide uppercase">Sosial Media Ipix</p>
-                  <div className="flex flex-wrap justify-center gap-2 px-2">
-                    {socialPlatforms.map((platform) => (
-                      <a 
-                        key={platform.name} 
-                        href={platform.link} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        title={platform.name}
-                        className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide shadow-sm transition-all duration-300 active:scale-95 ${platform.color}`}
-                      >
-                        {platform.label}
-                      </a>
-                    ))}
-                  </div>
-                </div>
               </motion.div>
 
 
@@ -424,7 +415,7 @@ export default function Login({
                     if (validationMsg) setValidationMsg(""); 
                   }}
                   readOnly={isExistingUser}
-                  className={isExistingUser ? 'bg-white/10 text-slate-700 border-white/20 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05)] cursor-not-allowed opacity-70' : usernameBorderClass}
+                  className={isExistingUser ? 'bg-gray-200/60 text-slate-500 border-gray-300 cursor-not-allowed opacity-75' : usernameBorderClass}
                   autoComplete="off"
                 />
                 
@@ -442,7 +433,7 @@ export default function Login({
                     if (validationMsg) setValidationMsg(""); 
                   }}
                   readOnly={isExistingUser}
-                  className={isExistingUser ? 'bg-white/10 text-slate-700 border-white/20 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05)] cursor-not-allowed opacity-70' : pinBorderClass}
+                  className={isExistingUser ? 'bg-gray-200/60 text-slate-500 border-gray-300 cursor-not-allowed opacity-75' : pinBorderClass}
                   maxLength={6}
                 />
 
@@ -461,27 +452,6 @@ export default function Login({
                 >
                   {buttonText}
                 </button>
-
-                {/* --- SOSMED IPIX LOGIN (Hanya tampil di bawah jika normal/bukan login otomatis) --- */}
-                {!isExistingUser && (
-                  <div className="flex flex-col items-center mt-5 w-full">
-                    <p className="text-[10px] sm:text-[11px] font-extrabold text-slate-600/80 mb-2.5 text-center tracking-wide uppercase">Sosial Media Ipix</p>
-                    <div className="flex flex-wrap justify-center gap-2 px-2">
-                      {socialPlatforms.map((platform) => (
-                        <a 
-                          key={platform.name} 
-                          href={platform.link} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          title={platform.name}
-                          className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide shadow-sm transition-all duration-300 active:scale-95 ${platform.color}`}
-                        >
-                          {platform.label}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </motion.div>
 
             </div>
@@ -497,7 +467,7 @@ export default function Login({
               placeholder="Email Admin" 
               value={adminEmail || ""} 
               onChange={(e: any) => setAdminEmail(e.target.value)} 
-              className="border-[#235867]/40 bg-white/20 text-slate-900 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05)] focus-within:border-[#0B2027] focus-within:shadow-[0_0_15px_rgba(11,32,39,0.2)]"
+              className="border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027]"
               autoComplete="off"
             />
             
@@ -508,7 +478,7 @@ export default function Login({
               style={{ WebkitTextSecurity: 'disc' } as any}
               value={adminPass || ""} 
               onChange={(e: any) => setAdminPass(e.target.value)} 
-              className="border-[#235867]/40 bg-white/20 text-slate-900 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05)] focus-within:border-[#0B2027] focus-within:shadow-[0_0_15px_rgba(11,32,39,0.2)] mb-6"
+              className="border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] mb-6"
             />
             
             <button 
