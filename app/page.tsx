@@ -197,11 +197,19 @@ export default function Home() {
     }
   };
 
+  // --- PERUBAHAN HANDLE LOGOUT ---
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    localStorage.clear();
+    
+    // Hapus spesifik state login saja, jangan pakai localStorage.clear() 
+    // agar `active_username` tetap ada
+    localStorage.removeItem("is_auth");
+    localStorage.removeItem("active_tab");
     sessionStorage.clear();
-    setAuth((p) => ({ ...p, isAuth: false, pin: "", umur: "", berat: "" }));
+    
+    // Jangan menghapus state pin, umur, dan berat di UI agar form masih terisi
+    setAuth((p) => ({ ...p, isAuth: false }));
+    
     window.location.replace("/");
   };
 
@@ -458,13 +466,21 @@ export default function Home() {
     }
   };
 
+  // --- PERUBAHAN USEEFFECT PENGECEKAN SESI ---
   useEffect(() => {
     const chk = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       const savedUsername = localStorage.getItem("active_username");
+      const isAuthLocal = localStorage.getItem("is_auth") === "true"; 
+      
       if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
-          const { data: pD } = await supabase.from("profiles").select("username, pin, umur, berat").ilike("username", savedUsername).single();
+          // Pakai maybeSingle() supaya gak error jika user kebetulan dihapus dari DB
+          const { data: pD } = await supabase
+            .from("profiles")
+            .select("username, pin, umur, berat")
+            .ilike("username", savedUsername)
+            .maybeSingle();
           
           if (pD?.username) {
             setAuth((p) => ({ 
@@ -475,6 +491,9 @@ export default function Home() {
               umur: pD.umur || "",
               berat: pD.berat || ""
             }));
+          } else {
+             // Fallback kalo di lokal ada tapi di DB terhapus
+             setAuth((p) => ({ ...p, user: savedUsername }));
           }
       }
 
@@ -484,14 +503,16 @@ export default function Home() {
         tab: isAdmin ? "admin" : (localStorage.getItem("active_tab") as "user" | "admin") || "user",
       }));
       
-      if (session || localStorage.getItem("is_auth") === "true") {
+      // Pakai local is_auth sebagai penentu auth user juga (agar tidak logout saat refresh)
+      if (session || isAuthLocal) {
         setAuth((p) => ({
           ...p,
           isAuth: true,
-          user: session ? "Admin●ipix.my.id" : savedUsername || "",
+          user: session ? "Admin●ipix.my.id" : savedUsername || p.user,
         }));
         if (session) setUi((p) => ({ ...p, tab: "admin" }));
       }
+      
       setMounted(true);
     };
     chk();
