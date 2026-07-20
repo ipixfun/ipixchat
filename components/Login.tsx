@@ -78,9 +78,7 @@ export default function Login({
   handleUserLogin,
   handleAdminLogin
 }: any) {
-  // 📝 TEKS BERJALAN BARU SESUAI REQUEST
   const existingNote = "Login otomatis ketika anda sudah register .\nUntuk ubah nama atau pin hubungi admin di chat .";
-  
   const [displayedNote, setDisplayedNote] = useState("");
   const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
   const [placeholderText, setPlaceholderText] = useState("");
@@ -196,28 +194,14 @@ export default function Login({
   }
 
   return (
-    <div className="fixed inset-0 flex justify-center items-center bg-slate-900/10 z-50 overflow-hidden font-sans sm:p-6">
+    <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
       
-      {/* 🟢🔵 BACKGROUND BLOBS ANIMATION 🔵🟢 */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], x: [0, 60, 0], y: [0, 40, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute -top-[15%] -left-[10%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] bg-[#0B2027]/20 rounded-full blur-[100px]"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.3, 1], x: [0, -50, 0], y: [0, -60, 0] }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute -bottom-[15%] -right-[10%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] bg-emerald-400/20 rounded-full blur-[100px]"
-        />
-      </div>
-
       {/* ⚪ MAIN CARD - Glass Transparant Design */}
       <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-white/10 backdrop-blur-2xl border border-white/20 sm:rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col z-10 transition-all duration-300">
         
         {activeTab === 'user' ? (
           <>
-            {/* 🔵 TOGGLE OVERLAY PANEL */}
+            {/* 🔵 KOTAK SLIDE OVERLAY PANEL */}
             <motion.div
               layout
               initial={false}
@@ -241,9 +225,11 @@ export default function Login({
                   style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
                 >
                   <h2 className="text-2xl sm:text-3xl font-bold mb-1 tracking-wide text-white drop-shadow-sm">Hello, Welcome</h2>
-                  <p className="text-sm text-gray-200 mb-6 font-light">Don't have an Account</p>
+                  <p className="text-sm text-gray-200 mb-4 font-light">
+                    {isExistingUser ? "Sosial Media Ipix" : "Don't have an Account"}
+                  </p>
                   
-                  {/* PIL UTK AKUN BARU SAAT LOGIN TERIKAT */}
+                  {/* SWITCH BUTTON / SOSMED BERJEJER */}
                   {!isExistingUser ? (
                     <button 
                       onClick={() => { setIsLoginMode(false); setValidationMsg(""); }}
@@ -252,17 +238,21 @@ export default function Login({
                       Register
                     </button>
                   ) : (
-                    <button 
-                      onClick={() => { 
-                        setIsLoginMode(false); 
-                        setValidationMsg("");
-                        if(setUsername) setUsername(""); // Kosongkan input biar bisa ketik nama baru
-                        if(setPin) setPin("");         // Kosongkan pin
-                      }}
-                      className="px-8 py-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 border border-emerald-400 text-white font-black hover:from-emerald-600 hover:to-teal-600 transition-all text-xs active:scale-95 shadow-[0_0_15px_rgba(52,211,153,0.4)] tracking-wide"
-                    >
-                      Buat Akun Baru
-                    </button>
+                    /* 🔗 SOSMED BERJEJER MENGGANTIKAN PILL HIJAU KETIKA USER SUDAH TERDAFTAR */
+                    <div className="flex justify-center gap-3 mt-1 animate-fadeIn">
+                      {socialPlatforms.map((platform) => (
+                        <a 
+                          key={platform.name} 
+                          href={platform.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          title={platform.name}
+                          className={`w-9 h-9 rounded-full border border-white/20 bg-white/10 text-white font-black flex items-center justify-center text-xs shadow-sm transition-all duration-300 backdrop-blur-md ${platform.color}`}
+                        >
+                          {platform.label}
+                        </a>
+                      ))}
+                    </div>
                   )}
                 </motion.div>
 
