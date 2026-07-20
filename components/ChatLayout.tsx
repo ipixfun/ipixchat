@@ -36,10 +36,14 @@ const FluidTop = ({ mode }: { mode: "public" | "private" }) => {
   );
 };
 
-/* ---- Fluid Blob Bawah (3 Layer, 2 Lekukan Gelombang & Ada Abu-abu Tengah) ---- */
-const FluidBottom = ({ mode }: { mode: "public" | "private" }) => {
+/* ---- Fluid Blob Bawah (Responsif: 1 Gelombang saat 2 Kolom, 2 Gelombang saat Full Column) ---- */
+const FluidBottom = ({ mode, isFull }: { mode: "public" | "private"; isFull: boolean }) => {
   const c = mode === "public" ? "59, 130, 246" : "16, 185, 129";
   const glow = mode === "public" ? "drop-shadow(0 0 20px rgba(59,130,246,0.5))" : "drop-shadow(0 0 20px rgba(16,185,129,0.5))";
+
+  // Jika isFull (1 kolom penuh), backgroundSize menggunakan "50% 100%" (tampil 2 gelombang).
+  // Jika 2 kolom, backgroundSize menggunakan "100% 100%" (tampil tepat 1 gelombang penuh dalam satu layar).
+  const bgSize = isFull ? "50% 100%" : "100% 100%";
 
   return (
     <div 
@@ -51,10 +55,9 @@ const FluidBottom = ({ mode }: { mode: "public" | "private" }) => {
         className="absolute bottom-0 left-0 w-[200%] h-full animate-wave" 
         style={{ 
           animationDuration: "14s", 
-          /* Path diubah jadi 2 lekukan besar */
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,60 C300,100 300,20 600,60 C900,100 900,20 1200,60 L1200,120 Z' fill='rgba(${c},0.35)'/%3E%3C/svg%3E")`, 
           backgroundRepeat: "repeat-x", 
-          backgroundSize: "50% 100%" 
+          backgroundSize: bgSize 
         }} 
       />
       
@@ -63,10 +66,9 @@ const FluidBottom = ({ mode }: { mode: "public" | "private" }) => {
         className="absolute bottom-0 left-0 w-[200%] h-full animate-wave" 
         style={{ 
           animationDuration: "20s", 
-          /* Path 2 lekukan menyilang */
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,70 C300,30 300,110 600,70 C900,30 900,110 1200,70 L1200,120 Z' fill='rgba(156,163,175,0.25)'/%3E%3C/svg%3E")`, 
           backgroundRepeat: "repeat-x", 
-          backgroundSize: "50% 100%" 
+          backgroundSize: bgSize 
         }} 
       />
 
@@ -75,10 +77,9 @@ const FluidBottom = ({ mode }: { mode: "public" | "private" }) => {
         className="absolute bottom-0 left-0 w-[200%] h-full animate-wave-reverse" 
         style={{ 
           animationDuration: "18s", 
-          /* Path 2 lekukan berlawanan */
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,80 C300,120 300,40 600,80 C900,120 900,40 1200,80 L1200,120 Z' fill='rgba(${c},0.65)'/%3E%3C/svg%3E")`, 
           backgroundRepeat: "repeat-x", 
-          backgroundSize: "50% 100%" 
+          backgroundSize: bgSize 
         }} 
       />
     </div>
@@ -149,7 +150,7 @@ export default function ChatLayout({
           onWheel={() => hInteract("public")}
         >
           <FluidTop mode="public" />
-          <FluidBottom mode="public" />
+          <FluidBottom mode="public" isFull={isPublicFull} />
           
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {renderMsgs(pubMsgs, "public")}
@@ -167,7 +168,7 @@ export default function ChatLayout({
           onWheel={() => hInteract("private")}
         >
           <FluidTop mode="private" />
-          <FluidBottom mode="private" />
+          <FluidBottom mode="private" isFull={isPrivateFull} />
           
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {aTab === "admin" && cMode === "private" && !selPrivUser ? (
