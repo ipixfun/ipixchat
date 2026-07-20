@@ -219,16 +219,15 @@ export default function Login({
       buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_20px_rgba(34,197,94,0.5)] text-white";
       buttonText = "Masuk Sekarang";
     } else {
-      // KETIKA PILL REGISTRASI SUDAH DIISI SEMUA -> JADI IJO ("Gabung Sekarang")
       buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_20px_rgba(34,197,94,0.5)] text-white";
       buttonText = "Gabung Sekarang";
     }
   } else {
     if (isLoginMode) {
-      buttonStyle = "bg-gradient-to-r from-[#0B2027] to-[#1a3f4c] hover:from-[#13313c] hover:to-[#0B2027] border border-[#235867] shadow-[inset_0_2px_4px_rgba(255,255,255,0.2),0_0_15px_rgba(11,32,39,0.4)] text-white";
+      // KETIKA DI HALAMAN LOGIN (BELUM LENGKAP) -> SEKARANG SUDAH JADI IJO ("Login")
+      buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_15px_rgba(34,197,94,0.4)] text-white";
       buttonText = "Login";
     } else {
-      // SAAT AWAL REGISTRASI (BELUM LENGKAP) -> WARNA BIRU ("Register")
       buttonStyle = "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 border border-blue-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.2),0_0_15px_rgba(37,99,235,0.4)] text-white";
       buttonText = "Register";
     }
