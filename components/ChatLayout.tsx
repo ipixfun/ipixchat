@@ -2,7 +2,7 @@
 import React from "react";
 import Admin from "./Admin";
 
-/* ---- Fluid Blob Atas (2 Layer, Smooth & Glowing) ---- */
+/* ---- Fluid Blob Atas (2 Layer, Smooth & Glowing) - TIDAK DIUBAH ---- */
 const FluidTop = ({ mode }: { mode: "public" | "private" }) => {
   const c = mode === "public" ? "59, 130, 246" : "16, 185, 129";
   const glow = mode === "public" ? "drop-shadow(0 0 15px rgba(59,130,246,0.6))" : "drop-shadow(0 0 15px rgba(16,185,129,0.6))";
@@ -36,7 +36,7 @@ const FluidTop = ({ mode }: { mode: "public" | "private" }) => {
   );
 };
 
-/* ---- Fluid Blob Bawah (2 Layer, Smooth & Glowing) ---- */
+/* ---- Fluid Blob Bawah (3 Layer, 2 Lekukan Gelombang & Ada Abu-abu Tengah) ---- */
 const FluidBottom = ({ mode }: { mode: "public" | "private" }) => {
   const c = mode === "public" ? "59, 130, 246" : "16, 185, 129";
   const glow = mode === "public" ? "drop-shadow(0 0 20px rgba(59,130,246,0.5))" : "drop-shadow(0 0 20px rgba(16,185,129,0.5))";
@@ -46,22 +46,37 @@ const FluidBottom = ({ mode }: { mode: "public" | "private" }) => {
       className="absolute bottom-0 left-0 w-full h-[30%] overflow-hidden pointer-events-none origin-bottom animate-blob-bounce-bottom" 
       style={{ zIndex: 1, filter: glow }}
     >
-      {/* Layer 1 - Aliran ke Kiri */}
+      {/* Layer 1 - Tema Utama (Background) */}
       <div 
         className="absolute bottom-0 left-0 w-[200%] h-full animate-wave" 
         style={{ 
           animationDuration: "14s", 
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,60 C150,100 350,0 600,60 C850,120 1050,20 1200,60 L1200,120 Z' fill='rgba(${c},0.35)'/%3E%3C/svg%3E")`, 
+          /* Path diubah jadi 2 lekukan besar */
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,60 C300,100 300,20 600,60 C900,100 900,20 1200,60 L1200,120 Z' fill='rgba(${c},0.35)'/%3E%3C/svg%3E")`, 
           backgroundRepeat: "repeat-x", 
           backgroundSize: "50% 100%" 
         }} 
       />
-      {/* Layer 2 - Aliran ke Kanan */}
+      
+      {/* Layer 2 - Gelombang Tengah Warna Abu-abu */}
+      <div 
+        className="absolute bottom-0 left-0 w-[200%] h-full animate-wave" 
+        style={{ 
+          animationDuration: "20s", 
+          /* Path 2 lekukan menyilang */
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,70 C300,30 300,110 600,70 C900,30 900,110 1200,70 L1200,120 Z' fill='rgba(156,163,175,0.25)'/%3E%3C/svg%3E")`, 
+          backgroundRepeat: "repeat-x", 
+          backgroundSize: "50% 100%" 
+        }} 
+      />
+
+      {/* Layer 3 - Tema Utama Kanan (Foreground) */}
       <div 
         className="absolute bottom-0 left-0 w-[200%] h-full animate-wave-reverse" 
         style={{ 
           animationDuration: "18s", 
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,80 C200,20 400,120 600,80 C800,40 1000,140 1200,80 L1200,120 Z' fill='rgba(${c},0.65)'/%3E%3C/svg%3E")`, 
+          /* Path 2 lekukan berlawanan */
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,80 C300,120 300,40 600,80 C900,120 900,40 1200,80 L1200,120 Z' fill='rgba(${c},0.65)'/%3E%3C/svg%3E")`, 
           backgroundRepeat: "repeat-x", 
           backgroundSize: "50% 100%" 
         }} 
@@ -137,7 +152,6 @@ export default function ChatLayout({
           <FluidBottom mode="public" />
           
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            <div className="text-center text-[9px] font-bold text-blue-500/70 mb-2 tracking-widest uppercase">Ruang Publik</div>
             {renderMsgs(pubMsgs, "public")}
             <div id="messages-end-public" className="h-0" />
           </div>
@@ -156,7 +170,6 @@ export default function ChatLayout({
           <FluidBottom mode="private" />
           
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            <div className="text-center text-[9px] font-bold text-emerald-500/70 mb-2 tracking-widest uppercase">Ruang Private</div>
             {aTab === "admin" && cMode === "private" && !selPrivUser ? (
               <Admin privateUsers={pUsers} setSelectedPrivateUser={setSelPriv} formatMessageTime={fmtTime} />
             ) : (
