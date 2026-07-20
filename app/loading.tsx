@@ -33,58 +33,57 @@ export default function Loading() {
           line-height: 1;
         }
 
-        /* Efek Stroke Outline - Dipertipis jadi 1.5px */
+        /* Efek Stroke Outline - Tipis dan rapi (1.5px) */
         .neon-blue {
-          -webkit-text-stroke: 1.5px rgba(59, 130, 246, 1); /* Biru */
+          -webkit-text-stroke: 1.5px rgba(59, 130, 246, 1);
           filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
         }
 
         .neon-green {
-          -webkit-text-stroke: 1.5px rgba(16, 185, 129, 1); /* Hijau */
+          -webkit-text-stroke: 1.5px rgba(16, 185, 129, 1);
           filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
         }
 
         /* 
-          ANIMASI SIKLUS: 0.8 DETIK TOTAL
-          (0.3 detik diam/pause + 0.5 detik bergerak/berkedip)
-          Menggunakan infinite agar ritme (diam-gerak-diam-gerak) ini terus berulang
+          ANIMASI SIKLUS SUPER CEPAT: 0.6 DETIK TOTAL
+          (0.1 detik diam/pause + 0.5 detik bergerak/berkedip)
         */
-        .animate-i1 { animation: flicker-i1 0.8s infinite; }
-        .animate-P  { animation: flicker-P 0.8s infinite; }
-        .animate-i2 { animation: flicker-i2 0.8s infinite; }
+        .animate-i1 { animation: flicker-i1 0.6s infinite; }
+        .animate-P  { animation: flicker-P 0.6s infinite; }
+        .animate-i2 { animation: flicker-i2 0.6s infinite; }
         
         .animate-X {
-          animation: spinX 0.8s linear infinite;
+          animation: spinX 0.6s linear infinite;
           transform-origin: center center;
         }
 
         /* 
           KEYFRAMES SIKLUS
-          0% - 37.5% adalah zona 0.3 detik awal (semua diam menyala).
-          37.5% - 100% adalah zona 0.5 detik akhir (waktunya beraksi).
+          0% - 16.67% adalah zona 0.1 detik (diam menyala).
+          16.67% - 100% adalah zona 0.5 detik (waktu beraksi super cepat).
         */
         
-        /* Huruf 'i' pertama berkedip di awal zona gerak */
+        /* Huruf 'i' pertama berkedip cepat setelah jeda */
         @keyframes flicker-i1 {
-          0%, 42%, 48%, 100% { opacity: 1; }
-          45% { opacity: 0.15; }
+          0%, 17%, 35%, 100% { opacity: 1; }
+          25% { opacity: 0.15; }
         }
 
-        /* Huruf 'P' berkedip di tengah zona gerak */
+        /* Huruf 'P' menyusul berkedip di pertengahan */
         @keyframes flicker-P {
-          0%, 63%, 69%, 100% { opacity: 1; }
-          66% { opacity: 0.15; }
+          0%, 40%, 60%, 100% { opacity: 1; }
+          50% { opacity: 0.15; }
         }
 
-        /* Huruf 'i' kedua berkedip di akhir zona gerak */
+        /* Huruf 'i' kedua berkedip di akhir sebelum siklus ulang */
         @keyframes flicker-i2 {
-          0%, 84%, 90%, 100% { opacity: 1; }
-          87% { opacity: 0.15; }
+          0%, 65%, 85%, 100% { opacity: 1; }
+          75% { opacity: 0.15; }
         }
 
-        /* Huruf 'X' diam lalu berputar smooth tepat selama 0.5 detik terakhir */
+        /* Huruf 'X' diam 0.1s, lalu langsung putar 360 derajat dalam 0.5s */
         @keyframes spinX {
-          0%, 37.5% { transform: rotate(0deg); }
+          0%, 16.67% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
         `
