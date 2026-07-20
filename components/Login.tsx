@@ -53,7 +53,7 @@ const EyeOffIcon = () => (
   <svg className="w-5 h-5 text-slate-500 cursor-pointer hover:text-slate-800 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>
 );
 
-// --- REUSABLE COMPONENTS ---
+// --- REUSABLE COMPONENTS (DENGAN INSET SHADOW LEBIH DALAM) ---
 const InputField = ({ icon, suffix, readOnly, className, ...props }: any) => (
   <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border transition-all duration-300 ${className}`}>
     <div className="mr-3 flex-shrink-0 opacity-60">
@@ -173,61 +173,56 @@ export default function Login({
     handleUserLogin(isLoginMode);
   };
 
-  // --- LOGIK STYLING ABU MUDA ---
+  // --- INSET SHADOW DEEP (CEKUNGAN LEBIH DALAM) ---
+  const deepInset = 'shadow-[inset_0_6px_12px_rgba(0,0,0,0.25),inset_0_2px_4px_rgba(0,0,0,0.15)]';
+
+  // --- REGISTER FORM STYLING (OUTLINE BIRU SAAT FOCUS) ---
   const usernameBorderClass = isFormValid
-    ? 'border-green-400 bg-green-50 text-green-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] font-extrabold' 
+    ? `border-green-400 bg-green-50 text-green-950 ${deepInset} font-extrabold` 
     : (validationMsg === "Isi nama dulu sayang")
-      ? 'border-red-400 animate-pulse bg-red-50 text-red-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] font-extrabold' 
-      : 'border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] focus-within:bg-gray-50 font-extrabold';
+      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${deepInset} font-extrabold` 
+      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${deepInset} font-extrabold`;
 
   const pinBorderClass = isFormValid
-    ? 'border-green-400 bg-green-50 text-green-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] font-extrabold'
+    ? `border-green-400 bg-green-50 text-green-950 ${deepInset} font-extrabold`
     : (validationMsg === "PIN harus 6 angka sayang" || (!isLoginMode && validationMsg && (!pin || pin.length !== 6)))
-      ? 'border-red-400 animate-pulse bg-red-50 text-red-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] font-extrabold'
-      : 'border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] focus-within:bg-gray-50 font-extrabold';
+      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${deepInset} font-extrabold`
+      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${deepInset} font-extrabold`;
 
   const umurBorderClass = isFormValid
-    ? 'border-green-400 bg-green-50 text-green-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]'
+    ? `border-green-400 bg-green-50 text-green-950 ${deepInset}`
     : (validationMsg && !umur)
-      ? 'border-red-400 animate-pulse bg-red-50 text-red-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]'
-      : 'border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] focus-within:bg-gray-50';
+      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${deepInset}`
+      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${deepInset}`;
 
   const beratBorderClass = isFormValid
-    ? 'border-green-400 bg-green-50 text-green-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]'
+    ? `border-green-400 bg-green-50 text-green-950 ${deepInset}`
     : (validationMsg && !berat)
-      ? 'border-red-400 animate-pulse bg-red-50 text-red-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]'
-      : 'border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] focus-within:bg-gray-50';
+      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${deepInset}`
+      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${deepInset}`;
 
-  const checkboxBorderClass = isFormValid
-    ? 'border-green-400/60 bg-white/20 shadow-[0_0_15px_rgba(34,197,94,0.2)]'
-    : (validationMsg === "Ceklist dulu sayang")
-      ? 'border-red-400 animate-pulse bg-white/20 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
-      : 'border-[#235867]/30 bg-black/5 shadow-[0_0_10px_rgba(11,32,39,0.05)]';
+  // --- LOGIN FORM STYLING (EXISTING USER - TETAP INSET DEEP) ---
+  const existingBorderClass = `bg-gray-200 text-black border-gray-300 cursor-not-allowed font-extrabold ${deepInset}`;
 
-  // --- LOGIK STYLING TOMBOL UTAMA ---
+  // --- LOGIK STYLING TOMBOL UTAMA (DINAMIS INSET SHADOW) ---
   let buttonStyle = "";
   let buttonText = "";
 
   if (isExistingUser) {
-    buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_20px_rgba(34,197,94,0.5)] text-white";
+    buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 text-white shadow-[inset_0_-3px_6px_rgba(0,0,0,0.25),inset_0_2px_3px_rgba(255,255,255,0.3),0_0_20px_rgba(34,197,94,0.5)]";
     buttonText = "Masuk Chat";
   } else if (validationMsg) {
-    buttonStyle = "bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 border border-red-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_20px_rgba(239,68,68,0.5)] text-white animate-pulse";
+    buttonStyle = "bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 border border-red-400 text-white animate-pulse shadow-[inset_0_-3px_6px_rgba(0,0,0,0.25),inset_0_2px_3px_rgba(255,255,255,0.3),0_0_20px_rgba(239,68,68,0.5)]";
     buttonText = validationMsg;
   } else if (isFormValid) {
-    if (isLoginMode) {
-      buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_20px_rgba(34,197,94,0.5)] text-white";
-      buttonText = "Masuk Sekarang";
-    } else {
-      buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_20px_rgba(34,197,94,0.5)] text-white";
-      buttonText = "Gabung Sekarang";
-    }
+    buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 text-white shadow-[inset_0_-3px_6px_rgba(0,0,0,0.25),inset_0_2px_3px_rgba(255,255,255,0.3),0_0_20px_rgba(34,197,94,0.5)]";
+    buttonText = isLoginMode ? "Masuk Sekarang" : "Gabung Sekarang";
   } else {
     if (isLoginMode) {
-      buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_15px_rgba(34,197,94,0.4)] text-white";
+      buttonStyle = "bg-gradient-to-r from-emerald-500/80 to-green-600/80 hover:from-emerald-500 hover:to-green-600 border border-green-400/50 text-white shadow-[inset_0_-3px_6px_rgba(0,0,0,0.25),inset_0_2px_3px_rgba(255,255,255,0.2),0_0_15px_rgba(34,197,94,0.3)]";
       buttonText = "Login";
     } else {
-      buttonStyle = "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 border border-blue-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.2),0_0_15px_rgba(37,99,235,0.4)] text-white";
+      buttonStyle = "bg-gradient-to-r from-blue-500/80 to-blue-600/80 hover:from-blue-500 hover:to-blue-600 border border-blue-400/50 text-white shadow-[inset_0_-3px_6px_rgba(0,0,0,0.25),inset_0_2px_3px_rgba(255,255,255,0.2),0_0_15px_rgba(37,99,235,0.3)]";
       buttonText = "Register";
     }
   }
@@ -235,12 +230,12 @@ export default function Login({
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
       
-      {/* ⚪ MAIN CARD - Dibuat sangat bening (bg-transparent) tanpa border putih tebal agar menyatu mulus */}
+      {/* ⚪ MAIN CARD */}
       <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-hidden flex flex-col z-10 transition-all duration-300">
         
         {activeTab === 'user' ? (
           <>
-            {/* 🔵 KOTAK SLIDE OVERLAY PANEL (HEADER / FOOTER BENING NAMPAK) */}
+            {/* 🔵 KOTAK SLIDE OVERLAY PANEL */}
             <motion.div
               layout
               initial={false}
@@ -256,14 +251,13 @@ export default function Login({
             >
               <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
                 
-                {/* View For Login Mode (Sosmed DIATAS, Register Biru DIBAWAH) */}
+                {/* View For Login Mode */}
                 <motion.div
                   animate={{ opacity: isLoginMode ? 1 : 0, scale: isLoginMode ? 1 : 0.95 }}
                   transition={{ duration: 0.3 }}
                   className="absolute flex flex-col items-center text-center w-full"
                   style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
                 >
-                  {/* Sosmed Section */}
                   <div className="flex flex-col items-center w-full mb-3">
                     <p className="text-[10px] font-extrabold text-white/70 mb-2 tracking-wide uppercase drop-shadow-md">Sosial Media Ipix</p>
                     <div className="flex flex-wrap justify-center gap-2 px-4">
@@ -281,7 +275,6 @@ export default function Login({
                     </div>
                   </div>
 
-                  {/* Pill Register Panjang & Biru di bawah Sosmed */}
                   {!isExistingUser && (
                     <button 
                       onClick={() => { setIsLoginMode(false); setValidationMsg(""); }}
@@ -292,14 +285,13 @@ export default function Login({
                   )}
                 </motion.div>
 
-                {/* View For Register Mode (Login Hijau DIATAS, Sosmed DIBAWAH) */}
+                {/* View For Register Mode */}
                 <motion.div
                   animate={{ opacity: !isLoginMode ? 1 : 0, scale: !isLoginMode ? 1 : 0.95 }}
                   transition={{ duration: 0.3 }}
                   className="absolute flex flex-col items-center text-center w-full"
                   style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
                 >
-                  {/* Pill Login Panjang & Hijau diatas Sosmed */}
                   <button 
                     onClick={() => { setIsLoginMode(true); setValidationMsg(""); }}
                     className="w-[85%] py-2.5 mb-3 rounded-full bg-emerald-600/90 hover:bg-emerald-700 text-white font-extrabold border border-emerald-400 transition-all text-sm active:scale-95 shadow-md tracking-wider backdrop-blur-md"
@@ -307,7 +299,6 @@ export default function Login({
                     Login
                   </button>
 
-                  {/* Sosmed Section */}
                   <div className="flex flex-col items-center w-full">
                     <p className="text-[10px] font-extrabold text-white/70 mb-2 tracking-wide uppercase drop-shadow-md">Sosial Media Ipix</p>
                     <div className="flex flex-wrap justify-center gap-2 px-4">
@@ -339,7 +330,6 @@ export default function Login({
                 className="absolute top-0 w-full h-[65%] px-4 sm:px-6 py-4 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
                 style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
               >
-                {/* Kotak Register Rounded yang Cantik */}
                 <div className="w-full bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/60 p-6 sm:p-8 flex flex-col items-center">
                   
                   <InputField 
@@ -400,18 +390,19 @@ export default function Login({
                     />
                   </div>
 
-                  <div className={`flex items-center justify-center w-full mb-4 py-2 px-4 border rounded-full backdrop-blur-md select-none transition-all duration-300 ${checkboxBorderClass}`}>
+                  {/* CHECKBOX - PILLL DIHILANGKAN, HANYA CEKBOX + TEKS ABU² MUDA MIRING TIPIS */}
+                  <div className="flex items-center justify-start w-full mb-4 px-2 select-none">
                     <input 
                       type="checkbox" 
                       id="agree" 
-                      className="w-4 h-4 accent-[#0B2027] cursor-pointer rounded drop-shadow-sm"
+                      className="w-3.5 h-3.5 accent-slate-400 cursor-pointer rounded-sm"
                       checked={isUsernameAgreed}
                       onChange={(e) => {
                         setIsUsernameAgreed(e.target.checked);
                         if (validationMsg) setValidationMsg(""); 
                       }}
                     />
-                    <label htmlFor="agree" className="text-xs font-extrabold text-slate-700 ml-2 cursor-pointer select-none leading-none drop-shadow-sm">
+                    <label htmlFor="agree" className="text-[11px] font-light italic text-slate-400 ml-2 cursor-pointer select-none leading-none">
                       *Mengikuti aturan di dalam chat
                     </label>
                   </div>
@@ -433,7 +424,6 @@ export default function Login({
                 className="absolute bottom-0 w-full h-[65%] px-4 sm:px-6 py-4 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
                 style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
               >
-                {/* Kotak Login Rounded yang Cantik */}
                 <div className="w-full bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/60 p-6 sm:p-8 flex flex-col items-center">
                   
                   <InputField 
@@ -446,7 +436,7 @@ export default function Login({
                       if (validationMsg) setValidationMsg(""); 
                     }}
                     readOnly={isExistingUser}
-                    className={isExistingUser ? 'bg-gray-200 text-black border-gray-300 cursor-not-allowed font-extrabold' : usernameBorderClass}
+                    className={isExistingUser ? existingBorderClass : usernameBorderClass}
                     autoComplete="off"
                   />
                   
@@ -469,11 +459,10 @@ export default function Login({
                       </button>
                     }
                     readOnly={isExistingUser}
-                    className={isExistingUser ? 'bg-gray-200 text-black border-gray-300 cursor-not-allowed font-extrabold' : pinBorderClass}
+                    className={isExistingUser ? existingBorderClass : pinBorderClass}
                     maxLength={6}
                   />
 
-                  {/* LOGIN OTOMATIS NOTE CONTAINER (TEKS JALAN ABU-ABU MUDA & TEKS HITAM) */}
                   {isExistingUser && (
                     <div className="w-full text-xs text-black bg-gray-200 p-4 border border-gray-300 rounded-3xl mb-4 font-extrabold text-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center">
                       <span className="w-full block drop-shadow-sm">
@@ -498,7 +487,6 @@ export default function Login({
           
           /* === ADMIN TAB === */
           <div className="absolute inset-0 z-10 w-full h-full px-4 sm:px-6 py-6 flex flex-col items-center justify-center bg-transparent">
-             {/* Kotak Admin Rounded yang Cantik */}
              <div className="w-full bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/60 p-6 sm:p-8 flex flex-col items-center">
               
               <InputField 
@@ -506,7 +494,7 @@ export default function Login({
                 placeholder="Email Admin" 
                 value={adminEmail || ""} 
                 onChange={(e: any) => setAdminEmail(e.target.value)} 
-                className="border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027]"
+                className={`border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] ${deepInset}`}
                 autoComplete="off"
               />
               
@@ -517,12 +505,12 @@ export default function Login({
                 style={showPin ? {} : ({ WebkitTextSecurity: 'disc' } as any)}
                 value={adminPass || ""} 
                 onChange={(e: any) => setAdminPass(e.target.value)} 
-                className="border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] mb-6"
+                className={`border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] mb-6 ${deepInset}`}
               />
               
               <button 
                 onClick={handleAdminLogin} 
-                className="w-full bg-gradient-to-r from-[#0B2027] to-[#1a3f4c] hover:from-[#13313c] hover:to-[#0B2027] text-white py-3.5 mt-2 rounded-full font-extrabold shadow-[inset_0_2px_4px_rgba(255,255,255,0.2),0_0_15px_rgba(11,32,39,0.4)] border border-[#235867] tracking-wider transition-all active:scale-[0.98]"
+                className="w-full bg-gradient-to-r from-[#0B2027] to-[#1a3f4c] hover:from-[#13313c] hover:to-[#0B2027] text-white py-3.5 mt-2 rounded-full font-extrabold shadow-[inset_0_-3px_6px_rgba(0,0,0,0.3),inset_0_2px_3px_rgba(255,255,255,0.2),0_0_15px_rgba(11,32,39,0.4)] border border-[#235867] tracking-wider transition-all active:scale-[0.98]"
               >
                 Gabung Admin
               </button>
