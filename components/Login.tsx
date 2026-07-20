@@ -237,15 +237,16 @@ export default function Login({
             >
               <div className="relative w-full h-full flex items-center justify-center">
                 
-                {/* View For Login Mode (Menggantikan Hello Welcome dengan Glass Sosmed) */}
+                {/* View For Login Mode (Sosmed DIATAS, Register Biru DIBAWAH) */}
                 <motion.div
                   animate={{ opacity: isLoginMode ? 1 : 0, scale: isLoginMode ? 1 : 0.95 }}
                   transition={{ duration: 0.3 }}
                   className="absolute flex flex-col items-center text-center w-full"
                   style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
                 >
-                  <div className="flex flex-col items-center mb-4 w-full">
-                    <p className="text-[10px] font-extrabold text-white/50 mb-2.5 tracking-wide uppercase">Sosial Media Ipix</p>
+                  {/* Sosmed Section */}
+                  <div className="flex flex-col items-center w-full mb-3">
+                    <p className="text-[10px] font-extrabold text-white/50 mb-2 tracking-wide uppercase">Sosial Media Ipix</p>
                     <div className="flex flex-wrap justify-center gap-2 px-4">
                       {socialPlatforms.map((platform) => (
                         <a 
@@ -260,26 +261,36 @@ export default function Login({
                       ))}
                     </div>
                   </div>
-                  
+
+                  {/* Pill Register Panjang & Biru di bawah Sosmed */}
                   {!isExistingUser && (
                     <button 
                       onClick={() => { setIsLoginMode(false); setValidationMsg(""); }}
-                      className="px-10 py-2.5 mt-1 rounded-full border border-white/60 text-white font-extrabold hover:bg-white/20 transition-all text-sm backdrop-blur-sm active:scale-95 shadow-sm"
+                      className="w-[85%] py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold border border-blue-400 transition-all text-sm active:scale-95 shadow-md tracking-wider"
                     >
                       Register
                     </button>
                   )}
                 </motion.div>
 
-                {/* View For Register Mode (Menggantikan Welcome Back dengan Glass Sosmed) */}
+                {/* View For Register Mode (Login Hijau DIATAS, Sosmed DIBAWAH) */}
                 <motion.div
                   animate={{ opacity: !isLoginMode ? 1 : 0, scale: !isLoginMode ? 1 : 0.95 }}
                   transition={{ duration: 0.3 }}
                   className="absolute flex flex-col items-center text-center w-full"
                   style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
                 >
-                  <div className="flex flex-col items-center mb-4 w-full">
-                    <p className="text-[10px] font-extrabold text-white/50 mb-2.5 tracking-wide uppercase">Sosial Media Ipix</p>
+                  {/* Pill Login Panjang & Hijau diatas Sosmed */}
+                  <button 
+                    onClick={() => { setIsLoginMode(true); setValidationMsg(""); }}
+                    className="w-[85%] py-2.5 mb-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold border border-emerald-400 transition-all text-sm active:scale-95 shadow-md tracking-wider"
+                  >
+                    Login
+                  </button>
+
+                  {/* Sosmed Section */}
+                  <div className="flex flex-col items-center w-full">
+                    <p className="text-[10px] font-extrabold text-white/50 mb-2 tracking-wide uppercase">Sosial Media Ipix</p>
                     <div className="flex flex-wrap justify-center gap-2 px-4">
                       {socialPlatforms.map((platform) => (
                         <a 
@@ -294,13 +305,6 @@ export default function Login({
                       ))}
                     </div>
                   </div>
-                  
-                  <button 
-                    onClick={() => { setIsLoginMode(true); setValidationMsg(""); }}
-                    className="px-10 py-2.5 mt-1 rounded-full border border-white/60 text-white font-extrabold hover:bg-white/20 transition-all text-sm backdrop-blur-sm active:scale-95 shadow-sm"
-                  >
-                    Login
-                  </button>
                 </motion.div>
                 
               </div>
