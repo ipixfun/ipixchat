@@ -2,6 +2,14 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
+// --- CONFIG SOSMED IPIX (Ganti link disini) ---
+const socialPlatforms = [
+  { name: 'Twitter', label: 'X', color: 'hover:bg-black/80 hover:text-white hover:border-black', link: 'isi_link_disini' },
+  { name: 'Heesay', label: 'HS', color: 'hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-pink-500', link: 'isi_link_disini' },
+  { name: 'Growlr', label: 'GR', color: 'hover:bg-amber-600 hover:text-white hover:border-amber-600', link: 'isi_link_disini' },
+  { name: 'TikTok', label: 'TT', color: 'hover:bg-black hover:text-white hover:border-black', link: 'isi_link_disini' },
+];
+
 // --- ICONS ---
 const UserIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
@@ -21,7 +29,7 @@ const MailIcon = () => (
 
 // --- REUSABLE COMPONENTS WITH GLASS STYLE ---
 const InputField = ({ icon, readOnly, className, ...props }: any) => (
-  <div className={`flex items-center w-full rounded-full px-4 py-3.5 mb-3 border backdrop-blur-md transition-all duration-300 ${className}`}>
+  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border backdrop-blur-md transition-all duration-300 ${className}`}>
     <div className="mr-3 flex-shrink-0 opacity-70">
       {icon}
     </div>
@@ -34,7 +42,7 @@ const InputField = ({ icon, readOnly, className, ...props }: any) => (
 );
 
 const SelectField = ({ icon, options, value, onChange, placeholder, className }: any) => (
-  <div className={`flex items-center w-full rounded-full px-4 py-3.5 mb-3 border backdrop-blur-md relative transition-all duration-300 ${className}`}>
+  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border backdrop-blur-md relative transition-all duration-300 ${className}`}>
     <div className="mr-3 flex-shrink-0 opacity-70">
       {icon}
     </div>
@@ -137,8 +145,7 @@ export default function Login({
     handleUserLogin(isLoginMode);
   };
 
-  // --- LOGIK STYLING DENGAN SENTUHAN TEMA #0B2027 & GLASS EFFECT ---
-
+  // --- LOGIK STYLING ---
   const usernameBorderClass = isFormValid
     ? 'border-green-400 bg-white/20 text-green-950 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05),0_0_15px_rgba(34,197,94,0.4)] font-extrabold' 
     : (validationMsg === "Isi nama dulu sayang")
@@ -204,11 +211,11 @@ export default function Login({
       </div>
 
       {/* ⚪ MAIN CARD - Glass Transparant Design */}
-      <div className="relative w-full h-[100dvh] sm:h-[800px] sm:max-h-[90vh] sm:max-w-[420px] bg-white/10 backdrop-blur-2xl border border-white/20 sm:rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col z-10 transition-all duration-300">
+      <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-white/10 backdrop-blur-2xl border border-white/20 sm:rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col z-10 transition-all duration-300">
         
         {activeTab === 'user' ? (
           <>
-            {/* 🔵 TOGGLE OVERLAY PANEL (Teal Dark Glass) */}
+            {/* 🔵 TOGGLE OVERLAY PANEL */}
             <motion.div
               layout
               initial={false}
@@ -263,17 +270,17 @@ export default function Login({
               </div>
             </motion.div>
 
-            {/* ⚪ FORMS CONTAINER (Transparent Glass Subsections) */}
+            {/* ⚪ FORMS CONTAINER */}
             <div className="absolute inset-0 z-10 w-full h-full bg-transparent">
               
               {/* === REGISTER FORM === */}
               <motion.div
                 animate={{ opacity: !isLoginMode ? 1 : 0, y: !isLoginMode ? 0 : 20 }}
                 transition={{ duration: 0.3 }}
-                className="absolute top-0 w-full h-[65%] px-6 sm:px-8 py-6 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
+                className="absolute top-0 w-full h-[65%] px-6 sm:px-8 py-4 sm:py-6 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
                 style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
               >
-                <h2 className="text-3xl font-extrabold mb-6 text-[#0B2027] drop-shadow-sm">Registration</h2>
+                <h2 className="text-2xl sm:text-3xl font-extrabold mb-4 sm:mb-6 text-[#0B2027] drop-shadow-sm">Registration</h2>
                 
                 <InputField 
                   icon={<UserIcon />} 
@@ -328,7 +335,7 @@ export default function Login({
                   />
                 </div>
 
-                <div className={`flex items-center justify-center w-full mb-5 px-4 py-2.5 border rounded-full backdrop-blur-md select-none transition-all duration-300 ${checkboxBorderClass}`}>
+                <div className={`flex items-center justify-center w-full mb-4 py-2 px-4 border rounded-full backdrop-blur-md select-none transition-all duration-300 ${checkboxBorderClass}`}>
                   <input 
                     type="checkbox" 
                     id="agree" 
@@ -346,10 +353,29 @@ export default function Login({
 
                 <button 
                   onClick={handleUserLoginWrapper}
-                  className={`w-full py-3.5 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer ${buttonStyle}`}
+                  className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer ${buttonStyle}`}
                 >
                   {buttonText}
                 </button>
+
+                {/* --- SEPARATOR & SOSMED IPIX REGISTER --- */}
+                <div className="flex flex-col items-center mt-4 w-full">
+                  <p className="text-[10px] sm:text-[11px] font-extrabold text-slate-600/80 mb-2.5 text-center tracking-wide uppercase">Sosial Media Ipix</p>
+                  <div className="flex justify-center gap-3">
+                    {socialPlatforms.map((platform) => (
+                      <a 
+                        key={platform.name} 
+                        href={platform.link} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        title={platform.name}
+                        className={`w-9 h-9 rounded-full border border-[#235867]/30 bg-white/20 text-slate-800 font-black flex items-center justify-center text-xs shadow-sm transition-all duration-300 backdrop-blur-md ${platform.color}`}
+                      >
+                        {platform.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
               </motion.div>
 
 
@@ -357,10 +383,10 @@ export default function Login({
               <motion.div
                 animate={{ opacity: isLoginMode ? 1 : 0, y: isLoginMode ? 0 : -20 }}
                 transition={{ duration: 0.3 }}
-                className="absolute bottom-0 w-full h-[65%] px-6 sm:px-8 py-6 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
+                className="absolute bottom-0 w-full h-[65%] px-6 sm:px-8 py-4 sm:py-6 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
                 style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
               >
-                <h2 className="text-3xl font-extrabold mb-6 text-[#0B2027] drop-shadow-sm">Login</h2>
+                <h2 className="text-2xl sm:text-3xl font-extrabold mb-4 sm:mb-6 text-[#0B2027] drop-shadow-sm">Login</h2>
                 
                 <InputField 
                   icon={<UserIcon />} 
@@ -405,10 +431,29 @@ export default function Login({
 
                 <button 
                   onClick={handleUserLoginWrapper}
-                  className={`w-full py-3.5 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer mt-2 ${buttonStyle}`}
+                  className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer mt-1 ${buttonStyle}`}
                 >
                   {buttonText}
                 </button>
+
+                {/* --- SEPARATOR & SOSMED IPIX LOGIN --- */}
+                <div className="flex flex-col items-center mt-5 w-full">
+                  <p className="text-[10px] sm:text-[11px] font-extrabold text-slate-600/80 mb-2.5 text-center tracking-wide uppercase">Sosial Media Ipix</p>
+                  <div className="flex justify-center gap-3">
+                    {socialPlatforms.map((platform) => (
+                      <a 
+                        key={platform.name} 
+                        href={platform.link} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        title={platform.name}
+                        className={`w-9 h-9 rounded-full border border-[#235867]/30 bg-white/20 text-slate-800 font-black flex items-center justify-center text-xs shadow-sm transition-all duration-300 backdrop-blur-md ${platform.color}`}
+                      >
+                        {platform.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
               </motion.div>
 
             </div>
