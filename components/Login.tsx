@@ -78,7 +78,9 @@ export default function Login({
   handleUserLogin,
   handleAdminLogin
 }: any) {
-  const existingNote = "Maaf user dan pin tidak bisa diubah.\n\nHubungi admin di chat untuk merubahnya.";
+  // 📝 TEKS BERJALAN BARU SESUAI REQUEST
+  const existingNote = "Login otomatis ketika anda sudah register .\nUntuk ubah nama atau pin hubungi admin di chat .";
+  
   const [displayedNote, setDisplayedNote] = useState("");
   const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
   const [placeholderText, setPlaceholderText] = useState("");
@@ -240,12 +242,26 @@ export default function Login({
                 >
                   <h2 className="text-2xl sm:text-3xl font-bold mb-1 tracking-wide text-white drop-shadow-sm">Hello, Welcome</h2>
                   <p className="text-sm text-gray-200 mb-6 font-light">Don't have an Account</p>
-                  {!isExistingUser && (
+                  
+                  {/* PIL UTK AKUN BARU SAAT LOGIN TERIKAT */}
+                  {!isExistingUser ? (
                     <button 
                       onClick={() => { setIsLoginMode(false); setValidationMsg(""); }}
                       className="px-10 py-2.5 rounded-full border border-white/60 text-white font-extrabold hover:bg-white/20 transition-all text-sm backdrop-blur-sm active:scale-95 shadow-sm"
                     >
                       Register
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => { 
+                        setIsLoginMode(false); 
+                        setValidationMsg("");
+                        if(setUsername) setUsername(""); // Kosongkan input biar bisa ketik nama baru
+                        if(setPin) setPin("");         // Kosongkan pin
+                      }}
+                      className="px-8 py-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 border border-emerald-400 text-white font-black hover:from-emerald-600 hover:to-teal-600 transition-all text-xs active:scale-95 shadow-[0_0_15px_rgba(52,211,153,0.4)] tracking-wide"
+                    >
+                      Buat Akun Baru
                     </button>
                   )}
                 </motion.div>
