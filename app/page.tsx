@@ -199,8 +199,8 @@ export default function Home() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    localStorage.clear();
     sessionStorage.clear();
-    localStorage.removeItem("active_username"); 
     setAuth((p) => ({ ...p, isAuth: false, pin: "", umur: "", berat: "" }));
     window.location.replace("/");
   };
@@ -462,9 +462,8 @@ export default function Home() {
     const chk = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
-      const savedUsername = localStorage.getItem("active_username") || sessionStorage.getItem("saved_username");
+      const savedUsername = localStorage.getItem("active_username");
       if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
-          // Username Case Insensitive: Menggunakan ilike untuk menemukan user di database
           const { data: pD } = await supabase.from("profiles").select("username, pin, umur, berat").ilike("username", savedUsername).single();
           
           if (pD?.username) {
@@ -482,13 +481,14 @@ export default function Home() {
       const isAdmin = pathname?.endsWith("/admin") || window.location.hash === "#admin";
       setUi((p) => ({
         ...p,
-        tab: isAdmin ? "admin" : (sessionStorage.getItem("active_tab") as "user" | "admin") || "user",
+        tab: isAdmin ? "admin" : (localStorage.getItem("active_tab") as "user" | "admin") || "user",
       }));
-      if (session || sessionStorage.getItem("is_auth") === "true") {
+      
+      if (session || localStorage.getItem("is_auth") === "true") {
         setAuth((p) => ({
           ...p,
           isAuth: true,
-          user: session ? "Admin●ipix.my.id" : p.isExist ? p.user : savedUsername || "",
+          user: session ? "Admin●ipix.my.id" : savedUsername || "",
         }));
         if (session) setUi((p) => ({ ...p, tab: "admin" }));
       }
@@ -1293,23 +1293,19 @@ export default function Home() {
             if (!inputName || isCensored(inputName)) return alert("Nama tidak valid");
             
             try {
-              // 1. Username case-insensitive
               const { data: existUser } = await supabase
                 .from("profiles")
                 .select("username, pin, email")
                 .ilike("username", inputName)
                 .maybeSingle();
 
-              // 3. PIN bebas, hanya cek kalau username benar-benar sudah ada
               if (existUser && existUser.pin !== auth.pin) {
                 return alert("Username sudah terdaftar dengan PIN yang berbeda!");
               }
               
-              // Jika user ada, gunakan nama dari DB, jika tidak buat format lowercase untuk seragam
               const finalUsername = existUser ? existUser.username : inputName.toLowerCase();
               let finalEmail = "user@ipix.fun";
 
-              // 2. Email berurutan otomatis
               if (existUser?.email) {
                 finalEmail = existUser.email;
               } else {
@@ -1338,9 +1334,8 @@ export default function Home() {
 
               setAuth((p) => ({ ...p, isAuth: true, user: finalUsername }));
               localStorage.setItem("active_username", finalUsername);
-              sessionStorage.setItem("is_auth", "true");
-              sessionStorage.setItem("saved_username", finalUsername);
-              sessionStorage.setItem("active_tab", "user");
+              localStorage.setItem("is_auth", "true");
+              localStorage.setItem("active_tab", "user");
 
             } catch (e) {
               console.error("Error saving profile:", e);
@@ -1361,9 +1356,8 @@ export default function Home() {
               }));
               setUi((p) => ({ ...p, tab: "admin" }));
               localStorage.setItem("active_username", "Admin●ipix.my.id");
-              sessionStorage.setItem("is_auth", "true");
-              sessionStorage.setItem("saved_username", "Admin●ipix.my.id");
-              sessionStorage.setItem("active_tab", "admin");
+              localStorage.setItem("is_auth", "true");
+              localStorage.setItem("active_tab", "admin");
             }
           }}
         />
