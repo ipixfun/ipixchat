@@ -2,30 +2,30 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
-// --- CONFIG SOSMED IPIX (Glassmorphism Style) ---
+// --- CONFIG SOSMED IPIX (Custom Glassmorphism Style) ---
 const socialPlatforms = [
   { 
     name: 'Twitter', 
     label: 'Twitter : sixripix', 
-    color: 'bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm', 
+    color: 'bg-sky-500/10 text-sky-400 border-sky-400/30 hover:bg-sky-500/20 shadow-[0_0_12px_rgba(14,165,233,0.15)] backdrop-blur-sm', 
     link: 'https://x.com/sixripix' 
   },
   { 
     name: 'TikTok', 
     label: 'Tiktok : ipixaja', 
-    color: 'bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm', 
+    color: 'bg-zinc-950/40 text-zinc-200 border-purple-500/30 hover:bg-zinc-950/60 shadow-[0_0_12px_rgba(168,85,247,0.15),_0_0_12px_rgba(6,182,212,0.15)] backdrop-blur-sm', 
     link: 'https://tiktok.com/@ipixaja' 
   },
   { 
     name: 'Heesay', 
     label: 'Heesay/Walla : V206MN/ipiX', 
-    color: 'bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm', 
+    color: 'bg-pink-500/10 text-pink-400 border-pink-400/30 hover:bg-pink-500/20 shadow-[0_0_12px_rgba(236,72,153,0.15)] backdrop-blur-sm', 
     link: 'https://international.walla-app.com/user?id=V2O6MN&app=2' 
   },
   { 
     name: 'Growlr', 
     label: 'Growlr : pix', 
-    color: 'bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm', 
+    color: 'bg-amber-950/20 text-amber-600 border-amber-700/30 hover:bg-amber-950/40 shadow-[0_0_12px_rgba(180,83,9,0.15)] backdrop-blur-sm', 
     link: 'https://www.growlrapp.com' 
   },
 ];
@@ -55,7 +55,7 @@ const EyeOffIcon = () => (
 
 // --- REUSABLE COMPONENTS ---
 const InputField = ({ icon, suffix, readOnly, className, ...props }: any) => (
-  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border transition-all duration-300 ${className}`}>
+  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border transition-all duration-300 shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] ${className}`}>
     <div className="mr-3 flex-shrink-0 opacity-60">
       {icon}
     </div>
@@ -69,7 +69,7 @@ const InputField = ({ icon, suffix, readOnly, className, ...props }: any) => (
 );
 
 const SelectField = ({ icon, options, value, onChange, placeholder, className }: any) => (
-  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border relative transition-all duration-300 ${className}`}>
+  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border relative transition-all duration-300 shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] ${className}`}>
     <div className="mr-3 flex-shrink-0 opacity-60">
       {icon}
     </div>
@@ -173,61 +173,61 @@ export default function Login({
     handleUserLogin(isLoginMode);
   };
 
-  // --- LOGIK STYLING ABU MUDA ---
+  // --- LOGIK STYLING INPUT & BORDER ---
   const usernameBorderClass = isFormValid
-    ? 'border-green-400 bg-green-50 text-green-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] font-extrabold' 
+    ? 'border-emerald-400/60 bg-green-50/50 text-green-950 font-extrabold' 
     : (validationMsg === "Isi nama dulu sayang")
-      ? 'border-red-400 animate-pulse bg-red-50 text-red-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] font-extrabold' 
-      : 'border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] focus-within:bg-gray-50 font-extrabold';
+      ? 'border-red-400 bg-red-50 text-red-950 font-extrabold animate-pulse' 
+      : 'border-gray-200 bg-gray-50/80 text-slate-900 focus-within:border-gray-400/70 font-extrabold';
 
   const pinBorderClass = isFormValid
-    ? 'border-green-400 bg-green-50 text-green-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] font-extrabold'
+    ? 'border-emerald-400/60 bg-green-50/50 text-green-950 font-extrabold'
     : (validationMsg === "PIN harus 6 angka sayang" || (!isLoginMode && validationMsg && (!pin || pin.length !== 6)))
-      ? 'border-red-400 animate-pulse bg-red-50 text-red-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] font-extrabold'
-      : 'border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] focus-within:bg-gray-50 font-extrabold';
+      ? 'border-red-400 bg-red-50 text-red-950 font-extrabold animate-pulse'
+      : 'border-gray-200 bg-gray-50/80 text-slate-900 focus-within:border-gray-400/70 font-extrabold';
 
   const umurBorderClass = isFormValid
-    ? 'border-green-400 bg-green-50 text-green-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]'
+    ? 'border-emerald-400/60 bg-green-50/50 text-green-950'
     : (validationMsg && !umur)
-      ? 'border-red-400 animate-pulse bg-red-50 text-red-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]'
-      : 'border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] focus-within:bg-gray-50';
+      ? 'border-red-400 bg-red-50 text-red-950 animate-pulse'
+      : 'border-gray-200 bg-gray-50/80 text-slate-900 focus-within:border-gray-400/70';
 
   const beratBorderClass = isFormValid
-    ? 'border-green-400 bg-green-50 text-green-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]'
+    ? 'border-emerald-400/60 bg-green-50/50 text-green-950'
     : (validationMsg && !berat)
-      ? 'border-red-400 animate-pulse bg-red-50 text-red-950 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]'
-      : 'border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] focus-within:bg-gray-50';
+      ? 'border-red-400 bg-red-50 text-red-950 animate-pulse'
+      : 'border-gray-200 bg-gray-50/80 text-slate-900 focus-within:border-gray-400/70';
 
   const checkboxBorderClass = isFormValid
-    ? 'border-green-400/60 bg-white/20 shadow-[0_0_15px_rgba(34,197,94,0.2)]'
+    ? 'border-emerald-400/40 bg-white/20 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
     : (validationMsg === "Ceklist dulu sayang")
-      ? 'border-red-400 animate-pulse bg-white/20 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
-      : 'border-[#235867]/30 bg-black/5 shadow-[0_0_10px_rgba(11,32,39,0.05)]';
+      ? 'border-red-400 animate-pulse bg-white/20 shadow-[0_0_15px_rgba(239,68,68,0.2)]'
+      : 'border-gray-200 bg-gray-50/50 shadow-[inset_0_2px_4px_rgba(0,0,0,0.04)]';
 
-  // --- LOGIK STYLING TOMBOL UTAMA ---
+  // --- LOGIK STYLING TOMBOL UTAMA & GLOW PANELS ---
   let buttonStyle = "";
   let buttonText = "";
 
   if (isExistingUser) {
-    buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_20px_rgba(34,197,94,0.5)] text-white";
+    buttonStyle = "bg-emerald-500/10 text-emerald-600 border border-emerald-400/50 hover:bg-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]";
     buttonText = "Masuk Chat";
   } else if (validationMsg) {
-    buttonStyle = "bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 border border-red-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_20px_rgba(239,68,68,0.5)] text-white animate-pulse";
+    buttonStyle = "bg-rose-500/10 text-rose-600 border border-rose-400/50 shadow-[0_0_15px_rgba(244,63,94,0.25)] animate-pulse";
     buttonText = validationMsg;
   } else if (isFormValid) {
     if (isLoginMode) {
-      buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_20px_rgba(34,197,94,0.5)] text-white";
+      buttonStyle = "bg-emerald-500/20 text-emerald-600 border border-emerald-400/60 hover:bg-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.35)]";
       buttonText = "Masuk Sekarang";
     } else {
-      buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_20px_rgba(34,197,94,0.5)] text-white";
+      buttonStyle = "bg-blue-500/20 text-blue-600 border border-blue-400/60 hover:bg-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.35)]";
       buttonText = "Gabung Sekarang";
     }
   } else {
     if (isLoginMode) {
-      buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),0_0_15px_rgba(34,197,94,0.4)] text-white";
+      buttonStyle = "bg-emerald-500/10 text-emerald-500/80 border border-emerald-400/40 hover:bg-emerald-500/20 shadow-[0_0_12px_rgba(16,185,129,0.15)]";
       buttonText = "Login";
     } else {
-      buttonStyle = "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 border border-blue-400 shadow-[inset_0_2px_4px_rgba(255,255,255,0.2),0_0_15px_rgba(37,99,235,0.4)] text-white";
+      buttonStyle = "bg-blue-500/10 text-blue-500/80 border border-blue-400/40 hover:bg-blue-500/20 shadow-[0_0_12px_rgba(59,130,246,0.15)]";
       buttonText = "Register";
     }
   }
@@ -235,12 +235,12 @@ export default function Login({
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
       
-      {/* ⚪ MAIN CARD - Dibuat sangat bening (bg-transparent) tanpa border putih tebal agar menyatu mulus */}
+      {/* ⚪ MAIN CARD */}
       <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-hidden flex flex-col z-10 transition-all duration-300">
         
         {activeTab === 'user' ? (
           <>
-            {/* 🔵 KOTAK SLIDE OVERLAY PANEL (HEADER / FOOTER BENING NAMPAK) */}
+            {/* 🔵 KOTAK SLIDE OVERLAY PANEL */}
             <motion.div
               layout
               initial={false}
@@ -273,7 +273,7 @@ export default function Login({
                           href={platform.link} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide shadow-sm transition-all duration-300 active:scale-95 ${platform.color}`}
+                          className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide transition-all duration-300 active:scale-95 ${platform.color}`}
                         >
                           {platform.label}
                         </a>
@@ -281,11 +281,11 @@ export default function Login({
                     </div>
                   </div>
 
-                  {/* Pill Register Panjang & Biru di bawah Sosmed */}
+                  {/* Pill Register Floating Blue Glow */}
                   {!isExistingUser && (
                     <button 
                       onClick={() => { setIsLoginMode(false); setValidationMsg(""); }}
-                      className="w-[85%] py-2.5 rounded-full bg-blue-600/90 hover:bg-blue-700 text-white font-extrabold border border-blue-400 transition-all text-sm active:scale-95 shadow-md tracking-wider backdrop-blur-md"
+                      className="w-[85%] py-2.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-extrabold border border-blue-400/40 transition-all text-sm active:scale-95 shadow-[0_0_15px_rgba(59,130,246,0.25)] tracking-wider backdrop-blur-md"
                     >
                       Register
                     </button>
@@ -299,10 +299,10 @@ export default function Login({
                   className="absolute flex flex-col items-center text-center w-full"
                   style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
                 >
-                  {/* Pill Login Panjang & Hijau diatas Sosmed */}
+                  {/* Pill Login Floating Green Glow */}
                   <button 
                     onClick={() => { setIsLoginMode(true); setValidationMsg(""); }}
-                    className="w-[85%] py-2.5 mb-3 rounded-full bg-emerald-600/90 hover:bg-emerald-700 text-white font-extrabold border border-emerald-400 transition-all text-sm active:scale-95 shadow-md tracking-wider backdrop-blur-md"
+                    className="w-[85%] py-2.5 mb-3 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-extrabold border border-emerald-400/40 transition-all text-sm active:scale-95 shadow-[0_0_15px_rgba(16,185,129,0.25)] tracking-wider backdrop-blur-md"
                   >
                     Login
                   </button>
@@ -317,7 +317,7 @@ export default function Login({
                           href={platform.link} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide shadow-sm transition-all duration-300 active:scale-95 ${platform.color}`}
+                          className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide transition-all duration-300 active:scale-95 ${platform.color}`}
                         >
                           {platform.label}
                         </a>
@@ -339,7 +339,6 @@ export default function Login({
                 className="absolute top-0 w-full h-[65%] px-4 sm:px-6 py-4 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
                 style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
               >
-                {/* Kotak Register Rounded yang Cantik */}
                 <div className="w-full bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/60 p-6 sm:p-8 flex flex-col items-center">
                   
                   <InputField 
@@ -404,7 +403,7 @@ export default function Login({
                     <input 
                       type="checkbox" 
                       id="agree" 
-                      className="w-4 h-4 accent-[#0B2027] cursor-pointer rounded drop-shadow-sm"
+                      className="w-4 h-4 accent-blue-500 cursor-pointer rounded drop-shadow-sm"
                       checked={isUsernameAgreed}
                       onChange={(e) => {
                         setIsUsernameAgreed(e.target.checked);
@@ -433,7 +432,6 @@ export default function Login({
                 className="absolute bottom-0 w-full h-[65%] px-4 sm:px-6 py-4 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
                 style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
               >
-                {/* Kotak Login Rounded yang Cantik */}
                 <div className="w-full bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/60 p-6 sm:p-8 flex flex-col items-center">
                   
                   <InputField 
@@ -446,7 +444,7 @@ export default function Login({
                       if (validationMsg) setValidationMsg(""); 
                     }}
                     readOnly={isExistingUser}
-                    className={isExistingUser ? 'bg-gray-200 text-black border-gray-300 cursor-not-allowed font-extrabold' : usernameBorderClass}
+                    className={isExistingUser ? 'bg-gray-100 text-slate-700 border-emerald-400/40 cursor-not-allowed font-extrabold' : usernameBorderClass}
                     autoComplete="off"
                   />
                   
@@ -469,16 +467,16 @@ export default function Login({
                       </button>
                     }
                     readOnly={isExistingUser}
-                    className={isExistingUser ? 'bg-gray-200 text-black border-gray-300 cursor-not-allowed font-extrabold' : pinBorderClass}
+                    className={isExistingUser ? 'bg-gray-100 text-slate-700 border-emerald-400/40 cursor-not-allowed font-extrabold' : pinBorderClass}
                     maxLength={6}
                   />
 
-                  {/* LOGIN OTOMATIS NOTE CONTAINER (TEKS JALAN ABU-ABU MUDA & TEKS HITAM) */}
+                  {/* LOGIN OTOMATIS NOTE CONTAINER (Soft Green Border + Gray Insert Shadow) */}
                   {isExistingUser && (
-                    <div className="w-full text-xs text-black bg-gray-200 p-4 border border-gray-300 rounded-3xl mb-4 font-extrabold text-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center">
+                    <div className="w-full text-xs text-slate-800 bg-gray-50/90 p-4 border border-emerald-400/40 rounded-3xl mb-4 font-extrabold text-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.06),0_0_10px_rgba(16,185,129,0.05)] whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center">
                       <span className="w-full block drop-shadow-sm">
                         {displayedNote}
-                        {!isNoteTypingDone && <span className="animate-pulse ml-0.5 text-black">|</span>}
+                        {!isNoteTypingDone && <span className="animate-pulse ml-0.5 text-emerald-500">|</span>}
                       </span>
                     </div>
                   )}
@@ -498,7 +496,6 @@ export default function Login({
           
           /* === ADMIN TAB === */
           <div className="absolute inset-0 z-10 w-full h-full px-4 sm:px-6 py-6 flex flex-col items-center justify-center bg-transparent">
-             {/* Kotak Admin Rounded yang Cantik */}
              <div className="w-full bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/60 p-6 sm:p-8 flex flex-col items-center">
               
               <InputField 
@@ -506,7 +503,7 @@ export default function Login({
                 placeholder="Email Admin" 
                 value={adminEmail || ""} 
                 onChange={(e: any) => setAdminEmail(e.target.value)} 
-                className="border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027]"
+                className="border-gray-200 bg-gray-50/80 text-slate-900 focus-within:border-gray-400/70"
                 autoComplete="off"
               />
               
@@ -517,12 +514,12 @@ export default function Login({
                 style={showPin ? {} : ({ WebkitTextSecurity: 'disc' } as any)}
                 value={adminPass || ""} 
                 onChange={(e: any) => setAdminPass(e.target.value)} 
-                className="border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] mb-6"
+                className="border-gray-200 bg-gray-50/80 text-slate-900 focus-within:border-gray-400/70 mb-6"
               />
               
               <button 
                 onClick={handleAdminLogin} 
-                className="w-full bg-gradient-to-r from-[#0B2027] to-[#1a3f4c] hover:from-[#13313c] hover:to-[#0B2027] text-white py-3.5 mt-2 rounded-full font-extrabold shadow-[inset_0_2px_4px_rgba(255,255,255,0.2),0_0_15px_rgba(11,32,39,0.4)] border border-[#235867] tracking-wider transition-all active:scale-[0.98]"
+                className="w-full bg-slate-900/10 hover:bg-slate-900/20 text-slate-800 py-3.5 mt-2 rounded-full font-extrabold border border-slate-300 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4),0_0_12px_rgba(15,23,42,0.1)] tracking-wider transition-all active:scale-[0.98]"
               >
                 Gabung Admin
               </button>
