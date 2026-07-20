@@ -172,9 +172,10 @@ export default function Login({
       ? 'border-red-400 animate-pulse bg-white/20 text-red-950 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05),0_0_15px_rgba(239,68,68,0.5)] font-extrabold' 
       : 'border-[#235867]/40 bg-white/20 text-slate-900 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05)] focus-within:border-[#0B2027] focus-within:shadow-[0_0_15px_rgba(11,32,39,0.2)] font-extrabold';
 
+  // Modifikasi kondisional PIN berkedip merah saat regis belum input PIN sempurna
   const pinBorderClass = isFormValid
     ? 'border-green-400 bg-white/20 text-green-950 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05),0_0_15px_rgba(34,197,94,0.4)] font-extrabold'
-    : (validationMsg === "PIN harus 6 angka sayang")
+    : (validationMsg === "PIN harus 6 angka sayang" || (!isLoginMode && validationMsg && (!pin || pin.length !== 6)))
       ? 'border-red-400 animate-pulse bg-white/20 text-red-950 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05),0_0_15px_rgba(239,68,68,0.5)] font-extrabold'
       : 'border-[#235867]/40 bg-white/20 text-slate-900 shadow-[inset_0_3px_8px_rgba(0,0,0,0.05)] focus-within:border-[#0B2027] focus-within:shadow-[0_0_15px_rgba(11,32,39,0.2)] font-extrabold';
 
@@ -216,8 +217,8 @@ export default function Login({
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
       
-      {/* ⚪ MAIN CARD - Background Full Bening */}
-      <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-hidden flex flex-col z-10 transition-all duration-300">
+      {/* ⚪ MAIN CARD - Background Transparant Bening Tipis Banget */}
+      <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-white/[0.03] backdrop-blur-[4px] border border-white/10 sm:rounded-[2.5rem] shadow-[0_8px_32px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col z-10 transition-all duration-300">
         
         {activeTab === 'user' ? (
           <>
@@ -233,7 +234,7 @@ export default function Login({
                 borderTopRightRadius: isLoginMode ? '0rem' : '2.5rem',
               }}
               transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              className="absolute left-0 right-0 h-[35%] bg-[#0B2027]/75 backdrop-blur-xl border border-white/10 z-20 flex flex-col items-center justify-center p-6 text-white overflow-hidden shadow-[0_5px_15px_rgba(0,0,0,0.2)]"
+              className="absolute left-0 right-0 h-[35%] bg-[#0B2027]/75 backdrop-blur-xl border border-white/10 z-20 flex flex-col items-center justify-center p-4 text-white overflow-hidden shadow-[0_5px_15px_rgba(0,0,0,0.2)]"
             >
               <div className="relative w-full h-full flex items-center justify-center">
                 
@@ -241,18 +242,37 @@ export default function Login({
                 <motion.div
                   animate={{ opacity: isLoginMode ? 1 : 0, scale: isLoginMode ? 1 : 0.95 }}
                   transition={{ duration: 0.3 }}
-                  className="absolute flex flex-col items-center text-center"
+                  className="absolute flex flex-col items-center text-center w-full"
                   style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
                 >
                   <h2 className="text-2xl sm:text-3xl font-bold mb-1 tracking-wide text-white drop-shadow-sm">Hello, Welcome</h2>
-                  <p className="text-sm text-gray-200 mb-6 font-light">Don't have an Account</p>
-                  {!isExistingUser && (
+                  <p className="text-sm text-gray-200 mb-4 font-light">Don't have an Account</p>
+                  
+                  {/* Tampilkan Tombol Register Jika Bukan User Terikat */}
+                  {!isExistingUser ? (
                     <button 
                       onClick={() => { setIsLoginMode(false); setValidationMsg(""); }}
                       className="px-10 py-2.5 rounded-full border border-white/60 text-white font-extrabold hover:bg-white/20 transition-all text-sm backdrop-blur-sm active:scale-95 shadow-sm"
                     >
                       Register
                     </button>
+                  ) : (
+                    /* Pindah Sosial Media Ke Sini Saat Login Otomatis (isExistingUser) */
+                    <div className="flex flex-col items-center mt-1 w-full animate-fade-in">
+                      <div className="flex flex-wrap justify-center gap-2 px-4">
+                        {socialPlatforms.map((platform) => (
+                          <a 
+                            key={platform.name} 
+                            href={platform.link} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide shadow-sm transition-all duration-300 active:scale-95 ${platform.color}`}
+                          >
+                            {platform.label}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </motion.div>
 
@@ -442,7 +462,7 @@ export default function Login({
                   {buttonText}
                 </button>
 
-                {/* --- SOSMED IPIX LOGIN (Hanya tampil jika bukan user terikat login) --- */}
+                {/* --- SOSMED IPIX LOGIN (Hanya tampil di bawah jika normal/bukan login otomatis) --- */}
                 {!isExistingUser && (
                   <div className="flex flex-col items-center mt-5 w-full">
                     <p className="text-[10px] sm:text-[11px] font-extrabold text-slate-600/80 mb-2.5 text-center tracking-wide uppercase">Sosial Media Ipix</p>
