@@ -426,7 +426,6 @@ export default function Home() {
       }
     },
     blkUser: async (arg1: string, arg2?: string) => {
-      // Mendukung argumen dari versi sebelumnya (jika MessageItem masih mengirim (id, username))
       const targetUsername = arg2 || arg1; 
       if (confirm(`Blokir user ${targetUsername}?`)) {
         await supabase.from("blocked_users").insert([{ username: targetUsername }]);
@@ -465,7 +464,8 @@ export default function Home() {
       
       const savedUsername = localStorage.getItem("active_username") || sessionStorage.getItem("saved_username");
       if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
-          const { data: pD } = await supabase.from("profiles").select("username, pin, umur, berat").eq("username", savedUsername).single();
+          // Username Case Insensitive: Menggunakan ilike untuk menemukan user di database
+          const { data: pD } = await supabase.from("profiles").select("username, pin, umur, berat").ilike("username", savedUsername).single();
           
           if (pD?.username) {
             setAuth((p) => ({ 
@@ -1289,22 +1289,39 @@ export default function Home() {
           setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))}
           
           handleUserLogin={async () => {
-            if (!auth.user.trim() || isCensored(auth.user)) return alert("Nama tidak valid");
+            const inputName = auth.user.trim();
+            if (!inputName || isCensored(inputName)) return alert("Nama tidak valid");
+            
             try {
+              // 1. Username case-insensitive
               const { data: existUser } = await supabase
                 .from("profiles")
-                .select("username, pin")
-                .ilike("username", auth.user.trim())
+                .select("username, pin, email")
+                .ilike("username", inputName)
                 .maybeSingle();
 
+              // 3. PIN bebas, hanya cek kalau username benar-benar sudah ada
               if (existUser && existUser.pin !== auth.pin) {
                 return alert("Username sudah terdaftar dengan PIN yang berbeda!");
               }
               
+              // Jika user ada, gunakan nama dari DB, jika tidak buat format lowercase untuk seragam
+              const finalUsername = existUser ? existUser.username : inputName.toLowerCase();
+              let finalEmail = "user@ipix.fun";
+
+              // 2. Email berurutan otomatis
+              if (existUser?.email) {
+                finalEmail = existUser.email;
+              } else {
+                const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true });
+                const nextId = (count || 0) + 1;
+                finalEmail = `user${nextId}@ipix.fun`;
+              }
+              
               const { error: upsertError } = await supabase.from("profiles").upsert(
                 {
-                  email: "user@ipix.fun",
-                  username: auth.user.trim(),
+                  email: finalEmail,
+                  username: finalUsername,
                   user_browser: navigator.userAgent,
                   pin: auth.pin,     
                   umur: auth.umur,   
@@ -1319,16 +1336,16 @@ export default function Home() {
                 return; 
               }
 
+              setAuth((p) => ({ ...p, isAuth: true, user: finalUsername }));
+              localStorage.setItem("active_username", finalUsername);
+              sessionStorage.setItem("is_auth", "true");
+              sessionStorage.setItem("saved_username", finalUsername);
+              sessionStorage.setItem("active_tab", "user");
+
             } catch (e) {
               console.error("Error saving profile:", e);
               return;
             }
-            
-            setAuth((p) => ({ ...p, isAuth: true }));
-            localStorage.setItem("active_username", auth.user.trim());
-            sessionStorage.setItem("is_auth", "true");
-            sessionStorage.setItem("saved_username", auth.user.trim());
-            sessionStorage.setItem("active_tab", "user");
           }}
           handleAdminLogin={async () => {
             const { error } = await supabase.auth.signInWithPassword({
