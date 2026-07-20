@@ -53,7 +53,7 @@ const EyeOffIcon = () => (
   <svg className="w-5 h-5 text-slate-500 cursor-pointer hover:text-slate-800 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>
 );
 
-// --- REUSABLE COMPONENTS (DENGAN INSET SHADOW LEBIH DALAM) ---
+// --- REUSABLE COMPONENTS ---
 const InputField = ({ icon, suffix, readOnly, className, ...props }: any) => (
   <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border transition-all duration-300 ${className}`}>
     <div className="mr-3 flex-shrink-0 opacity-60">
@@ -173,59 +173,72 @@ export default function Login({
     handleUserLogin(isLoginMode);
   };
 
-  // --- INSET SHADOW DEEP (CEKUNGAN LEBIH DALAM) ---
-  const deepInset = 'shadow-[inset_0_6px_12px_rgba(0,0,0,0.25),inset_0_2px_4px_rgba(0,0,0,0.15)]';
+  // =============================================
+  // --- KONSTANTA INSET SHADOW (CEKUNGAN DALAM) ---
+  // =============================================
+  
+  // Cekungan untuk INPUT PILL (kolom input)
+  const inputInset = 'shadow-[inset_0_6px_12px_rgba(0,0,0,0.25),inset_0_2px_4px_rgba(0,0,0,0.15)]';
+  
+  // Cekungan untuk GLASS BOX (kotak form container)
+  const glassBoxInset = 'shadow-[inset_0_8px_20px_rgba(0,0,0,0.12),inset_0_-4px_12px_rgba(0,0,0,0.06),inset_0_2px_4px_rgba(255,255,255,0.3)]';
+  
+  // Cekungan untuk PILL TOMBOL (sosmed, register, login switch)
+  const pillInset = 'shadow-[inset_0_4px_8px_rgba(0,0,0,0.3),inset_0_1px_3px_rgba(0,0,0,0.2),inset_0_-2px_4px_rgba(255,255,255,0.1)]';
 
   // --- REGISTER FORM STYLING (OUTLINE BIRU SAAT FOCUS) ---
   const usernameBorderClass = isFormValid
-    ? `border-green-400 bg-green-50 text-green-950 ${deepInset} font-extrabold` 
+    ? `border-green-400 bg-green-50 text-green-950 ${inputInset} font-extrabold` 
     : (validationMsg === "Isi nama dulu sayang")
-      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${deepInset} font-extrabold` 
-      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${deepInset} font-extrabold`;
+      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${inputInset} font-extrabold` 
+      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${inputInset} font-extrabold`;
 
   const pinBorderClass = isFormValid
-    ? `border-green-400 bg-green-50 text-green-950 ${deepInset} font-extrabold`
+    ? `border-green-400 bg-green-50 text-green-950 ${inputInset} font-extrabold`
     : (validationMsg === "PIN harus 6 angka sayang" || (!isLoginMode && validationMsg && (!pin || pin.length !== 6)))
-      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${deepInset} font-extrabold`
-      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${deepInset} font-extrabold`;
+      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${inputInset} font-extrabold`
+      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${inputInset} font-extrabold`;
 
   const umurBorderClass = isFormValid
-    ? `border-green-400 bg-green-50 text-green-950 ${deepInset}`
+    ? `border-green-400 bg-green-50 text-green-950 ${inputInset}`
     : (validationMsg && !umur)
-      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${deepInset}`
-      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${deepInset}`;
+      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${inputInset}`
+      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${inputInset}`;
 
   const beratBorderClass = isFormValid
-    ? `border-green-400 bg-green-50 text-green-950 ${deepInset}`
+    ? `border-green-400 bg-green-50 text-green-950 ${inputInset}`
     : (validationMsg && !berat)
-      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${deepInset}`
-      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${deepInset}`;
+      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${inputInset}`
+      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${inputInset}`;
 
-  // --- LOGIN FORM STYLING (EXISTING USER - TETAP INSET DEEP) ---
-  const existingBorderClass = `bg-gray-200 text-black border-gray-300 cursor-not-allowed font-extrabold ${deepInset}`;
+  const existingBorderClass = `bg-gray-200 text-black border-gray-300 cursor-not-allowed font-extrabold ${inputInset}`;
 
   // --- LOGIK STYLING TOMBOL UTAMA (DINAMIS INSET SHADOW) ---
   let buttonStyle = "";
   let buttonText = "";
+  const mainBtnInset = 'shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3),inset_0_2px_4px_rgba(255,255,255,0.25)]';
 
   if (isExistingUser) {
-    buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 text-white shadow-[inset_0_-3px_6px_rgba(0,0,0,0.25),inset_0_2px_3px_rgba(255,255,255,0.3),0_0_20px_rgba(34,197,94,0.5)]";
+    buttonStyle = `bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 text-white ${mainBtnInset}`;
     buttonText = "Masuk Chat";
   } else if (validationMsg) {
-    buttonStyle = "bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 border border-red-400 text-white animate-pulse shadow-[inset_0_-3px_6px_rgba(0,0,0,0.25),inset_0_2px_3px_rgba(255,255,255,0.3),0_0_20px_rgba(239,68,68,0.5)]";
+    buttonStyle = `bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 border border-red-400 text-white animate-pulse ${mainBtnInset}`;
     buttonText = validationMsg;
   } else if (isFormValid) {
-    buttonStyle = "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 text-white shadow-[inset_0_-3px_6px_rgba(0,0,0,0.25),inset_0_2px_3px_rgba(255,255,255,0.3),0_0_20px_rgba(34,197,94,0.5)]";
+    buttonStyle = `bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 text-white ${mainBtnInset}`;
     buttonText = isLoginMode ? "Masuk Sekarang" : "Gabung Sekarang";
   } else {
     if (isLoginMode) {
-      buttonStyle = "bg-gradient-to-r from-emerald-500/80 to-green-600/80 hover:from-emerald-500 hover:to-green-600 border border-green-400/50 text-white shadow-[inset_0_-3px_6px_rgba(0,0,0,0.25),inset_0_2px_3px_rgba(255,255,255,0.2),0_0_15px_rgba(34,197,94,0.3)]";
+      buttonStyle = `bg-gradient-to-r from-emerald-500/80 to-green-600/80 hover:from-emerald-500 hover:to-green-600 border border-green-400/50 text-white ${mainBtnInset}`;
       buttonText = "Login";
     } else {
-      buttonStyle = "bg-gradient-to-r from-blue-500/80 to-blue-600/80 hover:from-blue-500 hover:to-blue-600 border border-blue-400/50 text-white shadow-[inset_0_-3px_6px_rgba(0,0,0,0.25),inset_0_2px_3px_rgba(255,255,255,0.2),0_0_15px_rgba(37,99,235,0.3)]";
+      buttonStyle = `bg-gradient-to-r from-blue-500/80 to-blue-600/80 hover:from-blue-500 hover:to-blue-600 border border-blue-400/50 text-white ${mainBtnInset}`;
       buttonText = "Register";
     }
   }
+
+  // --- SOSMED PILL STYLE (DENGAN CEKUNGAN) ---
+  const sosmedPillClass = 'bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm ' + pillInset;
 
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
@@ -235,7 +248,7 @@ export default function Login({
         
         {activeTab === 'user' ? (
           <>
-            {/* 🔵 KOTAK SLIDE OVERLAY PANEL */}
+            {/* 🔵 KOTAK SLIDE OVERLAY PANEL (DENGAN CEKUNGAN GLASS) */}
             <motion.div
               layout
               initial={false}
@@ -247,7 +260,7 @@ export default function Login({
                 borderTopRightRadius: isLoginMode ? '0rem' : '2.5rem',
               }}
               transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              className="absolute left-0 right-0 h-[35%] bg-transparent backdrop-blur-md border border-white/20 z-20 flex flex-col items-center justify-center p-4 text-white overflow-hidden shadow-sm"
+              className={`absolute left-0 right-0 h-[35%] bg-white/5 backdrop-blur-md border border-white/20 z-20 flex flex-col items-center justify-center p-4 text-white overflow-hidden ${glassBoxInset}`}
             >
               <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
                 
@@ -267,7 +280,7 @@ export default function Login({
                           href={platform.link} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide shadow-sm transition-all duration-300 active:scale-95 ${platform.color}`}
+                          className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide transition-all duration-300 active:scale-95 ${sosmedPillClass}`}
                         >
                           {platform.label}
                         </a>
@@ -278,7 +291,7 @@ export default function Login({
                   {!isExistingUser && (
                     <button 
                       onClick={() => { setIsLoginMode(false); setValidationMsg(""); }}
-                      className="w-[85%] py-2.5 rounded-full bg-blue-600/90 hover:bg-blue-700 text-white font-extrabold border border-blue-400 transition-all text-sm active:scale-95 shadow-md tracking-wider backdrop-blur-md"
+                      className={`w-[85%] py-2.5 rounded-full bg-blue-600/90 hover:bg-blue-700 text-white font-extrabold border border-blue-400 transition-all text-sm active:scale-95 tracking-wider backdrop-blur-md ${pillInset}`}
                     >
                       Register
                     </button>
@@ -294,7 +307,7 @@ export default function Login({
                 >
                   <button 
                     onClick={() => { setIsLoginMode(true); setValidationMsg(""); }}
-                    className="w-[85%] py-2.5 mb-3 rounded-full bg-emerald-600/90 hover:bg-emerald-700 text-white font-extrabold border border-emerald-400 transition-all text-sm active:scale-95 shadow-md tracking-wider backdrop-blur-md"
+                    className={`w-[85%] py-2.5 mb-3 rounded-full bg-emerald-600/90 hover:bg-emerald-700 text-white font-extrabold border border-emerald-400 transition-all text-sm active:scale-95 tracking-wider backdrop-blur-md ${pillInset}`}
                   >
                     Login
                   </button>
@@ -308,7 +321,7 @@ export default function Login({
                           href={platform.link} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide shadow-sm transition-all duration-300 active:scale-95 ${platform.color}`}
+                          className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide transition-all duration-300 active:scale-95 ${sosmedPillClass}`}
                         >
                           {platform.label}
                         </a>
@@ -330,7 +343,8 @@ export default function Login({
                 className="absolute top-0 w-full h-[65%] px-4 sm:px-6 py-4 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
                 style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
               >
-                <div className="w-full bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/60 p-6 sm:p-8 flex flex-col items-center">
+                {/* GLASS BOX DENGAN CEKUNGAN */}
+                <div className={`w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 p-6 sm:p-8 flex flex-col items-center ${glassBoxInset}`}>
                   
                   <InputField 
                     icon={<UserIcon />} 
@@ -390,7 +404,7 @@ export default function Login({
                     />
                   </div>
 
-                  {/* CHECKBOX - PILLL DIHILANGKAN, HANYA CEKBOX + TEKS ABU² MUDA MIRING TIPIS */}
+                  {/* CHECKBOX - TANPA PILL, HANYA CEKBOX + TEKS ABU² MUDA MIRING TIPIS */}
                   <div className="flex items-center justify-start w-full mb-4 px-2 select-none">
                     <input 
                       type="checkbox" 
@@ -424,7 +438,8 @@ export default function Login({
                 className="absolute bottom-0 w-full h-[65%] px-4 sm:px-6 py-4 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
                 style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
               >
-                <div className="w-full bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/60 p-6 sm:p-8 flex flex-col items-center">
+                {/* GLASS BOX DENGAN CEKUNGAN */}
+                <div className={`w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 p-6 sm:p-8 flex flex-col items-center ${glassBoxInset}`}>
                   
                   <InputField 
                     icon={<UserIcon />} 
@@ -464,7 +479,7 @@ export default function Login({
                   />
 
                   {isExistingUser && (
-                    <div className="w-full text-xs text-black bg-gray-200 p-4 border border-gray-300 rounded-3xl mb-4 font-extrabold text-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center">
+                    <div className={`w-full text-xs text-black bg-gray-200 p-4 border border-gray-300 rounded-3xl mb-4 font-extrabold text-center whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center ${inputInset}`}>
                       <span className="w-full block drop-shadow-sm">
                         {displayedNote}
                         {!isNoteTypingDone && <span className="animate-pulse ml-0.5 text-black">|</span>}
@@ -487,14 +502,15 @@ export default function Login({
           
           /* === ADMIN TAB === */
           <div className="absolute inset-0 z-10 w-full h-full px-4 sm:px-6 py-6 flex flex-col items-center justify-center bg-transparent">
-             <div className="w-full bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/60 p-6 sm:p-8 flex flex-col items-center">
+             {/* GLASS BOX DENGAN CEKUNGAN */}
+             <div className={`w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 p-6 sm:p-8 flex flex-col items-center ${glassBoxInset}`}>
               
               <InputField 
                 icon={<MailIcon />} 
                 placeholder="Email Admin" 
                 value={adminEmail || ""} 
                 onChange={(e: any) => setAdminEmail(e.target.value)} 
-                className={`border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] ${deepInset}`}
+                className={`border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] ${inputInset}`}
                 autoComplete="off"
               />
               
@@ -505,12 +521,12 @@ export default function Login({
                 style={showPin ? {} : ({ WebkitTextSecurity: 'disc' } as any)}
                 value={adminPass || ""} 
                 onChange={(e: any) => setAdminPass(e.target.value)} 
-                className={`border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] mb-6 ${deepInset}`}
+                className={`border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] mb-6 ${inputInset}`}
               />
               
               <button 
                 onClick={handleAdminLogin} 
-                className="w-full bg-gradient-to-r from-[#0B2027] to-[#1a3f4c] hover:from-[#13313c] hover:to-[#0B2027] text-white py-3.5 mt-2 rounded-full font-extrabold shadow-[inset_0_-3px_6px_rgba(0,0,0,0.3),inset_0_2px_3px_rgba(255,255,255,0.2),0_0_15px_rgba(11,32,39,0.4)] border border-[#235867] tracking-wider transition-all active:scale-[0.98]"
+                className={`w-full bg-gradient-to-r from-[#0B2027] to-[#1a3f4c] hover:from-[#13313c] hover:to-[#0B2027] text-white py-3.5 mt-2 rounded-full font-extrabold border border-[#235867] tracking-wider transition-all active:scale-[0.98] ${mainBtnInset}`}
               >
                 Gabung Admin
               </button>
