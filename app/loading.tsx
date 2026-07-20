@@ -15,13 +15,39 @@ export default function Loading() {
         <div className="absolute w-[250px] h-[250px] md:w-[350px] md:h-[350px] bg-blue-500/30 rounded-full blur-[70px] animate-blob-blue"></div>
       </div>
 
-      {/* Main Content (Teks IPIX Jelly Bounce) */}
+      {/* Main Content (Teks iPiX Jelly Bounce) */}
       <div className="relative z-20 flex flex-col items-center justify-center animate-jelly-bounce">
         
-        {/* Teks IPIX (Glassy, Gradasi Tema Blob, 3D Outline) */}
-        <h1 className="text-7xl md:text-9xl font-black tracking-tighter font-rounded glassy-blob-text mb-4">
-          IPIX
-        </h1>
+        {/* Teks iPiX (Glassy, Gradasi Tema Blob, SVG Custom untuk X Tanpa Cacat) */}
+        <div className="flex items-center justify-center mb-4 font-rounded select-none">
+          <h1 className="text-7xl md:text-9xl font-black tracking-tighter glassy-blob-text flex items-center">
+            <span>i</span>
+            <span>P</span>
+            <span>i</span>
+            {/* SVG Huruf X presisi simetris di tengah tanpa celah */}
+            <svg 
+              className="w-[1.1em] h-[1.1em] inline-block align-baseline -ml-[0.05em] overflow-visible" 
+              viewBox="0 0 100 100" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path 
+                d="M10 10 L40 50 L10 90 H28 L50 60 L72 90 H90 L60 50 L90 10 H72 L50 40 L28 10 H10 Z" 
+                className="fill-[url(#ipix-gradient)] stroke-white stroke-[6px] [stroke-linejoin:round]" 
+                style={{
+                  filter: 'drop-shadow(0px 8px 0px rgba(15, 23, 42, 0.5)) drop-shadow(0px 15px 30px rgba(34, 211, 238, 0.5))'
+                }}
+              />
+              <defs>
+                <linearGradient id="ipix-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#22d3ee" />
+                  <stop offset="50%" stopColor="#34d399" />
+                  <stop offset="100%" stopColor="#3b82f6" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </h1>
+        </div>
 
         {/* Loading Dots Bouncing */}
         <div className="flex gap-3">
@@ -41,14 +67,14 @@ export default function Loading() {
           font-family: 'Nunito', sans-serif;
         }
 
-        /* Efek Teks Glassy dengan Warna Tema Blob (Cyan, Emerald, Blue) */
+        /* Efek Teks Glassy untuk Huruf i, P, i */
         .glassy-blob-text {
           background: linear-gradient(135deg, #22d3ee 0%, #34d399 50%, #3b82f6 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           -webkit-text-stroke: 2px rgba(255, 255, 255, 0.6);
-          filter: drop-shadow(0px 8px 0px rgba(15, 23, 42, 0.5)) /* Bayangan pekat di bawah */
-                  drop-shadow(0px 15px 30px rgba(34, 211, 238, 0.5)); /* Pendaran cyan */
+          filter: drop-shadow(0px 8px 0px rgba(15, 23, 42, 0.5)) 
+                  drop-shadow(0px 15px 30px rgba(34, 211, 238, 0.5));
         }
 
         /* --- ANIMASI BLOBS BOUNCING --- */
@@ -59,7 +85,7 @@ export default function Loading() {
         
         .animate-blob-emerald {
           animation: bounceGlowEmerald 5s ease-in-out infinite;
-          animation-delay: 1s; /* Jeda agar tidak bersamaan */
+          animation-delay: 1s;
         }
         
         .animate-blob-blue {
@@ -67,7 +93,6 @@ export default function Loading() {
           animation-delay: 0.5s;
         }
 
-        /* Pergerakan melambung, membesar, dan menyala (Bouncing & Glowing) */
         @keyframes bounceGlowCyan {
           0%, 100% { transform: translateY(30px) scale(1); opacity: 0.3; }
           50%      { transform: translateY(-120px) scale(1.15); opacity: 0.7; }
