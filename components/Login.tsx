@@ -2,28 +2,12 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
-// --- CONFIG SOSMED IPIX (Glassmorphism Style) ---
+// --- CONFIG SOSMED IPIX ---
 const socialPlatforms = [
-  { 
-    name: 'Twitter', 
-    label: 'Twitter : sixripix', 
-    link: 'https://x.com/sixripix' 
-  },
-  { 
-    name: 'TikTok', 
-    label: 'Tiktok : ipixaja', 
-    link: 'https://tiktok.com/@ipixaja' 
-  },
-  { 
-    name: 'Heesay', 
-    label: 'Heesay/Walla : V206MN/ipiX', 
-    link: 'https://international.walla-app.com/user?id=V2O6MN&app=2' 
-  },
-  { 
-    name: 'Growlr', 
-    label: 'Growlr : pix', 
-    link: 'https://www.growlrapp.com' 
-  },
+  { name: 'Twitter', label: 'Twitter : sixripix', link: 'https://x.com/sixripix' },
+  { name: 'TikTok', label: 'Tiktok : ipixaja', link: 'https://tiktok.com/@ipixaja' },
+  { name: 'Heesay', label: 'Heesay/Walla : V206MN/ipiX', link: 'https://international.walla-app.com/user?id=V2O6MN&app=2' },
+  { name: 'Growlr', label: 'Growlr : pix', link: 'https://www.growlrapp.com' },
 ];
 
 // --- ICONS ---
@@ -51,10 +35,8 @@ const EyeOffIcon = () => (
 
 // --- REUSABLE COMPONENTS ---
 const InputField = ({ icon, suffix, readOnly, className, ...props }: any) => (
-  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border transition-all duration-300 ${className}`}>
-    <div className="mr-3 flex-shrink-0 opacity-60">
-      {icon}
-    </div>
+  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border transition-colors duration-300 ${className}`}>
+    <div className="mr-3 flex-shrink-0 opacity-60">{icon}</div>
     <input 
       readOnly={readOnly}
       className="bg-transparent outline-none flex-1 text-sm font-extrabold w-full placeholder-slate-400 disabled:cursor-not-allowed text-inherit"
@@ -65,10 +47,8 @@ const InputField = ({ icon, suffix, readOnly, className, ...props }: any) => (
 );
 
 const SelectField = ({ icon, options, value, onChange, placeholder, className }: any) => (
-  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border relative transition-all duration-300 ${className}`}>
-    <div className="mr-3 flex-shrink-0 opacity-60">
-      {icon}
-    </div>
+  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border relative transition-colors duration-300 ${className}`}>
+    <div className="mr-3 flex-shrink-0 opacity-60">{icon}</div>
     <select 
       value={value}
       onChange={onChange}
@@ -82,6 +62,25 @@ const SelectField = ({ icon, options, value, onChange, placeholder, className }:
     </div>
   </div>
 );
+
+// =============================================
+// ✅ KONSTANTA TRANSISI ANTI-GLITCH
+// =============================================
+const PANEL_TRANSITION = {
+  type: "tween" as const,
+  duration: 0.45,
+  ease: [0.4, 0, 0.2, 1] as [number, number, number, number], // ease-out standard
+};
+
+const FORM_TRANSITION = {
+  duration: 0.45,
+  ease: [0.4, 0, 0.2, 1] as [number, number, number, number],
+};
+
+const CONTENT_TRANSITION = {
+  duration: 0.25,
+  ease: "easeOut" as const,
+};
 
 export default function Login({
   activeTab,
@@ -169,33 +168,18 @@ export default function Login({
     handleUserLogin(isLoginMode);
   };
 
-  // =============================================
   // --- INSET SHADOW CONSTANTS ---
-  // =============================================
-  
-  // Cekungan untuk INPUT PILL
   const inputInset = 'shadow-[inset_0_6px_12px_rgba(0,0,0,0.25),inset_0_2px_4px_rgba(0,0,0,0.15)]';
-  
-  // ✅ GLASS BOX LOGIN — highlight putih di ATAS
   const glassBoxLogin = 'shadow-[inset_0_8px_20px_rgba(255,255,255,0.4),inset_0_-4px_12px_rgba(0,0,0,0.06),inset_0_2px_4px_rgba(0,0,0,0.08)]';
-  
-  // ✅ GLASS BOX REGISTER — highlight putih di BAWAH
   const glassBoxRegister = 'shadow-[inset_0_-8px_20px_rgba(255,255,255,0.4),inset_0_4px_12px_rgba(0,0,0,0.06),inset_0_2px_4px_rgba(0,0,0,0.08)]';
-  
-  // Cekungan untuk PILL TOMBOL (sosmed, switch)
   const pillInset = 'shadow-[inset_0_4px_8px_rgba(0,0,0,0.3),inset_0_1px_3px_rgba(0,0,0,0.2),inset_0_-2px_4px_rgba(255,255,255,0.1)]';
-
-  // Cekungan TOMBOL UTAMA
   const mainBtnInset = 'shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3),inset_0_2px_4px_rgba(255,255,255,0.25)]';
 
-  // =============================================
-  // ✅ OUTLINE FOCUS: REGISTER = BIRU, LOGIN = HIJAU
-  // =============================================
+  // --- OUTLINE FOCUS: REGISTER = BIRU, LOGIN = HIJAU ---
   const regFocus = 'focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50';
   const loginFocus = 'focus-within:border-emerald-500 focus-within:bg-emerald-50/40 focus-within:ring-2 focus-within:ring-emerald-300/50';
   const activeFocus = isLoginMode ? loginFocus : regFocus;
 
-  // --- BORDER CLASSES ---
   const usernameBorderClass = isFormValid
     ? `border-green-400 bg-green-50 text-green-950 ${inputInset} font-extrabold` 
     : (validationMsg === "Isi nama dulu sayang")
@@ -245,43 +229,48 @@ export default function Login({
     }
   }
 
-  // ✅ SOSMED PILL — dengan cekungan
   const sosmedPillClass = `bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm ${pillInset}`;
+
+  // ✅ GPU ACCELERATION STYLE — mencegah repaint flicker
+  const gpuStyle = { 
+    transform: 'translateZ(0)', 
+    backfaceVisibility: 'hidden' as const,
+    WebkitBackfaceVisibility: 'hidden' as const,
+  };
 
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
       
-      {/* ⚪ MAIN CARD */}
-      <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-hidden flex flex-col z-10 transition-all duration-300">
+      {/* ⚪ MAIN CARD — overflow hidden ketat, contain: layout */}
+      <div 
+        className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-hidden flex flex-col z-10"
+        style={{ contain: 'layout style' }}
+      >
         
         {activeTab === 'user' ? (
           <>
-            {/* 🔵 SLIDE OVERLAY PANEL */}
+            {/* 🔵 SLIDE OVERLAY PANEL — TANPA layout prop, tween smooth */}
             <motion.div
-              layout
               initial={false}
               animate={{
-                top: isLoginMode ? '0%' : '65%',
-                borderBottomLeftRadius: isLoginMode ? '2.5rem' : '0rem',
-                borderBottomRightRadius: isLoginMode ? '2.5rem' : '0rem',
-                borderTopLeftRadius: isLoginMode ? '0rem' : '2.5rem',
-                borderTopRightRadius: isLoginMode ? '0rem' : '2.5rem',
+                y: isLoginMode ? '0%' : '185.7%', // 65/35 * 100 = 185.7% dari tinggi sendiri
               }}
-              transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              className={`absolute left-0 right-0 h-[35%] bg-white/5 backdrop-blur-md border border-white/20 z-20 flex flex-col items-center justify-center p-4 text-white overflow-hidden ${isLoginMode ? glassBoxLogin : glassBoxRegister}`}
+              transition={PANEL_TRANSITION}
+              className={`absolute left-0 right-0 top-0 h-[35%] bg-white/5 backdrop-blur-md border border-white/20 z-20 flex flex-col items-center justify-center p-4 text-white overflow-hidden ${isLoginMode ? glassBoxLogin : glassBoxRegister} ${isLoginMode ? 'rounded-b-[2.5rem]' : 'rounded-t-[2.5rem]'}`}
+              style={{ ...gpuStyle, willChange: 'transform' }}
             >
               <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
                 
                 {/* View For Login Mode */}
                 <motion.div
-                  animate={{ opacity: isLoginMode ? 1 : 0, scale: isLoginMode ? 1 : 0.95 }}
-                  transition={{ duration: 0.3 }}
+                  initial={false}
+                  animate={{ opacity: isLoginMode ? 1 : 0 }}
+                  transition={CONTENT_TRANSITION}
                   className="absolute flex flex-col items-center text-center w-full"
                   style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
                 >
                   <div className="flex flex-col items-center w-full mb-3">
                     <p className="text-[10px] font-extrabold text-white/70 mb-2 tracking-wide uppercase drop-shadow-md">Sosial Media Ipix</p>
-                    {/* ✅ PILL MEDSOS — GRID 2 KOLOM SEJAJAR */}
                     <div className="grid grid-cols-2 gap-2 w-full px-4">
                       {socialPlatforms.map((platform) => (
                         <a 
@@ -309,8 +298,9 @@ export default function Login({
 
                 {/* View For Register Mode */}
                 <motion.div
-                  animate={{ opacity: !isLoginMode ? 1 : 0, scale: !isLoginMode ? 1 : 0.95 }}
-                  transition={{ duration: 0.3 }}
+                  initial={false}
+                  animate={{ opacity: !isLoginMode ? 1 : 0 }}
+                  transition={CONTENT_TRANSITION}
                   className="absolute flex flex-col items-center text-center w-full"
                   style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
                 >
@@ -323,7 +313,6 @@ export default function Login({
 
                   <div className="flex flex-col items-center w-full">
                     <p className="text-[10px] font-extrabold text-white/70 mb-2 tracking-wide uppercase drop-shadow-md">Sosial Media Ipix</p>
-                    {/* ✅ PILL MEDSOS — GRID 2 KOLOM SEJAJAR */}
                     <div className="grid grid-cols-2 gap-2 w-full px-4">
                       {socialPlatforms.map((platform) => (
                         <a 
@@ -343,17 +332,24 @@ export default function Login({
               </div>
             </motion.div>
 
-            {/* ⚪ FORMS CONTAINER */}
-            <div className="absolute inset-0 z-10 w-full h-full bg-transparent">
+            {/* ⚪ FORMS CONTAINER — z-index di bawah panel */}
+            <div className="absolute inset-0 z-10 w-full h-full">
               
               {/* === REGISTER FORM === */}
               <motion.div
-                animate={{ opacity: !isLoginMode ? 1 : 0, y: !isLoginMode ? 0 : 20 }}
-                transition={{ duration: 0.3 }}
-                className="absolute top-0 w-full h-[65%] px-4 sm:px-6 py-4 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
-                style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
+                initial={false}
+                animate={{ 
+                  opacity: !isLoginMode ? 1 : 0,
+                  y: !isLoginMode ? '0%' : '8%',
+                }}
+                transition={FORM_TRANSITION}
+                className="absolute top-0 w-full h-[65%] px-4 sm:px-6 py-4 flex flex-col items-center justify-center overflow-y-auto [&::-webkit-scrollbar]:hidden"
+                style={{ 
+                  pointerEvents: !isLoginMode ? 'auto' : 'none',
+                  ...gpuStyle,
+                  willChange: 'transform, opacity',
+                }}
               >
-                {/* ✅ GLASS BOX REGISTER — highlight putih di BAWAH */}
                 <div className={`w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 p-6 sm:p-8 flex flex-col items-center ${glassBoxRegister}`}>
                   
                   <InputField 
@@ -414,7 +410,6 @@ export default function Login({
                     />
                   </div>
 
-                  {/* CHECKBOX — tanpa pill */}
                   <div className="flex items-center justify-start w-full mb-4 px-2 select-none">
                     <input 
                       type="checkbox" 
@@ -443,12 +438,19 @@ export default function Login({
 
               {/* === LOGIN FORM === */}
               <motion.div
-                animate={{ opacity: isLoginMode ? 1 : 0, y: isLoginMode ? 0 : -20 }}
-                transition={{ duration: 0.3 }}
-                className="absolute bottom-0 w-full h-[65%] px-4 sm:px-6 py-4 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
-                style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
+                initial={false}
+                animate={{ 
+                  opacity: isLoginMode ? 1 : 0,
+                  y: isLoginMode ? '0%' : '-8%',
+                }}
+                transition={FORM_TRANSITION}
+                className="absolute bottom-0 w-full h-[65%] px-4 sm:px-6 py-4 flex flex-col items-center justify-center overflow-y-auto [&::-webkit-scrollbar]:hidden"
+                style={{ 
+                  pointerEvents: isLoginMode ? 'auto' : 'none',
+                  ...gpuStyle,
+                  willChange: 'transform, opacity',
+                }}
               >
-                {/* ✅ GLASS BOX LOGIN — highlight putih di ATAS */}
                 <div className={`w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 p-6 sm:p-8 flex flex-col items-center ${glassBoxLogin}`}>
                   
                   <InputField 
