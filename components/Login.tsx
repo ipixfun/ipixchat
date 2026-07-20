@@ -7,25 +7,21 @@ const socialPlatforms = [
   { 
     name: 'Twitter', 
     label: 'Twitter : sixripix', 
-    color: 'bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm', 
     link: 'https://x.com/sixripix' 
   },
   { 
     name: 'TikTok', 
     label: 'Tiktok : ipixaja', 
-    color: 'bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm', 
     link: 'https://tiktok.com/@ipixaja' 
   },
   { 
     name: 'Heesay', 
     label: 'Heesay/Walla : V206MN/ipiX', 
-    color: 'bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm', 
     link: 'https://international.walla-app.com/user?id=V2O6MN&app=2' 
   },
   { 
     name: 'Growlr', 
     label: 'Growlr : pix', 
-    color: 'bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm', 
     link: 'https://www.growlrapp.com' 
   },
 ];
@@ -174,49 +170,61 @@ export default function Login({
   };
 
   // =============================================
-  // --- KONSTANTA INSET SHADOW (CEKUNGAN DALAM) ---
+  // --- INSET SHADOW CONSTANTS ---
   // =============================================
   
-  // Cekungan untuk INPUT PILL (kolom input)
+  // Cekungan untuk INPUT PILL
   const inputInset = 'shadow-[inset_0_6px_12px_rgba(0,0,0,0.25),inset_0_2px_4px_rgba(0,0,0,0.15)]';
   
-  // Cekungan untuk GLASS BOX (kotak form container)
-  const glassBoxInset = 'shadow-[inset_0_8px_20px_rgba(0,0,0,0.12),inset_0_-4px_12px_rgba(0,0,0,0.06),inset_0_2px_4px_rgba(255,255,255,0.3)]';
+  // ✅ GLASS BOX LOGIN — highlight putih di ATAS
+  const glassBoxLogin = 'shadow-[inset_0_8px_20px_rgba(255,255,255,0.4),inset_0_-4px_12px_rgba(0,0,0,0.06),inset_0_2px_4px_rgba(0,0,0,0.08)]';
   
-  // Cekungan untuk PILL TOMBOL (sosmed, register, login switch)
+  // ✅ GLASS BOX REGISTER — highlight putih di BAWAH
+  const glassBoxRegister = 'shadow-[inset_0_-8px_20px_rgba(255,255,255,0.4),inset_0_4px_12px_rgba(0,0,0,0.06),inset_0_2px_4px_rgba(0,0,0,0.08)]';
+  
+  // Cekungan untuk PILL TOMBOL (sosmed, switch)
   const pillInset = 'shadow-[inset_0_4px_8px_rgba(0,0,0,0.3),inset_0_1px_3px_rgba(0,0,0,0.2),inset_0_-2px_4px_rgba(255,255,255,0.1)]';
 
-  // --- REGISTER FORM STYLING (OUTLINE BIRU SAAT FOCUS) ---
+  // Cekungan TOMBOL UTAMA
+  const mainBtnInset = 'shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3),inset_0_2px_4px_rgba(255,255,255,0.25)]';
+
+  // =============================================
+  // ✅ OUTLINE FOCUS: REGISTER = BIRU, LOGIN = HIJAU
+  // =============================================
+  const regFocus = 'focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50';
+  const loginFocus = 'focus-within:border-emerald-500 focus-within:bg-emerald-50/40 focus-within:ring-2 focus-within:ring-emerald-300/50';
+  const activeFocus = isLoginMode ? loginFocus : regFocus;
+
+  // --- BORDER CLASSES ---
   const usernameBorderClass = isFormValid
     ? `border-green-400 bg-green-50 text-green-950 ${inputInset} font-extrabold` 
     : (validationMsg === "Isi nama dulu sayang")
       ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${inputInset} font-extrabold` 
-      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${inputInset} font-extrabold`;
+      : `border-gray-300 bg-gray-100 text-slate-900 ${activeFocus} ${inputInset} font-extrabold`;
 
   const pinBorderClass = isFormValid
     ? `border-green-400 bg-green-50 text-green-950 ${inputInset} font-extrabold`
     : (validationMsg === "PIN harus 6 angka sayang" || (!isLoginMode && validationMsg && (!pin || pin.length !== 6)))
       ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${inputInset} font-extrabold`
-      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${inputInset} font-extrabold`;
+      : `border-gray-300 bg-gray-100 text-slate-900 ${activeFocus} ${inputInset} font-extrabold`;
 
   const umurBorderClass = isFormValid
     ? `border-green-400 bg-green-50 text-green-950 ${inputInset}`
     : (validationMsg && !umur)
       ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${inputInset}`
-      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${inputInset}`;
+      : `border-gray-300 bg-gray-100 text-slate-900 ${activeFocus} ${inputInset}`;
 
   const beratBorderClass = isFormValid
     ? `border-green-400 bg-green-50 text-green-950 ${inputInset}`
     : (validationMsg && !berat)
       ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${inputInset}`
-      : `border-gray-300 bg-gray-100 text-slate-900 focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50 ${inputInset}`;
+      : `border-gray-300 bg-gray-100 text-slate-900 ${activeFocus} ${inputInset}`;
 
   const existingBorderClass = `bg-gray-200 text-black border-gray-300 cursor-not-allowed font-extrabold ${inputInset}`;
 
-  // --- LOGIK STYLING TOMBOL UTAMA (DINAMIS INSET SHADOW) ---
+  // --- TOMBOL UTAMA ---
   let buttonStyle = "";
   let buttonText = "";
-  const mainBtnInset = 'shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3),inset_0_2px_4px_rgba(255,255,255,0.25)]';
 
   if (isExistingUser) {
     buttonStyle = `bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 text-white ${mainBtnInset}`;
@@ -237,8 +245,8 @@ export default function Login({
     }
   }
 
-  // --- SOSMED PILL STYLE (DENGAN CEKUNGAN) ---
-  const sosmedPillClass = 'bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm ' + pillInset;
+  // ✅ SOSMED PILL — dengan cekungan
+  const sosmedPillClass = `bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm ${pillInset}`;
 
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
@@ -248,7 +256,7 @@ export default function Login({
         
         {activeTab === 'user' ? (
           <>
-            {/* 🔵 KOTAK SLIDE OVERLAY PANEL (DENGAN CEKUNGAN GLASS) */}
+            {/* 🔵 SLIDE OVERLAY PANEL */}
             <motion.div
               layout
               initial={false}
@@ -260,7 +268,7 @@ export default function Login({
                 borderTopRightRadius: isLoginMode ? '0rem' : '2.5rem',
               }}
               transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              className={`absolute left-0 right-0 h-[35%] bg-white/5 backdrop-blur-md border border-white/20 z-20 flex flex-col items-center justify-center p-4 text-white overflow-hidden ${glassBoxInset}`}
+              className={`absolute left-0 right-0 h-[35%] bg-white/5 backdrop-blur-md border border-white/20 z-20 flex flex-col items-center justify-center p-4 text-white overflow-hidden ${isLoginMode ? glassBoxLogin : glassBoxRegister}`}
             >
               <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
                 
@@ -273,14 +281,15 @@ export default function Login({
                 >
                   <div className="flex flex-col items-center w-full mb-3">
                     <p className="text-[10px] font-extrabold text-white/70 mb-2 tracking-wide uppercase drop-shadow-md">Sosial Media Ipix</p>
-                    <div className="flex flex-wrap justify-center gap-2 px-4">
+                    {/* ✅ PILL MEDSOS — GRID 2 KOLOM SEJAJAR */}
+                    <div className="grid grid-cols-2 gap-2 w-full px-4">
                       {socialPlatforms.map((platform) => (
                         <a 
                           key={platform.name} 
                           href={platform.link} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide transition-all duration-300 active:scale-95 ${sosmedPillClass}`}
+                          className={`w-full px-2 py-1.5 rounded-full border font-black text-[10px] tracking-wide text-center transition-all duration-300 active:scale-95 ${sosmedPillClass}`}
                         >
                           {platform.label}
                         </a>
@@ -314,14 +323,15 @@ export default function Login({
 
                   <div className="flex flex-col items-center w-full">
                     <p className="text-[10px] font-extrabold text-white/70 mb-2 tracking-wide uppercase drop-shadow-md">Sosial Media Ipix</p>
-                    <div className="flex flex-wrap justify-center gap-2 px-4">
+                    {/* ✅ PILL MEDSOS — GRID 2 KOLOM SEJAJAR */}
+                    <div className="grid grid-cols-2 gap-2 w-full px-4">
                       {socialPlatforms.map((platform) => (
                         <a 
                           key={platform.name} 
                           href={platform.link} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className={`px-3 py-1.5 rounded-full border font-black text-[10px] tracking-wide transition-all duration-300 active:scale-95 ${sosmedPillClass}`}
+                          className={`w-full px-2 py-1.5 rounded-full border font-black text-[10px] tracking-wide text-center transition-all duration-300 active:scale-95 ${sosmedPillClass}`}
                         >
                           {platform.label}
                         </a>
@@ -343,8 +353,8 @@ export default function Login({
                 className="absolute top-0 w-full h-[65%] px-4 sm:px-6 py-4 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
                 style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
               >
-                {/* GLASS BOX DENGAN CEKUNGAN */}
-                <div className={`w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 p-6 sm:p-8 flex flex-col items-center ${glassBoxInset}`}>
+                {/* ✅ GLASS BOX REGISTER — highlight putih di BAWAH */}
+                <div className={`w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 p-6 sm:p-8 flex flex-col items-center ${glassBoxRegister}`}>
                   
                   <InputField 
                     icon={<UserIcon />} 
@@ -404,7 +414,7 @@ export default function Login({
                     />
                   </div>
 
-                  {/* CHECKBOX - TANPA PILL, HANYA CEKBOX + TEKS ABU² MUDA MIRING TIPIS */}
+                  {/* CHECKBOX — tanpa pill */}
                   <div className="flex items-center justify-start w-full mb-4 px-2 select-none">
                     <input 
                       type="checkbox" 
@@ -438,8 +448,8 @@ export default function Login({
                 className="absolute bottom-0 w-full h-[65%] px-4 sm:px-6 py-4 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
                 style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
               >
-                {/* GLASS BOX DENGAN CEKUNGAN */}
-                <div className={`w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 p-6 sm:p-8 flex flex-col items-center ${glassBoxInset}`}>
+                {/* ✅ GLASS BOX LOGIN — highlight putih di ATAS */}
+                <div className={`w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 p-6 sm:p-8 flex flex-col items-center ${glassBoxLogin}`}>
                   
                   <InputField 
                     icon={<UserIcon />} 
@@ -502,8 +512,7 @@ export default function Login({
           
           /* === ADMIN TAB === */
           <div className="absolute inset-0 z-10 w-full h-full px-4 sm:px-6 py-6 flex flex-col items-center justify-center bg-transparent">
-             {/* GLASS BOX DENGAN CEKUNGAN */}
-             <div className={`w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 p-6 sm:p-8 flex flex-col items-center ${glassBoxInset}`}>
+             <div className={`w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 p-6 sm:p-8 flex flex-col items-center ${glassBoxLogin}`}>
               
               <InputField 
                 icon={<MailIcon />} 
