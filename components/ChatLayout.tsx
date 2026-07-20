@@ -2,44 +2,70 @@
 import React from "react";
 import Admin from "./Admin";
 
-/* ---- Segitiga Gelombang Atas (5% height) ---- */
-const TrianglesTop = ({ mode }: { mode: "public" | "private" }) => {
+/* ---- Fluid Blob Atas (2 Layer, Smooth & Glowing) ---- */
+const FluidTop = ({ mode }: { mode: "public" | "private" }) => {
   const c = mode === "public" ? "59, 130, 246" : "16, 185, 129";
+  const glow = mode === "public" ? "drop-shadow(0 0 15px rgba(59,130,246,0.6))" : "drop-shadow(0 0 15px rgba(16,185,129,0.6))";
+  
   return (
-    <div className="absolute top-0 left-0 w-full h-[5%] overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
+    <div 
+      className="absolute top-0 left-0 w-full h-[8%] overflow-hidden pointer-events-none origin-top animate-blob-bounce-top" 
+      style={{ zIndex: 1, filter: glow }}
+    >
+      {/* Layer 1 - Aliran ke Kiri */}
       <div
         className="absolute bottom-0 left-0 w-[200%] h-full animate-wave"
         style={{
-          animationDuration: "9s",
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L50,60 L100,120 L150,60 L250,120 L350,60 L450,120 L550,60 L650,120 L750,60 L850,120 L950,60 L1050,120 L1150,60 L1200,120 L1200,0 L0,0 Z' fill='rgba(${c},0.25)'/%3E%3C/svg%3E")`,
+          animationDuration: "12s",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0 L0,60 C150,20 350,120 600,60 C850,0 1050,100 1200,60 L1200,0 Z' fill='rgba(${c},0.4)'/%3E%3C/svg%3E")`,
           backgroundRepeat: "repeat-x",
           backgroundSize: "50% 100%",
-          opacity: 0.8,
         }}
       />
+      {/* Layer 2 - Aliran ke Kanan */}
       <div
         className="absolute bottom-0 left-0 w-[200%] h-full animate-wave-reverse"
         style={{
-          animationDuration: "11s",
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L70,80 L140,120 L210,80 L280,120 L350,80 L420,120 L490,80 L560,120 L630,80 L700,120 L770,80 L840,120 L910,80 L980,120 L1050,80 L1120,120 L1200,80 L1200,0 L0,0 Z' fill='rgba(${c},0.2)'/%3E%3C/svg%3E")`,
+          animationDuration: "15s",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0 L0,40 C200,100 400,0 600,40 C800,80 1000,-20 1200,40 L1200,0 Z' fill='rgba(${c},0.7)'/%3E%3C/svg%3E")`,
           backgroundRepeat: "repeat-x",
           backgroundSize: "50% 100%",
-          opacity: 0.7,
         }}
       />
     </div>
   );
 };
 
-/* ---- Ombak Bawah (30% height) ---- */
-const WavesBottom = ({ mode }: { mode: "public" | "private" }) => {
+/* ---- Fluid Blob Bawah (2 Layer, Smooth & Glowing) ---- */
+const FluidBottom = ({ mode }: { mode: "public" | "private" }) => {
   const c = mode === "public" ? "59, 130, 246" : "16, 185, 129";
+  const glow = mode === "public" ? "drop-shadow(0 0 20px rgba(59,130,246,0.5))" : "drop-shadow(0 0 20px rgba(16,185,129,0.5))";
+
   return (
-    <div className="absolute bottom-0 left-0 w-full h-[30%] overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
-      <div className="absolute bottom-0 left-0 w-[200%] h-full animate-wave" style={{ animationDuration: "8s", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,60 C200,100 400,20 600,60 C800,100 1000,20 1200,60 L1200,120 L0,120 Z' fill='rgba(${c},0.3)'/%3E%3C/svg%3E")`, backgroundRepeat: "repeat-x", backgroundSize: "50% 100%", opacity: 0.9 }} />
-      <div className="absolute bottom-0 left-0 w-[200%] h-full animate-wave-reverse" style={{ animationDuration: "10s", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,70 C200,40 400,100 600,70 C800,40 1000,100 1200,70 L1200,120 L0,120 Z' fill='rgba(${c},0.25)'/%3E%3C/svg%3E")`, backgroundRepeat: "repeat-x", backgroundSize: "50% 100%", opacity: 0.8 }} />
-      <div className="absolute bottom-0 left-0 w-[200%] h-full animate-wave" style={{ animationDuration: "12s", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,50 C200,80 400,20 600,50 C800,80 1000,20 1200,50 L1200,120 L0,120 Z' fill='rgba(${c},0.2)'/%3E%3C/svg%3E")`, backgroundRepeat: "repeat-x", backgroundSize: "50% 100%", opacity: 0.7 }} />
-      <div className="absolute bottom-0 left-0 w-[200%] h-full animate-wave-reverse" style={{ animationDuration: "14s", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,80 C200,60 400,90 600,80 C800,60 1000,90 1200,80 L1200,120 L0,120 Z' fill='rgba(${c},0.15)'/%3E%3C/svg%3E")`, backgroundRepeat: "repeat-x", backgroundSize: "50% 100%", opacity: 0.6 }} />
+    <div 
+      className="absolute bottom-0 left-0 w-full h-[30%] overflow-hidden pointer-events-none origin-bottom animate-blob-bounce-bottom" 
+      style={{ zIndex: 1, filter: glow }}
+    >
+      {/* Layer 1 - Aliran ke Kiri */}
+      <div 
+        className="absolute bottom-0 left-0 w-[200%] h-full animate-wave" 
+        style={{ 
+          animationDuration: "14s", 
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,60 C150,100 350,0 600,60 C850,120 1050,20 1200,60 L1200,120 Z' fill='rgba(${c},0.35)'/%3E%3C/svg%3E")`, 
+          backgroundRepeat: "repeat-x", 
+          backgroundSize: "50% 100%" 
+        }} 
+      />
+      {/* Layer 2 - Aliran ke Kanan */}
+      <div 
+        className="absolute bottom-0 left-0 w-[200%] h-full animate-wave-reverse" 
+        style={{ 
+          animationDuration: "18s", 
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,80 C200,20 400,120 600,80 C800,40 1000,140 1200,80 L1200,120 Z' fill='rgba(${c},0.65)'/%3E%3C/svg%3E")`, 
+          backgroundRepeat: "repeat-x", 
+          backgroundSize: "50% 100%" 
+        }} 
+      />
     </div>
   );
 };
@@ -71,15 +97,31 @@ export default function ChatLayout({
   
   const isPublicFull = viewMode === "full-public";
   const isPrivateFull = viewMode === "full-private";
-  // Kalau tidak full-public atau full-private, berarti state nya 'split' (2 Kolom)
 
   return (
     <>
       <style>{`
+        /* Animasi Translasi X untuk pergerakan arus */
         @keyframes wave { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         @keyframes wave-reverse { from { transform: translateX(-50%); } to { transform: translateX(0); } }
         .animate-wave { animation: wave linear infinite; }
         .animate-wave-reverse { animation: wave-reverse linear infinite; }
+        
+        /* Animasi Bouncing/Breathing (Liquid Blob Effect) */
+        @keyframes blob-bounce-top {
+          0%, 100% { transform: scaleY(1); }
+          50% { transform: scaleY(1.3); }
+        }
+        @keyframes blob-bounce-bottom {
+          0%, 100% { transform: scaleY(1); }
+          50% { transform: scaleY(1.15); }
+        }
+        .animate-blob-bounce-top {
+          animation: blob-bounce-top 6s ease-in-out infinite;
+        }
+        .animate-blob-bounce-bottom {
+          animation: blob-bounce-bottom 8s ease-in-out infinite;
+        }
       `}</style>
 
       <div className="flex w-full h-full relative transition-all duration-500 ease-in-out">
@@ -91,15 +133,15 @@ export default function ChatLayout({
           onTouchStart={() => hInteract("public")} 
           onWheel={() => hInteract("public")}
         >
-          <TrianglesTop mode="public" />
-          <WavesBottom mode="public" />
+          <FluidTop mode="public" />
+          <FluidBottom mode="public" />
           
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <div className="text-center text-[9px] font-bold text-blue-500/70 mb-2 tracking-widest uppercase">Ruang Publik</div>
             {renderMsgs(pubMsgs, "public")}
             <div id="messages-end-public" className="h-0" />
           </div>
-          {/* Kotak Input melekat hanya di mode dan kolom yang aktif, akan melebar otomatis karena berada dalam flex-col */}
+          {/* Kotak Input melekat hanya di mode dan kolom yang aktif */}
           {cMode === "public" && renderInput()}
         </div>
 
@@ -110,8 +152,8 @@ export default function ChatLayout({
           onTouchStart={() => hInteract("private")} 
           onWheel={() => hInteract("private")}
         >
-          <TrianglesTop mode="private" />
-          <WavesBottom mode="private" />
+          <FluidTop mode="private" />
+          <FluidBottom mode="private" />
           
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <div className="text-center text-[9px] font-bold text-emerald-500/70 mb-2 tracking-widest uppercase">Ruang Private</div>
@@ -122,7 +164,7 @@ export default function ChatLayout({
             )}
             <div id="messages-end-private" className="h-0" />
           </div>
-          {/* Kotak Input melekat hanya di mode dan kolom yang aktif, mengikuti lebar kolom ini (w-full atau w-1/2) */}
+          {/* Kotak Input melekat hanya di mode dan kolom yang aktif */}
           {cMode === "private" && renderInput()}
         </div>
 
