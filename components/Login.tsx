@@ -202,7 +202,7 @@ export default function Login({
     ? 'border-green-400/60 bg-white/20 shadow-[0_0_15px_rgba(34,197,94,0.2)]'
     : (validationMsg === "Ceklist dulu sayang")
       ? 'border-red-400 animate-pulse bg-white/20 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
-      : 'border-[#235867]/30 bg-white/20 shadow-[0_0_10px_rgba(11,32,39,0.1)]';
+      : 'border-[#235867]/30 bg-black/5 shadow-[0_0_10px_rgba(11,32,39,0.05)]';
 
   // --- LOGIK STYLING TOMBOL UTAMA ---
   let buttonStyle = "";
@@ -235,12 +235,12 @@ export default function Login({
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
       
-      {/* ⚪ MAIN CARD - Background Transparant Bening Tipis Banget */}
-      <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-white/[0.03] backdrop-blur-[4px] border border-white/10 sm:rounded-[2.5rem] shadow-[0_8px_32px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col z-10 transition-all duration-300">
+      {/* ⚪ MAIN CARD - Dibuat sangat bening (bg-transparent) tanpa border putih tebal agar menyatu mulus */}
+      <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-hidden flex flex-col z-10 transition-all duration-300">
         
         {activeTab === 'user' ? (
           <>
-            {/* 🔵 KOTAK SLIDE OVERLAY PANEL */}
+            {/* 🔵 KOTAK SLIDE OVERLAY PANEL (HEADER / FOOTER BENING NAMPAK) */}
             <motion.div
               layout
               initial={false}
@@ -252,9 +252,9 @@ export default function Login({
                 borderTopRightRadius: isLoginMode ? '0rem' : '2.5rem',
               }}
               transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              className="absolute left-0 right-0 h-[35%] bg-[#0B2027]/75 backdrop-blur-xl border border-white/10 z-20 flex flex-col items-center justify-center p-4 text-white overflow-hidden shadow-[0_5px_15px_rgba(0,0,0,0.2)]"
+              className="absolute left-0 right-0 h-[35%] bg-transparent backdrop-blur-md border border-white/20 z-20 flex flex-col items-center justify-center p-4 text-white overflow-hidden shadow-sm"
             >
-              <div className="relative w-full h-full flex items-center justify-center">
+              <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
                 
                 {/* View For Login Mode (Sosmed DIATAS, Register Biru DIBAWAH) */}
                 <motion.div
@@ -265,7 +265,7 @@ export default function Login({
                 >
                   {/* Sosmed Section */}
                   <div className="flex flex-col items-center w-full mb-3">
-                    <p className="text-[10px] font-extrabold text-white/50 mb-2 tracking-wide uppercase">Sosial Media Ipix</p>
+                    <p className="text-[10px] font-extrabold text-white/70 mb-2 tracking-wide uppercase drop-shadow-md">Sosial Media Ipix</p>
                     <div className="flex flex-wrap justify-center gap-2 px-4">
                       {socialPlatforms.map((platform) => (
                         <a 
@@ -285,7 +285,7 @@ export default function Login({
                   {!isExistingUser && (
                     <button 
                       onClick={() => { setIsLoginMode(false); setValidationMsg(""); }}
-                      className="w-[85%] py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold border border-blue-400 transition-all text-sm active:scale-95 shadow-md tracking-wider"
+                      className="w-[85%] py-2.5 rounded-full bg-blue-600/90 hover:bg-blue-700 text-white font-extrabold border border-blue-400 transition-all text-sm active:scale-95 shadow-md tracking-wider backdrop-blur-md"
                     >
                       Register
                     </button>
@@ -302,14 +302,14 @@ export default function Login({
                   {/* Pill Login Panjang & Hijau diatas Sosmed */}
                   <button 
                     onClick={() => { setIsLoginMode(true); setValidationMsg(""); }}
-                    className="w-[85%] py-2.5 mb-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold border border-emerald-400 transition-all text-sm active:scale-95 shadow-md tracking-wider"
+                    className="w-[85%] py-2.5 mb-3 rounded-full bg-emerald-600/90 hover:bg-emerald-700 text-white font-extrabold border border-emerald-400 transition-all text-sm active:scale-95 shadow-md tracking-wider backdrop-blur-md"
                   >
                     Login
                   </button>
 
                   {/* Sosmed Section */}
                   <div className="flex flex-col items-center w-full">
-                    <p className="text-[10px] font-extrabold text-white/50 mb-2 tracking-wide uppercase">Sosial Media Ipix</p>
+                    <p className="text-[10px] font-extrabold text-white/70 mb-2 tracking-wide uppercase drop-shadow-md">Sosial Media Ipix</p>
                     <div className="flex flex-wrap justify-center gap-2 px-4">
                       {socialPlatforms.map((platform) => (
                         <a 
@@ -336,91 +336,93 @@ export default function Login({
               <motion.div
                 animate={{ opacity: !isLoginMode ? 1 : 0, y: !isLoginMode ? 0 : 20 }}
                 transition={{ duration: 0.3 }}
-                className="absolute top-0 w-full h-[65%] px-6 sm:px-8 py-4 sm:py-6 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
+                className="absolute top-0 w-full h-[65%] px-4 sm:px-6 py-4 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
                 style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
               >
-                <h2 className="text-2xl sm:text-3xl font-extrabold mb-4 sm:mb-6 text-[#0B2027] drop-shadow-sm">Registration</h2>
-                
-                <InputField 
-                  icon={<UserIcon />} 
-                  placeholder={placeholderText || "Username"} 
-                  value={username || ""} 
-                  onChange={(e: any) => {
-                    setUsername(e.target.value.slice(0, 20));
-                    if (validationMsg) setValidationMsg(""); 
-                  }}
-                  className={usernameBorderClass}
-                  autoComplete="off"
-                />
-                
-                <InputField 
-                  icon={<LockIcon />} 
-                  placeholder="Password (PIN)" 
-                  type="text"
-                  style={showPin ? {} : ({ WebkitTextSecurity: 'disc' } as any)}
-                  inputMode="numeric"
-                  value={pin || ""} 
-                  onChange={(e: any) => {
-                    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
-                    setPin(val);
-                    if (validationMsg) setValidationMsg(""); 
-                  }}
-                  suffix={
-                    <button type="button" onClick={() => setShowPin(!showPin)} className="focus:outline-none">
-                      {showPin ? <EyeOffIcon /> : <EyeIcon />}
-                    </button>
-                  }
-                  className={pinBorderClass}
-                  maxLength={6}
-                />
-                
-                <div className="flex gap-3 w-full">
-                  <SelectField 
-                    icon={<CalendarIcon />} 
-                    placeholder="Umur" 
-                    options={["20+", "25+", "30+", "35+", "40+"]}
-                    value={umur}
+                {/* Kotak Register Rounded yang Cantik */}
+                <div className="w-full bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/60 p-6 sm:p-8 flex flex-col items-center">
+                  
+                  <InputField 
+                    icon={<UserIcon />} 
+                    placeholder={placeholderText || "Username"} 
+                    value={username || ""} 
                     onChange={(e: any) => {
-                      setUmur(e.target.value);
-                      if (validationMsg) setValidationMsg("");
-                    }}
-                    className={umurBorderClass}
-                  />
-                  <SelectField 
-                    icon={<ScaleIcon />} 
-                    placeholder="Berat" 
-                    options={["<55", "60+", "70+", "80+", "90+", "100+"]}
-                    value={berat}
-                    onChange={(e: any) => {
-                      setBerat(e.target.value);
-                      if (validationMsg) setValidationMsg("");
-                    }}
-                    className={beratBorderClass}
-                  />
-                </div>
-
-                <div className={`flex items-center justify-center w-full mb-4 py-2 px-4 border rounded-full backdrop-blur-md select-none transition-all duration-300 ${checkboxBorderClass}`}>
-                  <input 
-                    type="checkbox" 
-                    id="agree" 
-                    className="w-4 h-4 accent-[#0B2027] cursor-pointer rounded drop-shadow-sm"
-                    checked={isUsernameAgreed}
-                    onChange={(e) => {
-                      setIsUsernameAgreed(e.target.checked);
+                      setUsername(e.target.value.slice(0, 20));
                       if (validationMsg) setValidationMsg(""); 
                     }}
+                    className={usernameBorderClass}
+                    autoComplete="off"
                   />
-                  <label htmlFor="agree" className="text-xs font-extrabold text-slate-700 ml-2 cursor-pointer select-none leading-none drop-shadow-sm">
-                    *Mengikuti aturan di dalam chat
-                  </label>
-                </div>
+                  
+                  <InputField 
+                    icon={<LockIcon />} 
+                    placeholder="Password (PIN)" 
+                    type="text"
+                    style={showPin ? {} : ({ WebkitTextSecurity: 'disc' } as any)}
+                    inputMode="numeric"
+                    value={pin || ""} 
+                    onChange={(e: any) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setPin(val);
+                      if (validationMsg) setValidationMsg(""); 
+                    }}
+                    suffix={
+                      <button type="button" onClick={() => setShowPin(!showPin)} className="focus:outline-none">
+                        {showPin ? <EyeOffIcon /> : <EyeIcon />}
+                      </button>
+                    }
+                    className={pinBorderClass}
+                    maxLength={6}
+                  />
+                  
+                  <div className="flex gap-3 w-full">
+                    <SelectField 
+                      icon={<CalendarIcon />} 
+                      placeholder="Umur" 
+                      options={["20+", "25+", "30+", "35+", "40+"]}
+                      value={umur}
+                      onChange={(e: any) => {
+                        setUmur(e.target.value);
+                        if (validationMsg) setValidationMsg("");
+                      }}
+                      className={umurBorderClass}
+                    />
+                    <SelectField 
+                      icon={<ScaleIcon />} 
+                      placeholder="Berat" 
+                      options={["<55", "60+", "70+", "80+", "90+", "100+"]}
+                      value={berat}
+                      onChange={(e: any) => {
+                        setBerat(e.target.value);
+                        if (validationMsg) setValidationMsg("");
+                      }}
+                      className={beratBorderClass}
+                    />
+                  </div>
 
-                <button 
-                  onClick={handleUserLoginWrapper}
-                  className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer ${buttonStyle}`}
-                >
-                  {buttonText}
-                </button>
+                  <div className={`flex items-center justify-center w-full mb-4 py-2 px-4 border rounded-full backdrop-blur-md select-none transition-all duration-300 ${checkboxBorderClass}`}>
+                    <input 
+                      type="checkbox" 
+                      id="agree" 
+                      className="w-4 h-4 accent-[#0B2027] cursor-pointer rounded drop-shadow-sm"
+                      checked={isUsernameAgreed}
+                      onChange={(e) => {
+                        setIsUsernameAgreed(e.target.checked);
+                        if (validationMsg) setValidationMsg(""); 
+                      }}
+                    />
+                    <label htmlFor="agree" className="text-xs font-extrabold text-slate-700 ml-2 cursor-pointer select-none leading-none drop-shadow-sm">
+                      *Mengikuti aturan di dalam chat
+                    </label>
+                  </div>
+
+                  <button 
+                    onClick={handleUserLoginWrapper}
+                    className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer ${buttonStyle}`}
+                  >
+                    {buttonText}
+                  </button>
+                </div>
               </motion.div>
 
 
@@ -428,64 +430,66 @@ export default function Login({
               <motion.div
                 animate={{ opacity: isLoginMode ? 1 : 0, y: isLoginMode ? 0 : -20 }}
                 transition={{ duration: 0.3 }}
-                className="absolute bottom-0 w-full h-[65%] px-6 sm:px-8 py-4 sm:py-6 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
+                className="absolute bottom-0 w-full h-[65%] px-4 sm:px-6 py-4 flex flex-col items-center justify-center bg-transparent overflow-y-auto [&::-webkit-scrollbar]:hidden"
                 style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
               >
-                <h2 className="text-2xl sm:text-3xl font-extrabold mb-4 sm:mb-6 text-[#0B2027] drop-shadow-sm">Login</h2>
-                
-                <InputField 
-                  icon={<UserIcon />} 
-                  placeholder={placeholderText || "Username"} 
-                  value={username || ""} 
-                  onChange={(e: any) => {
-                    if (isExistingUser) return;
-                    setUsername(e.target.value.slice(0, 20));
-                    if (validationMsg) setValidationMsg(""); 
-                  }}
-                  readOnly={isExistingUser}
-                  className={isExistingUser ? 'bg-gray-200 text-black border-gray-300 cursor-not-allowed font-extrabold' : usernameBorderClass}
-                  autoComplete="off"
-                />
-                
-                <InputField 
-                  icon={<LockIcon />} 
-                  placeholder="Password (PIN)" 
-                  type="text"
-                  style={showPin ? {} : ({ WebkitTextSecurity: 'disc' } as any)}
-                  inputMode="numeric"
-                  value={pin || ""} 
-                  onChange={(e: any) => {
-                    if (isExistingUser) return;
-                    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
-                    setPin(val);
-                    if (validationMsg) setValidationMsg(""); 
-                  }}
-                  suffix={
-                    <button type="button" onClick={() => setShowPin(!showPin)} className="focus:outline-none">
-                      {showPin ? <EyeOffIcon /> : <EyeIcon />}
-                    </button>
-                  }
-                  readOnly={isExistingUser}
-                  className={isExistingUser ? 'bg-gray-200 text-black border-gray-300 cursor-not-allowed font-extrabold' : pinBorderClass}
-                  maxLength={6}
-                />
+                {/* Kotak Login Rounded yang Cantik */}
+                <div className="w-full bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/60 p-6 sm:p-8 flex flex-col items-center">
+                  
+                  <InputField 
+                    icon={<UserIcon />} 
+                    placeholder={placeholderText || "Username"} 
+                    value={username || ""} 
+                    onChange={(e: any) => {
+                      if (isExistingUser) return;
+                      setUsername(e.target.value.slice(0, 20));
+                      if (validationMsg) setValidationMsg(""); 
+                    }}
+                    readOnly={isExistingUser}
+                    className={isExistingUser ? 'bg-gray-200 text-black border-gray-300 cursor-not-allowed font-extrabold' : usernameBorderClass}
+                    autoComplete="off"
+                  />
+                  
+                  <InputField 
+                    icon={<LockIcon />} 
+                    placeholder="Password (PIN)" 
+                    type="text"
+                    style={showPin ? {} : ({ WebkitTextSecurity: 'disc' } as any)}
+                    inputMode="numeric"
+                    value={pin || ""} 
+                    onChange={(e: any) => {
+                      if (isExistingUser) return;
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setPin(val);
+                      if (validationMsg) setValidationMsg(""); 
+                    }}
+                    suffix={
+                      <button type="button" onClick={() => setShowPin(!showPin)} className="focus:outline-none">
+                        {showPin ? <EyeOffIcon /> : <EyeIcon />}
+                      </button>
+                    }
+                    readOnly={isExistingUser}
+                    className={isExistingUser ? 'bg-gray-200 text-black border-gray-300 cursor-not-allowed font-extrabold' : pinBorderClass}
+                    maxLength={6}
+                  />
 
-                {/* LOGIN OTOMATIS NOTE CONTAINER (TEKS JALAN ABU-ABU MUDA & TEKS HITAM) */}
-                {isExistingUser && (
-                  <div className="w-full text-xs text-black bg-gray-200 p-4 border border-gray-300 rounded-3xl mb-4 font-extrabold text-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center">
-                    <span className="w-full block drop-shadow-sm">
-                      {displayedNote}
-                      {!isNoteTypingDone && <span className="animate-pulse ml-0.5 text-black">|</span>}
-                    </span>
-                  </div>
-                )}
+                  {/* LOGIN OTOMATIS NOTE CONTAINER (TEKS JALAN ABU-ABU MUDA & TEKS HITAM) */}
+                  {isExistingUser && (
+                    <div className="w-full text-xs text-black bg-gray-200 p-4 border border-gray-300 rounded-3xl mb-4 font-extrabold text-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center">
+                      <span className="w-full block drop-shadow-sm">
+                        {displayedNote}
+                        {!isNoteTypingDone && <span className="animate-pulse ml-0.5 text-black">|</span>}
+                      </span>
+                    </div>
+                  )}
 
-                <button 
-                  onClick={handleUserLoginWrapper}
-                  className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer mt-1 ${buttonStyle}`}
-                >
-                  {buttonText}
-                </button>
+                  <button 
+                    onClick={handleUserLoginWrapper}
+                    className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer mt-1 ${buttonStyle}`}
+                  >
+                    {buttonText}
+                  </button>
+                </div>
               </motion.div>
 
             </div>
@@ -493,34 +497,36 @@ export default function Login({
         ) : (
           
           /* === ADMIN TAB === */
-          <div className="absolute inset-0 z-10 w-full h-full px-6 sm:px-8 py-6 flex flex-col items-center justify-center bg-transparent">
-            <h2 className="text-3xl font-extrabold mb-8 text-[#0B2027] drop-shadow-sm">Admin Login</h2>
-            
-            <InputField 
-              icon={<MailIcon />} 
-              placeholder="Email Admin" 
-              value={adminEmail || ""} 
-              onChange={(e: any) => setAdminEmail(e.target.value)} 
-              className="border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027]"
-              autoComplete="off"
-            />
-            
-            <InputField 
-              icon={<LockIcon />} 
-              placeholder="Password Admin" 
-              type="text"
-              style={showPin ? {} : ({ WebkitTextSecurity: 'disc' } as any)}
-              value={adminPass || ""} 
-              onChange={(e: any) => setAdminPass(e.target.value)} 
-              className="border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] mb-6"
-            />
-            
-            <button 
-              onClick={handleAdminLogin} 
-              className="w-full bg-gradient-to-r from-[#0B2027] to-[#1a3f4c] hover:from-[#13313c] hover:to-[#0B2027] text-white py-3.5 mt-4 rounded-full font-extrabold shadow-[inset_0_2px_4px_rgba(255,255,255,0.2),0_0_15px_rgba(11,32,39,0.4)] border border-[#235867] tracking-wider transition-all active:scale-[0.98]"
-            >
-              Gabung Admin
-            </button>
+          <div className="absolute inset-0 z-10 w-full h-full px-4 sm:px-6 py-6 flex flex-col items-center justify-center bg-transparent">
+             {/* Kotak Admin Rounded yang Cantik */}
+             <div className="w-full bg-white/85 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/60 p-6 sm:p-8 flex flex-col items-center">
+              
+              <InputField 
+                icon={<MailIcon />} 
+                placeholder="Email Admin" 
+                value={adminEmail || ""} 
+                onChange={(e: any) => setAdminEmail(e.target.value)} 
+                className="border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027]"
+                autoComplete="off"
+              />
+              
+              <InputField 
+                icon={<LockIcon />} 
+                placeholder="Password Admin" 
+                type="text"
+                style={showPin ? {} : ({ WebkitTextSecurity: 'disc' } as any)}
+                value={adminPass || ""} 
+                onChange={(e: any) => setAdminPass(e.target.value)} 
+                className="border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] mb-6"
+              />
+              
+              <button 
+                onClick={handleAdminLogin} 
+                className="w-full bg-gradient-to-r from-[#0B2027] to-[#1a3f4c] hover:from-[#13313c] hover:to-[#0B2027] text-white py-3.5 mt-2 rounded-full font-extrabold shadow-[inset_0_2px_4px_rgba(255,255,255,0.2),0_0_15px_rgba(11,32,39,0.4)] border border-[#235867] tracking-wider transition-all active:scale-[0.98]"
+              >
+                Gabung Admin
+              </button>
+            </div>
           </div>
         )}
       </div>
