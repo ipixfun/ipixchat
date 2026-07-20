@@ -21,7 +21,7 @@ export default function Login({
   handleAdminLogin
 }: any) {
   // Teks berjalan 2 paragraf (\n\n)
-  const existingNote = "Hubungi admin di chat jika anda ingin merubah nama anda.\n\n @admin●ipix.my.id.";
+  const existingNote = "Maaf user dan pin tidak bisa diubah.\n\nHubungi admin di chat untuk merubahnya.";
   const [displayedNote, setDisplayedNote] = useState("");
   const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
   
@@ -171,47 +171,49 @@ export default function Login({
         {activeTab === 'user' ? (
           <div className="w-full flex flex-col items-center relative z-10">
             
-            {isExistingUser ? (
-              /* Pill Username saat sudah login - welcome back (hijau) & username (biru tua) */
-              <div className="w-full p-3.5 sm:p-4 mb-4 rounded-full text-center text-base sm:text-lg tracking-wide shadow-inner font-bold backdrop-blur-sm bg-neutral-500/20 border border-neutral-500/30 select-none flex items-center justify-center gap-2">
-                <span className="text-emerald-500">welcome back</span>
-                <span className="text-blue-900">{username}</span>
-              </div>
-            ) : (
-              <>
-                {/* Input Nama / Username - Abu-abu blur default, teks biru tua & bold ketika diinput */}
-                <input 
-                  autoComplete="off" // <-- Ditambahkan agar Google tidak menyarankan username
-                  className={`w-full p-3.5 sm:p-4 rounded-full focus:outline-none transition-all text-center text-base sm:text-lg tracking-wide mb-3 shadow-inner font-bold backdrop-blur-sm bg-neutral-500/20 text-blue-900 placeholder-neutral-500 focus:ring-2 focus:ring-blue-300 ${usernameBorderClass}`}
-                  placeholder={placeholderText} 
-                  value={username || ""} 
-                  onChange={(e) => {
-                    setUsername(e.target.value.slice(0, 20));
-                    if (validationMsg) setValidationMsg(""); 
-                  }} 
-                  maxLength={20}
-                />
-                
-                {/* Input PIN 6 Digit (Baru) */}
-                <input 
-                  type="password"
-                  inputMode="numeric"
-                  autoComplete="new-password" // <-- Ditambahkan agar pop-up password terekspos HILANG
-                  className={`w-full p-3.5 sm:p-4 rounded-full focus:outline-none transition-all text-center text-base sm:text-lg tracking-wide mb-4 shadow-inner font-bold backdrop-blur-sm bg-neutral-500/20 text-blue-900 placeholder-neutral-500 focus:ring-2 focus:ring-blue-300 ${pinBorderClass}`}
-                  placeholder="PIN 6 Digit (Angka)" 
-                  value={pin || ""} 
-                  onChange={(e) => {
-                    // Regex hanya mengizinkan input angka
-                    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
-                    setPin(val);
-                    if (validationMsg) setValidationMsg(""); 
-                  }} 
-                  maxLength={6}
-                />
-              </>
-            )}
+            {/* Input Nama / Username - Selalu tampil. Jika isExistingUser, input disable dan bergaya pill abu-abu */}
+            <input 
+              autoComplete="off" 
+              readOnly={isExistingUser}
+              className={`w-full p-3.5 sm:p-4 rounded-full focus:outline-none transition-all text-center text-base sm:text-lg tracking-wide mb-3 shadow-inner font-bold backdrop-blur-sm ${
+                isExistingUser 
+                  ? 'bg-neutral-500/30 text-gray-700 border border-white/20 cursor-not-allowed opacity-90' 
+                  : 'bg-neutral-500/20 text-blue-900 placeholder-neutral-500 focus:ring-2 focus:ring-blue-300 ' + usernameBorderClass
+              }`}
+              placeholder={placeholderText} 
+              value={username || ""} 
+              onChange={(e) => {
+                if (isExistingUser) return;
+                setUsername(e.target.value.slice(0, 20));
+                if (validationMsg) setValidationMsg(""); 
+              }} 
+              maxLength={20}
+            />
             
-            {/* Kolom Pilihan Umur dan Berat HANYA TAMPIL SAAT DAFTAR */}
+            {/* Input PIN 6 Digit - Menggunakan as any untuk menghilangkan error typescript */}
+            <input 
+              type="text" 
+              style={{ WebkitTextSecurity: 'disc' } as any} 
+              inputMode="numeric"
+              autoComplete="new-password"
+              readOnly={isExistingUser}
+              className={`w-full p-3.5 sm:p-4 rounded-full focus:outline-none transition-all text-center text-base sm:text-lg tracking-wide mb-4 shadow-inner font-bold backdrop-blur-sm ${
+                isExistingUser 
+                  ? 'bg-neutral-500/30 text-gray-700 border border-white/20 cursor-not-allowed opacity-90' 
+                  : 'bg-neutral-500/20 text-blue-900 placeholder-neutral-500 focus:ring-2 focus:ring-blue-300 ' + pinBorderClass
+              }`}
+              placeholder="PIN 6 Digit (Angka)" 
+              value={pin || ""} 
+              onChange={(e) => {
+                if (isExistingUser) return;
+                const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                setPin(val);
+                if (validationMsg) setValidationMsg(""); 
+              }} 
+              maxLength={6}
+            />
+            
+            {/* Kolom Pilihan Umur dan Berat HANYA TAMPIL SAAT DAFTAR BARU */}
             {!isExistingUser && !isLoginMode && (
               <div className="grid grid-cols-2 gap-3 w-full mb-5 sm:mb-6">
                 <div className="relative">
@@ -321,15 +323,17 @@ export default function Login({
           <div className="w-full flex flex-col items-center relative z-10">
             {/* Input Admin */}
             <input 
-              autoComplete="off" // <-- Ditambahkan untuk Admin
+              autoComplete="off" 
               className="w-full p-3.5 sm:p-4 mb-3.5 bg-white/40 backdrop-blur-sm text-gray-900 placeholder-gray-700 border border-white/30 rounded-full focus:border-blue-400 focus:ring-2 focus:ring-blue-300 focus:outline-none transition-all text-center text-sm sm:text-md tracking-wide shadow-inner font-bold" 
               placeholder="Email Admin" 
               value={adminEmail || ""} 
               onChange={(e) => setAdminEmail(e.target.value)} 
             />
+            {/* Menggunakan as any untuk menghilangkan error typescript */}
             <input 
-              type="password" 
-              autoComplete="new-password" // <-- Ditambahkan untuk Admin
+              type="text" 
+              style={{ WebkitTextSecurity: 'disc' } as any}
+              autoComplete="new-password" 
               className="w-full p-3.5 sm:p-4 mb-6 sm:mb-8 bg-white/40 backdrop-blur-sm text-gray-900 placeholder-gray-700 border border-white/30 rounded-full focus:border-blue-400 focus:ring-2 focus:ring-blue-300 focus:outline-none transition-all text-center text-sm sm:text-md tracking-wide shadow-inner font-bold" 
               placeholder="Password Admin" 
               value={adminPass || ""} 
@@ -343,31 +347,6 @@ export default function Login({
             </button>
           </div>
         )}
-      </div>
-
-      {/* Footer Pill */}
-      <div className="absolute bottom-4 sm:bottom-6 z-30 flex items-center justify-center w-full pointer-events-none">
-        <motion.div 
-          className="text-[10px] sm:text-[11px] text-gray-200 flex items-center gap-1.5 font-medium bg-black/40 backdrop-blur-md px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border border-white/10 shadow-lg pointer-events-auto transition-colors hover:bg-black/50"
-          whileHover={{ scale: 1.05 }}
-        >
-          created by 
-          <motion.a 
-            href="https://ipix.my.id" 
-            target="_blank" 
-            className="text-emerald-400 font-bold hover:text-emerald-300 px-0.5 transition-colors" 
-            animate={{ y: [0, -2, 0] }} 
-            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}>
-            ipix.my.id
-          </motion.a>
-          with 
-          <motion.span 
-            animate={{ scale: [1, 1.3, 1] }} 
-            transition={{ repeat: Infinity, duration: 1, ease: "easeInOut" }} 
-            className="text-red-500 text-xs drop-shadow-md">
-            ❤️
-          </motion.span>
-        </motion.div>
       </div>
     </div>
   );
