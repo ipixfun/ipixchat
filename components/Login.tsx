@@ -1,15 +1,7 @@
 'use client';
-import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '@/app/context/ThemeContext';
-
-// --- CONFIG SOSMED IPIX ---
-const socialPlatforms = [
-  { name: 'Twitter', label: 'Twitter : sixripix', link: 'https://x.com/sixripix' },
-  { name: 'TikTok', label: 'Tiktok : ipixaja', link: 'https://tiktok.com/@ipixaja' },
-  { name: 'Heesay', label: 'Heesay/Walla : V206MN/ipiX', link: 'https://international.walla-app.com/user?id=V2O6MN&app=2' },
-  { name: 'Growlr', label: 'Growlr : pix', link: 'https://www.growlrapp.com' },
-];
 
 // --- ICONS ---
 const UserIcon = () => (
@@ -34,14 +26,120 @@ const EyeOffIcon = () => (
   <svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>
 );
 
-// --- REUSABLE COMPONENTS WITH DYNAMIC THEME ---
-const InputField = ({ icon, suffix, readOnly, className, style, ...props }: any) => (
+// --- CANVAS FIREWORKS DINAMIS WAKTU TEMA ---
+const FireworksCanvas = () => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationId: number;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Ambil warna tema dinamis
+    const styles = getComputedStyle(document.documentElement);
+    const accent = styles.getPropertyValue('--accent').trim() || '#3b82f6';
+    const heading = styles.getPropertyValue('--foreground-heading').trim() || '#ffffff';
+    const glow = styles.getPropertyValue('--accent-glow').trim() || '#60a5fa';
+
+    const colors = [accent, heading, glow, '#f59e0b', '#ec4899', '#10b981', '#8b5cf6'];
+
+    class Particle {
+      x: number; y: number; vx: number; vy: number; color: string; size: number; alpha: number; decay: number;
+      constructor(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 7 + 2;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.color = colors[Math.floor(Math.random() * colors.length)];
+        this.size = Math.random() * 3 + 2;
+        this.alpha = 1;
+        this.decay = Math.random() * 0.02 + 0.015;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.06; // Gravitas
+        this.alpha -= this.decay;
+      }
+      draw(context: CanvasRenderingContext2D) {
+        context.save();
+        context.globalAlpha = Math.max(0, this.alpha);
+        context.beginPath();
+        context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        context.fillStyle = this.color;
+        context.shadowColor = this.color;
+        context.shadowBlur = 10;
+        context.fill();
+        context.restore();
+      }
+    }
+
+    let particles: Particle[] = [];
+
+    const createBurst = (x: number, y: number) => {
+      for (let i = 0; i < 45; i++) {
+        particles.push(new Particle(x, y));
+      }
+    };
+
+    // Ledakan Awal
+    createBurst(canvas.width * 0.3, canvas.height * 0.35);
+    createBurst(canvas.width * 0.7, canvas.height * 0.3);
+    createBurst(canvas.width * 0.5, canvas.height * 0.45);
+
+    let frame = 0;
+    const render = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      if (frame % 12 === 0 && frame < 50) {
+        createBurst(Math.random() * canvas.width, Math.random() * (canvas.height * 0.5));
+      }
+      frame++;
+
+      particles.forEach((p, index) => {
+        p.update();
+        p.draw(ctx);
+        if (p.alpha <= 0) {
+          particles.splice(index, 1);
+        }
+      });
+
+      if (particles.length > 0 || frame < 50) {
+        animationId = requestAnimationFrame(render);
+      }
+    };
+
+    render();
+
+    return () => {
+      cancelAnimationFrame(animationId);
+    };
+  }, []);
+
+  return (
+    <canvas 
+      ref={canvasRef} 
+      className="fixed inset-0 pointer-events-none z-[100]" 
+    />
+  );
+};
+
+// --- REUSABLE INPUT COMPONENTS ---
+const InputField = ({ icon, suffix, readOnly, className, style, type = "text", ...props }: any) => (
   <div 
     className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border transition-all duration-300 ${className}`}
     style={style}
   >
     <div className="mr-3 flex-shrink-0 opacity-80" style={{ color: "var(--accent)" }}>{icon}</div>
     <input 
+      type={type}
       readOnly={readOnly}
       className="bg-transparent outline-none flex-1 text-sm font-extrabold w-full placeholder:opacity-50 disabled:cursor-not-allowed"
       style={{ color: "var(--foreground-heading)" }}
@@ -76,9 +174,7 @@ const SelectField = ({ icon, options, value, onChange, placeholder, className, s
   </div>
 );
 
-// =============================================
-// ✅ KONSTANTA TRANSISI ANTI-GLITCH
-// =============================================
+// --- KONSTANTA TRANSISI ---
 const PANEL_TRANSITION = {
   type: "tween" as const,
   duration: 0.45,
@@ -124,6 +220,10 @@ export default function Login({
   const [validationMsg, setValidationMsg] = useState("");
   const [showPin, setShowPin] = useState(false);
 
+  // STATE NOTIFIKASI PILL & FIREWORKS
+  const [showWelcomePill, setShowWelcomePill] = useState(false);
+  const [showFireworks, setShowFireworks] = useState(false);
+
   useEffect(() => {
     if (isExistingUser) return;
     const targetPlaceholder = "Username (Maks 20 huruf)";
@@ -158,6 +258,7 @@ export default function Login({
     ? (username?.trim().length > 0 && pin?.length === 6)
     : (username?.trim().length > 0 && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed);
 
+  // HANDLER LOGIN / MASUK CHAT DENGAN ANIMASI PILL & FIREWORKS
   const handleUserLoginWrapper = () => {
     if (!isExistingUser) {
       if (!username || username.trim().length === 0) {
@@ -180,14 +281,21 @@ export default function Login({
       }
     }
     setValidationMsg("");
-    handleUserLogin(isLoginMode);
+
+    // TRIGER FIREWORKS & NOTIFIKASI PILL
+    setShowWelcomePill(true);
+    setShowFireworks(true);
+
+    // BERI JEDA UNTUK EFEK FIREWORKS SEBELUM MASUK CHAT
+    setTimeout(() => {
+      handleUserLogin(isLoginMode);
+    }, 1400);
   };
 
   // --- INSET SHADOW & THEME STYLES ---
   const inputInset = 'shadow-[inset_0_4px_8px_rgba(0,0,0,0.25)]';
   const glassBox = 'shadow-[0_8px_32px_rgba(0,0,0,0.3)] backdrop-blur-xl border';
 
-  // State Warna Input Dinamis Berdasarkan Tema
   const normalInputStyle = {
     backgroundColor: "var(--card-bg)",
     borderColor: "var(--card-border)",
@@ -210,7 +318,7 @@ export default function Login({
   };
 
   const usernameStyle = getInputStyle(validationMsg === "Isi nama dulu sayang");
-  const pinStyle = getInputStyle(Boolean(validationMsg === "PIN harus 6 angka sayang" || (!isLoginMode && validationMsg && (!pin || pin.length !== 6))));
+  const pinStyle = getInputStyle(Boolean(validationMsg === "PIN harus 6 angka sayang" || (!isLoginMode && Boolean(validationMsg) && (!pin || pin.length !== 6))));
   const umurStyle = getInputStyle(Boolean(validationMsg && !umur));
   const beratStyle = getInputStyle(Boolean(validationMsg && !berat));
 
@@ -254,7 +362,6 @@ export default function Login({
     buttonText = isLoginMode ? "Login" : "Register";
   }
 
-  // ✅ GPU ACCELERATION STYLE — mencegah repaint flicker
   const gpuStyle = { 
     transform: 'translateZ(0)', 
     backfaceVisibility: 'hidden' as const,
@@ -264,6 +371,31 @@ export default function Login({
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
       
+      {/* 🎆 CANVA FIREWORKS DINAMIS WAKTU TEMA */}
+      {showFireworks && <FireworksCanvas />}
+
+      {/* 💊 NOTIFIKASI PILL "SELAMAT DATANG SAYANG" */}
+      <AnimatePresence>
+        {showWelcomePill && (
+          <motion.div
+            initial={{ opacity: 0, y: -40, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-8 z-[101] px-6 py-3 rounded-full font-black text-xs sm:text-sm border shadow-2xl flex items-center gap-2 backdrop-blur-xl animate-bounce"
+            style={{
+              backgroundColor: "color-mix(in srgb, var(--card-bg) 90%, var(--accent))",
+              borderColor: "var(--accent)",
+              color: "var(--foreground-heading)",
+              boxShadow: "0 0 25px var(--accent-glow), inset 0 0 10px var(--accent-glow)",
+            }}
+          >
+            <span>🎆</span>
+            <span>Selamat datang {username ? `${username} ` : ''}sayang! 💕</span>
+            <span>✨</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ⚪ MAIN CARD */}
       <div 
         className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-hidden flex flex-col z-10"
@@ -288,41 +420,21 @@ export default function Login({
                 color: "var(--foreground)",
               }}
             >
-              <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
-                
-                {/* View For Login Mode */}
-                <motion.div
-                  initial={false}
-                  animate={{ opacity: isLoginMode ? 1 : 0 }}
-                  transition={CONTENT_TRANSITION}
-                  className="absolute flex flex-col items-center text-center w-full"
-                  style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
-                >
-                  <div className="flex flex-col items-center w-full mb-3">
-                    <p className="text-[10px] font-extrabold uppercase tracking-wide mb-2 opacity-80" style={{ color: "var(--foreground)" }}>
-                      Sosial Media Ipix
+              {/* JIKA USER SUDAH REGISTER (isExistingUser), KOTAK ATAS DIKOSONGKAN */}
+              {isExistingUser ? null : (
+                <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
+                  
+                  {/* View For Login Mode */}
+                  <motion.div
+                    initial={false}
+                    animate={{ opacity: isLoginMode ? 1 : 0 }}
+                    transition={CONTENT_TRANSITION}
+                    className="absolute flex flex-col items-center justify-center text-center w-full px-6"
+                    style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
+                  >
+                    <p className="text-xs font-extrabold uppercase tracking-widest mb-3 opacity-90" style={{ color: "var(--foreground-heading)" }}>
+                      Belum Punya Akun?
                     </p>
-                    <div className="grid grid-cols-2 gap-2 w-full px-4">
-                      {socialPlatforms.map((platform) => (
-                        <a 
-                          key={platform.name} 
-                          href={platform.link} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="w-full px-2 py-1.5 rounded-full border font-black text-[10px] tracking-wide text-center transition-all duration-300 active:scale-95 shadow-sm"
-                          style={{
-                            backgroundColor: "var(--card-bg)",
-                            borderColor: "var(--card-border)",
-                            color: "var(--foreground-heading)"
-                          }}
-                        >
-                          {platform.label}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-
-                  {!isExistingUser && (
                     <button 
                       onClick={() => { setIsLoginMode(false); setValidationMsg(""); }}
                       className="w-[85%] py-2.5 rounded-full font-extrabold text-xs transition-all active:scale-95 tracking-wider shadow-md"
@@ -334,55 +446,34 @@ export default function Login({
                     >
                       Register
                     </button>
-                  )}
-                </motion.div>
+                  </motion.div>
 
-                {/* View For Register Mode */}
-                <motion.div
-                  initial={false}
-                  animate={{ opacity: !isLoginMode ? 1 : 0 }}
-                  transition={CONTENT_TRANSITION}
-                  className="absolute flex flex-col items-center text-center w-full"
-                  style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
-                >
-                  <button 
-                    onClick={() => { setIsLoginMode(true); setValidationMsg(""); }}
-                    className="w-[85%] py-2.5 mb-3 rounded-full font-extrabold text-xs transition-all active:scale-95 tracking-wider shadow-md"
-                    style={{
-                      backgroundColor: "var(--accent)",
-                      color: "var(--background)",
-                      boxShadow: "0 0 15px var(--accent-glow)"
-                    }}
+                  {/* View For Register Mode */}
+                  <motion.div
+                    initial={false}
+                    animate={{ opacity: !isLoginMode ? 1 : 0 }}
+                    transition={CONTENT_TRANSITION}
+                    className="absolute flex flex-col items-center justify-center text-center w-full px-6"
+                    style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
                   >
-                    Login
-                  </button>
-
-                  <div className="flex flex-col items-center w-full">
-                    <p className="text-[10px] font-extrabold uppercase tracking-wide mb-2 opacity-80" style={{ color: "var(--foreground)" }}>
-                      Sosial Media Ipix
+                    <p className="text-xs font-extrabold uppercase tracking-widest mb-3 opacity-90" style={{ color: "var(--foreground-heading)" }}>
+                      Sudah Punya Akun?
                     </p>
-                    <div className="grid grid-cols-2 gap-2 w-full px-4">
-                      {socialPlatforms.map((platform) => (
-                        <a 
-                          key={platform.name} 
-                          href={platform.link} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="w-full px-2 py-1.5 rounded-full border font-black text-[10px] tracking-wide text-center transition-all duration-300 active:scale-95 shadow-sm"
-                          style={{
-                            backgroundColor: "var(--card-bg)",
-                            borderColor: "var(--card-border)",
-                            color: "var(--foreground-heading)"
-                          }}
-                        >
-                          {platform.label}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-                
-              </div>
+                    <button 
+                      onClick={() => { setIsLoginMode(true); setValidationMsg(""); }}
+                      className="w-[85%] py-2.5 rounded-full font-extrabold text-xs transition-all active:scale-95 tracking-wider shadow-md"
+                      style={{
+                        backgroundColor: "var(--accent)",
+                        color: "var(--background)",
+                        boxShadow: "0 0 15px var(--accent-glow)"
+                      }}
+                    >
+                      Login
+                    </button>
+                  </motion.div>
+                  
+                </div>
+              )}
             </motion.div>
 
             {/* ⚪ FORMS CONTAINER */}
@@ -396,7 +487,7 @@ export default function Login({
                   y: !isLoginMode ? '0%' : '8%',
                 }}
                 transition={FORM_TRANSITION}
-                className="absolute top-0 w-full h-[65%] px-4 sm:px-6 py-4 flex flex-col items-center justify-center overflow-y-auto [&::-webkit-scrollbar]:hidden"
+                className="absolute top-4 sm:top-6 w-full h-[65%] px-4 sm:px-6 pt-4 pb-2 flex flex-col items-center justify-center overflow-y-auto [&::-webkit-scrollbar]:hidden"
                 style={{ 
                   pointerEvents: !isLoginMode ? 'auto' : 'none',
                   ...gpuStyle,
@@ -425,9 +516,8 @@ export default function Login({
                   
                   <InputField 
                     icon={<LockIcon />} 
-                    placeholder="Password (PIN)" 
-                    type="text"
-                    style={pinStyle}
+                    placeholder="Buat PIN (6 angka)" 
+                    type={showPin ? "text" : "password"}
                     inputMode="numeric"
                     value={pin || ""} 
                     onChange={(e: any) => {
@@ -441,6 +531,7 @@ export default function Login({
                       </button>
                     }
                     className={inputInset}
+                    style={pinStyle}
                     maxLength={6}
                   />
                   
@@ -541,8 +632,8 @@ export default function Login({
                   
                   <InputField 
                     icon={<LockIcon />} 
-                    placeholder="Password (PIN)" 
-                    type="text"
+                    placeholder="PIN (6 angka)" 
+                    type={showPin ? "text" : "password"}
                     inputMode="numeric"
                     value={pin || ""} 
                     onChange={(e: any) => {
@@ -614,10 +705,15 @@ export default function Login({
               <InputField 
                 icon={<LockIcon />} 
                 placeholder="Password Admin" 
-                type="text"
+                type={showPin ? "text" : "password"}
                 style={normalInputStyle}
                 value={adminPass || ""} 
                 onChange={(e: any) => setAdminPass(e.target.value)} 
+                suffix={
+                  <button type="button" onClick={() => setShowPin(!showPin)} className="focus:outline-none">
+                    {showPin ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                }
                 className={`${inputInset} mb-6`}
               />
               
