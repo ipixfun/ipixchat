@@ -1407,6 +1407,10 @@ export default function Home() {
           }}
         />
       )}
+
+      {/* --- KOMPONEN BOTTOM NAV DITEMPATKAN DI SINI --- */}
+      <BottomNav />
+      
     </div>
   );
 }
