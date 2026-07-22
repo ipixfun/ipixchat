@@ -1,10 +1,80 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import BottomNav from "../../components/bottomnav";
 import { useTheme } from "../context/ThemeContext";
 
 export default function TemaPage() {
   const { theme, setTheme, customColors, setCustomColors, mounted } = useTheme();
+  
+  // Status Login User/Admin
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [loadingAuth, setLoadingAuth] = useState<boolean>(true);
+
+  // Cek Status Login dengan Deteksi Otomatis Lebih Luas
+  useEffect(() => {
+    const checkAuth = () => {
+      try {
+        // 1. Daftar key umum yang sering dipakai untuk simpan login
+        const commonKeys = [
+          "user",
+          "username",
+          "admin",
+          "session",
+          "token",
+          "auth",
+          "sb-access-token",
+          "supabase.auth.token"
+        ];
+
+        let foundLogin = false;
+
+        // Cek key umum
+        for (const key of commonKeys) {
+          const val = localStorage.getItem(key);
+          if (val && val !== "null" && val !== "undefined" && val !== "{}") {
+            foundLogin = true;
+            break;
+          }
+        }
+
+        // 2. Jika belum ketemu, pindai seluruh isi localStorage
+        // (Mencari key dari Supabase 'sb-*-auth-token' atau key lain yang mengandung user/auth)
+        if (!foundLogin) {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith("sb-") || key.includes("auth") || key.includes("user") || key.includes("session"))) {
+              const val = localStorage.getItem(key);
+              if (val && val !== "null" && val !== "undefined" && val !== "{}") {
+                foundLogin = true;
+                break;
+              }
+            }
+          }
+        }
+
+        // 3. Cek Cookie jika login disimpan di Cookie
+        if (!foundLogin && typeof document !== "undefined" && document.cookie) {
+          if (
+            document.cookie.includes("sb-") || 
+            document.cookie.includes("token") || 
+            document.cookie.includes("user") || 
+            document.cookie.includes("session")
+          ) {
+            foundLogin = true;
+          }
+        }
+
+        setIsLoggedIn(foundLogin);
+      } catch (err) {
+        console.error("Gagal memeriksa sesi login:", err);
+      } finally {
+        setLoadingAuth(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   const themes = [
     { id: "dark", name: "Monochrome Dark", icon: "🖤", preview: "from-neutral-800 to-black" },
@@ -38,7 +108,7 @@ export default function TemaPage() {
           🎨 Pengaturan Tema
         </h1>
         <p className="text-xs mt-1" style={{ color: "var(--foreground)" }}>
-          Pilih tema preset atau racik warna & gelombang buatanmu sendiri.
+          Pilih tema preset atau racik warna buatanmu sendiri (khusus member/admin).
         </p>
       </div>
 
@@ -47,26 +117,42 @@ export default function TemaPage() {
         
         {/* SECTION 1: CUSTOM COLOR & WAVE PICKER */}
         <div 
-          className="p-4 sm:p-5 rounded-2xl border transition-all duration-300"
+          className="relative p-4 sm:p-5 rounded-2xl border transition-all duration-300 overflow-hidden"
           style={{ 
             backgroundColor: "var(--card-bg)", 
             borderColor: activeThemeId === "custom" ? "var(--accent)" : "var(--card-border)",
             boxShadow: activeThemeId === "custom" ? "0 0 15px var(--accent-glow)" : "none"
           }}
         >
+          {/* Header Custom Theme */}
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-bold text-sm" style={{ color: "var(--foreground-heading)" }}>
-                🎨 Racik Tema & Gelombang Sendiri
-              </h3>
-              <p className="text-[10px] opacity-80" style={{ color: "var(--foreground)" }}>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm" style={{ color: "var(--foreground-heading)" }}>
+                  🎨 Racik Tema & Gelombang Kustom
+                </h3>
+                {!loadingAuth && !isLoggedIn && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-bold border border-red-500/30">
+                    🔒 Terkunci
+                  </span>
+                )}
+                {!loadingAuth && isLoggedIn && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+                    🔓 Terbuka
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] opacity-80 mt-0.5" style={{ color: "var(--foreground)" }}>
                 Atur warna UI & animasi gelombang obrolan
               </p>
             </div>
             
             <button
-              onClick={() => setTheme("custom")}
-              className="px-3 py-1.5 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-sm shrink-0"
+              disabled={!isLoggedIn}
+              onClick={() => isLoggedIn && setTheme("custom")}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all shadow-sm shrink-0 ${
+                !isLoggedIn ? "opacity-50 cursor-not-allowed" : "active:scale-95"
+              }`}
               style={{
                 backgroundColor: activeThemeId === "custom" ? "var(--accent)" : "transparent",
                 color: activeThemeId === "custom" ? "var(--background)" : "var(--accent)",
@@ -77,101 +163,133 @@ export default function TemaPage() {
             </button>
           </div>
 
-          {/* Warna UI Dasar */}
-          <div className="mb-3">
-            <span className="text-[11px] font-bold block mb-2" style={{ color: "var(--foreground-heading)" }}>1. Warna Dasar UI</span>
-            <div className="grid grid-cols-3 gap-2.5">
-              <div className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-black/20 border border-white/10">
-                <span className="text-[10px] font-bold" style={{ color: "var(--foreground)" }}>Latar</span>
-                <input 
-                  type="color" 
-                  value={customColors.bg}
-                  onChange={(e) => {
-                    setCustomColors({ ...customColors, bg: e.target.value });
-                    if (activeThemeId !== "custom") setTheme("custom");
-                  }}
-                  className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
-                />
-              </div>
+          {/* COLOR PICKERS AREA */}
+          <div className={!isLoggedIn && !loadingAuth ? "opacity-40 pointer-events-none select-none blur-[1px]" : ""}>
+            {/* Warna UI Dasar */}
+            <div className="mb-3">
+              <span className="text-[11px] font-bold block mb-2" style={{ color: "var(--foreground-heading)" }}>
+                1. Warna Dasar UI
+              </span>
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-black/20 border border-white/10">
+                  <span className="text-[10px] font-bold" style={{ color: "var(--foreground)" }}>Latar</span>
+                  <input 
+                    type="color" 
+                    disabled={!isLoggedIn}
+                    value={customColors.bg}
+                    onChange={(e) => {
+                      setCustomColors({ ...customColors, bg: e.target.value });
+                      if (activeThemeId !== "custom") setTheme("custom");
+                    }}
+                    className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent disabled:cursor-not-allowed"
+                  />
+                </div>
 
-              <div className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-black/20 border border-white/10">
-                <span className="text-[10px] font-bold" style={{ color: "var(--foreground)" }}>Aksen</span>
-                <input 
-                  type="color" 
-                  value={customColors.accent}
-                  onChange={(e) => {
-                    setCustomColors({ ...customColors, accent: e.target.value });
-                    if (activeThemeId !== "custom") setTheme("custom");
-                  }}
-                  className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
-                />
-              </div>
+                <div className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-black/20 border border-white/10">
+                  <span className="text-[10px] font-bold" style={{ color: "var(--foreground)" }}>Aksen</span>
+                  <input 
+                    type="color" 
+                    disabled={!isLoggedIn}
+                    value={customColors.accent}
+                    onChange={(e) => {
+                      setCustomColors({ ...customColors, accent: e.target.value });
+                      if (activeThemeId !== "custom") setTheme("custom");
+                    }}
+                    className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent disabled:cursor-not-allowed"
+                  />
+                </div>
 
-              <div className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-black/20 border border-white/10">
-                <span className="text-[10px] font-bold" style={{ color: "var(--foreground)" }}>Teks</span>
-                <input 
-                  type="color" 
-                  value={customColors.text}
-                  onChange={(e) => {
-                    setCustomColors({ ...customColors, text: e.target.value });
-                    if (activeThemeId !== "custom") setTheme("custom");
-                  }}
-                  className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
-                />
+                <div className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-black/20 border border-white/10">
+                  <span className="text-[10px] font-bold" style={{ color: "var(--foreground)" }}>Teks</span>
+                  <input 
+                    type="color" 
+                    disabled={!isLoggedIn}
+                    value={customColors.text}
+                    onChange={(e) => {
+                      setCustomColors({ ...customColors, text: e.target.value });
+                      if (activeThemeId !== "custom") setTheme("custom");
+                    }}
+                    className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent disabled:cursor-not-allowed"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Warna Gelombang / Wave */}
+            <div>
+              <span className="text-[11px] font-bold block mb-2" style={{ color: "var(--foreground-heading)" }}>
+                2. Warna Animasi Gelombang (Wave)
+              </span>
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-black/20 border border-white/10">
+                  <span className="text-[10px] font-bold" style={{ color: "var(--foreground)" }}>Wave Belakang</span>
+                  <input 
+                    type="color" 
+                    disabled={!isLoggedIn}
+                    value={customColors.wave1}
+                    onChange={(e) => {
+                      setCustomColors({ ...customColors, wave1: e.target.value });
+                      if (activeThemeId !== "custom") setTheme("custom");
+                    }}
+                    className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                <div className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-black/20 border border-white/10">
+                  <span className="text-[10px] font-bold" style={{ color: "var(--foreground)" }}>Wave Tengah</span>
+                  <input 
+                    type="color" 
+                    disabled={!isLoggedIn}
+                    value={customColors.wave2}
+                    onChange={(e) => {
+                      setCustomColors({ ...customColors, wave2: e.target.value });
+                      if (activeThemeId !== "custom") setTheme("custom");
+                    }}
+                    className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                <div className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-black/20 border border-white/10">
+                  <span className="text-[10px] font-bold" style={{ color: "var(--foreground)" }}>Wave Depan</span>
+                  <input 
+                    type="color" 
+                    disabled={!isLoggedIn}
+                    value={customColors.wave3}
+                    onChange={(e) => {
+                      setCustomColors({ ...customColors, wave3: e.target.value });
+                      if (activeThemeId !== "custom") setTheme("custom");
+                    }}
+                    className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent disabled:cursor-not-allowed"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Warna Gelombang / Wave */}
-          <div>
-            <span className="text-[11px] font-bold block mb-2" style={{ color: "var(--foreground-heading)" }}>2. Warna Animasi Gelombang (Wave)</span>
-            <div className="grid grid-cols-3 gap-2.5">
-              <div className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-black/20 border border-white/10">
-                <span className="text-[10px] font-bold" style={{ color: "var(--foreground)" }}>Wave Belakang</span>
-                <input 
-                  type="color" 
-                  value={customColors.wave1}
-                  onChange={(e) => {
-                    setCustomColors({ ...customColors, wave1: e.target.value });
-                    if (activeThemeId !== "custom") setTheme("custom");
-                  }}
-                  className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
-                />
-              </div>
-
-              <div className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-black/20 border border-white/10">
-                <span className="text-[10px] font-bold" style={{ color: "var(--foreground)" }}>Wave Tengah</span>
-                <input 
-                  type="color" 
-                  value={customColors.wave2}
-                  onChange={(e) => {
-                    setCustomColors({ ...customColors, wave2: e.target.value });
-                    if (activeThemeId !== "custom") setTheme("custom");
-                  }}
-                  className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
-                />
-              </div>
-
-              <div className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-black/20 border border-white/10">
-                <span className="text-[10px] font-bold" style={{ color: "var(--foreground)" }}>Wave Depan</span>
-                <input 
-                  type="color" 
-                  value={customColors.wave3}
-                  onChange={(e) => {
-                    setCustomColors({ ...customColors, wave3: e.target.value });
-                    if (activeThemeId !== "custom") setTheme("custom");
-                  }}
-                  className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
-                />
+          {/* OVERLAY BANNER LOGIN JIKA BELUM LOGIN */}
+          {!isLoggedIn && !loadingAuth && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 bg-black/60 backdrop-blur-[2px] transition-all">
+              <div className="text-center p-4 rounded-2xl bg-neutral-900/90 border border-white/10 shadow-2xl max-w-xs">
+                <div className="text-2xl mb-1">🔒</div>
+                <h4 className="text-xs font-bold text-white">Fitur Racik Warna Terkunci</h4>
+                <p className="text-[10px] text-neutral-400 mt-1 mb-3">
+                  Silakan login terlebih dahulu untuk membuka fitur kustomisasi warna & gelombang.
+                </p>
+                <Link
+                  href="/"
+                  className="inline-flex items-center justify-center px-4 py-1.5 text-xs font-bold rounded-xl text-black bg-white hover:bg-neutral-200 transition-all active:scale-95 shadow-md"
+                >
+                  Login Sekarang
+                </Link>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* SECTION 2: GRID PRESET THEMES */}
         <div>
           <h3 className="font-bold text-xs mb-3 px-1" style={{ color: "var(--foreground)" }}>
-            Atau pilih Preset Tema:
+            Preset Tema Gratis:
           </h3>
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
             {themes.map((t) => {
