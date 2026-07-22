@@ -1,16 +1,23 @@
+"use client";
+import React from "react";
+
 export default function Loading() {
   return (
-    <div className="h-screen w-full flex flex-col items-center justify-center bg-[#020617] select-none overflow-hidden relative">
-      
+    <div 
+      className="h-screen w-full flex flex-col items-center justify-center select-none overflow-hidden relative transition-colors duration-500"
+      style={{ 
+        background: "linear-gradient(135deg, var(--background-gradient-start) 0%, var(--background-gradient-end) 100%)" 
+      }}
+    >
       {/* Main Content */}
       <div className="relative z-20 flex flex-col items-center justify-center">
         
         {/* Teks iPiX */}
         <h1 className="relative font-rounded text-7xl md:text-9xl font-black tracking-widest flex items-center justify-center">
-          <span className="letter neon-blue">i</span>
-          <span className="letter neon-green">P</span>
-          <span className="letter neon-blue">i</span>
-          <span className="letter neon-green animate-X">X</span>
+          <span className="letter neon-accent">i</span>
+          <span className="letter neon-heading">P</span>
+          <span className="letter neon-accent">i</span>
+          <span className="letter neon-heading animate-X">X</span>
         </h1>
       </div>
 
@@ -19,20 +26,24 @@ export default function Loading() {
         @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
 
         .font-rounded { font-family: 'Varela Round', sans-serif; }
+        
         .letter { 
-          color: #020617; 
+          color: var(--background); 
           line-height: 1; 
           display: inline-block;
+          transition: color 0.3s ease, filter 0.3s ease;
         }
 
-        .neon-blue {
-          -webkit-text-stroke: 1.5px rgba(59, 130, 246, 1);
-          filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
+        /* Neon Warna Aksen Tema (Huruf 'i') */
+        .neon-accent {
+          -webkit-text-stroke: 2px var(--accent);
+          filter: drop-shadow(0 0 12px var(--accent-glow));
         }
 
-        .neon-green {
-          -webkit-text-stroke: 1.5px rgba(16, 185, 129, 1);
-          filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
+        /* Neon Warna Heading Tema (Huruf 'P' & 'X') */
+        .neon-heading {
+          -webkit-text-stroke: 2px var(--foreground-heading);
+          filter: drop-shadow(0 0 12px var(--accent-glow));
         }
 
         /* ANIMASI X: PUTAR 1 DETIK + DIAM 0.2 DETIK */
