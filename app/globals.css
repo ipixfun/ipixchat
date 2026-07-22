@@ -1,44 +1,138 @@
 @import "tailwindcss";
 
 /* ============================================
-   🎨 THEME VARIABLES
+   🎨 THEME VARIABLES (10 DYNAMIC MODELS)
    ============================================ */
 
+/* 01. Monochrome Dark (Black, Dark Gray, Soft Gray) */
 :root,
 .theme-dark {
-  --background: #0f172a;
-  --background-gradient-start: #1e293b;
-  --background-gradient-end: #0f172a;
-  --foreground: #b3b1b1;
-  --foreground-heading: #f8fafc;
-  --accent: #3b82f6;
-  --accent-glow: rgba(59, 130, 246, 0.3);
-  --card-bg: rgba(255, 255, 255, 0.05);
+  --background: #09090b;
+  --background-gradient-start: #1e1e24;
+  --background-gradient-end: #09090b;
+  --foreground: #a1a1aa;
+  --foreground-heading: #f4f4f5;
+  --accent: #e4e4e7;
+  --accent-glow: rgba(228, 228, 231, 0.25);
+  --card-bg: rgba(255, 255, 255, 0.04);
   --card-border: rgba(255, 255, 255, 0.1);
 }
 
-.theme-blue {
-  --background: #0c1929;
-  --background-gradient-start: #1e3a5f;
-  --background-gradient-end: #0c1929;
-  --foreground: #94a3b8;
-  --foreground-heading: #e0f2fe;
-  --accent: #06b6d4;
-  --accent-glow: rgba(6, 182, 212, 0.3);
-  --card-bg: rgba(6, 182, 212, 0.08);
-  --card-border: rgba(6, 182, 212, 0.2);
+/* 02. Navy + White + Electric Blue */
+.theme-navy-electric {
+  --background: #0F172A;
+  --background-gradient-start: #1e293b;
+  --background-gradient-end: #0F172A;
+  --foreground: #94A3B8;
+  --foreground-heading: #FFFFFF;
+  --accent: #3B82F6;
+  --accent-glow: rgba(59, 130, 246, 0.3);
+  --card-bg: rgba(59, 130, 246, 0.08);
+  --card-border: rgba(59, 130, 246, 0.2);
 }
 
-.theme-emerald {
-  --background: #022c22;
-  --background-gradient-start: #064e3b;
-  --background-gradient-end: #022c22;
-  --foreground: #86efac;
-  --foreground-heading: #d1fae5;
-  --accent: #10b981;
+/* 03. Emerald + Mint + Cream (Light Theme) */
+.theme-emerald-cream {
+  --background: #FFF8E7;
+  --background-gradient-start: #FFFFFF;
+  --background-gradient-end: #FFF8E7;
+  --foreground: #065F46;
+  --foreground-heading: #044331;
+  --accent: #10B981;
   --accent-glow: rgba(16, 185, 129, 0.3);
   --card-bg: rgba(16, 185, 129, 0.08);
   --card-border: rgba(16, 185, 129, 0.2);
+}
+
+/* 04. Teal + Coral + Sand (Soft/Warm Light) */
+.theme-teal-coral {
+  --background: #F5E6CA;
+  --background-gradient-start: #fdf5e6;
+  --background-gradient-end: #F5E6CA;
+  --foreground: #0F766E;
+  --foreground-heading: #0B5C55;
+  --accent: #FF7F50;
+  --accent-glow: rgba(255, 127, 80, 0.3);
+  --card-bg: rgba(255, 127, 80, 0.08);
+  --card-border: rgba(255, 127, 80, 0.2);
+}
+
+/* 05. Mint + Sea Green + Orange (Vibrant Light) */
+.theme-sea-citrus {
+  --background: #CBF3F0;
+  --background-gradient-start: #E6FAFC;
+  --background-gradient-end: #CBF3F0;
+  --foreground: #1A756D; 
+  --foreground-heading: #2EC4B6;
+  --accent: #FF9F1C;
+  --accent-glow: rgba(255, 159, 28, 0.3);
+  --card-bg: rgba(255, 159, 28, 0.08);
+  --card-border: rgba(255, 159, 28, 0.2);
+}
+
+/* 06. Raisin Black + Buff + Sunset (Warm Dark) */
+.theme-raisin-sunset {
+  --background: #272727;
+  --background-gradient-start: #3B3B3B;
+  --background-gradient-end: #272727;
+  --foreground: #D4AA7D;
+  --foreground-heading: #EFD09E;
+  --accent: #EFD09E; 
+  --accent-glow: rgba(239, 208, 158, 0.3);
+  --card-bg: rgba(239, 208, 158, 0.08);
+  --card-border: rgba(239, 208, 158, 0.2);
+}
+
+/* 07. Gunmetal + French Gray + Platinum (Muted Dark) */
+.theme-gunmetal-platinum {
+  --background: #2D3142;
+  --background-gradient-start: #3F445B;
+  --background-gradient-end: #2D3142;
+  --foreground: #ADACB5;
+  --foreground-heading: #FFFFFF;
+  --accent: #D8D5DB;
+  --accent-glow: rgba(216, 213, 219, 0.3);
+  --card-bg: rgba(216, 213, 219, 0.05);
+  --card-border: rgba(216, 213, 219, 0.15);
+}
+
+/* 08. Charcoal + Ecru + Butterscotch (Earthy Dark) */
+.theme-charcoal-ecru {
+  --background: #273E47;
+  --background-gradient-start: #355460;
+  --background-gradient-end: #273E47;
+  --foreground: #D8C99B;
+  --foreground-heading: #F3E9C6;
+  --accent: #D8973C;
+  --accent-glow: rgba(216, 151, 60, 0.3);
+  --card-bg: rgba(216, 151, 60, 0.1);
+  --card-border: rgba(216, 151, 60, 0.25);
+}
+
+/* 09. Charcoal + Sage + Soft Beige (Natural Dark) */
+.theme-charcoal-sage {
+  --background: #2E2E2E;
+  --background-gradient-start: #424242;
+  --background-gradient-end: #2E2E2E;
+  --foreground: #F3EFE6;
+  --foreground-heading: #FFFFFF;
+  --accent: #B5CBB7;
+  --accent-glow: rgba(181, 203, 183, 0.3);
+  --card-bg: rgba(181, 203, 183, 0.08);
+  --card-border: rgba(181, 203, 183, 0.2);
+}
+
+/* 10. Cyber Charcoal + Neon Purple + Lime (Cyberpunk) */
+.theme-cyber-neon {
+  --background: #1E1F22;
+  --background-gradient-start: #2B2D31;
+  --background-gradient-end: #1E1F22;
+  --foreground: #A1A1AA;
+  --foreground-heading: #80FF56;
+  --accent: #7F56FF;
+  --accent-glow: rgba(127, 86, 255, 0.4);
+  --card-bg: rgba(127, 86, 255, 0.1);
+  --card-border: rgba(127, 86, 255, 0.25);
 }
 
 /* ============================================

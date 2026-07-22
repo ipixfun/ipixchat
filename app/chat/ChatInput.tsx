@@ -1,61 +1,24 @@
 "use client";
 import React from "react";
-import { useTheme } from "@/app/context/ThemeContext";
+import { useTheme } from "../context/ThemeContext";
 
-// Wrapper untuk tema input
-const InputThemeWrapper = ({ children, defaultStyles }: { children: (styles: any) => React.ReactNode, defaultStyles: any }) => {
-  const { theme } = useTheme();
-  
-  const getInputTheme = () => {
-    switch (theme) {
-      case "emerald":
-        return {
-          container: "bg-emerald-400/10 border-emerald-400/20",
-          input: "bg-emerald-400/10 border-emerald-400/20 focus:border-emerald-400 focus:bg-emerald-400/20",
-          inputBlink: "bg-emerald-600/40 border-emerald-400 ring-2 ring-emerald-400/50",
-          button: "bg-emerald-600/80 text-white",
-          replyBg: "bg-emerald-900/40 border-emerald-500/30 text-emerald-100",
-          placeholder: "text-white/40",
-          counter: "text-white/30",
-          refreshBtn: "bg-yellow-400/80 text-black border-yellow-500",
-          cancelBtn: "bg-red-500/80 text-white border-red-600",
-          uploadIcon: "text-white/60 hover:text-blue-400",
-          labelText: "text-white/40",
-        };
-      case "blue":
-        return {
-          container: "bg-blue-400/10 border-blue-400/20",
-          input: "bg-blue-400/10 border-blue-400/20 focus:border-blue-500 focus:bg-blue-400/20",
-          inputBlink: "bg-blue-600/40 border-blue-400 ring-2 ring-blue-400/50",
-          button: "bg-blue-600/80 text-white",
-          replyBg: "bg-blue-900/40 border-blue-500/30 text-blue-100",
-          placeholder: "text-white/40",
-          counter: "text-white/30",
-          refreshBtn: "bg-yellow-400/80 text-black border-yellow-500",
-          cancelBtn: "bg-red-500/80 text-white border-red-600",
-          uploadIcon: "text-white/60 hover:text-blue-400",
-          labelText: "text-white/40",
-        };
-      case "dark":
-        return {
-          container: "bg-gray-700/20 border-gray-600/20",
-          input: "bg-gray-700/30 border-gray-600/30 focus:border-gray-500 focus:bg-gray-700/40 text-gray-200",
-          inputBlink: "bg-gray-600/40 border-gray-400 ring-2 ring-gray-400/50",
-          button: "bg-gray-600/80 text-white hover:bg-gray-500/80",
-          replyBg: "bg-gray-800/40 border-gray-600/30 text-gray-200",
-          placeholder: "text-gray-400",
-          counter: "text-gray-400",
-          refreshBtn: "bg-yellow-500/90 text-black border-yellow-600 font-bold hover:bg-yellow-400/90",
-          cancelBtn: "bg-red-600/80 text-white border-red-700",
-          uploadIcon: "text-gray-400 hover:text-blue-400",
-          labelText: "text-gray-400",
-        };
-      default:
-        return defaultStyles;
-    }
+// Wrapper dinamis menggunakan CSS Variables
+const InputThemeWrapper = ({ children }: { children: (styles: any) => React.ReactNode }) => {
+  // Menggunakan CSS Variables agar otomatis mendukung seluruh 10 tema
+  const styles = {
+    container: "bg-[var(--card-bg)] border-[var(--card-border)]",
+    input: "bg-[var(--card-bg)] border-[var(--card-border)] focus:border-[var(--accent)] text-[var(--foreground-heading)] placeholder:text-[var(--foreground)]/40",
+    inputBlink: "bg-[var(--card-bg)] border-[var(--accent)] ring-2 ring-[var(--accent-glow)]",
+    button: "bg-[var(--accent)] text-[var(--background)] font-bold hover:opacity-90",
+    replyBg: "bg-[var(--card-bg)] border-[var(--card-border)] text-[var(--foreground-heading)]",
+    placeholder: "text-[var(--foreground)]/40",
+    counter: "text-[var(--foreground)]/60",
+    refreshBtn: "bg-yellow-500/90 text-black border-yellow-600 font-bold hover:bg-yellow-400/90",
+    cancelBtn: "bg-red-600/80 text-white border-red-700",
+    uploadIcon: "text-[var(--foreground)] hover:text-[var(--accent)]",
+    labelText: "text-[var(--foreground)]",
   };
 
-  const styles = getInputTheme();
   return <>{children(styles)}</>;
 };
 
@@ -90,26 +53,15 @@ export default function ChatInput({
   scrollMsg: (id: number) => void;
   sendMsg: (e: React.FormEvent) => void;
 }) {
-  const defaultStyles = {
-    container: "bg-emerald-400/10 border-emerald-400/20",
-    input: "bg-emerald-400/10 border-emerald-400/20 focus:border-emerald-400 focus:bg-emerald-400/20",
-    inputBlink: "bg-emerald-600/40 border-emerald-400 ring-2 ring-emerald-400/50",
-    button: "bg-emerald-600/80 text-white",
-    replyBg: "bg-emerald-900/40 border-emerald-500/30 text-emerald-100",
-    placeholder: "text-white/40",
-    counter: "text-white/30",
-    refreshBtn: "bg-yellow-400/80 text-black border-yellow-500",
-    cancelBtn: "bg-red-500/80 text-white border-red-600",
-    uploadIcon: "text-white/60 hover:text-blue-400",
-    labelText: "text-white/40",
-  };
-
   return (
-    <InputThemeWrapper defaultStyles={defaultStyles}>
+    <InputThemeWrapper>
       {(styles) => (
-        <div className={`shrink-0 bg-white/5 backdrop-blur-xl z-20 w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-white/10 relative mb-16`}>
+        <div className="shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-20 w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative mb-16">
           {interact.replyTo && (
-            <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${styles.replyBg}`} onClick={() => scrollMsg(interact.replyTo.id)}>
+            <div 
+              className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${styles.replyBg}`} 
+              onClick={() => scrollMsg(interact.replyTo.id)}
+            >
               <div className="truncate flex-1 pr-2">
                 <span className="font-bold">Balas @{interact.replyTo.username.split("●")[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span>
               </div>
@@ -119,7 +71,7 @@ export default function ChatInput({
                   e.stopPropagation();
                   setInteract((p: any) => ({ ...p, replyTo: null }));
                 }}
-                className="text-white/40 font-bold px-1"
+                className="text-[var(--foreground)] opacity-60 font-bold px-1 hover:opacity-100"
               >
                 ×
               </button>
@@ -129,9 +81,9 @@ export default function ChatInput({
           <form onSubmit={sendMsg} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 items-end w-full relative transition-all duration-300">
             <div className="relative shrink-0 flex items-center justify-center w-8 mb-2">
               <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isBlocked || input.uploadingImage || input.image !== null} />
-              <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full ${(ui.tab === "admin" && !usersInfo.selPriv) || input.image !== null || isBlocked ? "text-white/20 pointer-events-none" : styles.uploadIcon}`}>
+              <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full ${(ui.tab === "admin" && !usersInfo.selPriv) || input.image !== null || isBlocked ? "opacity-30 pointer-events-none" : styles.uploadIcon}`}>
                 {input.uploadingImage ? (
-                  <svg className="animate-spin h-6 w-6 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-6 w-6 text-[var(--accent)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -151,7 +103,7 @@ export default function ChatInput({
               <div className="flex items-end gap-2 w-full">
                 {input.image && (
                   <div className="relative shrink-0 mb-1">
-                    <img src={input.image} alt="preview" className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-lg border border-white/20 shadow-sm" />
+                    <img src={input.image} alt="preview" className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-lg border border-[var(--card-border)] shadow-sm" />
                     <button type="button" onClick={() => setInput((p: any) => ({ ...p, image: null }))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[9px] font-bold flex items-center justify-center">
                       ×
                     </button>
@@ -163,7 +115,7 @@ export default function ChatInput({
                     id="chat-input"
                     onFocus={() => setUi((p: any) => ({ ...p, inputFocus: true }))}
                     onBlur={() => setUi((p: any) => ({ ...p, inputFocus: false }))}
-                    className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm text-white resize-none focus:outline-none min-h-[32px] sm:min-h-[38px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${input.blink ? styles.inputBlink : styles.input} ${(ui.tab === "admin" && !usersInfo.selPriv) || isBlocked ? "opacity-30 cursor-not-allowed bg-gray-800" : ""}`}
+                    className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm resize-none focus:outline-none min-h-[32px] sm:min-h-[38px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${input.blink ? styles.inputBlink : styles.input} ${(ui.tab === "admin" && !usersInfo.selPriv) || isBlocked ? "opacity-30 cursor-not-allowed" : ""}`}
                     value={input.text}
                     onChange={(e) => {
                       setInput((p: any) => ({ ...p, text: e.target.value }));
@@ -181,7 +133,7 @@ export default function ChatInput({
                     rows={1}
                     disabled={input.sending || isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)}
                   />
-                  <div className={`absolute right-3 bottom-1.5 text-[9px] font-mono select-none opacity-80 bg-black/20 px-1 rounded ${styles.counter}`}>{200 - input.text.length}</div>
+                  <div className={`absolute right-3 bottom-1.5 text-[9px] font-mono select-none bg-black/20 px-1 rounded ${styles.counter}`}>{200 - input.text.length}</div>
                 </div>
               </div>
             </div>
