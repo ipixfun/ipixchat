@@ -1,5 +1,13 @@
 "use client";
 import React from "react";
+import { Varela_Round } from "next/font/google";
+
+// Preload font Varela Round langsung lewat Next.js (Mencegah FOUT & glitch)
+const varelaRound = Varela_Round({
+  weight: "400",
+  subsets: ["latin"],
+  display: "block", // 'block' memastikan teks tidak berubah mendadak saat dimuat
+});
 
 export default function Loading() {
   return (
@@ -12,8 +20,8 @@ export default function Loading() {
       {/* Main Content */}
       <div className="relative z-20 flex flex-col items-center justify-center">
         
-        {/* Teks iPiX */}
-        <h1 className="relative font-rounded text-7xl md:text-9xl font-black tracking-widest flex items-center justify-center">
+        {/* Teks iPiX dengan font permanen */}
+        <h1 className={`${varelaRound.className} relative text-7xl md:text-9xl font-black tracking-widest flex items-center justify-center`}>
           <span className="letter neon-accent">i</span>
           <span className="letter neon-heading">P</span>
           <span className="letter neon-accent">i</span>
@@ -23,10 +31,6 @@ export default function Loading() {
 
       <style dangerouslySetInnerHTML={{
         __html: `
-        @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
-
-        .font-rounded { font-family: 'Varela Round', sans-serif; }
-        
         .letter { 
           color: var(--background); 
           line-height: 1; 
@@ -55,7 +59,6 @@ export default function Loading() {
           height: 1em;
           transform-origin: center center;
           will-change: transform;
-          /* Total durasi 1.2s (83.33% putar + 16.67% diam) */
           animation: spinAndPause 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
         }
 
@@ -63,11 +66,9 @@ export default function Loading() {
           0% {
             transform: rotate(0deg);
           }
-          /* 1.0 Detik Pertama (83.33% dari 1.2s): Putar cepat 3 kali (1080 deg) */
           83.33% {
             transform: rotate(1080deg);
           }
-          /* 0.2 Detik Terakhir (100% dari 1.2s): Diam menahan posisi */
           100% {
             transform: rotate(1080deg);
           }
