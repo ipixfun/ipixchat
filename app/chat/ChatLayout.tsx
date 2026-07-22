@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import Admin from "./Admin";
+import Admin from "../../components/Admin";
 import { useTheme } from "@/app/context/ThemeContext";
 
 // Peta warna RGB khusus gelombang untuk 10 model tema
