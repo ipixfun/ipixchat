@@ -95,8 +95,9 @@ export default function TemaPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-5 overflow-y-auto">
-        <div className="flex flex-col gap-4">
+      <div className="flex-1 p-4 sm:p-5 overflow-y-auto">
+        {/* Grid 2 Kolom: 5 Kiri & 5 Kanan */}
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
           {themes.map((t) => {
             const isActive = activeThemeId === t.id;
 
@@ -104,7 +105,7 @@ export default function TemaPage() {
               <div
                 key={t.id}
                 onClick={() => setTheme(t.id as any)}
-                className={`p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer flex items-center justify-between ${
+                className={`p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 transition-all duration-300 cursor-pointer flex items-center justify-between gap-1.5 sm:gap-2 ${
                   isActive ? "scale-[1.02]" : "hover:scale-[1.01]"
                 }`}
                 style={{
@@ -113,30 +114,30 @@ export default function TemaPage() {
                   boxShadow: isActive ? "0 0 15px var(--accent-glow)" : "none",
                 }}
               >
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${t.preview} flex items-center justify-center text-2xl shadow-lg border border-white/10`}>
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-gradient-to-br ${t.preview} flex items-center justify-center text-lg sm:text-xl shadow-lg border border-white/10 shrink-0`}>
                     {t.icon}
                   </div>
-                  <div>
-                    <h3 className="font-bold text-sm" style={{ color: "var(--foreground-heading)" }}>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-xs sm:text-sm truncate" style={{ color: "var(--foreground-heading)" }}>
                       {t.name}
                     </h3>
-                    <p className="text-[10px] mt-0.5" style={{ color: "var(--foreground)" }}>
-                      {isActive ? "✓ Tema sedang aktif" : "Ketuk untuk terapkan"}
+                    <p className="text-[9px] sm:text-[10px] mt-0.5 truncate" style={{ color: "var(--foreground)" }}>
+                      {isActive ? "✓ Aktif" : "Terapkan"}
                     </p>
                   </div>
                 </div>
 
                 {/* Radio Indicator */}
                 <div
-                  className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300"
+                  className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 shrink-0"
                   style={{ 
                     borderColor: isActive ? "var(--accent)" : "var(--card-border)" 
                   }}
                 >
                   {isActive && (
                     <div 
-                      className="w-2.5 h-2.5 rounded-full"
+                      className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"
                       style={{ backgroundColor: "var(--accent)" }}
                     />
                   )}
@@ -148,7 +149,7 @@ export default function TemaPage() {
 
         {/* Preview Section */}
         <div 
-          className="mt-8 p-5 rounded-2xl transition-colors duration-300" 
+          className="mt-6 sm:mt-8 p-4 sm:p-5 rounded-2xl transition-colors duration-300" 
           style={{ 
             backgroundColor: "var(--card-bg)", 
             border: "1px solid var(--card-border)" 
