@@ -1,6 +1,7 @@
 'use client';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
+import { useTheme } from '@/app/context/ThemeContext';
 
 // --- CONFIG SOSMED IPIX ---
 const socialPlatforms = [
@@ -27,37 +28,49 @@ const MailIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
 );
 const EyeIcon = () => (
-  <svg className="w-5 h-5 text-slate-500 cursor-pointer hover:text-slate-800 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+  <svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
 );
 const EyeOffIcon = () => (
-  <svg className="w-5 h-5 text-slate-500 cursor-pointer hover:text-slate-800 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>
+  <svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>
 );
 
-// --- REUSABLE COMPONENTS ---
-const InputField = ({ icon, suffix, readOnly, className, ...props }: any) => (
-  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border transition-colors duration-300 ${className}`}>
-    <div className="mr-3 flex-shrink-0 opacity-60">{icon}</div>
+// --- REUSABLE COMPONENTS WITH DYNAMIC THEME ---
+const InputField = ({ icon, suffix, readOnly, className, style, ...props }: any) => (
+  <div 
+    className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border transition-all duration-300 ${className}`}
+    style={style}
+  >
+    <div className="mr-3 flex-shrink-0 opacity-80" style={{ color: "var(--accent)" }}>{icon}</div>
     <input 
       readOnly={readOnly}
-      className="bg-transparent outline-none flex-1 text-sm font-extrabold w-full placeholder-slate-400 disabled:cursor-not-allowed text-inherit"
+      className="bg-transparent outline-none flex-1 text-sm font-extrabold w-full placeholder:opacity-50 disabled:cursor-not-allowed"
+      style={{ color: "var(--foreground-heading)" }}
       {...props}
     />
     {suffix && <div className="ml-2 flex-shrink-0 flex items-center">{suffix}</div>}
   </div>
 );
 
-const SelectField = ({ icon, options, value, onChange, placeholder, className }: any) => (
-  <div className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border relative transition-colors duration-300 ${className}`}>
-    <div className="mr-3 flex-shrink-0 opacity-60">{icon}</div>
+const SelectField = ({ icon, options, value, onChange, placeholder, className, style }: any) => (
+  <div 
+    className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border relative transition-all duration-300 ${className}`}
+    style={style}
+  >
+    <div className="mr-3 flex-shrink-0 opacity-80" style={{ color: "var(--accent)" }}>{icon}</div>
     <select 
       value={value}
       onChange={onChange}
-      className="bg-transparent outline-none flex-1 text-sm font-extrabold w-full appearance-none cursor-pointer text-slate-900"
+      className="bg-transparent outline-none flex-1 text-sm font-extrabold w-full appearance-none cursor-pointer"
+      style={{ color: "var(--foreground-heading)" }}
     >
-      <option value="" disabled className="text-slate-900">{placeholder}</option>
-      {options.map((opt: string) => <option key={opt} value={opt} className="text-slate-900">{opt}</option>)}
+      <option value="" disabled style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}>{placeholder}</option>
+      {options.map((opt: string) => (
+        <option key={opt} value={opt} style={{ backgroundColor: "var(--background)", color: "var(--foreground-heading)" }}>
+          {opt}
+        </option>
+      ))}
     </select>
-    <div className="pointer-events-none absolute right-4 opacity-60 text-slate-900">
+    <div className="pointer-events-none absolute right-4 opacity-70" style={{ color: "var(--foreground-heading)" }}>
       <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
     </div>
   </div>
@@ -69,7 +82,7 @@ const SelectField = ({ icon, options, value, onChange, placeholder, className }:
 const PANEL_TRANSITION = {
   type: "tween" as const,
   duration: 0.45,
-  ease: [0.4, 0, 0.2, 1] as [number, number, number, number], // ease-out standard
+  ease: [0.4, 0, 0.2, 1] as [number, number, number, number],
 };
 
 const FORM_TRANSITION = {
@@ -100,6 +113,8 @@ export default function Login({
   handleUserLogin,
   handleAdminLogin
 }: any) {
+  const { theme } = useTheme();
+
   const existingNote = "Login otomatis ketika anda sudah register .\nUntuk ubah nama atau pin hubungi admin di chat .";
   const [displayedNote, setDisplayedNote] = useState("");
   const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
@@ -168,68 +183,76 @@ export default function Login({
     handleUserLogin(isLoginMode);
   };
 
-  // --- INSET SHADOW CONSTANTS ---
-  const inputInset = 'shadow-[inset_0_6px_12px_rgba(0,0,0,0.25),inset_0_2px_4px_rgba(0,0,0,0.15)]';
-  const glassBoxLogin = 'shadow-[inset_0_8px_20px_rgba(255,255,255,0.4),inset_0_-4px_12px_rgba(0,0,0,0.06),inset_0_2px_4px_rgba(0,0,0,0.08)]';
-  const glassBoxRegister = 'shadow-[inset_0_-8px_20px_rgba(255,255,255,0.4),inset_0_4px_12px_rgba(0,0,0,0.06),inset_0_2px_4px_rgba(0,0,0,0.08)]';
-  const pillInset = 'shadow-[inset_0_4px_8px_rgba(0,0,0,0.3),inset_0_1px_3px_rgba(0,0,0,0.2),inset_0_-2px_4px_rgba(255,255,255,0.1)]';
-  const mainBtnInset = 'shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3),inset_0_2px_4px_rgba(255,255,255,0.25)]';
+  // --- INSET SHADOW & THEME STYLES ---
+  const inputInset = 'shadow-[inset_0_4px_8px_rgba(0,0,0,0.25)]';
+  const glassBox = 'shadow-[0_8px_32px_rgba(0,0,0,0.3)] backdrop-blur-xl border';
 
-  // --- OUTLINE FOCUS: REGISTER = BIRU, LOGIN = HIJAU ---
-  const regFocus = 'focus-within:border-blue-500 focus-within:bg-blue-50/40 focus-within:ring-2 focus-within:ring-blue-300/50';
-  const loginFocus = 'focus-within:border-emerald-500 focus-within:bg-emerald-50/40 focus-within:ring-2 focus-within:ring-emerald-300/50';
-  const activeFocus = isLoginMode ? loginFocus : regFocus;
+  // State Warna Input Dinamis Berdasarkan Tema
+  const normalInputStyle = {
+    backgroundColor: "var(--card-bg)",
+    borderColor: "var(--card-border)",
+  };
 
-  const usernameBorderClass = isFormValid
-    ? `border-green-400 bg-green-50 text-green-950 ${inputInset} font-extrabold` 
-    : (validationMsg === "Isi nama dulu sayang")
-      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${inputInset} font-extrabold` 
-      : `border-gray-300 bg-gray-100 text-slate-900 ${activeFocus} ${inputInset} font-extrabold`;
+  const validInputStyle = {
+    backgroundColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
+    borderColor: "var(--accent)",
+  };
 
-  const pinBorderClass = isFormValid
-    ? `border-green-400 bg-green-50 text-green-950 ${inputInset} font-extrabold`
-    : (validationMsg === "PIN harus 6 angka sayang" || (!isLoginMode && validationMsg && (!pin || pin.length !== 6)))
-      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${inputInset} font-extrabold`
-      : `border-gray-300 bg-gray-100 text-slate-900 ${activeFocus} ${inputInset} font-extrabold`;
+  const errorInputStyle = {
+    backgroundColor: "rgba(239, 68, 68, 0.15)",
+    borderColor: "rgb(239, 68, 68)",
+  };
 
-  const umurBorderClass = isFormValid
-    ? `border-green-400 bg-green-50 text-green-950 ${inputInset}`
-    : (validationMsg && !umur)
-      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${inputInset}`
-      : `border-gray-300 bg-gray-100 text-slate-900 ${activeFocus} ${inputInset}`;
+  const getInputStyle = (isError: boolean) => {
+    if (isFormValid) return validInputStyle;
+    if (isError) return errorInputStyle;
+    return normalInputStyle;
+  };
 
-  const beratBorderClass = isFormValid
-    ? `border-green-400 bg-green-50 text-green-950 ${inputInset}`
-    : (validationMsg && !berat)
-      ? `border-red-400 animate-pulse bg-red-50 text-red-950 ${inputInset}`
-      : `border-gray-300 bg-gray-100 text-slate-900 ${activeFocus} ${inputInset}`;
+  const usernameStyle = getInputStyle(validationMsg === "Isi nama dulu sayang");
+  const pinStyle = getInputStyle(Boolean(validationMsg === "PIN harus 6 angka sayang" || (!isLoginMode && validationMsg && (!pin || pin.length !== 6))));
+  const umurStyle = getInputStyle(Boolean(validationMsg && !umur));
+  const beratStyle = getInputStyle(Boolean(validationMsg && !berat));
 
-  const existingBorderClass = `bg-gray-200 text-black border-gray-300 cursor-not-allowed font-extrabold ${inputInset}`;
+  const existingStyle = {
+    backgroundColor: "var(--card-bg)",
+    borderColor: "var(--card-border)",
+    opacity: 0.8,
+  };
 
   // --- TOMBOL UTAMA ---
-  let buttonStyle = "";
+  let buttonStyleObj: React.CSSProperties = {};
   let buttonText = "";
 
   if (isExistingUser) {
-    buttonStyle = `bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 text-white ${mainBtnInset}`;
+    buttonStyleObj = {
+      backgroundColor: "var(--accent)",
+      color: "var(--background)",
+      boxShadow: "0 0 15px var(--accent-glow)",
+    };
     buttonText = "Masuk Chat";
   } else if (validationMsg) {
-    buttonStyle = `bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 border border-red-400 text-white animate-pulse ${mainBtnInset}`;
+    buttonStyleObj = {
+      backgroundColor: "#ef4444",
+      color: "#ffffff",
+      boxShadow: "0 0 15px rgba(239, 68, 68, 0.5)",
+    };
     buttonText = validationMsg;
   } else if (isFormValid) {
-    buttonStyle = `bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 border border-green-400 text-white ${mainBtnInset}`;
+    buttonStyleObj = {
+      backgroundColor: "var(--accent)",
+      color: "var(--background)",
+      boxShadow: "0 0 20px var(--accent-glow)",
+    };
     buttonText = isLoginMode ? "Masuk Sekarang" : "Gabung Sekarang";
   } else {
-    if (isLoginMode) {
-      buttonStyle = `bg-gradient-to-r from-emerald-500/80 to-green-600/80 hover:from-emerald-500 hover:to-green-600 border border-green-400/50 text-white ${mainBtnInset}`;
-      buttonText = "Login";
-    } else {
-      buttonStyle = `bg-gradient-to-r from-blue-500/80 to-blue-600/80 hover:from-blue-500 hover:to-blue-600 border border-blue-400/50 text-white ${mainBtnInset}`;
-      buttonText = "Register";
-    }
+    buttonStyleObj = {
+      backgroundColor: "var(--card-bg)",
+      color: "var(--foreground-heading)",
+      border: "1px solid var(--card-border)",
+    };
+    buttonText = isLoginMode ? "Login" : "Register";
   }
-
-  const sosmedPillClass = `bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-sm ${pillInset}`;
 
   // ✅ GPU ACCELERATION STYLE — mencegah repaint flicker
   const gpuStyle = { 
@@ -241,7 +264,7 @@ export default function Login({
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
       
-      {/* ⚪ MAIN CARD — overflow hidden ketat, contain: layout */}
+      {/* ⚪ MAIN CARD */}
       <div 
         className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-hidden flex flex-col z-10"
         style={{ contain: 'layout style' }}
@@ -249,15 +272,21 @@ export default function Login({
         
         {activeTab === 'user' ? (
           <>
-            {/* 🔵 SLIDE OVERLAY PANEL — TANPA layout prop, tween smooth */}
+            {/* 🔵 SLIDE OVERLAY PANEL */}
             <motion.div
               initial={false}
               animate={{
-                y: isLoginMode ? '0%' : '185.7%', // 65/35 * 100 = 185.7% dari tinggi sendiri
+                y: isLoginMode ? '0%' : '185.7%',
               }}
               transition={PANEL_TRANSITION}
-              className={`absolute left-0 right-0 top-0 h-[35%] bg-white/5 backdrop-blur-md border border-white/20 z-20 flex flex-col items-center justify-center p-4 text-white overflow-hidden ${isLoginMode ? glassBoxLogin : glassBoxRegister} ${isLoginMode ? 'rounded-b-[2.5rem]' : 'rounded-t-[2.5rem]'}`}
-              style={{ ...gpuStyle, willChange: 'transform' }}
+              className={`absolute left-0 right-0 top-0 h-[35%] z-20 flex flex-col items-center justify-center p-4 overflow-hidden border ${glassBox} ${isLoginMode ? 'rounded-b-[2.5rem]' : 'rounded-t-[2.5rem]'}`}
+              style={{ 
+                ...gpuStyle, 
+                willChange: 'transform',
+                backgroundColor: "color-mix(in srgb, var(--card-bg) 85%, var(--background))",
+                borderColor: "var(--card-border)",
+                color: "var(--foreground)",
+              }}
             >
               <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
                 
@@ -270,7 +299,9 @@ export default function Login({
                   style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
                 >
                   <div className="flex flex-col items-center w-full mb-3">
-                    <p className="text-[10px] font-extrabold text-white/70 mb-2 tracking-wide uppercase drop-shadow-md">Sosial Media Ipix</p>
+                    <p className="text-[10px] font-extrabold uppercase tracking-wide mb-2 opacity-80" style={{ color: "var(--foreground)" }}>
+                      Sosial Media Ipix
+                    </p>
                     <div className="grid grid-cols-2 gap-2 w-full px-4">
                       {socialPlatforms.map((platform) => (
                         <a 
@@ -278,7 +309,12 @@ export default function Login({
                           href={platform.link} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className={`w-full px-2 py-1.5 rounded-full border font-black text-[10px] tracking-wide text-center transition-all duration-300 active:scale-95 ${sosmedPillClass}`}
+                          className="w-full px-2 py-1.5 rounded-full border font-black text-[10px] tracking-wide text-center transition-all duration-300 active:scale-95 shadow-sm"
+                          style={{
+                            backgroundColor: "var(--card-bg)",
+                            borderColor: "var(--card-border)",
+                            color: "var(--foreground-heading)"
+                          }}
                         >
                           {platform.label}
                         </a>
@@ -289,7 +325,12 @@ export default function Login({
                   {!isExistingUser && (
                     <button 
                       onClick={() => { setIsLoginMode(false); setValidationMsg(""); }}
-                      className={`w-[85%] py-2.5 rounded-full bg-blue-600/90 hover:bg-blue-700 text-white font-extrabold border border-blue-400 transition-all text-sm active:scale-95 tracking-wider backdrop-blur-md ${pillInset}`}
+                      className="w-[85%] py-2.5 rounded-full font-extrabold text-xs transition-all active:scale-95 tracking-wider shadow-md"
+                      style={{
+                        backgroundColor: "var(--accent)",
+                        color: "var(--background)",
+                        boxShadow: "0 0 15px var(--accent-glow)"
+                      }}
                     >
                       Register
                     </button>
@@ -306,13 +347,20 @@ export default function Login({
                 >
                   <button 
                     onClick={() => { setIsLoginMode(true); setValidationMsg(""); }}
-                    className={`w-[85%] py-2.5 mb-3 rounded-full bg-emerald-600/90 hover:bg-emerald-700 text-white font-extrabold border border-emerald-400 transition-all text-sm active:scale-95 tracking-wider backdrop-blur-md ${pillInset}`}
+                    className="w-[85%] py-2.5 mb-3 rounded-full font-extrabold text-xs transition-all active:scale-95 tracking-wider shadow-md"
+                    style={{
+                      backgroundColor: "var(--accent)",
+                      color: "var(--background)",
+                      boxShadow: "0 0 15px var(--accent-glow)"
+                    }}
                   >
                     Login
                   </button>
 
                   <div className="flex flex-col items-center w-full">
-                    <p className="text-[10px] font-extrabold text-white/70 mb-2 tracking-wide uppercase drop-shadow-md">Sosial Media Ipix</p>
+                    <p className="text-[10px] font-extrabold uppercase tracking-wide mb-2 opacity-80" style={{ color: "var(--foreground)" }}>
+                      Sosial Media Ipix
+                    </p>
                     <div className="grid grid-cols-2 gap-2 w-full px-4">
                       {socialPlatforms.map((platform) => (
                         <a 
@@ -320,7 +368,12 @@ export default function Login({
                           href={platform.link} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className={`w-full px-2 py-1.5 rounded-full border font-black text-[10px] tracking-wide text-center transition-all duration-300 active:scale-95 ${sosmedPillClass}`}
+                          className="w-full px-2 py-1.5 rounded-full border font-black text-[10px] tracking-wide text-center transition-all duration-300 active:scale-95 shadow-sm"
+                          style={{
+                            backgroundColor: "var(--card-bg)",
+                            borderColor: "var(--card-border)",
+                            color: "var(--foreground-heading)"
+                          }}
                         >
                           {platform.label}
                         </a>
@@ -332,7 +385,7 @@ export default function Login({
               </div>
             </motion.div>
 
-            {/* ⚪ FORMS CONTAINER — z-index di bawah panel */}
+            {/* ⚪ FORMS CONTAINER */}
             <div className="absolute inset-0 z-10 w-full h-full">
               
               {/* === REGISTER FORM === */}
@@ -350,8 +403,13 @@ export default function Login({
                   willChange: 'transform, opacity',
                 }}
               >
-                <div className={`w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 p-6 sm:p-8 flex flex-col items-center ${glassBoxRegister}`}>
-                  
+                <div 
+                  className={`w-full rounded-[2.5rem] p-6 sm:p-8 flex flex-col items-center border ${glassBox}`}
+                  style={{
+                    backgroundColor: "color-mix(in srgb, var(--background) 90%, transparent)",
+                    borderColor: "var(--card-border)",
+                  }}
+                >
                   <InputField 
                     icon={<UserIcon />} 
                     placeholder={placeholderText || "Username"} 
@@ -360,7 +418,8 @@ export default function Login({
                       setUsername(e.target.value.slice(0, 20));
                       if (validationMsg) setValidationMsg(""); 
                     }}
-                    className={usernameBorderClass}
+                    className={inputInset}
+                    style={usernameStyle}
                     autoComplete="off"
                   />
                   
@@ -368,7 +427,7 @@ export default function Login({
                     icon={<LockIcon />} 
                     placeholder="Password (PIN)" 
                     type="text"
-                    style={showPin ? {} : ({ WebkitTextSecurity: 'disc' } as any)}
+                    style={pinStyle}
                     inputMode="numeric"
                     value={pin || ""} 
                     onChange={(e: any) => {
@@ -381,7 +440,7 @@ export default function Login({
                         {showPin ? <EyeOffIcon /> : <EyeIcon />}
                       </button>
                     }
-                    className={pinBorderClass}
+                    className={inputInset}
                     maxLength={6}
                   />
                   
@@ -395,7 +454,8 @@ export default function Login({
                         setUmur(e.target.value);
                         if (validationMsg) setValidationMsg("");
                       }}
-                      className={umurBorderClass}
+                      className={inputInset}
+                      style={umurStyle}
                     />
                     <SelectField 
                       icon={<ScaleIcon />} 
@@ -406,7 +466,8 @@ export default function Login({
                         setBerat(e.target.value);
                         if (validationMsg) setValidationMsg("");
                       }}
-                      className={beratBorderClass}
+                      className={inputInset}
+                      style={beratStyle}
                     />
                   </div>
 
@@ -414,21 +475,26 @@ export default function Login({
                     <input 
                       type="checkbox" 
                       id="agree" 
-                      className="w-3.5 h-3.5 accent-slate-400 cursor-pointer rounded-sm"
+                      className="w-3.5 h-3.5 cursor-pointer rounded-sm accent-[var(--accent)]"
                       checked={isUsernameAgreed}
                       onChange={(e) => {
                         setIsUsernameAgreed(e.target.checked);
                         if (validationMsg) setValidationMsg(""); 
                       }}
                     />
-                    <label htmlFor="agree" className="text-[11px] font-light italic text-slate-400 ml-2 cursor-pointer select-none leading-none">
+                    <label 
+                      htmlFor="agree" 
+                      className="text-[11px] font-light italic ml-2 cursor-pointer select-none leading-none opacity-80"
+                      style={{ color: "var(--foreground)" }}
+                    >
                       *Mengikuti aturan di dalam chat
                     </label>
                   </div>
 
                   <button 
                     onClick={handleUserLoginWrapper}
-                    className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer ${buttonStyle}`}
+                    className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer shadow-md ${validationMsg ? "animate-pulse" : ""}`}
+                    style={buttonStyleObj}
                   >
                     {buttonText}
                   </button>
@@ -451,8 +517,13 @@ export default function Login({
                   willChange: 'transform, opacity',
                 }}
               >
-                <div className={`w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 p-6 sm:p-8 flex flex-col items-center ${glassBoxLogin}`}>
-                  
+                <div 
+                  className={`w-full rounded-[2.5rem] p-6 sm:p-8 flex flex-col items-center border ${glassBox}`}
+                  style={{
+                    backgroundColor: "color-mix(in srgb, var(--background) 90%, transparent)",
+                    borderColor: "var(--card-border)",
+                  }}
+                >
                   <InputField 
                     icon={<UserIcon />} 
                     placeholder={placeholderText || "Username"} 
@@ -463,7 +534,8 @@ export default function Login({
                       if (validationMsg) setValidationMsg(""); 
                     }}
                     readOnly={isExistingUser}
-                    className={isExistingUser ? existingBorderClass : usernameBorderClass}
+                    className={inputInset}
+                    style={isExistingUser ? existingStyle : usernameStyle}
                     autoComplete="off"
                   />
                   
@@ -471,7 +543,6 @@ export default function Login({
                     icon={<LockIcon />} 
                     placeholder="Password (PIN)" 
                     type="text"
-                    style={showPin ? {} : ({ WebkitTextSecurity: 'disc' } as any)}
                     inputMode="numeric"
                     value={pin || ""} 
                     onChange={(e: any) => {
@@ -486,22 +557,31 @@ export default function Login({
                       </button>
                     }
                     readOnly={isExistingUser}
-                    className={isExistingUser ? existingBorderClass : pinBorderClass}
+                    className={inputInset}
+                    style={isExistingUser ? existingStyle : pinStyle}
                     maxLength={6}
                   />
 
                   {isExistingUser && (
-                    <div className={`w-full text-xs text-black bg-gray-200 p-4 border border-gray-300 rounded-3xl mb-4 font-extrabold text-center whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center ${inputInset}`}>
+                    <div 
+                      className={`w-full text-xs p-4 border rounded-3xl mb-4 font-extrabold text-center whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center ${inputInset}`}
+                      style={{
+                        backgroundColor: "var(--card-bg)",
+                        borderColor: "var(--card-border)",
+                        color: "var(--foreground-heading)"
+                      }}
+                    >
                       <span className="w-full block drop-shadow-sm">
                         {displayedNote}
-                        {!isNoteTypingDone && <span className="animate-pulse ml-0.5 text-black">|</span>}
+                        {!isNoteTypingDone && <span className="animate-pulse ml-0.5">|</span>}
                       </span>
                     </div>
                   )}
 
                   <button 
                     onClick={handleUserLoginWrapper}
-                    className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer mt-1 ${buttonStyle}`}
+                    className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer mt-1 shadow-md ${validationMsg ? "animate-pulse" : ""}`}
+                    style={buttonStyleObj}
                   >
                     {buttonText}
                   </button>
@@ -514,14 +594,20 @@ export default function Login({
           
           /* === ADMIN TAB === */
           <div className="absolute inset-0 z-10 w-full h-full px-4 sm:px-6 py-6 flex flex-col items-center justify-center bg-transparent">
-             <div className={`w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 p-6 sm:p-8 flex flex-col items-center ${glassBoxLogin}`}>
-              
+             <div 
+               className={`w-full rounded-[2.5rem] p-6 sm:p-8 flex flex-col items-center border ${glassBox}`}
+               style={{
+                 backgroundColor: "color-mix(in srgb, var(--background) 90%, transparent)",
+                 borderColor: "var(--card-border)",
+               }}
+             >
               <InputField 
                 icon={<MailIcon />} 
                 placeholder="Email Admin" 
                 value={adminEmail || ""} 
                 onChange={(e: any) => setAdminEmail(e.target.value)} 
-                className={`border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] ${inputInset}`}
+                className={inputInset}
+                style={normalInputStyle}
                 autoComplete="off"
               />
               
@@ -529,15 +615,20 @@ export default function Login({
                 icon={<LockIcon />} 
                 placeholder="Password Admin" 
                 type="text"
-                style={showPin ? {} : ({ WebkitTextSecurity: 'disc' } as any)}
+                style={normalInputStyle}
                 value={adminPass || ""} 
                 onChange={(e: any) => setAdminPass(e.target.value)} 
-                className={`border-gray-300 bg-gray-100 text-slate-900 focus-within:border-[#0B2027] mb-6 ${inputInset}`}
+                className={`${inputInset} mb-6`}
               />
               
               <button 
                 onClick={handleAdminLogin} 
-                className={`w-full bg-gradient-to-r from-[#0B2027] to-[#1a3f4c] hover:from-[#13313c] hover:to-[#0B2027] text-white py-3.5 mt-2 rounded-full font-extrabold border border-[#235867] tracking-wider transition-all active:scale-[0.98] ${mainBtnInset}`}
+                className="w-full py-3.5 mt-2 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] shadow-md"
+                style={{
+                  backgroundColor: "var(--accent)",
+                  color: "var(--background)",
+                  boxShadow: "0 0 15px var(--accent-glow)",
+                }}
               >
                 Gabung Admin
               </button>
