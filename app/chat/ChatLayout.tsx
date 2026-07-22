@@ -1,83 +1,47 @@
 "use client";
 import React from "react";
 import Admin from "../../components/Admin";
-import { useTheme } from "@/app/context/ThemeContext";
+import { useTheme } from "../context/ThemeContext";
 
-// Peta warna RGB khusus gelombang untuk 10 model tema
+// Helper untuk mengonversi Hex (#ffffff) ke format RGB (255, 255, 255)
+const hexToRgb = (hex: string) => {
+  if (!hex) return "59, 130, 246";
+  let c = hex.replace("#", "");
+  if (c.length === 3) c = c.split("").map((x) => x + x).join("");
+  const num = parseInt(c, 16);
+  if (isNaN(num)) return "59, 130, 246";
+  return `${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}`;
+};
+
 const THEME_WAVES: Record<string, { layer1: string; layer2: string; layer3: string; glow: string }> = {
-  "dark": {
-    layer1: "45, 45, 50",
-    layer2: "161, 161, 170",
-    layer3: "228, 228, 231",
-    glow: "drop-shadow(0 0 15px rgba(228,228,231,0.2))"
-  },
-  "navy-electric": {
-    layer1: "15, 23, 42",
-    layer2: "59, 130, 246",
-    layer3: "148, 163, 184",
-    glow: "drop-shadow(0 0 15px rgba(59,130,246,0.4))"
-  },
-  "emerald-cream": {
-    layer1: "6, 95, 70",
-    layer2: "16, 185, 129",
-    layer3: "167, 243, 208",
-    glow: "drop-shadow(0 0 15px rgba(16,185,129,0.4))"
-  },
-  "teal-coral": {
-    layer1: "15, 118, 110",
-    layer2: "255, 127, 80",
-    layer3: "245, 230, 202",
-    glow: "drop-shadow(0 0 15px rgba(255,127,80,0.4))"
-  },
-  "sea-citrus": {
-    layer1: "26, 117, 109",
-    layer2: "46, 196, 182",
-    layer3: "255, 159, 28",
-    glow: "drop-shadow(0 0 15px rgba(255,159,28,0.4))"
-  },
-  "raisin-sunset": {
-    layer1: "39, 39, 39",
-    layer2: "212, 170, 125",
-    layer3: "239, 208, 158",
-    glow: "drop-shadow(0 0 15px rgba(239,208,158,0.3))"
-  },
-  "gunmetal-platinum": {
-    layer1: "45, 49, 66",
-    layer2: "173, 172, 181",
-    layer3: "216, 213, 219",
-    glow: "drop-shadow(0 0 15px rgba(216,213,219,0.3))"
-  },
-  "charcoal-ecru": {
-    layer1: "39, 62, 71",
-    layer2: "216, 201, 155",
-    layer3: "216, 151, 60",
-    glow: "drop-shadow(0 0 15px rgba(216,151,60,0.3))"
-  },
-  "charcoal-sage": {
-    layer1: "46, 46, 46",
-    layer2: "181, 203, 183",
-    layer3: "243, 239, 230",
-    glow: "drop-shadow(0 0 15px rgba(181,203,183,0.3))"
-  },
-  "cyber-neon": {
-    layer1: "127, 86, 255",
-    layer2: "128, 255, 86",
-    layer3: "43, 45, 49",
-    glow: "drop-shadow(0 0 15px rgba(127,86,255,0.5))"
-  }
+  "dark": { layer1: "45, 45, 50", layer2: "161, 161, 170", layer3: "228, 228, 231", glow: "drop-shadow(0 0 15px rgba(228,228,231,0.2))" },
+  "navy-electric": { layer1: "15, 23, 42", layer2: "59, 130, 246", layer3: "148, 163, 184", glow: "drop-shadow(0 0 15px rgba(59,130,246,0.4))" },
+  "emerald-cream": { layer1: "6, 95, 70", layer2: "16, 185, 129", layer3: "167, 243, 208", glow: "drop-shadow(0 0 15px rgba(16,185,129,0.4))" },
+  "teal-coral": { layer1: "15, 118, 110", layer2: "255, 127, 80", layer3: "245, 230, 202", glow: "drop-shadow(0 0 15px rgba(255,127,80,0.4))" },
+  "sea-citrus": { layer1: "26, 117, 109", layer2: "46, 196, 182", layer3: "255, 159, 28", glow: "drop-shadow(0 0 15px rgba(255,159,28,0.4))" },
+  "raisin-sunset": { layer1: "39, 39, 39", layer2: "212, 170, 125", layer3: "239, 208, 158", glow: "drop-shadow(0 0 15px rgba(239,208,158,0.3))" },
+  "gunmetal-platinum": { layer1: "45, 49, 66", layer2: "173, 172, 181", layer3: "216, 213, 219", glow: "drop-shadow(0 0 15px rgba(216,213,219,0.3))" },
+  "charcoal-ecru": { layer1: "39, 62, 71", layer2: "216, 201, 155", layer3: "216, 151, 60", glow: "drop-shadow(0 0 15px rgba(216,151,60,0.3))" },
+  "charcoal-sage": { layer1: "46, 46, 46", layer2: "181, 203, 183", layer3: "243, 239, 230", glow: "drop-shadow(0 0 15px rgba(181,203,183,0.3))" },
+  "cyber-neon": { layer1: "127, 86, 255", layer2: "128, 255, 86", layer3: "43, 45, 49", glow: "drop-shadow(0 0 15px rgba(127,86,255,0.5))" }
 };
 
 /* ---- Fluid Blob Atas ---- */
 const FluidTop = () => {
-  const { theme } = useTheme();
-  const activeWave = THEME_WAVES[theme] || THEME_WAVES["dark"];
-  
+  const { theme, customColors } = useTheme();
+
+  const activeWave = theme === "custom" ? {
+    layer1: hexToRgb(customColors.wave1),
+    layer2: hexToRgb(customColors.wave2),
+    layer3: hexToRgb(customColors.wave3),
+    glow: `drop-shadow(0 0 15px ${customColors.wave2}66)`
+  } : (THEME_WAVES[theme] || THEME_WAVES["dark"]);
+
   return (
     <div 
       className="absolute top-0 left-0 w-full h-[8%] overflow-hidden pointer-events-none origin-top animate-blob-bounce-top" 
       style={{ zIndex: 1, filter: activeWave.glow }}
     >
-      {/* Layer 1 */}
       <div
         className="absolute bottom-0 left-0 w-[200%] h-full animate-wave"
         style={{
@@ -87,7 +51,6 @@ const FluidTop = () => {
           backgroundSize: "50% 100%",
         }}
       />
-      {/* Layer 2 */}
       <div
         className="absolute bottom-0 left-0 w-[200%] h-full animate-wave-reverse"
         style={{
@@ -103,8 +66,15 @@ const FluidTop = () => {
 
 /* ---- Fluid Blob Bawah ---- */
 const FluidBottom = () => {
-  const { theme } = useTheme();
-  const activeWave = THEME_WAVES[theme] || THEME_WAVES["dark"];
+  const { theme, customColors } = useTheme();
+
+  const activeWave = theme === "custom" ? {
+    layer1: hexToRgb(customColors.wave1),
+    layer2: hexToRgb(customColors.wave2),
+    layer3: hexToRgb(customColors.wave3),
+    glow: `drop-shadow(0 0 15px ${customColors.wave2}66)`
+  } : (THEME_WAVES[theme] || THEME_WAVES["dark"]);
+
   const bgSize = "50% 100%";
 
   return (
@@ -112,7 +82,6 @@ const FluidBottom = () => {
       className="absolute bottom-0 left-0 w-full h-[30%] overflow-hidden pointer-events-none origin-bottom animate-blob-bounce-bottom" 
       style={{ zIndex: 1, filter: activeWave.glow }}
     >
-      {/* Layer 1 */}
       <div 
         className="absolute bottom-0 left-0 w-[200%] h-full animate-wave" 
         style={{ 
@@ -122,8 +91,6 @@ const FluidBottom = () => {
           backgroundSize: bgSize 
         }} 
       />
-      
-      {/* Layer 2 */}
       <div 
         className="absolute bottom-0 left-0 w-[200%] h-full animate-wave" 
         style={{ 
@@ -133,8 +100,6 @@ const FluidBottom = () => {
           backgroundSize: bgSize 
         }} 
       />
-
-      {/* Layer 3 */}
       <div 
         className="absolute bottom-0 left-0 w-[200%] h-full animate-wave-reverse" 
         style={{ 
@@ -148,7 +113,6 @@ const FluidBottom = () => {
   );
 };
 
-/* ---- Main layout ---- */
 export default function ChatLayout({ 
   cMode, 
   hScroll, 
@@ -161,7 +125,6 @@ export default function ChatLayout({
   fmtTime, 
   setSelPriv 
 }: any) {
-  
   return (
     <>
       <style>{`
@@ -178,12 +141,8 @@ export default function ChatLayout({
           0%, 100% { transform: scaleY(1); }
           50% { transform: scaleY(1.15); }
         }
-        .animate-blob-bounce-top {
-          animation: blob-bounce-top 6s ease-in-out infinite;
-        }
-        .animate-blob-bounce-bottom {
-          animation: blob-bounce-bottom 8s ease-in-out infinite;
-        }
+        .animate-blob-bounce-top { animation: blob-bounce-top 6s ease-in-out infinite; }
+        .animate-blob-bounce-bottom { animation: blob-bounce-bottom 8s ease-in-out infinite; }
       `}</style>
 
       <div className="flex w-full h-full relative transition-all duration-500 ease-in-out">

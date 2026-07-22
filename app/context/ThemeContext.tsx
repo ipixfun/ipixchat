@@ -1,7 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-// Daftar 10 tema lengkap sebagai konstan
 export const AVAILABLE_THEMES = [
   "dark",
   "navy-electric",
@@ -13,47 +12,87 @@ export const AVAILABLE_THEMES = [
   "charcoal-ecru",
   "charcoal-sage",
   "cyber-neon",
+  "custom",
 ] as const;
 
 export type Theme = typeof AVAILABLE_THEMES[number];
 
+export interface CustomColors {
+  bg: string;
+  accent: string;
+  text: string;
+  wave1: string;
+  wave2: string;
+  wave3: string;
+}
+
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  customColors: CustomColors;
+  setCustomColors: (colors: CustomColors) => void;
   mounted: boolean;
 }
+
+const DEFAULT_CUSTOM: CustomColors = {
+  bg: "#09090b",
+  accent: "#3b82f6",
+  text: "#f4f4f5",
+  wave1: "#1e293b",
+  wave2: "#3b82f6",
+  wave3: "#60a5fa",
+};
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
+  const [customColors, setCustomColors] = useState<CustomColors>(DEFAULT_CUSTOM);
   const [mounted, setMounted] = useState(false);
 
-  // Load tema dari localStorage saat komponen terpasang di client
   useEffect(() => {
-    const saved = localStorage.getItem("app-theme") as Theme | null;
-    if (saved && AVAILABLE_THEMES.includes(saved)) {
-      setTheme(saved);
+    const savedTheme = localStorage.getItem("app-theme") as Theme | null;
+    const savedCustom = localStorage.getItem("app-custom-colors");
+
+    if (savedTheme && AVAILABLE_THEMES.includes(savedTheme)) {
+      setTheme(savedTheme);
+    }
+    if (savedCustom) {
+      try {
+        setCustomColors(JSON.parse(savedCustom));
+      } catch (e) {}
     }
     setMounted(true);
   }, []);
 
-  // Update class di element <html> & simpan ke localStorage setiap kali tema berubah
   useEffect(() => {
     if (!mounted) return;
-    
+
     localStorage.setItem("app-theme", theme);
-    
-    // Generator daftar class tema ("theme-dark", "theme-navy-electric", dll)
+    localStorage.setItem("app-custom-colors", JSON.stringify(customColors));
+
     const themeClasses = AVAILABLE_THEMES.map((t) => `theme-${t}`);
-    
-    // Hapus semua class lama sekaligus & tambahkan class yang aktif
     document.documentElement.classList.remove(...themeClasses);
-    document.documentElement.classList.add(`theme-${theme}`);
-  }, [theme, mounted]);
+
+    if (theme === "custom") {
+      const root = document.documentElement;
+      root.style.setProperty("--background", customColors.bg);
+      root.style.setProperty("--background-gradient-start", customColors.bg);
+      root.style.setProperty("--background-gradient-end", customColors.bg);
+      root.style.setProperty("--accent", customColors.accent);
+      root.style.setProperty("--accent-glow", `${customColors.accent}4d`);
+      root.style.setProperty("--foreground-heading", customColors.text);
+      root.style.setProperty("--foreground", `${customColors.text}b3`);
+      root.style.setProperty("--card-bg", `${customColors.accent}1a`);
+      root.style.setProperty("--card-border", `${customColors.accent}33`);
+    } else {
+      document.documentElement.removeAttribute("style");
+      document.documentElement.classList.add(`theme-${theme}`);
+    }
+  }, [theme, customColors, mounted]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, mounted }}>
+    <ThemeContext.Provider value={{ theme, setTheme, customColors, setCustomColors, mounted }}>
       {children}
     </ThemeContext.Provider>
   );
