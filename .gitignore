@@ -47,3 +47,5 @@ next-env.d.ts
 
 # VS Code Settings (Biar settingan lokal kamu tidak mengotori repository)
 .vscode/
+.vercel
+.env*
