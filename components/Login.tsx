@@ -26,7 +26,7 @@ const EyeOffIcon = () => (
   <svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>
 );
 
-// --- CANVAS FIREWORKS DURASI PANJANG & 100% WAKTU TEMA ---
+// --- CANVAS FIREWORKS TEMA ---
 const FireworksCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -40,14 +40,12 @@ const FireworksCanvas = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // AMBIL MURNI WARNA DARI CSS VARIABLES TEMA AKTIF
     const styles = getComputedStyle(document.documentElement);
     const accent = styles.getPropertyValue('--accent').trim() || '#3b82f6';
     const heading = styles.getPropertyValue('--foreground-heading').trim() || '#ffffff';
     const glow = styles.getPropertyValue('--accent-glow').trim() || accent;
     const fg = styles.getPropertyValue('--foreground').trim() || heading;
 
-    // Hanya menggunakan variasi palet warna tema yang dipilih
     const themeColors = [accent, heading, glow, fg];
 
     class Particle {
@@ -56,19 +54,19 @@ const FireworksCanvas = () => {
         this.x = x;
         this.y = y;
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 8 + 3; // Kecepatan meletus bervariasi
+        const speed = Math.random() * 8 + 3;
         this.vx = Math.cos(angle) * speed;
         this.vy = Math.sin(angle) * speed;
         this.color = themeColors[Math.floor(Math.random() * themeColors.length)];
         this.size = Math.random() * 3.5 + 2;
         this.alpha = 1;
-        this.decay = Math.random() * 0.008 + 0.005; // Decay diperhalus agar bertahan lama
+        this.decay = Math.random() * 0.008 + 0.005;
       }
       update() {
         this.x += this.vx;
         this.y += this.vy;
-        this.vy += 0.04; // Gravitas halus
-        this.vx *= 0.98; // Gesekan udara
+        this.vy += 0.04;
+        this.vx *= 0.98;
         this.vy *= 0.98;
         this.alpha -= this.decay;
       }
@@ -94,12 +92,11 @@ const FireworksCanvas = () => {
     };
 
     let frame = 0;
-    const maxFrames = 180; // Meletus konsisten selama ~3 detik (60fps)
+    const maxFrames = 180;
 
     const render = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Meletus berulang kali secara dinamis dari posisi acak
       if (frame % 14 === 0 && frame < maxFrames) {
         createBurst(
           Math.random() * (canvas.width * 0.8) + canvas.width * 0.1, 
@@ -228,6 +225,9 @@ export default function Login({
   // STATE NOTIFIKASI PILL & FIREWORKS
   const [showWelcomePill, setShowWelcomePill] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false);
+  const [pillText, setPillText] = useState("");
+  const [pillIcon, setPillIcon] = useState("🎆");
+  const [isPillWarning, setIsPillWarning] = useState(false);
 
   useEffect(() => {
     if (isExistingUser) return;
@@ -263,7 +263,7 @@ export default function Login({
     ? (username?.trim().length > 0 && pin?.length === 6)
     : (username?.trim().length > 0 && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed);
 
-  // HANDLER LOGIN / MASUK CHAT DENGAN ANIMASI PILL & FIREWORKS (DURASI 3.2 DETIK)
+  // HANDLER LOGIN / REGISTER WITH PILL & FIREWORKS
   const handleUserLoginWrapper = () => {
     if (!isExistingUser) {
       if (!username || username.trim().length === 0) {
@@ -274,6 +274,24 @@ export default function Login({
         setValidationMsg("PIN harus 6 angka sayang");
         return;
       }
+
+      // 🔴 JIKA USER KLIK LOGIN TAPI BELUM REGISTER:
+      if (isLoginMode) {
+        setPillIcon("⚠️");
+        setPillText("Register dulu sayang 💕");
+        setIsPillWarning(true);
+        setShowWelcomePill(true);
+        setShowFireworks(false);
+
+        // Tampilkan notifikasi pill sebentar, lalu alihkan otomatis ke tab Register
+        setTimeout(() => {
+          setShowWelcomePill(false);
+          setIsLoginMode(false); // Otomatis berpindah ke tab Register
+        }, 2200);
+        return;
+      }
+
+      // 🔵 JIKA DI TAB REGISTER:
       if (!isLoginMode) {
         if (!umur || !berat) {
           setValidationMsg("Pilih umur & berat sayang");
@@ -285,9 +303,13 @@ export default function Login({
         }
       }
     }
+
     setValidationMsg("");
 
-    // Pemicu Fireworks & Pill
+    // 🟢 JIKA USER SUDAH TERDAFTAR / SELESAI REGISTER:
+    setPillIcon("🎆");
+    setPillText(`Selamat datang ${username ? `${username} ` : ''}sayang! 💕`);
+    setIsPillWarning(false);
     setShowWelcomePill(true);
     setShowFireworks(true);
 
@@ -376,10 +398,10 @@ export default function Login({
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
       
-      {/* 🎆 CANVAS FIREWORKS PANJANG & DINAMIS TEMA */}
+      {/* 🎆 CANVAS FIREWORKS */}
       {showFireworks && <FireworksCanvas />}
 
-      {/* 💊 NOTIFIKASI PILL "SELAMAT DATANG SAYANG" */}
+      {/* 💊 NOTIFIKASI PILL */}
       <AnimatePresence>
         {showWelcomePill && (
           <motion.div
@@ -388,15 +410,19 @@ export default function Login({
             exit={{ opacity: 0, y: -20, scale: 0.9 }}
             className="fixed top-8 z-[101] px-6 py-3 rounded-full font-black text-xs sm:text-sm border shadow-2xl flex items-center gap-2 backdrop-blur-xl animate-bounce"
             style={{
-              backgroundColor: "color-mix(in srgb, var(--card-bg) 90%, var(--accent))",
-              borderColor: "var(--accent)",
+              backgroundColor: isPillWarning 
+                ? "color-mix(in srgb, var(--card-bg) 85%, #f59e0b)" 
+                : "color-mix(in srgb, var(--card-bg) 90%, var(--accent))",
+              borderColor: isPillWarning ? "#f59e0b" : "var(--accent)",
               color: "var(--foreground-heading)",
-              boxShadow: "0 0 25px var(--accent-glow), inset 0 0 10px var(--accent-glow)",
+              boxShadow: isPillWarning 
+                ? "0 0 25px rgba(245, 158, 11, 0.4), inset 0 0 10px rgba(245, 158, 11, 0.2)"
+                : "0 0 25px var(--accent-glow), inset 0 0 10px var(--accent-glow)",
             }}
           >
-            <span>🎆</span>
-            <span>Selamat datang {username ? `${username} ` : ''}sayang! 💕</span>
-            <span>✨</span>
+            <span>{pillIcon}</span>
+            <span>{pillText}</span>
+            {!isPillWarning && <span>✨</span>}
           </motion.div>
         )}
       </AnimatePresence>
@@ -425,7 +451,6 @@ export default function Login({
                 color: "var(--foreground)",
               }}
             >
-              {/* JIKA USER SUDAH REGISTER (isExistingUser), KOTAK ATAS DIKOSONGKAN */}
               {isExistingUser ? null : (
                 <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
                   
