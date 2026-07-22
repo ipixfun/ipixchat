@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ThemeProvider } from "./context/ThemeContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,9 +14,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Script anti-flash: set tema sebelum React render */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('app-theme') || 'dark';
+                  document.documentElement.classList.add('theme-' + theme);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="antialiased">
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
