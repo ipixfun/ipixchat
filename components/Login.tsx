@@ -26,7 +26,7 @@ const EyeOffIcon = () => (
   <svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>
 );
 
-// --- CANVAS FIREWORKS DINAMIS WAKTU TEMA ---
+// --- CANVAS FIREWORKS DURASI PANJANG & 100% WAKTU TEMA ---
 const FireworksCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -40,13 +40,15 @@ const FireworksCanvas = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // Ambil warna tema dinamis
+    // AMBIL MURNI WARNA DARI CSS VARIABLES TEMA AKTIF
     const styles = getComputedStyle(document.documentElement);
     const accent = styles.getPropertyValue('--accent').trim() || '#3b82f6';
     const heading = styles.getPropertyValue('--foreground-heading').trim() || '#ffffff';
-    const glow = styles.getPropertyValue('--accent-glow').trim() || '#60a5fa';
+    const glow = styles.getPropertyValue('--accent-glow').trim() || accent;
+    const fg = styles.getPropertyValue('--foreground').trim() || heading;
 
-    const colors = [accent, heading, glow, '#f59e0b', '#ec4899', '#10b981', '#8b5cf6'];
+    // Hanya menggunakan variasi palet warna tema yang dipilih
+    const themeColors = [accent, heading, glow, fg];
 
     class Particle {
       x: number; y: number; vx: number; vy: number; color: string; size: number; alpha: number; decay: number;
@@ -54,18 +56,20 @@ const FireworksCanvas = () => {
         this.x = x;
         this.y = y;
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 7 + 2;
+        const speed = Math.random() * 8 + 3; // Kecepatan meletus bervariasi
         this.vx = Math.cos(angle) * speed;
         this.vy = Math.sin(angle) * speed;
-        this.color = colors[Math.floor(Math.random() * colors.length)];
-        this.size = Math.random() * 3 + 2;
+        this.color = themeColors[Math.floor(Math.random() * themeColors.length)];
+        this.size = Math.random() * 3.5 + 2;
         this.alpha = 1;
-        this.decay = Math.random() * 0.02 + 0.015;
+        this.decay = Math.random() * 0.008 + 0.005; // Decay diperhalus agar bertahan lama
       }
       update() {
         this.x += this.vx;
         this.y += this.vy;
-        this.vy += 0.06; // Gravitas
+        this.vy += 0.04; // Gravitas halus
+        this.vx *= 0.98; // Gesekan udara
+        this.vy *= 0.98;
         this.alpha -= this.decay;
       }
       draw(context: CanvasRenderingContext2D) {
@@ -75,7 +79,7 @@ const FireworksCanvas = () => {
         context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         context.fillStyle = this.color;
         context.shadowColor = this.color;
-        context.shadowBlur = 10;
+        context.shadowBlur = 12;
         context.fill();
         context.restore();
       }
@@ -84,22 +88,23 @@ const FireworksCanvas = () => {
     let particles: Particle[] = [];
 
     const createBurst = (x: number, y: number) => {
-      for (let i = 0; i < 45; i++) {
+      for (let i = 0; i < 55; i++) {
         particles.push(new Particle(x, y));
       }
     };
 
-    // Ledakan Awal
-    createBurst(canvas.width * 0.3, canvas.height * 0.35);
-    createBurst(canvas.width * 0.7, canvas.height * 0.3);
-    createBurst(canvas.width * 0.5, canvas.height * 0.45);
-
     let frame = 0;
+    const maxFrames = 180; // Meletus konsisten selama ~3 detik (60fps)
+
     const render = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      if (frame % 12 === 0 && frame < 50) {
-        createBurst(Math.random() * canvas.width, Math.random() * (canvas.height * 0.5));
+      // Meletus berulang kali secara dinamis dari posisi acak
+      if (frame % 14 === 0 && frame < maxFrames) {
+        createBurst(
+          Math.random() * (canvas.width * 0.8) + canvas.width * 0.1, 
+          Math.random() * (canvas.height * 0.5) + canvas.height * 0.1
+        );
       }
       frame++;
 
@@ -111,7 +116,7 @@ const FireworksCanvas = () => {
         }
       });
 
-      if (particles.length > 0 || frame < 50) {
+      if (particles.length > 0 || frame < maxFrames) {
         animationId = requestAnimationFrame(render);
       }
     };
@@ -258,7 +263,7 @@ export default function Login({
     ? (username?.trim().length > 0 && pin?.length === 6)
     : (username?.trim().length > 0 && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed);
 
-  // HANDLER LOGIN / MASUK CHAT DENGAN ANIMASI PILL & FIREWORKS
+  // HANDLER LOGIN / MASUK CHAT DENGAN ANIMASI PILL & FIREWORKS (DURASI 3.2 DETIK)
   const handleUserLoginWrapper = () => {
     if (!isExistingUser) {
       if (!username || username.trim().length === 0) {
@@ -282,14 +287,14 @@ export default function Login({
     }
     setValidationMsg("");
 
-    // TRIGER FIREWORKS & NOTIFIKASI PILL
+    // Pemicu Fireworks & Pill
     setShowWelcomePill(true);
     setShowFireworks(true);
 
-    // BERI JEDA UNTUK EFEK FIREWORKS SEBELUM MASUK CHAT
+    // Jeda 3.2 Detik sebelum masuk ke Halaman Chat
     setTimeout(() => {
       handleUserLogin(isLoginMode);
-    }, 1400);
+    }, 3200);
   };
 
   // --- INSET SHADOW & THEME STYLES ---
@@ -371,7 +376,7 @@ export default function Login({
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
       
-      {/* 🎆 CANVA FIREWORKS DINAMIS WAKTU TEMA */}
+      {/* 🎆 CANVAS FIREWORKS PANJANG & DINAMIS TEMA */}
       {showFireworks && <FireworksCanvas />}
 
       {/* 💊 NOTIFIKASI PILL "SELAMAT DATANG SAYANG" */}
