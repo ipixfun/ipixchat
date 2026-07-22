@@ -2,6 +2,14 @@
 import React from "react";
 import BottomNav from "../../components/bottomnav"; // Sesuaikan path
 
+// CONFIG SOSMED IPIX DARI LOGIN.TSX
+const socialPlatforms = [
+  { name: 'Twitter', label: 'Twitter : sixripix', link: 'https://x.com/sixripix' },
+  { name: 'TikTok', label: 'Tiktok : ipixaja', link: 'https://tiktok.com/@ipixaja' },
+  { name: 'Heesay', label: 'Heesay/Walla : V206MN/ipiX', link: 'https://international.walla-app.com/user?id=V2O6MN&app=2' },
+  { name: 'Growlr', label: 'Growlr : pix', link: 'https://www.growlrapp.com' },
+];
+
 export default function TentangPage() {
   return (
     <div 
@@ -23,11 +31,11 @@ export default function TentangPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-5 overflow-y-auto">
+      <div className="flex-1 p-5 overflow-y-auto space-y-5">
         
         {/* Logo / Banner */}
         <div 
-          className="w-full py-8 flex flex-col items-center justify-center rounded-3xl border mb-6 shadow-inner transition-colors duration-300"
+          className="w-full py-8 flex flex-col items-center justify-center rounded-3xl border shadow-inner transition-colors duration-300"
           style={{ 
             backgroundColor: "var(--card-bg)",
             borderColor: "var(--card-border)",
@@ -104,6 +112,37 @@ export default function TentangPage() {
                 Tailwind CSS
               </span>
             </div>
+          </div>
+        </div>
+
+        {/* SECTION BARU: SOSIAL MEDIA IPIX */}
+        <div 
+          className="p-5 rounded-2xl border transition-colors duration-300"
+          style={{ 
+            backgroundColor: "var(--card-bg)",
+            borderColor: "var(--card-border)"
+          }}
+        >
+          <h3 className="font-bold text-sm mb-3 flex items-center gap-2" style={{ color: "var(--foreground-heading)" }}>
+            🌐 Sosial Media iPix
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {socialPlatforms.map((platform) => (
+              <a
+                key={platform.name}
+                href={platform.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2.5 rounded-xl border text-xs font-bold transition-all duration-300 flex items-center justify-center text-center active:scale-95 hover:opacity-80 shadow-sm"
+                style={{
+                  backgroundColor: "color-mix(in srgb, var(--background) 40%, transparent)",
+                  borderColor: "var(--card-border)",
+                  color: "var(--foreground-heading)",
+                }}
+              >
+                {platform.label}
+              </a>
+            ))}
           </div>
         </div>
 
