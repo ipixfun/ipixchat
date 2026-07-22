@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 export default function BottomNav() {
   const pathname = usePathname();
 
-  const navItems = [
+  const links = [
     { href: "/", label: "Home", icon: "🏠" },
     { href: "/chat", label: "Chat", icon: "💬" },
     { href: "/tema", label: "Tema", icon: "🎨" },
@@ -14,26 +14,39 @@ export default function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
-      <nav className="w-full max-w-2xl bg-slate-900/90 backdrop-blur-xl border-t border-white/10 px-6 py-2.5 flex justify-around items-center shadow-[0_-4px_20px_rgba(0,0,0,0.3)] pointer-events-auto">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-md"
+      style={{
+        backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)",
+        borderColor: "var(--card-border)",
+      }}
+    >
+      <div className="max-w-2xl mx-auto flex items-center justify-around h-[65px]">
+        {links.map((link) => {
+          const isActive = pathname === link.href;
           return (
             <Link
-              key={item.href}
-              href={item.href}
-              className={`flex flex-col items-center justify-center py-1 px-4 rounded-xl transition-all duration-300 ${
-                isActive
-                  ? "text-blue-400 font-bold scale-105 bg-blue-500/10 shadow-inner"
-                  : "text-white/50 hover:text-white hover:bg-white/5"
-              }`}
+              key={link.href}
+              href={link.href}
+              className="flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all"
+              style={{
+                color: isActive ? "var(--accent)" : "var(--foreground)",
+              }}
             >
-              <span className="text-lg mb-0.5 transition-transform">{item.icon}</span>
-              <span className="text-[10px] tracking-wide">{item.label}</span>
+              <span className={`text-xl transition-transform ${isActive ? "scale-110" : ""}`}>
+                {link.icon}
+              </span>
+              <span className="text-[10px] font-bold">{link.label}</span>
+              {isActive && (
+                <div
+                  className="w-1 h-1 rounded-full mt-0.5"
+                  style={{ backgroundColor: "var(--accent)" }}
+                />
+              )}
             </Link>
           );
         })}
-      </nav>
-    </div>
+      </div>
+    </nav>
   );
 }

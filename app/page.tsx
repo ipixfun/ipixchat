@@ -1,34 +1,110 @@
+"use client";
 import React from "react";
 import Link from "next/link";
-import BottomNav from "../components/bottomnav"; // Sesuaikan path jika error (misal: "./components/bottomnav")
+import BottomNav from "@/components/bottomnav";
 
 export default function HomePage() {
   return (
-    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-slate-950 text-white relative overflow-hidden pb-[70px]">
+    <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px]">
       
-      {/* Background Ornamen */}
-      <div className="absolute top-[-10%] left-[-10%] w-72 h-72 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-72 h-72 bg-emerald-600/20 rounded-full blur-3xl pointer-events-none"></div>
-
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-10">
-        <div className="w-24 h-24 bg-white/10 rounded-3xl flex items-center justify-center border border-white/20 mb-6 shadow-2xl backdrop-blur-sm">
-          <span className="text-5xl">👋</span>
-        </div>
-        
-        <h1 className="text-4xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 drop-shadow-sm">
-          Welcome to iPix
+      {/* Header */}
+      <header 
+        className="sticky top-0 z-20 p-4 backdrop-blur-md border-b"
+        style={{ 
+          backgroundColor: "color-mix(in srgb, var(--background) 80%, transparent)",
+          borderColor: "var(--card-border)"
+        }}
+      >
+        <h1 className="text-xl font-bold" style={{ color: "var(--foreground-heading)" }}>
+          💬 ipixchat
         </h1>
-        
-        <p className="text-white/60 mb-8 max-w-sm text-sm leading-relaxed">
-          Platform chat publik dan privat modern dengan fitur real-time. Temukan teman baru atau hubungi admin dengan aman.
+        <p className="text-xs mt-1" style={{ color: "var(--foreground)" }}>
+          Selamat datang kembali!
         </p>
+      </header>
 
-        <Link 
-          href="/chat" 
-          className="px-8 py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 rounded-full font-bold shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all active:scale-95 text-sm"
+      {/* Content */}
+      <div className="flex-1 p-5 overflow-y-auto space-y-4">
+        
+        {/* Sambutan */}
+        <div 
+          className="p-5 rounded-2xl"
+          style={{ 
+            backgroundColor: "var(--card-bg)", 
+            border: "1px solid var(--card-border)" 
+          }}
         >
-          Mulai Chatting Sekarang 🚀
-        </Link>
+          <h2 className="text-lg font-bold mb-2" style={{ color: "var(--foreground-heading)" }}>
+            👋 Halo, Pengguna!
+          </h2>
+          <p className="text-sm" style={{ color: "var(--foreground)" }}>
+            Anda memiliki <strong>3 pesan baru</strong> yang belum dibaca.
+          </p>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-3">
+          <Link
+            href="/chat"
+            className="p-4 rounded-2xl text-center transition-all hover:scale-[1.02] active:scale-[0.98]"
+            style={{ 
+              backgroundColor: "var(--accent)",
+              boxShadow: `0 0 20px var(--accent-glow)`
+            }}
+          >
+            <span className="text-2xl">💬</span>
+            <p className="text-sm font-bold text-white mt-2">Mulai Chat</p>
+          </Link>
+          
+          <Link
+            href="/tema"
+            className="p-4 rounded-2xl text-center transition-all hover:scale-[1.02] active:scale-[0.98]"
+            style={{ 
+              backgroundColor: "var(--card-bg)",
+              border: "1px solid var(--card-border)"
+            }}
+          >
+            <span className="text-2xl">🎨</span>
+            <p className="text-sm font-bold mt-2" style={{ color: "var(--foreground-heading)" }}>
+              Ubah Tema
+            </p>
+          </Link>
+        </div>
+
+        {/* Riwayat Chat */}
+        <h3 className="font-bold text-sm mt-6" style={{ color: "var(--foreground-heading)" }}>
+          📋 Riwayat Chat
+        </h3>
+
+        {["Budi", "Ani", "Dina"].map((name, i) => (
+          <Link
+            key={i}
+            href="/chat"
+            className="flex items-center gap-3 p-3 rounded-xl transition-all hover:scale-[1.01]"
+            style={{ 
+              backgroundColor: "var(--card-bg)",
+              border: "1px solid var(--card-border)"
+            }}
+          >
+            <div 
+              className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold text-white"
+              style={{ backgroundColor: "var(--accent)" }}
+            >
+              {name[0]}
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-sm" style={{ color: "var(--foreground-heading)" }}>
+                {name}
+              </p>
+              <p className="text-xs truncate" style={{ color: "var(--foreground)" }}>
+                Pesan terakhir dari {name}...
+              </p>
+            </div>
+            <span className="text-xs" style={{ color: "var(--accent)" }}>
+              {i + 1} baru
+            </span>
+          </Link>
+        ))}
       </div>
 
       <BottomNav />
