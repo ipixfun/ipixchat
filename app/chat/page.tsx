@@ -8,6 +8,67 @@ import ChatLayout from "../../components/ChatLayout";
 import { MessageItem } from "../../components/MessageItem";
 import Loading from "../loading";
 import BottomNav from "../../components/bottomnav";
+import { useTheme } from "../context/ThemeContext";
+
+// Wrapper untuk tema input
+const InputThemeWrapper = ({ children, defaultStyles }: { children: (styles: any) => React.ReactNode, defaultStyles: any }) => {
+  const { theme } = useTheme();
+  
+  const getInputTheme = () => {
+    switch (theme) {
+      case "emerald":
+        // Tema emerald -> wave emerald green + dark gray, kolom input emerald green
+        return {
+          container: "bg-emerald-400/10 border-emerald-400/20",
+          input: "bg-emerald-400/10 border-emerald-400/20 focus:border-emerald-400 focus:bg-emerald-400/20",
+          inputBlink: "bg-emerald-600/40 border-emerald-400 ring-2 ring-emerald-400/50",
+          button: "bg-emerald-600/80 text-white",
+          replyBg: "bg-emerald-900/40 border-emerald-500/30 text-emerald-100",
+          placeholder: "text-white/40",
+          counter: "text-white/30",
+          refreshBtn: "bg-yellow-400/80 text-black border-yellow-500",
+          cancelBtn: "bg-red-500/80 text-white border-red-600",
+          uploadIcon: "text-white/60 hover:text-blue-400",
+          labelText: "text-white/40",
+        };
+      case "blue":
+        // Tema ocean blue -> wave ocean blue + dark gray, kolom input ocean blue
+        return {
+          container: "bg-blue-400/10 border-blue-400/20",
+          input: "bg-blue-400/10 border-blue-400/20 focus:border-blue-500 focus:bg-blue-400/20",
+          inputBlink: "bg-blue-600/40 border-blue-400 ring-2 ring-blue-400/50",
+          button: "bg-blue-600/80 text-white",
+          replyBg: "bg-blue-900/40 border-blue-500/30 text-blue-100",
+          placeholder: "text-white/40",
+          counter: "text-white/30",
+          refreshBtn: "bg-yellow-400/80 text-black border-yellow-500",
+          cancelBtn: "bg-red-500/80 text-white border-red-600",
+          uploadIcon: "text-white/60 hover:text-blue-400",
+          labelText: "text-white/40",
+        };
+      case "dark":
+        // Tema dark -> wave dark gray & soft gray, kolom input dark gray
+        return {
+          container: "bg-gray-700/20 border-gray-600/20",
+          input: "bg-gray-700/30 border-gray-600/30 focus:border-gray-500 focus:bg-gray-700/40 text-gray-200",
+          inputBlink: "bg-gray-600/40 border-gray-400 ring-2 ring-gray-400/50",
+          button: "bg-gray-600/80 text-white hover:bg-gray-500/80",
+          replyBg: "bg-gray-800/40 border-gray-600/30 text-gray-200",
+          placeholder: "text-gray-400",
+          counter: "text-gray-400",
+          refreshBtn: "bg-yellow-500/90 text-black border-yellow-600 font-bold hover:bg-yellow-400/90",
+          cancelBtn: "bg-red-600/80 text-white border-red-700",
+          uploadIcon: "text-gray-400 hover:text-blue-400",
+          labelText: "text-gray-400",
+        };
+      default:
+        return defaultStyles;
+    }
+  };
+
+  const styles = getInputTheme();
+  return <>{children(styles)}</>;
+};
 
 export default function Home() {
   const pathname = usePathname();
@@ -29,11 +90,9 @@ export default function Home() {
   });
   const [ui, setUi] = useState({
     tab: "user" as "user" | "admin",
-    mode: "public" as "public" | "private",
+    mode: "private" as "private",
     inputFocus: false,
   });
-
-  const [viewMode, setViewMode] = useState<"split" | "full-public" | "full-private">("split");
 
   const [counts, setCounts] = useState({ pub: 0, priv: 0 });
   const [adminStat, setAdminStat] = useState({
@@ -64,20 +123,8 @@ export default function Home() {
     popup: null as any,
     swipeId: null as number | null,
   });
-  const [pill, setPill] = useState({
-    idx: 0 as 0 | 1,
-    pause: false,
-    visible: true,
-    startX: 0,
-    delta: 0,
-  });
 
   const currentHash = typeof window !== "undefined" ? window.location.hash : "";
-  const [refresh, setRefresh] = useState({
-    pos: { x: 20, y: 100 },
-    drag: false,
-    hover: false,
-  });
 
   const CLOUDINARY_CLOUD_NAME = "bjamo8ld";
   const CLOUDINARY_UPLOAD_PRESET = "ipixchat";
@@ -108,33 +155,14 @@ export default function Home() {
   );
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setRefresh((p) => ({
-        ...p,
-        pos: { x: window.innerWidth - 80, y: window.innerHeight - 180 },
-      }));
-    }
-  }, []);
-
-  useEffect(() => {
     const timer = setTimeout(() => {
-      const el = document.getElementById(`bottom-anchor-${ui.mode}`);
+      const el = document.getElementById(`bottom-anchor-private`);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "end" });
       }
     }, 200);
     return () => clearTimeout(timer);
-  }, [msgs.pub.length, msgs.priv.length, ui.mode]);
-
-  const handleInteraction = useCallback((m: "public" | "private") => {
-    setUi((p) => ({ ...p, mode: m }));
-  }, []);
-
-  useEffect(() => {
-    if (pill.pause) return;
-    const i = setInterval(() => setPill((p) => ({ ...p, idx: p.idx === 0 ? 1 : 0 })), 5000);
-    return () => clearInterval(i);
-  }, [pill.pause]);
+  }, [msgs.priv.length]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -198,28 +226,20 @@ export default function Home() {
     }
   };
 
-  // --- PERUBAHAN HANDLE LOGOUT ---
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    
-    // Hapus spesifik state login saja, jangan pakai localStorage.clear() 
-    // agar `active_username` tetap ada
     localStorage.removeItem("is_auth");
     localStorage.removeItem("active_tab");
     sessionStorage.clear();
-    
-    // Jangan menghapus state pin, umur, dan berat di UI agar form masih terisi
     setAuth((p) => ({ ...p, isAuth: false }));
-    
     window.location.replace("/");
   };
 
   const fetchData = useCallback(async () => {
     try {
-      const [{ data: bD }, { data: bW }, { data: pD }, { data: prD }] = await Promise.all([
+      const [{ data: bD }, { data: bW }, { data: prD }] = await Promise.all([
         supabase.from("blocked_users").select("*"),
         supabase.from("blocked_words").select("word"),
-        supabase.from("messages").select("*").eq("is_private", false).order("created_at", { ascending: true }),
         supabase
           .from("messages")
           .select("*")
@@ -235,22 +255,18 @@ export default function Home() {
       }
 
       if (auth.isAuth) {
-        const [{ count: pubC }, { count: privC }] = await Promise.all([
-          supabase.from("messages").select("*", { count: "exact", head: true }).eq("is_private", false),
-          supabase
-            .from("messages")
-            .select("*", { count: "exact", head: true })
-            .eq("is_private", true)
-            .or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},private_with.eq.${auth.user}` : `id.gt.0`),
-        ]);
-        setCounts({ pub: pubC || 0, priv: privC || 0 });
+        const { count: privC } = await supabase
+          .from("messages")
+          .select("*", { count: "exact", head: true })
+          .eq("is_private", true)
+          .or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},private_with.eq.${auth.user}` : `id.gt.0`);
+        setCounts({ ...counts, priv: privC || 0 });
       }
 
-      const vPub = pD?.filter((m) => !bD?.map((b) => b.username).includes(m.username)) || [];
       const vPriv = prD?.filter((m) => !bD?.map((b) => b.username).includes(m.username)) || [];
-      setMsgs({ all: [...vPub, ...vPriv], pub: vPub, priv: vPriv });
+      setMsgs({ all: vPriv, pub: [], priv: vPriv });
 
-      const lAdmin = [...vPub, ...vPriv].filter((m) => m.username === "Admin●ipix.my.id").pop();
+      const lAdmin = vPriv.filter((m) => m.username === "Admin●ipix.my.id").pop();
       if (lAdmin) {
         const adminTime = new Date(lAdmin.created_at).getTime();
         setAdminStat({
@@ -261,7 +277,7 @@ export default function Home() {
       }
 
       const sMap: Record<string, any> = {};
-      [...vPub, ...vPriv].forEach((m) => {
+      vPriv.forEach((m) => {
         if (m.username !== "Admin●ipix.my.id") {
           const t = new Date(m.created_at).getTime();
           sMap[m.username] = {
@@ -312,7 +328,7 @@ export default function Home() {
         );
       return {
         all: update(prev.all),
-        pub: update(prev.pub),
+        pub: [],
         priv: update(prev.priv),
       };
     });
@@ -467,7 +483,6 @@ export default function Home() {
     }
   };
 
-  // --- PERUBAHAN USEEFFECT PENGECEKAN SESI ---
   useEffect(() => {
     const chk = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -476,7 +491,6 @@ export default function Home() {
       const isAuthLocal = localStorage.getItem("is_auth") === "true"; 
       
       if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
-          // Pakai maybeSingle() supaya gak error jika user kebetulan dihapus dari DB
           const { data: pD } = await supabase
             .from("profiles")
             .select("username, pin, umur, berat")
@@ -493,7 +507,6 @@ export default function Home() {
               berat: pD.berat || ""
             }));
           } else {
-             // Fallback kalo di lokal ada tapi di DB terhapus
              setAuth((p) => ({ ...p, user: savedUsername }));
           }
       }
@@ -504,7 +517,6 @@ export default function Home() {
         tab: isAdmin ? "admin" : (localStorage.getItem("active_tab") as "user" | "admin") || "user",
       }));
       
-      // Pakai local is_auth sebagai penentu auth user juga (agar tidak logout saat refresh)
       if (session || isAuthLocal) {
         setAuth((p) => ({
           ...p,
@@ -620,8 +632,8 @@ export default function Home() {
         pesan: txt,
         image_url: input.image,
         is_approved: auth.user === "Admin●ipix.my.id",
-        is_private: ui.mode === "private",
-        private_with: ui.mode === "private" ? (ui.tab === "user" ? "admin" : usersInfo.selPriv) : null,
+        is_private: true,
+        private_with: ui.tab === "user" ? "admin" : usersInfo.selPriv,
         user_browser: navigator.userAgent,
       },
     ]);
@@ -642,7 +654,7 @@ export default function Home() {
     }
 
     setTimeout(() => {
-      const el = document.getElementById(`bottom-anchor-${ui.mode}`);
+      const el = document.getElementById(`bottom-anchor-private`);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "end" });
     }, 150);
 
@@ -655,7 +667,7 @@ export default function Home() {
     .filter(([_, data]) => data.online)
     .map(([username]) => username);
 
-  const currentMsgs = ui.mode === "public" ? msgs.pub : msgs.priv;
+  const currentMsgs = msgs.priv;
   const pinnedMsg = currentMsgs.find((m) => m.is_pinned && m.pesan !== "___DELETED___");
 
   const renderMsgs = (arr: any[], colType: any) => {
@@ -664,7 +676,7 @@ export default function Home() {
     ) : (
       arr.map((m, idx) => {
         const isMine = m.username === auth.user;
-        const maxWidthClass = viewMode === "split" ? "max-w-[95%]" : "max-w-[85%] md:max-w-[75%]";
+        const maxWidthClass = "max-w-[85%] md:max-w-[75%]";
 
         return (
           <div key={m.id} className={`w-full flex mb-3 px-2 sm:px-4 ${isMine ? "justify-end" : "justify-start"}`}>
@@ -699,10 +711,7 @@ export default function Home() {
                 editMsg={dbActions.editMsg}
                 editNama={dbActions.editNm}
                 blockUser={dbActions.blkUser}
-                inviteToPrivate={() => {
-                  handleInteraction("private");
-                  setUsersInfo((p) => ({ ...p, selPriv: m.username }));
-                }}
+                inviteToPrivate={() => {}}
                 setPopupMsg={(m: any) => setInteract((p) => ({ ...p, popup: m }))}
                 handleLongPress={(m: any) => setInteract((p) => ({ ...p, popup: m }))}
                 approveImage={dbActions.approveImg}
@@ -726,11 +735,11 @@ export default function Home() {
         {pinnedMsg && (
           <div
             onClick={() => scrollMsg(pinnedMsg.id)}
-            className={`mx-3 mb-4 p-2.5 rounded-lg cursor-pointer shadow-md transition-all active:scale-95 flex items-center gap-3 border-l-4 z-10 ${ui.mode === "public" ? "bg-blue-800/60 border-blue-400 hover:bg-blue-800/80" : "bg-emerald-800/60 border-emerald-400 hover:bg-emerald-800/80"}`}
+            className="mx-3 mb-4 p-2.5 rounded-lg cursor-pointer shadow-md transition-all active:scale-95 flex items-center gap-3 border-l-4 z-10 bg-emerald-800/60 border-emerald-400 hover:bg-emerald-800/80"
           >
             <div className="text-xl drop-shadow-md">📌</div>
             <div className="flex flex-col flex-1 overflow-hidden">
-              <span className={`text-[10px] font-bold tracking-wide flex items-center gap-1.5 ${ui.mode === "public" ? "text-blue-300" : "text-emerald-300"}`}>
+              <span className="text-[10px] font-bold tracking-wide flex items-center gap-1.5 text-emerald-300">
                 PESAN SEMATAN
                 <span className="opacity-50 text-[9px] font-normal">oleh Admin</span>
               </span>
@@ -740,270 +749,142 @@ export default function Home() {
         )}
         
         {messageContent}
-        <div id={`bottom-anchor-${colType}`} className="h-1 shrink-0 mt-2" />
+        <div id={`bottom-anchor-private`} className="h-1 shrink-0 mt-2" />
       </div>
     );
-  };
-
-  const [pillSwipe, setPillSwipe] = useState({ startX: 0, deltaX: 0, dragging: false, activePill: null as "pub" | "priv" | null });
-
-  const handleTouchStart = (e: any, pill: "pub" | "priv") => {
-    setPillSwipe({
-      startX: e.touches ? e.touches[0].clientX : e.clientX,
-      deltaX: 0,
-      dragging: true,
-      activePill: pill,
-    });
-  };
-
-  const handleTouchMove = (e: any) => {
-    if (!pillSwipe.dragging) return;
-    const currentX = e.touches ? e.touches[0].clientX : e.clientX;
-    setPillSwipe((p) => ({ ...p, deltaX: currentX - p.startX }));
-  };
-
-  const handleTouchEnd = (e: any, pill: "pub" | "priv") => {
-    if (!pillSwipe.dragging) return;
-    const delta = pillSwipe.deltaX;
-
-    if (pill === "pub") {
-      if (delta > 40 && viewMode === "split") {
-        setViewMode("full-public");
-        handleInteraction("public");
-      } else if (delta < -40 && viewMode === "full-public") {
-        setViewMode("split");
-      } else if (delta < -40 && viewMode === "split") {
-        setViewMode("split");
-      }
-    } else {
-      if (delta < -40 && viewMode === "split") {
-        setViewMode("full-private");
-        handleInteraction("private");
-      } else if (delta > 40 && viewMode === "full-private") {
-        setViewMode("split");
-      } else if (delta > 40 && viewMode === "split") {
-        setViewMode("split");
-      }
-    }
-    setPillSwipe({ startX: 0, deltaX: 0, dragging: false, activePill: null });
-  };
-
-  const calcPillStyle = (pillType: "pub" | "priv") => {
-    if (pillSwipe.activePill !== pillType) return { transform: "none" };
-    const stretchLimit = 65;
-    const delta = pillSwipe.deltaX;
-    
-    const clampedDelta = Math.max(-stretchLimit, Math.min(stretchLimit, delta));
-    const stretchScale = 1 + Math.abs(clampedDelta) / 180;
-    const skewDeg = clampedDelta / 6;
-    return {
-      transform: `translateX(${clampedDelta}px) scaleX(${stretchScale}) skewX(${skewDeg}deg)`,
-    };
   };
 
   const renderInputForm = () => {
     const isBlocked = usersInfo.blockedList.some((b) => b.username === auth.user);
 
+    // Default styles untuk fallback
+    const defaultStyles = {
+      container: "bg-emerald-400/10 border-emerald-400/20",
+      input: "bg-emerald-400/10 border-emerald-400/20 focus:border-emerald-400 focus:bg-emerald-400/20",
+      inputBlink: "bg-emerald-600/40 border-emerald-400 ring-2 ring-emerald-400/50",
+      button: "bg-emerald-600/80 text-white",
+      replyBg: "bg-emerald-900/40 border-emerald-500/30 text-emerald-100",
+      placeholder: "text-white/40",
+      counter: "text-white/30",
+      refreshBtn: "bg-yellow-400/80 text-black border-yellow-500",
+      cancelBtn: "bg-red-500/80 text-white border-red-600",
+      uploadIcon: "text-white/60 hover:text-blue-400",
+      labelText: "text-white/40",
+    };
+
     return (
-      <div className="shrink-0 bg-white/5 backdrop-blur-xl z-20 w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] mt-auto border-t border-white/10 relative">
-        <div className="shrink-0 flex w-full px-2 pt-3 pb-1 gap-2 relative z-30">
-          
-          <button
-            onClick={() => {
-              handleInteraction("public");
-              setUsersInfo((p) => ({ ...p, selPriv: null }));
-              setInteract((p) => ({ ...p, replyTo: null }));
-              if (viewMode === "full-private") setViewMode("split");
-            }}
-            onTouchStart={(e) => handleTouchStart(e, "pub")}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={(e) => handleTouchEnd(e, "pub")}
-            onMouseDown={(e) => handleTouchStart(e, "pub")}
-            onMouseMove={handleTouchMove}
-            onMouseUp={(e) => handleTouchEnd(e, "pub")}
-            onMouseLeave={(e) => handleTouchEnd(e, "pub")}
-            style={calcPillStyle("pub")}
-            className={`relative text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-grab active:cursor-grabbing overflow-hidden ${
-              viewMode === "full-public"
-                ? "flex-[10] py-1.5 sm:py-2 shadow-[0_4px_20px_rgba(37,99,235,0.4)] text-white liquid-pill-blue"
-                : viewMode === "full-private"
-                ? "flex-none w-0 py-0 opacity-0 min-w-0 pointer-events-none"
-                : `flex-1 py-1.5 sm:py-2 ${ui.mode === "public" ? "shadow-md text-white liquid-pill-blue" : "bg-white/5 hover:bg-white/10 text-white/50 rounded-full border border-white/5"}`
-            }`}
-          >
-            <div className={`absolute left-2 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center z-10 transition-opacity ${viewMode === "full-public" ? "opacity-100" : "opacity-100"}`}>
-              <span className={`${ui.mode === "public" || viewMode === "full-public" ? "bg-white text-blue-600 shadow-inner" : "bg-blue-600/30 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full transition-colors`}>
-                {getFmt.notif(counts.pub)}
-              </span>
-            </div>
-            
-            <span className={`ml-6 sm:ml-8 whitespace-nowrap z-10 drop-shadow-md flex items-center transition-all duration-300 ${viewMode === "full-private" ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
-              {viewMode === "full-public" ? (
-                <span className="flex items-center gap-2">
-                  <span className="text-[10px] font-medium opacity-80 anim-swipe-left">⪡ Geser Kembali</span>
-                  🌐 Public Chat
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  🌐 Public Chat 
-                  {ui.mode !== "public" && <span className="text-[9px] font-medium opacity-80 anim-swipe-right">Geser ⪢</span>}
-                </span>
-              )}
-            </span>
-          </button>
+      <InputThemeWrapper defaultStyles={defaultStyles}>
+        {(styles) => (
+          <div className={`shrink-0 bg-white/5 backdrop-blur-xl z-20 w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-white/10 relative mb-16`}>
+            {interact.replyTo && (
+              <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${styles.replyBg}`} onClick={() => scrollMsg(interact.replyTo.id)}>
+                <div className="truncate flex-1 pr-2">
+                  <span className="font-bold">Balas @{interact.replyTo.username.split("●")[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setInteract((p) => ({ ...p, replyTo: null }));
+                  }}
+                  className="text-white/40 font-bold px-1"
+                >
+                  ×
+                </button>
+              </div>
+            )}
 
-          <button
-            onClick={() => {
-              handleInteraction("private");
-              setUsersInfo((p) => ({ ...p, selPriv: null }));
-              setInteract((p) => ({ ...p, replyTo: null }));
-              if (viewMode === "full-public") setViewMode("split");
-            }}
-            onTouchStart={(e) => handleTouchStart(e, "priv")}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={(e) => handleTouchEnd(e, "priv")}
-            onMouseDown={(e) => handleTouchStart(e, "priv")}
-            onMouseMove={handleTouchMove}
-            onMouseUp={(e) => handleTouchEnd(e, "priv")}
-            onMouseLeave={(e) => handleTouchEnd(e, "priv")}
-            style={calcPillStyle("priv")}
-            className={`relative text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-grab active:cursor-grabbing overflow-hidden ${
-              viewMode === "full-private"
-                ? "flex-[10] py-1.5 sm:py-2 shadow-[0_4px_20px_rgba(5,150,105,0.4)] text-white liquid-pill-green"
-                : viewMode === "full-public"
-                ? "flex-none w-0 py-0 opacity-0 min-w-0 pointer-events-none"
-                : `flex-1 py-1.5 sm:py-2 ${ui.mode === "private" ? "shadow-md text-white liquid-pill-green" : "bg-white/5 hover:bg-white/10 text-white/50 rounded-full border border-white/5"}`
-            }`}
-          >
-            <span className={`mr-6 sm:mr-8 whitespace-nowrap z-10 drop-shadow-md flex items-center transition-all duration-300 ${viewMode === "full-public" ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
-              {viewMode === "full-private" ? (
-                <span className="flex items-center gap-2">
-                  🔒 Chat Private
-                  <span className="text-[10px] font-medium opacity-80 anim-swipe-right">Geser Kembali ⪢</span>
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  {ui.mode !== "private" && <span className="text-[9px] font-medium opacity-80 anim-swipe-left">⪡ Geser</span>}
-                  🔒 Chat Private
-                </span>
-              )}
-            </span>
+            <form onSubmit={sendMsg} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 items-end w-full relative transition-all duration-300">
+              <div className="relative shrink-0 flex items-center justify-center w-8 mb-2">
+                <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isBlocked || input.uploadingImage || input.image !== null} />
+                <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full ${(ui.tab === "admin" && !usersInfo.selPriv) || input.image !== null || isBlocked ? "text-white/20 pointer-events-none" : styles.uploadIcon}`}>
+                  {input.uploadingImage ? (
+                    <svg className="animate-spin h-6 w-6 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                    </svg>
+                  )}
+                </label>
+              </div>
 
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 w-5 sm:w-6 h-5 sm:h-6 flex items-center justify-center z-10">
-              <span className={`${ui.mode === "private" || viewMode === "full-private" ? "bg-white text-emerald-600 shadow-inner" : "bg-emerald-600/30 text-white"} text-[9px] sm:text-[10px] font-bold w-full h-full flex items-center justify-center rounded-full transition-colors`}>
-                {getFmt.notif(counts.priv)}
-              </span>
-            </div>
-          </button>
-        </div>
+              <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
+                <div className={`text-[9px] mb-1 px-1 ${styles.labelText}`}>
+                  {isBlocked ? "Anda telah diblokir." : ui.tab === "admin" && !usersInfo.selPriv ? "Pilih obrolan di atas" : "Chat private admin"}
+                </div>
 
-        {interact.replyTo && (
-          <div className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${ui.mode === "private" ? "bg-emerald-900/40 border-emerald-500/30 text-emerald-100" : "bg-blue-900/40 border-blue-500/30 text-blue-100"}`} onClick={() => scrollMsg(interact.replyTo.id)}>
-            <div className="truncate flex-1 pr-2">
-              <span className="font-bold">Balas @{interact.replyTo.username.split("●")[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span>
-            </div>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setInteract((p) => ({ ...p, replyTo: null }));
-              }}
-              className="text-white/40 font-bold px-1"
-            >
-              ×
-            </button>
+                <div className="flex items-end gap-2 w-full">
+                  {input.image && (
+                    <div className="relative shrink-0 mb-1">
+                      <img src={input.image} alt="preview" className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-lg border border-white/20 shadow-sm" />
+                      <button type="button" onClick={() => setInput((p) => ({ ...p, image: null }))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[9px] font-bold flex items-center justify-center">
+                        ×
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="relative flex-1 w-full">
+                    <textarea
+                      id="chat-input"
+                      onFocus={() => setUi((p) => ({ ...p, inputFocus: true }))}
+                      onBlur={() => setUi((p) => ({ ...p, inputFocus: false }))}
+                      className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm text-white resize-none focus:outline-none min-h-[32px] sm:min-h-[38px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${input.blink ? styles.inputBlink : styles.input} ${(ui.tab === "admin" && !usersInfo.selPriv) || isBlocked ? "opacity-30 cursor-not-allowed bg-gray-800" : ""}`}
+                      value={input.text}
+                      onChange={(e) => {
+                        setInput((p) => ({ ...p, text: e.target.value }));
+                        e.target.style.height = "auto";
+                        e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`;
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          sendMsg(e as any);
+                        }
+                      }}
+                      placeholder={isBlocked ? "Akun Anda diblokir..." : (ui.tab === "admin" && !usersInfo.selPriv ? "Pilih user..." : "Ketik pesan...")}
+                      maxLength={200}
+                      rows={1}
+                      disabled={input.sending || isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)}
+                    />
+                    <div className={`absolute right-3 bottom-1.5 text-[9px] font-mono select-none opacity-80 bg-black/20 px-1 rounded ${styles.counter}`}>{200 - input.text.length}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative shrink-0 flex flex-col justify-end w-[85px] md:w-[110px] h-[32px] sm:h-[38px]">
+                {auth.isAuth && currentHash !== "#block" && (
+                  <button
+                    type="button"
+                    id="btn-refresh-delete"
+                    onClick={() => {
+                      if (hasInputReady) {
+                        setInput((p) => ({
+                          ...p,
+                          text: "",
+                          image: null,
+                          uploadingImage: false,
+                        }));
+                        setInteract((p) => ({ ...p, replyTo: null }));
+                      } else {
+                        window.location.reload();
+                      }
+                    }}
+                    className={`absolute bottom-full mb-1.5 left-0 right-0 px-2 py-0.5 rounded-full font-black tracking-widest text-[8px] border shadow-sm active:scale-95 transition-all text-center select-none ${hasInputReady ? styles.cancelBtn : styles.refreshBtn}`}
+                  >
+                    {hasInputReady ? "BATAL" : "REFRESH"}
+                  </button>
+                )}
+                <button type="submit" disabled={isBlocked || input.sending || (!input.text.trim() && !input.image) || (ui.tab === "admin" && !usersInfo.selPriv)} className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${ui.tab === "admin" && !usersInfo.selPriv ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}>
+                  {input.sending ? "..." : "Kirim"}
+                </button>
+              </div>
+            </form>
           </div>
         )}
-
-        <form onSubmit={sendMsg} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 items-end w-full relative transition-all duration-300">
-          <div className="relative shrink-0 flex items-center justify-center w-8 mb-2">
-            <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isBlocked || input.uploadingImage || input.image !== null} />
-            <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full ${(ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv) || input.image !== null || isBlocked ? "text-white/20 pointer-events-none" : "text-white/60 hover:text-blue-400 hover:bg-white/10"}`}>
-              {input.uploadingImage ? (
-                <svg className="animate-spin h-6 w-6 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                </svg>
-              )}
-            </label>
-          </div>
-
-          <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
-            <div className="text-[9px] text-white/40 mb-1 px-1">
-              {isBlocked ? "Anda telah diblokir." : ui.mode === "public" ? "Chat publik mohon bijak" : ui.tab === "admin" && !usersInfo.selPriv ? "Pilih obrolan di atas" : "Chat private admin"}
-            </div>
-
-            <div className="flex items-end gap-2 w-full">
-              {input.image && (
-                <div className="relative shrink-0 mb-1">
-                  <img src={input.image} alt="preview" className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-lg border border-white/20 shadow-sm" />
-                  <button type="button" onClick={() => setInput((p) => ({ ...p, image: null }))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[9px] font-bold flex items-center justify-center">
-                    ×
-                  </button>
-                </div>
-              )}
-
-              <div className="relative flex-1 w-full">
-                <textarea
-                  id="chat-input"
-                  onFocus={() => setUi((p) => ({ ...p, inputFocus: true }))}
-                  onBlur={() => setUi((p) => ({ ...p, inputFocus: false }))}
-                  className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm text-white resize-none focus:outline-none min-h-[32px] sm:min-h-[38px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${ui.mode === "private" ? (input.blink ? "bg-emerald-600/40 border-emerald-400 ring-2 ring-emerald-400/50" : "bg-emerald-400/10 border-emerald-400/20 focus:border-emerald-400 focus:bg-emerald-400/20") : input.blink ? "bg-blue-600/40 border-blue-400 ring-2 ring-blue-400/50" : "bg-blue-400/10 border-blue-400/20 focus:border-blue-500 focus:bg-blue-400/20"} ${(ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv) || isBlocked ? "opacity-30 cursor-not-allowed bg-gray-800" : ""}`}
-                  value={input.text}
-                  onChange={(e) => {
-                    setInput((p) => ({ ...p, text: e.target.value }));
-                    e.target.style.height = "auto";
-                    e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`;
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMsg(e as any);
-                    }
-                  }}
-                  placeholder={isBlocked ? "Akun Anda diblokir..." : (ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv ? "Pilih user..." : "Ketik pesan...")}
-                  maxLength={200}
-                  rows={1}
-                  disabled={input.sending || isBlocked || (ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv)}
-                />
-                <div className="absolute right-3 bottom-1.5 text-[9px] text-white/30 font-mono select-none opacity-80 bg-black/20 px-1 rounded">{200 - input.text.length}</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative shrink-0 flex flex-col justify-end w-[85px] md:w-[110px] h-[32px] sm:h-[38px]">
-            {auth.isAuth && currentHash !== "#block" && (
-              <button
-                type="button"
-                id="btn-refresh-delete"
-                onClick={() => {
-                  if (hasInputReady) {
-                    setInput((p) => ({
-                      ...p,
-                      text: "",
-                      image: null,
-                      uploadingImage: false,
-                    }));
-                    setInteract((p) => ({ ...p, replyTo: null }));
-                  } else {
-                    window.location.reload();
-                  }
-                }}
-                className={`absolute bottom-full mb-1.5 left-0 right-0 px-2 py-0.5 rounded-full font-black tracking-widest text-[8px] border shadow-sm active:scale-95 transition-all text-center select-none ${hasInputReady ? "bg-red-500/80 text-white border-red-600" : "bg-yellow-400/80 text-black border-yellow-500"}`}
-              >
-                {hasInputReady ? "BATAL" : "REFRESH"}
-              </button>
-            )}
-            <button type="submit" disabled={isBlocked || input.sending || (!input.text.trim() && !input.image) || (ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv)} className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${ui.tab === "admin" && ui.mode === "private" && !usersInfo.selPriv ? "bg-white/10 text-white/30 cursor-not-allowed" : ui.mode === "private" ? "bg-emerald-600/80 text-white" : "bg-blue-600/80 text-white"}`}>
-              {input.sending ? "..." : "Kirim"}
-            </button>
-          </div>
-        </form>
-      </div>
+      </InputThemeWrapper>
     );
   };
 
@@ -1017,41 +898,8 @@ export default function Home() {
         dangerouslySetInnerHTML={{
           __html: ` 
           body{overscroll-behavior-y:none;} 
-          @keyframes sL{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(-4px);opacity:1;}} 
-          @keyframes sR{0%,100%{transform:translateX(0);opacity:0.6;}50%{transform:translateX(4px);opacity:1;}} 
-          .anim-slide-left{animation:sL 1.4s ease-in-out infinite;} 
-          .anim-slide-right{animation:sR 1.4s ease-in-out infinite;} 
           
-          /* ANIMASI GESER PILL YG LEBIH MENONJOL */
-          @keyframes swipeHRight { 0%, 100% { transform: translateX(0); opacity: 0.3; } 50% { transform: translateX(8px); opacity: 1; } }
-          @keyframes swipeHLeft { 0%, 100% { transform: translateX(0); opacity: 0.3; } 50% { transform: translateX(-8px); opacity: 1; } }
-          .anim-swipe-right { animation: swipeHRight 1.5s ease-in-out infinite; display: inline-block; font-weight: 800; }
-          .anim-swipe-left { animation: swipeHLeft 1.5s ease-in-out infinite; display: inline-block; font-weight: 800; }
-
-          /* ANIMASI LIQUID (BLOBBY + GRADIENT BERJALAN) */
-          @keyframes gradMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-          @keyframes liquidBorder { 
-            0% { border-radius: 999px; } 
-            33% { border-radius: 90px 110px 100px 90px / 100px 90px 110px 100px; } 
-            66% { border-radius: 110px 90px 90px 110px / 90px 110px 100px 90px; } 
-            100% { border-radius: 999px; } 
-          }
-          .liquid-pill-blue {
-            background: linear-gradient(120deg, #1d4ed8, #3b82f6, #60a5fa, #2563eb);
-            background-size: 200% 200%;
-            animation: gradMove 4s ease infinite, liquidBorder 4s ease-in-out infinite;
-          }
-          .liquid-pill-green {
-            background: linear-gradient(120deg, #047857, #10b981, #34d399, #059669);
-            background-size: 200% 200%;
-            animation: gradMove 4s ease infinite reverse, liquidBorder 4s ease-in-out infinite alternate;
-          }
-          
-          /* MEMAKSA ANAK CHAT BUBBLE MENGISI LEBAR WRAPPER */
-          .chat-bubble-wrapper > div {
-             width: 100%;
-          }
-
+          /* ANIMASI BACKGROUND BLINK */
           @keyframes bC{0%,100%{filter:brightness(1);}50%{background-color:#fef9c3 !important;filter:brightness(0.9);}} 
           .anim-bg-blink-cream{animation:bC 1.5s ease-in-out;} 
           @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} 
@@ -1072,7 +920,7 @@ export default function Home() {
       )}
 
       {currentHash !== "#block" && (
-        <div className={`sticky top-0 z-20 flex flex-col transition-colors duration-300 ${ui.mode === "public" ? "bg-blue-900/30 backdrop-blur-md" : "bg-emerald-900/30 backdrop-blur-md"}`}>
+        <div className="sticky top-0 z-20 flex flex-col bg-emerald-900/30 backdrop-blur-md">
           <div className="p-3 relative">
             <button onClick={handleLogout} className="absolute top-4 right-4 text-[10px] bg-red-500/80 text-white px-3 py-1 rounded-full shadow backdrop-blur-sm z-30">
               Keluar
@@ -1092,8 +940,8 @@ export default function Home() {
             </div>
           </div>
           
-          {auth.isAuth && (
-            <div className={`flex items-center overflow-x-auto gap-2 px-3 py-1.5 border-t border-b text-xs whitespace-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${ui.mode === "public" ? "border-blue-400/20 bg-blue-950/40" : "border-emerald-400/20 bg-emerald-950/40"}`}>
+          {auth.isAuth && ui.tab === "admin" && (
+            <div className="flex items-center overflow-x-auto gap-2 px-3 py-1.5 border-t border-b text-xs whitespace-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] border-emerald-400/20 bg-emerald-950/40">
               <span className="font-bold text-white flex items-center mr-1">
                 <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5 shadow-[0_0_5px_#22c55e] animate-pulse" />
                 Online ({onlineUsers.length + (adminStat.online ? 1 : 0)})
@@ -1112,7 +960,7 @@ export default function Home() {
         </div>
       )}
 
-      <div className={`flex-1 w-full relative flex overflow-hidden transition-colors duration-300 ${ui.mode === "public" ? "bg-blue-900/10" : "bg-emerald-900/10"}`}>
+      <div className="flex-1 w-full relative flex overflow-hidden bg-emerald-900/10">
         {ui.tab === "admin" && currentHash === "#block" ? (
           <Block
             blockedList={usersInfo.blockedList}
@@ -1133,23 +981,23 @@ export default function Home() {
           />
         ) : (
           <ChatLayout
-            cMode={ui.mode}
-            viewMode={viewMode}
-            hInteract={handleInteraction}
+            cMode="private"
+            viewMode="full-private"
+            hInteract={() => {}}
             hScroll={hScroll}
             aTab={ui.tab}
             selPrivUser={usersInfo.selPriv}
             pUsers={usersInfo.privUsers}
-            pubMsgs={msgs.pub}
+            pubMsgs={[]}
             privMsgs={msgs.priv}
-            isPill={pill.visible}
-            pDelta={pill.delta}
-            pTouchX={pill.startX}
-            capIdx={pill.idx}
-            setPTouchX={(x: number) => setPill((p) => ({ ...p, startX: x }))}
-            setPDelta={(d: number) => setPill((p) => ({ ...p, delta: d }))}
-            setCapPause={(v: boolean) => setPill((p) => ({ ...p, pause: v }))}
-            setIsPill={(v: boolean) => setPill((p) => ({ ...p, visible: v }))}
+            isPill={false}
+            pDelta={0}
+            pTouchX={0}
+            capIdx={0}
+            setPTouchX={() => {}}
+            setPDelta={() => {}}
+            setCapPause={() => {}}
+            setIsPill={() => {}}
             renderMsgs={renderMsgs}
             renderInput={() => <></>}
             fmtTime={getFmt.time}
@@ -1162,7 +1010,7 @@ export default function Home() {
 
       {interact.popup && interact.popup.pesan !== "___DELETED___" && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
-          <div className={`w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col ${interact.popup.is_private ? "border-t-4 border-emerald-500" : "border-t-4 border-blue-500"}`} onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col border-t-4 border-emerald-500" onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={() => setInteract((p) => ({ ...p, popup: null }))} className="absolute top-3 right-3 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center font-bold active:scale-95">
               ×
             </button>
@@ -1317,7 +1165,7 @@ export default function Home() {
             try {
               const { data: existUser } = await supabase
                 .from("profiles")
-                .select("username, pin, email, umur, berat") // Menambahkan pengambilan data umur dan berat
+                .select("username, pin, email, umur, berat")
                 .ilike("username", inputName)
                 .maybeSingle();
 
@@ -1327,13 +1175,11 @@ export default function Home() {
               
               const finalUsername = existUser ? existUser.username : inputName.toLowerCase();
               
-              // 🛑 JIKA MODE LOGIN: HANYA LOAD DATA, JANGAN UPSERT 🛑
               if (isLoginMode) {
                 if (!existUser) {
                   return alert("User tidak ditemukan, silakan register terlebih dahulu.");
                 }
                 
-                // Set state dengan data dari database (mencegah overwriting nilai kosong)
                 setAuth((p) => ({ 
                   ...p, 
                   isAuth: true, 
@@ -1345,11 +1191,9 @@ export default function Home() {
                 localStorage.setItem("is_auth", "true");
                 localStorage.setItem("active_tab", "user");
                 
-                // Hentikan eksekusi di sini agar tidak lanjut ke blok upsert di bawah
                 return; 
               }
 
-              // 🟢 JIKA MODE REGISTER: LAKUKAN UPSERT 🟢
               let finalEmail = "user@ipix.fun";
               if (existUser?.email) {
                 finalEmail = existUser.email;
@@ -1408,7 +1252,6 @@ export default function Home() {
         />
       )}
 
-      {/* --- KOMPONEN BOTTOM NAV DITEMPATKAN DI SINI --- */}
       <BottomNav />
       
     </div>
