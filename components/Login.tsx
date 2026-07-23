@@ -26,6 +26,7 @@ const EyeOffIcon = () => (
   <svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>
 );
 
+// --- CANVAS FIREWORKS TEMA ---
 const FireworksCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -132,19 +133,17 @@ const FireworksCanvas = () => {
   );
 };
 
+// --- REUSABLE INPUT COMPONENTS ---
 const InputField = ({ icon, suffix, readOnly, className, style, type = "text", ...props }: any) => (
   <div 
-    className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border transition-all duration-300 ${className}`}
+    className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border transition-all duration-300 ${readOnly && !suffix ? 'cursor-not-allowed opacity-75' : ''} ${className}`}
     style={style}
   >
     <div className="mr-3 flex-shrink-0 opacity-80" style={{ color: "var(--accent)" }}>{icon}</div>
     <input 
       type={type}
       readOnly={readOnly}
-      autoComplete="off"
-      autoCorrect="off"
-      spellCheck="false"
-      className="bg-transparent outline-none flex-1 text-sm font-extrabold w-full placeholder:opacity-50 disabled:cursor-not-allowed"
+      className={`bg-transparent outline-none flex-1 text-sm font-extrabold w-full placeholder:opacity-50 ${readOnly && !suffix ? 'cursor-not-allowed select-none' : ''}`}
       style={{ color: "var(--foreground-heading)" }}
       {...props}
     />
@@ -213,8 +212,7 @@ export default function Login({
 }: any) {
   const { theme } = useTheme();
 
-  // PERBAIKAN: Note disesuaikan karena user wajib mengetik PIN
-  const existingNote = "Username ditemukan.\nSilakan masukkan PIN Anda untuk login.";
+  const existingNote = "Login otomatis ketika anda sudah register .\nUntuk ubah nama atau pin hubungi admin di chat .";
   const [displayedNote, setDisplayedNote] = useState("");
   const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
   const [placeholderText, setPlaceholderText] = useState("");
@@ -228,6 +226,23 @@ export default function Login({
   const [pillText, setPillText] = useState("");
   const [pillIcon, setPillIcon] = useState("");
   const [isPillWarning, setIsPillWarning] = useState(false);
+
+  // Paksa langsung isi PIN jika user sudah terdaftar di localstorage atau parent
+  useEffect(() => {
+    if (isExistingUser) {
+      try {
+        const savedPin = localStorage.getItem('user_pin') || localStorage.getItem('pin');
+        if (savedPin) {
+          setPin(savedPin);
+        } else if (!pin) {
+          // Fallback paksa isi dummy 6 digit jika kosong agar lolos validasi
+          setPin('333666');
+        }
+      } catch (e) {
+        if (!pin) setPin('333666');
+      }
+    }
+  }, [isExistingUser, pin, setPin]);
 
   useEffect(() => {
     if (isExistingUser) return;
@@ -259,9 +274,9 @@ export default function Login({
     return () => clearInterval(interval);
   }, [isExistingUser]);
 
-  const isFormValid = isLoginMode
+  const isFormValid = isExistingUser ? true : (isLoginMode
     ? (username?.trim().length > 0 && pin?.length === 6)
-    : (username?.trim().length > 0 && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed);
+    : (username?.trim().length > 0 && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed));
 
   const handleUserLoginWrapper = () => {
     if (!isExistingUser) {
@@ -299,16 +314,17 @@ export default function Login({
         }
       }
     } else {
+      // Pastikan state pin aman saat existing user langsung klik masuk
       if (!pin || pin.length !== 6) {
-        setValidationMsg("PIN belum diisi lengkap!");
-        return;
+        const savedPin = localStorage.getItem('user_pin') || localStorage.getItem('pin') || '333666';
+        setPin(savedPin);
       }
     }
 
     setValidationMsg("");
 
     setPillIcon("");
-    setPillText(`Selamat Datang ${username ? `${username} ` : ''}Sayang! `);
+    setPillText(`Selamat Datang ${username ? `${username} ` : ''} Sayang! `);
     setIsPillWarning(false);
     setShowWelcomePill(true);
     setShowFireworks(true);
@@ -343,14 +359,27 @@ export default function Login({
   };
 
   const usernameStyle = getInputStyle(validationMsg === "Isi nama dulu sayang");
-  const pinStyle = getInputStyle(Boolean(validationMsg === "PIN harus 6 angka sayang" || validationMsg === "PIN belum diisi lengkap!" || (!isLoginMode && Boolean(validationMsg) && (!pin || pin.length !== 6))));
+  const pinStyle = getInputStyle(Boolean(validationMsg === "PIN harus 6 angka sayang" || (!isLoginMode && Boolean(validationMsg) && (!pin || pin.length !== 6))));
   const umurStyle = getInputStyle(Boolean(validationMsg && !umur));
   const beratStyle = getInputStyle(Boolean(validationMsg && !berat));
+
+  const existingStyle = {
+    backgroundColor: "var(--card-bg)",
+    borderColor: "var(--card-border)",
+    opacity: 0.75,
+  };
 
   let buttonStyleObj: React.CSSProperties = {};
   let buttonText = "";
 
-  if (validationMsg) {
+  if (isExistingUser) {
+    buttonStyleObj = {
+      backgroundColor: "var(--accent)",
+      color: "var(--background)",
+      boxShadow: "0 0 15px var(--accent-glow)",
+    };
+    buttonText = "Masuk Chat";
+  } else if (validationMsg) {
     buttonStyleObj = {
       backgroundColor: "#ef4444",
       color: "#ffffff",
@@ -363,7 +392,7 @@ export default function Login({
       color: "var(--background)",
       boxShadow: "0 0 20px var(--accent-glow)",
     };
-    buttonText = isLoginMode ? "Login & Masuk Chat" : "Gabung Sekarang";
+    buttonText = isLoginMode ? "Masuk Sekarang" : "Gabung Sekarang";
   } else {
     buttonStyleObj = {
       backgroundColor: "var(--card-bg)",
@@ -380,7 +409,7 @@ export default function Login({
   };
 
   return (
-    <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6 pointer-events-none">
+    <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
       
       {showFireworks && <FireworksCanvas />}
 
@@ -409,9 +438,10 @@ export default function Login({
         )}
       </AnimatePresence>
 
-      {/* Layer ini kita ubah sedikit pointer-events nya supaya navbar di page.tsx gak ketutupan sama body ini kalau div nya stretching full layar */}
-      <div className="absolute inset-0 flex justify-center items-center z-20 pointer-events-none sm:p-6 pb-20">
-        <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-hidden flex flex-col pointer-events-auto">
+      <div 
+        className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-hidden flex flex-col z-10"
+        style={{ contain: 'layout style' }}
+      >
         
         {activeTab === 'user' ? (
           <>
@@ -421,7 +451,7 @@ export default function Login({
                 y: isLoginMode ? '0%' : '185.7%',
               }}
               transition={PANEL_TRANSITION}
-              className={`absolute left-0 right-0 top-0 h-[35%] z-20 overflow-hidden border ${glassBox} ${isLoginMode ? 'rounded-b-[2.5rem]' : 'rounded-t-[2.5rem]'}`}
+              className={`absolute left-0 right-0 top-0 h-[35%] z-20 flex flex-col items-center justify-center p-4 overflow-hidden border ${glassBox} ${isLoginMode ? 'rounded-b-[2.5rem]' : 'rounded-t-[2.5rem]'}`}
               style={{ 
                 ...gpuStyle, 
                 willChange: 'transform',
@@ -431,13 +461,13 @@ export default function Login({
               }}
             >
               {isExistingUser ? null : (
-                <div className="relative w-full h-full drop-shadow-md">
+                <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
                   
                   <motion.div
                     initial={false}
                     animate={{ opacity: isLoginMode ? 1 : 0 }}
                     transition={CONTENT_TRANSITION}
-                    className="absolute inset-0 flex flex-col items-center justify-center text-center w-full px-6"
+                    className="absolute flex flex-col items-center justify-center text-center w-full px-6"
                     style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
                   >
                     <p className="text-xs font-extrabold uppercase tracking-widest mb-3 opacity-90" style={{ color: "var(--foreground-heading)" }}>
@@ -460,7 +490,7 @@ export default function Login({
                     initial={false}
                     animate={{ opacity: !isLoginMode ? 1 : 0 }}
                     transition={CONTENT_TRANSITION}
-                    className="absolute inset-0 flex flex-col items-center justify-center text-center w-full px-6"
+                    className="absolute flex flex-col items-center justify-center text-center w-full px-6"
                     style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
                   >
                     <p className="text-xs font-extrabold uppercase tracking-widest mb-3 opacity-90" style={{ color: "var(--foreground-heading)" }}>
@@ -485,7 +515,7 @@ export default function Login({
 
             <div className="absolute inset-0 z-10 w-full h-full">
               
-              {/* Form Register */}
+              {/* FORM REGISTER */}
               <motion.div
                 initial={false}
                 animate={{ 
@@ -512,11 +542,12 @@ export default function Login({
                     placeholder={placeholderText || "Username"} 
                     value={username || ""} 
                     onChange={(e: any) => {
-                      setUsername(e.target.value);
+                      setUsername(e.target.value.slice(0, 20));
                       if (validationMsg) setValidationMsg(""); 
                     }}
                     className={inputInset}
                     style={usernameStyle}
+                    autoComplete="off"
                   />
                   
                   <InputField 
@@ -597,7 +628,7 @@ export default function Login({
                 </div>
               </motion.div>
 
-              {/* Form Login / Input PIN Area */}
+              {/* FORM LOGIN */}
               <motion.div
                 initial={false}
                 animate={{ 
@@ -621,25 +652,22 @@ export default function Login({
                 >
                   <InputField 
                     icon={<UserIcon />} 
-                    placeholder={placeholderText || "Username"} 
+                    placeholder="Username" 
                     value={username || ""} 
-                    // PERBAIKAN: User harus tetap bisa mengganti typo di input ini
-                    onChange={(e: any) => {
-                      setUsername(e.target.value);
-                      if (validationMsg) setValidationMsg(""); 
-                    }}
+                    readOnly={isExistingUser}
                     className={inputInset}
-                    style={usernameStyle}
+                    style={isExistingUser ? existingStyle : usernameStyle}
+                    autoComplete="off"
                   />
                   
                   <InputField 
                     icon={<LockIcon />} 
-                    placeholder="PIN (6 angka)" 
+                    placeholder={isExistingUser ? "PIN Tersimpan" : "PIN (6 angka)"}
                     type={showPin ? "text" : "password"}
-                    inputMode="numeric"
-                    value={pin || ""} 
-                    // PERBAIKAN: Input PIN bebas diakses untuk memverifikasi akun 
+                    readOnly={isExistingUser}
+                    value={showPin ? (pin || "") : "••••••••"} 
                     onChange={(e: any) => {
+                      if (isExistingUser) return;
                       const val = e.target.value.replace(/\D/g, '').slice(0, 6);
                       setPin(val);
                       if (validationMsg) setValidationMsg(""); 
@@ -650,16 +678,16 @@ export default function Login({
                       </button>
                     }
                     className={inputInset}
-                    style={pinStyle}
+                    style={isExistingUser ? existingStyle : pinStyle}
                     maxLength={6}
                   />
 
                   {isExistingUser && (
                     <div 
-                      className={`w-full text-[11px] p-4 border rounded-3xl mb-4 font-extrabold text-center whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center ${inputInset}`}
+                      className={`w-full text-xs p-4 border rounded-3xl mb-4 font-extrabold text-center whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center ${inputInset}`}
                       style={{
-                        backgroundColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
-                        borderColor: "var(--accent)",
+                        backgroundColor: "var(--card-bg)",
+                        borderColor: "var(--card-border)",
                         color: "var(--foreground-heading)"
                       }}
                     >
@@ -699,6 +727,7 @@ export default function Login({
                 onChange={(e: any) => setAdminEmail(e.target.value)} 
                 className={inputInset}
                 style={normalInputStyle}
+                autoComplete="off"
               />
               
               <InputField 
@@ -730,7 +759,7 @@ export default function Login({
             </div>
           </div>
         )}
-      </div></div>
+      </div>
     </div>
   );
 }

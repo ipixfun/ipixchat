@@ -172,9 +172,9 @@ export default function Home() {
     await supabase.auth.signOut();
     localStorage.removeItem("is_auth");
     localStorage.removeItem("active_tab");
-    localStorage.removeItem("saved_pin"); // Hapus pin dari device
+    localStorage.removeItem("saved_pin"); 
     sessionStorage.clear();
-    setAuth((p) => ({ ...p, isAuth: false, pin: "" })); // Kosongkan pin di memory
+    setAuth((p) => ({ ...p, isAuth: false, pin: "" })); 
     window.location.replace("/");
   };
 
@@ -255,7 +255,6 @@ export default function Home() {
     } catch (e) {}
   }, [ui.tab, usersInfo.selPriv, auth.isAuth, auth.user, getFmt]); 
 
-  // PERBAIKAN: Jangan tarik PIN saat ngetik nama agar tidak bocor
   const handleUsernameChange = async (enteredName: string) => {
     const trimmed = enteredName.slice(0, 20);
     setAuth((p) => ({ ...p, user: trimmed }));
@@ -264,7 +263,7 @@ export default function Home() {
       try {
         const { data: pD } = await supabase
           .from("profiles")
-          .select("username") // Cuma ambil username!
+          .select("username") 
           .ilike("username", trimmed.trim())
           .maybeSingle();
 
@@ -272,7 +271,6 @@ export default function Home() {
           setAuth((p) => ({
             ...p,
             isExist: true,
-            // PIN TIDAK DITETAPKAN DI SINI. User wajib ngetik PIN-nya.
           }));
         } else {
           setAuth((p) => ({ ...p, isExist: false }));
@@ -462,7 +460,7 @@ export default function Home() {
       const { data: { session } } = await supabase.auth.getSession();
       
       const savedUsername = localStorage.getItem("active_username");
-      const savedPin = localStorage.getItem("saved_pin");
+      const savedPin = localStorage.getItem("saved_pin"); 
       const isAuthLocal = localStorage.getItem("is_auth") === "true"; 
       
       if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
@@ -477,7 +475,7 @@ export default function Home() {
               ...p, 
               isExist: true, 
               user: pD.username,
-              pin: isAuthLocal ? savedPin || "" : "", // Autofill dari device ini aja kalau session localnya TRUE
+              pin: "", 
               umur: pD.umur || "",
               berat: pD.berat || ""
             }));
@@ -492,7 +490,7 @@ export default function Home() {
         tab: isAdmin ? "admin" : (localStorage.getItem("active_tab") as "user" | "admin") || "user",
       }));
       
-      if (session || isAuthLocal) {
+      if (session || (isAuthLocal && savedPin)) {
         setAuth((p) => ({
           ...p,
           isAuth: true,
@@ -795,18 +793,16 @@ export default function Home() {
                 const inputName = auth.user.trim();
                 if (!inputName || isCensored(inputName)) return alert("Nama tidak valid");
                 
+                const plainPin = auth.pin || localStorage.getItem("saved_pin") || "";
+                if (!plainPin) return alert("PIN tidak boleh kosong!");
+                
                 try {
-                  const { data: existUser } = await supabase
+                  const { data: existUser, error } = await supabase
                     .from("profiles")
-                    // PERBAIKAN: Tarik semua properti di sini pas button login ditekan
                     .select("username, pin, email, umur, berat")
                     .ilike("username", inputName)
                     .maybeSingle();
 
-                  if (existUser && existUser.pin !== auth.pin) {
-                    return alert("Username sudah terdaftar dengan PIN yang berbeda!");
-                  }
-                  
                   const finalUsername = existUser ? existUser.username : inputName.toLowerCase();
                   
                   if (isLoginMode) {
@@ -814,20 +810,28 @@ export default function Home() {
                       return alert("User tidak ditemukan, silakan register terlebih dahulu.");
                     }
                     
+                    if (existUser.pin !== plainPin) {
+                      return alert("PIN Salah!");
+                    }
+
                     setAuth((p) => ({ 
                       ...p, 
                       isAuth: true, 
                       user: finalUsername,
                       umur: existUser.umur || "",
-                      berat: existUser.berat || ""
+                      berat: existUser.berat || "",
+                      pin: "" 
                     }));
                     
-                    // SIMPAN PIN KE DEVICE!
                     localStorage.setItem("active_username", finalUsername);
-                    localStorage.setItem("saved_pin", auth.pin);
+                    localStorage.setItem("saved_pin", plainPin);
                     localStorage.setItem("is_auth", "true");
                     localStorage.setItem("active_tab", "user");
                     return; 
+                  }
+
+                  if (existUser && existUser.pin !== plainPin) {
+                    return alert("Username sudah terdaftar dengan PIN yang berbeda!");
                   }
 
                   let finalEmail = "user@ipix.fun";
@@ -844,9 +848,9 @@ export default function Home() {
                       email: finalEmail,
                       username: finalUsername,
                       user_browser: navigator.userAgent,
-                      pin: auth.pin,     
+                      pin: plainPin, 
                       umur: auth.umur,   
-                      berat: auth.berat, 
+                      berat: auth.berat
                     },
                     { onConflict: "username" }
                   );
@@ -856,11 +860,10 @@ export default function Home() {
                     return; 
                   }
 
-                  setAuth((p) => ({ ...p, isAuth: true, user: finalUsername }));
+                  setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: "" }));
                   
-                  // SIMPAN PIN KE DEVICE (Register Mode)
                   localStorage.setItem("active_username", finalUsername);
-                  localStorage.setItem("saved_pin", auth.pin);
+                  localStorage.setItem("saved_pin", plainPin);
                   localStorage.setItem("is_auth", "true");
                   localStorage.setItem("active_tab", "user");
 
@@ -892,7 +895,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* --- UI UTAMA / BACKGROUND LAYER --- */}
       {ui.tab === "admin" && currentHash !== "#block" && auth.isAuth && (
         <div className="fixed z-[90] bottom-36 right-4 flex flex-col gap-2">
           <div onClick={() => window.open(`${window.location.pathname}#block`, "_blank")} className="px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-red-600 border border-red-700 shadow-[0_3px_0_#991b1b,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150 text-center">
@@ -961,7 +963,6 @@ export default function Home() {
 
       {currentHash !== "#block" && auth.isAuth && renderInputForm()}
 
-      {/* POPUP ACTION BOX */}
       {auth.isAuth && interact.popup && interact.popup.pesan !== "___DELETED___" && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
           <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col border-t-4 border-emerald-500" onClick={(e) => e.stopPropagation()}>
@@ -1088,7 +1089,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* PERBAIKAN: BottomNav ditempatkan paling atas dengan index yang tidak tertimpa overlay login */}
       <div className="relative z-[999] w-full shrink-0 bg-transparent">
         <BottomNav />
       </div>
