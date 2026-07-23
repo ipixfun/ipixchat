@@ -27,7 +27,7 @@ const EyeOffIcon = () => (
 );
 
 // --- CANVAS FIREWORKS TEMA ---
-const FireworksCanvas = () => {
+const FireworksCanvas = ({ theme }: { theme?: any }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -36,17 +36,15 @@ const FireworksCanvas = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const styles = getComputedStyle(document.documentElement);
+    const accent = styles.getPropertyValue('--accent').trim() || '#3b82f6';
+    const fg = styles.getPropertyValue('--foreground-heading').trim() || '#ffffff';
+    
+    const themeColors = [accent, accent, fg, '#ffffff'];
+
     let animationId: number;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-
-    const styles = getComputedStyle(document.documentElement);
-    const accent = styles.getPropertyValue('--accent').trim() || '#3b82f6';
-    const heading = styles.getPropertyValue('--foreground-heading').trim() || '#ffffff';
-    const glow = styles.getPropertyValue('--accent-glow').trim() || accent;
-    const fg = styles.getPropertyValue('--foreground').trim() || heading;
-
-    const themeColors = [accent, heading, glow, fg];
 
     class Particle {
       x: number; y: number; vx: number; vy: number; color: string; size: number; alpha: number; decay: number;
@@ -54,18 +52,18 @@ const FireworksCanvas = () => {
         this.x = x;
         this.y = y;
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 8 + 3;
+        const speed = Math.random() * 12 + 4;
         this.vx = Math.cos(angle) * speed;
         this.vy = Math.sin(angle) * speed;
         this.color = themeColors[Math.floor(Math.random() * themeColors.length)];
-        this.size = Math.random() * 3.5 + 2;
+        this.size = Math.random() * 5 + 2.5;
         this.alpha = 1;
-        this.decay = Math.random() * 0.008 + 0.005;
+        this.decay = Math.random() * 0.007 + 0.003;
       }
       update() {
         this.x += this.vx;
         this.y += this.vy;
-        this.vy += 0.04;
+        this.vy += 0.05;
         this.vx *= 0.98;
         this.vy *= 0.98;
         this.alpha -= this.decay;
@@ -77,7 +75,7 @@ const FireworksCanvas = () => {
         context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         context.fillStyle = this.color;
         context.shadowColor = this.color;
-        context.shadowBlur = 12;
+        context.shadowBlur = 18;
         context.fill();
         context.restore();
       }
@@ -86,21 +84,25 @@ const FireworksCanvas = () => {
     let particles: Particle[] = [];
 
     const createBurst = (x: number, y: number) => {
-      for (let i = 0; i < 55; i++) {
+      for (let i = 0; i < 70; i++) {
         particles.push(new Particle(x, y));
       }
     };
 
+    createBurst(canvas.width / 2, canvas.height / 3);
+    createBurst(canvas.width / 3, canvas.height / 2);
+    createBurst((canvas.width / 3) * 2, canvas.height / 2);
+
     let frame = 0;
-    const maxFrames = 180;
+    const maxFrames = 220;
 
     const render = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      if (frame % 14 === 0 && frame < maxFrames) {
+      if (frame % 12 === 0 && frame < maxFrames) {
         createBurst(
           Math.random() * (canvas.width * 0.8) + canvas.width * 0.1, 
-          Math.random() * (canvas.height * 0.5) + canvas.height * 0.1
+          Math.random() * (canvas.height * 0.5) + canvas.height * 0.15
         );
       }
       frame++;
@@ -120,15 +122,23 @@ const FireworksCanvas = () => {
 
     render();
 
+    const handleResize = () => {
+      if (!canvas) return;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', handleResize);
+
     return () => {
       cancelAnimationFrame(animationId);
+      window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [theme]); 
 
   return (
     <canvas 
       ref={canvasRef} 
-      className="fixed inset-0 pointer-events-none z-[100]" 
+      className="fixed inset-0 pointer-events-none z-[9999]" 
     />
   );
 };
@@ -212,8 +222,12 @@ export default function Login({
 }: any) {
   const { theme } = useTheme();
 
-  const existingNote = "Login otomatis ketika anda sudah register .\nUntuk ubah nama atau pin hubungi admin di chat .";
-  const [displayedNote, setDisplayedNote] = useState("");
+  const prefixText = "Welcome back, ";
+  const currentUserName = username || "User";
+  const suffixText = ".\nUbah nama atau PIN hubungi admin di chat.";
+  const totalNoteLength = prefixText.length + currentUserName.length + suffixText.length;
+
+  const [displayedCharCount, setDisplayedCharCount] = useState(0);
   const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
   const [placeholderText, setPlaceholderText] = useState("");
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -221,14 +235,12 @@ export default function Login({
   const [validationMsg, setValidationMsg] = useState("");
   const [showPin, setShowPin] = useState(false);
 
-  // Status Kembang Api & Selamat Datang
   const [showWelcomePill, setShowWelcomePill] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false);
 
   const [isSavedDevice, setIsSavedDevice] = useState(false);
   const [hasTyped, setHasTyped] = useState(false);
 
-  // BACA OTOMATIS DARI BROWSER (LOCAL STORAGE) SAAT WEB DIBUKA
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem('username');
@@ -238,7 +250,7 @@ export default function Login({
         if (!username) setUsername(savedUser);
         if (!pin) setPin(savedPin);
         setIsSavedDevice(true);
-        setIsLoginMode(true); // Pastikan ada di mode login
+        setIsLoginMode(true); 
       } else if (isExistingUser && !hasTyped) {
         setIsSavedDevice(true);
       }
@@ -246,7 +258,6 @@ export default function Login({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); 
 
-  // ANIMASI PLACEHOLDER
   useEffect(() => {
     if (isSavedDevice) return;
     const targetPlaceholder = "Username (Maks 20 huruf)";
@@ -262,13 +273,14 @@ export default function Login({
     return () => clearInterval(interval);
   }, [isSavedDevice]);
 
-  // ANIMASI TEKS NOTE
   useEffect(() => {
     if (!isSavedDevice) return;
+    setDisplayedCharCount(0);
+    setIsNoteTypingDone(false);
     let index = 0;
     const interval = setInterval(() => {
-      if (index < existingNote.length) {
-        setDisplayedNote(existingNote.slice(0, index + 1));
+      if (index <= totalNoteLength) {
+        setDisplayedCharCount(index);
         index++;
       } else {
         clearInterval(interval);
@@ -276,7 +288,13 @@ export default function Login({
       }
     }, 45);
     return () => clearInterval(interval);
-  }, [isSavedDevice]);
+  }, [isSavedDevice, username]);
+
+  const pLen = prefixText.length;
+  const uLen = currentUserName.length;
+  const visiblePrefix = prefixText.slice(0, Math.max(0, displayedCharCount));
+  const visibleName = displayedCharCount > pLen ? currentUserName.slice(0, Math.max(0, displayedCharCount - pLen)) : "";
+  const visibleSuffix = displayedCharCount > pLen + uLen ? suffixText.slice(0, Math.max(0, displayedCharCount - pLen - uLen)) : "";
 
   const isFormValid = isSavedDevice 
     ? (username?.trim().length > 0 && pin?.length === 6)
@@ -285,6 +303,10 @@ export default function Login({
       : (username?.trim().length > 0 && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed));
 
   const handleUserLoginWrapper = async () => {
+    // RESET STATE AWAL
+    setShowWelcomePill(false);
+    setShowFireworks(false);
+
     if (!username || username.trim().length === 0) {
       setValidationMsg("Isi nama dulu sayang");
       return;
@@ -308,35 +330,29 @@ export default function Login({
     setValidationMsg("");
 
     try {
-      // 1. Eksekusi fungsi login di parent untuk memvalidasi
       const result = await handleUserLogin(isLoginMode);
       
-      // 2. LOGIKA DIPERKETAT: Jika result false, null, atau undefined
-      if (!result || result === false || result?.error) {
-        setShowWelcomePill(false);
-        setShowFireworks(false);
+      // CEK KETAT JIKA GAGAL (return false, object dengan error, atau null/undefined)
+      if (!result || result === false || result.error) {
         setValidationMsg("Username atau PIN salah sayang");
-        return; // WAJIB ada return di sini biar eksekusi berhenti dan kembang api gak nyala
+        return; // STOP DI SINI, KEMBANG API GAK AKAN KELUAR
       } 
       
-      // 3. JIKA BENAR: TANAM USER & PIN KE DEVICE (BROWSER)
+      // JIKA BERHASIL:
       try {
         localStorage.setItem('username', username);
         localStorage.setItem('user_pin', pin);
-        localStorage.setItem('pin', pin); // backup
-        
-        // Ubah state jadi saved device supaya langsung berubah tampilannya jika nggak pindah halaman
+        localStorage.setItem('pin', pin);
         setIsSavedDevice(true);
       } catch (e) {}
 
-      // 4. Munculkan kembang api dan ucapan HANYA JIKA BENAR
       setShowWelcomePill(true);
       setShowFireworks(true);
       
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      
     } catch (err) {
-      setShowWelcomePill(false);
-      setShowFireworks(false);
-      setValidationMsg("Terjadi kesalahan, gagal login");
+      setValidationMsg("Username atau PIN salah sayang");
     }
   };
 
@@ -417,8 +433,7 @@ export default function Login({
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
       
-      {/* KEMBANG API HANYA NYALA JIKA PIN BENAR */}
-      {showFireworks && <FireworksCanvas />}
+      {showFireworks && <FireworksCanvas theme={theme} />}
 
       <AnimatePresence>
         {showWelcomePill && (
@@ -426,7 +441,7 @@ export default function Login({
             initial={{ opacity: 0, y: -40, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            className="fixed top-8 z-[101] px-6 py-3 rounded-full font-black text-xs sm:text-sm border shadow-2xl flex items-center gap-2 backdrop-blur-xl animate-bounce"
+            className="fixed top-8 z-[10000] px-6 py-3 rounded-full font-black text-xs sm:text-sm border shadow-2xl flex items-center gap-2 backdrop-blur-xl animate-bounce"
             style={{
               backgroundColor: "color-mix(in srgb, var(--card-bg) 90%, var(--accent))",
               borderColor: "var(--accent)",
@@ -693,7 +708,7 @@ export default function Login({
 
                   {isSavedDevice && (
                     <div 
-                      className={`w-full text-xs p-4 border rounded-3xl mb-4 font-extrabold text-center whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center ${inputInset}`}
+                      className={`w-full text-xs p-4 border rounded-3xl mb-4 font-normal text-center whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center ${inputInset}`}
                       style={{
                         backgroundColor: "var(--card-bg)",
                         borderColor: "var(--card-border)",
@@ -701,7 +716,9 @@ export default function Login({
                       }}
                     >
                       <span className="w-full block drop-shadow-sm">
-                        {displayedNote}
+                        <span>{visiblePrefix}</span>
+                        <span className="font-extrabold italic">{visibleName}</span>
+                        <span>{visibleSuffix}</span>
                         {!isNoteTypingDone && <span className="animate-pulse ml-0.5">|</span>}
                       </span>
                     </div>

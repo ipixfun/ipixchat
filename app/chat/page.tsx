@@ -791,10 +791,12 @@ export default function Home() {
               setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))}
               handleUserLogin={async (isLoginMode?: boolean) => {
                 const inputName = auth.user.trim();
-                if (!inputName || isCensored(inputName)) return alert("Nama tidak valid");
+                
+                // Return { error: true } alih-alih pake alert yang nge-blokir
+                if (!inputName || isCensored(inputName)) return { error: true };
                 
                 const plainPin = auth.pin || localStorage.getItem("saved_pin") || "";
-                if (!plainPin) return alert("PIN tidak boleh kosong!");
+                if (!plainPin) return { error: true };
                 
                 try {
                   const { data: existUser, error } = await supabase
@@ -807,31 +809,38 @@ export default function Home() {
                   
                   if (isLoginMode) {
                     if (!existUser) {
-                      return alert("User tidak ditemukan, silakan register terlebih dahulu.");
+                      return { error: true }; // Memicu tombol error berkedip merah
                     }
                     
                     if (existUser.pin !== plainPin) {
-                      return alert("PIN Salah!");
+                      return { error: true }; // Memicu tombol error berkedip merah
                     }
 
-                    setAuth((p) => ({ 
-                      ...p, 
-                      isAuth: true, 
-                      user: finalUsername,
-                      umur: existUser.umur || "",
-                      berat: existUser.berat || "",
-                      pin: "" 
-                    }));
-                    
+                    // --- JIKA SUKSES LOG IN ---
                     localStorage.setItem("active_username", finalUsername);
                     localStorage.setItem("saved_pin", plainPin);
                     localStorage.setItem("is_auth", "true");
                     localStorage.setItem("active_tab", "user");
-                    return; 
+
+                    // Tunda perbaruan state isAuth selama 3 detik, agar
+                    // kembang api di komponen Login.tsx sempat menyala & meledak
+                    setTimeout(() => {
+                      setAuth((p) => ({ 
+                        ...p, 
+                        isAuth: true, 
+                        user: finalUsername,
+                        umur: existUser.umur || "",
+                        berat: existUser.berat || "",
+                        pin: "" 
+                      }));
+                    }, 3000);
+                    
+                    return true; 
                   }
 
+                  // --- JIKA REGISTER ---
                   if (existUser && existUser.pin !== plainPin) {
-                    return alert("Username sudah terdaftar dengan PIN yang berbeda!");
+                    return { error: true }; 
                   }
 
                   let finalEmail = "user@ipix.fun";
@@ -856,20 +865,23 @@ export default function Home() {
                   );
 
                   if (upsertError) {
-                    alert("Gagal simpan data ke database: " + upsertError.message);
-                    return; 
+                    return { error: true };
                   }
-
-                  setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: "" }));
                   
                   localStorage.setItem("active_username", finalUsername);
                   localStorage.setItem("saved_pin", plainPin);
                   localStorage.setItem("is_auth", "true");
                   localStorage.setItem("active_tab", "user");
 
+                  // Tunda juga di mode register untuk lihat kembang apinya
+                  setTimeout(() => {
+                    setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: "" }));
+                  }, 3000);
+
+                  return true;
+
                 } catch (e) {
-                  console.error("Error saving profile:", e);
-                  return;
+                  return { error: true };
                 }
               }}
               handleAdminLogin={async () => {
