@@ -226,7 +226,7 @@ export default function Login({
   const [showWelcomePill, setShowWelcomePill] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false);
   const [pillText, setPillText] = useState("");
-  const [pillIcon, setPillIcon] = useState("🎆");
+  const [pillIcon, setPillIcon] = useState("");
   const [isPillWarning, setIsPillWarning] = useState(false);
 
   useEffect(() => {
@@ -278,7 +278,7 @@ export default function Login({
       // 🔴 JIKA USER KLIK LOGIN TAPI BELUM REGISTER:
       if (isLoginMode) {
         setPillIcon("⚠️");
-        setPillText("Register dulu sayang 💕");
+        setPillText("Register dulu sayang");
         setIsPillWarning(true);
         setShowWelcomePill(true);
         setShowFireworks(false);
@@ -307,8 +307,8 @@ export default function Login({
     setValidationMsg("");
 
     // 🟢 JIKA USER SUDAH TERDAFTAR / SELESAI REGISTER:
-    setPillIcon("🎆");
-    setPillText(`Selamat datang ${username ? `${username} ` : ''}sayang! 💕`);
+    setPillIcon("");
+    setPillText(`Selamat Datang ${username ? `${username} ` : ''} Sayang! `);
     setIsPillWarning(false);
     setShowWelcomePill(true);
     setShowFireworks(true);
@@ -756,7 +756,7 @@ export default function Login({
                   boxShadow: "0 0 15px var(--accent-glow)",
                 }}
               >
-                Gabung Admin
+                Masuk Admin
               </button>
             </div>
           </div>
