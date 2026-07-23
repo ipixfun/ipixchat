@@ -7,7 +7,7 @@
   "theme_color": "#2196F3",
   "icons": [
     {
-      "src": "https://res.cloudinary.com/bjamo8ld/image/upload/v1784119219/192_jexzwh.png",
+      "src": "/icon.png",
       "sizes": "192x192",
       "type": "image/png"
     }
