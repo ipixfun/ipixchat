@@ -143,6 +143,9 @@ const InputField = ({ icon, suffix, readOnly, className, style, type = "text", .
     <input 
       type={type}
       readOnly={readOnly}
+      autoComplete="off"
+      autoCorrect="off"
+      spellCheck="false"
       className="bg-transparent outline-none flex-1 text-sm font-extrabold w-full placeholder:opacity-50 disabled:cursor-not-allowed"
       style={{ color: "var(--foreground-heading)" }}
       {...props}
@@ -308,7 +311,7 @@ export default function Login({
 
     // 🟢 JIKA USER SUDAH TERDAFTAR / SELESAI REGISTER:
     setPillIcon("");
-    setPillText(`Selamat Datang ${username ? `${username} ` : ''} Sayang! `);
+    setPillText(`Selamat Datang ${username ? `${username} ` : ''}Sayang! `);
     setIsPillWarning(false);
     setShowWelcomePill(true);
     setShowFireworks(true);
@@ -396,7 +399,9 @@ export default function Login({
   };
 
   return (
-    <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
+    <div 
+      className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6"
+    >
       
       {/* 🎆 CANVAS FIREWORKS */}
       {showFireworks && <FireworksCanvas />}
@@ -427,22 +432,19 @@ export default function Login({
         )}
       </AnimatePresence>
 
-      {/* ⚪ MAIN CARD */}
-      <div 
-        className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-hidden flex flex-col z-10"
-        style={{ contain: 'layout style' }}
-      >
+      <div className="absolute inset-0 flex justify-center items-center z-20 pointer-events-none sm:p-6">
+        <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-hidden flex flex-col pointer-events-auto">
         
         {activeTab === 'user' ? (
           <>
-            {/* 🔵 SLIDE OVERLAY PANEL */}
+            {/* 🔵 SLIDE OVERLAY PANEL (PILL DINAMIS) */}
             <motion.div
               initial={false}
               animate={{
                 y: isLoginMode ? '0%' : '185.7%',
               }}
               transition={PANEL_TRANSITION}
-              className={`absolute left-0 right-0 top-0 h-[35%] z-20 flex flex-col items-center justify-center p-4 overflow-hidden border ${glassBox} ${isLoginMode ? 'rounded-b-[2.5rem]' : 'rounded-t-[2.5rem]'}`}
+              className={`absolute left-0 right-0 top-0 h-[35%] z-20 overflow-hidden border ${glassBox} ${isLoginMode ? 'rounded-b-[2.5rem]' : 'rounded-t-[2.5rem]'}`}
               style={{ 
                 ...gpuStyle, 
                 willChange: 'transform',
@@ -452,14 +454,14 @@ export default function Login({
               }}
             >
               {isExistingUser ? null : (
-                <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
+                <div className="relative w-full h-full drop-shadow-md">
                   
-                  {/* View For Login Mode */}
+                  {/* View For Login Mode (Menampilkan Pil Register di tengah kaca) */}
                   <motion.div
                     initial={false}
                     animate={{ opacity: isLoginMode ? 1 : 0 }}
                     transition={CONTENT_TRANSITION}
-                    className="absolute flex flex-col items-center justify-center text-center w-full px-6"
+                    className="absolute inset-0 flex flex-col items-center justify-center text-center w-full px-6"
                     style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}
                   >
                     <p className="text-xs font-extrabold uppercase tracking-widest mb-3 opacity-90" style={{ color: "var(--foreground-heading)" }}>
@@ -478,12 +480,12 @@ export default function Login({
                     </button>
                   </motion.div>
 
-                  {/* View For Register Mode */}
+                  {/* View For Register Mode (Menampilkan Pil Login di tengah kaca) */}
                   <motion.div
                     initial={false}
                     animate={{ opacity: !isLoginMode ? 1 : 0 }}
                     transition={CONTENT_TRANSITION}
-                    className="absolute flex flex-col items-center justify-center text-center w-full px-6"
+                    className="absolute inset-0 flex flex-col items-center justify-center text-center w-full px-6"
                     style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}
                   >
                     <p className="text-xs font-extrabold uppercase tracking-widest mb-3 opacity-90" style={{ color: "var(--foreground-heading)" }}>
@@ -541,7 +543,6 @@ export default function Login({
                     }}
                     className={inputInset}
                     style={usernameStyle}
-                    autoComplete="off"
                   />
                   
                   <InputField 
@@ -657,7 +658,6 @@ export default function Login({
                     readOnly={isExistingUser}
                     className={inputInset}
                     style={isExistingUser ? existingStyle : usernameStyle}
-                    autoComplete="off"
                   />
                   
                   <InputField 
@@ -729,7 +729,6 @@ export default function Login({
                 onChange={(e: any) => setAdminEmail(e.target.value)} 
                 className={inputInset}
                 style={normalInputStyle}
-                autoComplete="off"
               />
               
               <InputField 
@@ -761,7 +760,7 @@ export default function Login({
             </div>
           </div>
         )}
-      </div>
+      </div></div>
     </div>
   );
 }

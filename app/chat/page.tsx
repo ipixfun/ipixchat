@@ -178,6 +178,7 @@ export default function Home() {
   };
 
   const fetchData = useCallback(async () => {
+    if (!auth.isAuth) return; // Jangan tarik data chat jika belum login demi keamanan & performa
     try {
       const [{ data: bD }, { data: bW }, { data: prD }] = await Promise.all([
         supabase.from("blocked_users").select("*"),
@@ -252,6 +253,38 @@ export default function Home() {
       }
     } catch (e) {}
   }, [ui.tab, usersInfo.selPriv, auth.isAuth, auth.user, getFmt]); 
+
+  // Pengecekan otomatis ke database Supabase ketika user mengetik nama (Supaya tombol otomatis berubah jadi "Masuk Chat" jika akun sudah ada)
+  const handleUsernameChange = async (enteredName: string) => {
+    const trimmed = enteredName.slice(0, 20);
+    setAuth((p) => ({ ...p, user: trimmed }));
+
+    if (trimmed.length > 2) {
+      try {
+        const { data: pD } = await supabase
+          .from("profiles")
+          .select("username, pin, umur, berat")
+          .ilike("username", trimmed.trim())
+          .maybeSingle();
+
+        if (pD?.username) {
+          setAuth((p) => ({
+            ...p,
+            isExist: true,
+            pin: pD.pin || p.pin,
+            umur: pD.umur || p.umur,
+            berat: pD.berat || p.berat,
+          }));
+        } else {
+          setAuth((p) => ({ ...p, isExist: false }));
+        }
+      } catch (err) {
+        console.error("Gagal cek user:", err);
+      }
+    } else {
+      setAuth((p) => ({ ...p, isExist: false }));
+    }
+  };
 
   const updateMsgLocal = (id: number, newText: string, isEdited: boolean, editedBy: string, imageUrl?: any, deletedByAdmin?: boolean) => {
     setMsgs((prev) => {
@@ -474,7 +507,7 @@ export default function Home() {
   }, [pathname]);
 
   useEffect(() => {
-    if (mounted) {
+    if (mounted && auth.isAuth) {
       fetchData();
       const messageSubscription = supabase
         .channel("public:messages")
@@ -486,7 +519,7 @@ export default function Home() {
         supabase.removeChannel(messageSubscription);
       };
     }
-  }, [mounted, fetchData]);
+  }, [mounted, auth.isAuth, fetchData]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -729,8 +762,6 @@ export default function Home() {
         dangerouslySetInnerHTML={{
           __html: ` 
           body{overscroll-behavior-y:none;} 
-          
-          /* ANIMASI BACKGROUND BLINK */
           @keyframes bC{0%,100%{filter:brightness(1);}50%{background-color:#fef9c3 !important;filter:brightness(0.9);}} 
           .anim-bg-blink-cream{animation:bC 1.5s ease-in-out;} 
           @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} 
@@ -739,225 +770,23 @@ export default function Home() {
         }}
       />
 
-      {auth.isAuth && ui.tab === "admin" && currentHash !== "#block" && (
-        <div className="fixed z-[100] bottom-36 right-4 flex flex-col gap-2">
-          <div onClick={() => window.open(`${window.location.pathname}#block`, "_blank")} className="px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-red-600 border border-red-700 shadow-[0_3px_0_#991b1b,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150 text-center">
-            BLOCK MGR
-          </div>
-          <div onClick={dbActions.emptyTrash} className="px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-orange-600 border border-orange-700 shadow-[0_3px_0_#c2410c,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150 text-center">
-            TRASH MGR
-          </div>
-        </div>
-      )}
-
-      <Head
-        auth={auth}
-        ui={ui}
-        adminStat={adminStat}
-        onlineUsers={onlineUsers}
-        currentHash={currentHash}
-        getFmt={getFmt}
-        handleLogout={handleLogout}
-      />
-
-      <div className="flex-1 w-full relative flex overflow-hidden bg-emerald-900/10">
-        {ui.tab === "admin" && currentHash === "#block" ? (
-          <Block
-            blockedList={usersInfo.blockedList}
-            unblock={async (identifier: string) => {
-              await supabase.from("blocked_users").delete().eq("username", identifier);
-              
-              if (!isNaN(Number(identifier))) {
-                await supabase.from("blocked_users").delete().eq("id", Number(identifier));
-              }
-              fetchData();
-            }}
-            blockedWords={censor.words}
-            newWord={censor.newWord}
-            setNewWord={(w: string) => setCensor((p) => ({ ...p, newWord: w }))}
-            addBlockedWord={dbActions.addWrd}
-            removeBlockedWord={dbActions.rmWrd}
-            formatMessageTime={getFmt.time}
-          />
-        ) : (
-          <ChatLayout
-            cMode="private"
-            viewMode="full-private"
-            hInteract={() => {}}
-            hScroll={hScroll}
-            aTab={ui.tab}
-            selPrivUser={usersInfo.selPriv}
-            pUsers={usersInfo.privUsers}
-            pubMsgs={[]}
-            privMsgs={msgs.priv}
-            isPill={false}
-            pDelta={0}
-            pTouchX={0}
-            capIdx={0}
-            setPTouchX={() => {}}
-            setPDelta={() => {}}
-            setCapPause={() => {}}
-            setIsPill={() => {}}
-            renderMsgs={renderMsgs}
-            renderInput={() => <></>}
-            fmtTime={getFmt.time}
-            setSelPriv={(u: string) => setUsersInfo((p) => ({ ...p, selPriv: u }))}
-          />
-        )}
-      </div>
-
-      {auth.isAuth && currentHash !== "#block" && renderInputForm()}
-
-      {interact.popup && interact.popup.pesan !== "___DELETED___" && (
-        <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col border-t-4 border-emerald-500" onClick={(e) => e.stopPropagation()}>
-            <button type="button" onClick={() => setInteract((p) => ({ ...p, popup: null }))} className="absolute top-3 right-3 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center font-bold active:scale-95">
-              ×
-            </button>
-            <div className="flex items-center gap-2 border-b pb-3 mb-3">
-              <span className={`px-2 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === "Admin●ipix.my.id" ? "bg-red-600" : interact.popup.username === auth.user ? "bg-blue-600" : "bg-gray-700"}`}>{interact.popup.username}</span>
-              <span className="text-[10px] text-gray-400">{getFmt.time(interact.popup.created_at)}</span>
-            </div>
-            <div className="overflow-y-auto pr-2 pb-2 text-sm text-black flex flex-col break-words break-all whitespace-pre-wrap">
-              {interact.popup.image_url && (
-                <div className="relative mb-3 w-full">
-                  <img src={interact.popup.image_url} alt="Uploaded Image" className={`w-full h-auto max-h-[50vh] object-contain rounded-lg border shadow-sm bg-gray-50 ${interact.popup.is_approved === false && ui.tab !== "admin" && interact.popup.username !== "Admin●ipix.my.id" ? "blur-xl" : ""}`} />
-                  {interact.popup.is_approved === false && ui.tab !== "admin" && interact.popup.username !== "Admin●ipix.my.id" && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-white text-xs sm:text-sm font-bold px-3 py-1.5 bg-black/60 rounded-full text-center">Menunggu Persetujuan Admin</span>
-                    </div>
-                  )}
-                </div>
-              )}
-              {interact.popup.pesan && applyCensor(interact.popup.pesan)}
-            </div>
-            <div className="flex flex-wrap items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
-              
-              {ui.tab === "admin" && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const popupMsg = interact.popup;
-                    setInteract((p) => ({ ...p, popup: null }));
-                    dbActions.pinMsg(popupMsg);
-                  }}
-                  className={`px-3 py-1.5 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1 ${interact.popup.is_pinned ? "bg-gray-500 hover:bg-gray-600" : "bg-purple-600 hover:bg-purple-700"}`}
-                >
-                  📌 {interact.popup.is_pinned ? "Unpin" : "Pin"}
-                </button>
-              )}
-
-              {((interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id") || ui.tab === "admin") && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const popupMsg = interact.popup;
-                    setInteract((p) => ({ ...p, popup: null }));
-                    dbActions.delMsg(popupMsg, false);
-                  }}
-                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1"
-                >
-                  🗑️ Hapus
-                </button>
-              )}
-              {interact.popup.image_url && !(interact.popup.is_approved === false && ui.tab !== "admin" && interact.popup.username !== "Admin●ipix.my.id") && (
-                <button
-                  type="button"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    try {
-                      const response = await fetch(interact.popup.image_url);
-                      const blob = await response.blob();
-                      const url = window.URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `ipix_image_${interact.popup.id}.jpg`;
-                      document.body.appendChild(a);
-                      a.click();
-                      a.remove();
-                      window.URL.revokeObjectURL(url);
-                    } catch (err) {
-                      window.open(interact.popup.image_url, "_blank");
-                    }
-                  }}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1"
-                >
-                  📥 Unduh
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  copyTxt(interact.popup.pesan, "Pesan");
-                }}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all"
-              >
-                📋 Salin
-              </button>
-
-              {(ui.tab === "admin" || (interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id")) && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const popupMsg = interact.popup;
-                    setInteract((p) => ({ ...p, popup: null }));
-                    if (ui.tab === "admin") {
-                      dbActions.editMsg(popupMsg.id);
-                    } else {
-                      dbActions.editLmt(popupMsg);
-                    }
-                  }}
-                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all"
-                >
-                  ✏️ Edit
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setInteract((p) => ({
-                    ...p,
-                    replyTo: interact.popup,
-                    popup: null,
-                  }));
-                  setInput((p) => ({ ...p, blink: true }));
-                  setTimeout(() => setInput((p) => ({ ...p, blink: false })), 800);
-                }}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all"
-              >
-                💬 Balas
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!auth.isAuth && (
+      {/* JIKA BELUM AUTHENTICATION: Tampilkan Login Component secara aman di atas background transparan tanpa me-render chat */}
+      {!auth.isAuth ? (
         <Login
           activeTab={ui.tab}
           username={auth.user}
-          setUsername={(u: string) => setAuth((p) => ({ ...p, user: u }))}
-          
+          setUsername={handleUsernameChange}
           pin={auth.pin}
           setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))}
-          
           umur={auth.umur}
           setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))}
-
           berat={auth.berat}
           setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))}
-
           isExistingUser={auth.isExist}
           adminEmail={auth.adminEmail}
           setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))}
           adminPass={auth.adminPass}
           setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))}
-          
           handleUserLogin={async (isLoginMode?: boolean) => {
             const inputName = auth.user.trim();
             if (!inputName || isCensored(inputName)) return alert("Nama tidak valid");
@@ -990,7 +819,6 @@ export default function Home() {
                 localStorage.setItem("active_username", finalUsername);
                 localStorage.setItem("is_auth", "true");
                 localStorage.setItem("active_tab", "user");
-                
                 return; 
               }
 
@@ -1017,7 +845,6 @@ export default function Home() {
 
               if (upsertError) {
                 alert("Gagal simpan data ke database: " + upsertError.message);
-                console.error("Supabase Error:", upsertError);
                 return; 
               }
 
@@ -1050,10 +877,209 @@ export default function Home() {
             }
           }}
         />
+      ) : (
+        /* JIKA SUDAH LOGIN: Tampilkan Seluruh UI Chat, Head, dan BottomNav secara utuh */
+        <>
+          {ui.tab === "admin" && currentHash !== "#block" && (
+            <div className="fixed z-[100] bottom-36 right-4 flex flex-col gap-2">
+              <div onClick={() => window.open(`${window.location.pathname}#block`, "_blank")} className="px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-red-600 border border-red-700 shadow-[0_3px_0_#991b1b,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150 text-center">
+                BLOCK MGR
+              </div>
+              <div onClick={dbActions.emptyTrash} className="px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-orange-600 border border-orange-700 shadow-[0_3px_0_#c2410c,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150 text-center">
+                TRASH MGR
+              </div>
+            </div>
+          )}
+
+          <Head
+            auth={auth}
+            ui={ui}
+            adminStat={adminStat}
+            onlineUsers={onlineUsers}
+            currentHash={currentHash}
+            getFmt={getFmt}
+            handleLogout={handleLogout}
+          />
+
+          <div className="flex-1 w-full relative flex overflow-hidden bg-emerald-900/10">
+            {ui.tab === "admin" && currentHash === "#block" ? (
+              <Block
+                blockedList={usersInfo.blockedList}
+                unblock={async (identifier: string) => {
+                  await supabase.from("blocked_users").delete().eq("username", identifier);
+                  if (!isNaN(Number(identifier))) {
+                    await supabase.from("blocked_users").delete().eq("id", Number(identifier));
+                  }
+                  fetchData();
+                }}
+                blockedWords={censor.words}
+                newWord={censor.newWord}
+                setNewWord={(w: string) => setCensor((p) => ({ ...p, newWord: w }))}
+                addBlockedWord={dbActions.addWrd}
+                removeBlockedWord={dbActions.rmWrd}
+                formatMessageTime={getFmt.time}
+              />
+            ) : (
+              <ChatLayout
+                cMode="private"
+                viewMode="full-private"
+                hInteract={() => {}}
+                hScroll={hScroll}
+                aTab={ui.tab}
+                selPrivUser={usersInfo.selPriv}
+                pUsers={usersInfo.privUsers}
+                pubMsgs={[]}
+                privMsgs={msgs.priv}
+                isPill={false}
+                pDelta={0}
+                pTouchX={0}
+                capIdx={0}
+                setPTouchX={() => {}}
+                setPDelta={() => {}}
+                setCapPause={() => {}}
+                setIsPill={() => {}}
+                renderMsgs={renderMsgs}
+                renderInput={() => <></>}
+                fmtTime={getFmt.time}
+                setSelPriv={(u: string) => setUsersInfo((p) => ({ ...p, selPriv: u }))}
+              />
+            )}
+          </div>
+
+          {currentHash !== "#block" && renderInputForm()}
+
+          {interact.popup && interact.popup.pesan !== "___DELETED___" && (
+            <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
+              <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col border-t-4 border-emerald-500" onClick={(e) => e.stopPropagation()}>
+                <button type="button" onClick={() => setInteract((p) => ({ ...p, popup: null }))} className="absolute top-3 right-3 text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center font-bold active:scale-95">
+                  ×
+                </button>
+                <div className="flex items-center gap-2 border-b pb-3 mb-3">
+                  <span className={`px-2 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === "Admin●ipix.my.id" ? "bg-red-600" : interact.popup.username === auth.user ? "bg-blue-600" : "bg-gray-700"}`}>{interact.popup.username}</span>
+                  <span className="text-[10px] text-gray-400">{getFmt.time(interact.popup.created_at)}</span>
+                </div>
+                <div className="overflow-y-auto pr-2 pb-2 text-sm text-black flex flex-col break-words break-all whitespace-pre-wrap">
+                  {interact.popup.image_url && (
+                    <div className="relative mb-3 w-full">
+                      <img src={interact.popup.image_url} alt="Uploaded Image" className={`w-full h-auto max-h-[50vh] object-contain rounded-lg border shadow-sm bg-gray-50 ${interact.popup.is_approved === false && ui.tab !== "admin" && interact.popup.username !== "Admin●ipix.my.id" ? "blur-xl" : ""}`} />
+                      {interact.popup.is_approved === false && ui.tab !== "admin" && interact.popup.username !== "Admin●ipix.my.id" && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-white text-xs sm:text-sm font-bold px-3 py-1.5 bg-black/60 rounded-full text-center">Menunggu Persetujuan Admin</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {interact.popup.pesan && applyCensor(interact.popup.pesan)}
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
+                  {ui.tab === "admin" && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const popupMsg = interact.popup;
+                        setInteract((p) => ({ ...p, popup: null }));
+                        dbActions.pinMsg(popupMsg);
+                      }}
+                      className={`px-3 py-1.5 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1 ${interact.popup.is_pinned ? "bg-gray-500 hover:bg-gray-600" : "bg-purple-600 hover:bg-purple-700"}`}
+                    >
+                      📌 {interact.popup.is_pinned ? "Unpin" : "Pin"}
+                    </button>
+                  )}
+
+                  {((interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id") || ui.tab === "admin") && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const popupMsg = interact.popup;
+                        setInteract((p) => ({ ...p, popup: null }));
+                        dbActions.delMsg(popupMsg, false);
+                      }}
+                      className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1"
+                    >
+                      🗑️ Hapus
+                    </button>
+                  )}
+                  {interact.popup.image_url && !(interact.popup.is_approved === false && ui.tab !== "admin" && interact.popup.username !== "Admin●ipix.my.id") && (
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          const response = await fetch(interact.popup.image_url);
+                          const blob = await response.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `ipix_image_${interact.popup.id}.jpg`;
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                          window.URL.revokeObjectURL(url);
+                        } catch (err) {
+                          window.open(interact.popup.image_url, "_blank");
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1"
+                    >
+                      📥 Unduh
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyTxt(interact.popup.pesan, "Pesan");
+                    }}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all"
+                  >
+                    📋 Salin
+                  </button>
+
+                  {(ui.tab === "admin" || (interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id")) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const popupMsg = interact.popup;
+                        setInteract((p) => ({ ...p, popup: null }));
+                        if (ui.tab === "admin") {
+                          dbActions.editMsg(popupMsg.id);
+                        } else {
+                          dbActions.editLmt(popupMsg);
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all"
+                    >
+                      ✏️ Edit
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setInteract((p) => ({
+                        ...p,
+                        replyTo: interact.popup,
+                        popup: null,
+                      }));
+                      setInput((p) => ({ ...p, blink: true }));
+                      setTimeout(() => setInput((p) => ({ ...p, blink: false })), 800);
+                    }}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all"
+                  >
+                    💬 Balas
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
+      {/* BottomNav tetap dirender di bawah tanpa ikut terhapus */}
       <BottomNav />
-      
     </div>
   );
 }
