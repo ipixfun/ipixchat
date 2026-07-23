@@ -221,31 +221,34 @@ export default function Login({
   const [validationMsg, setValidationMsg] = useState("");
   const [showPin, setShowPin] = useState(false);
 
+  // Status Kembang Api & Selamat Datang
   const [showWelcomePill, setShowWelcomePill] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false);
-  const [pillText, setPillText] = useState("");
-  const [pillIcon, setPillIcon] = useState("");
-  const [isPillWarning, setIsPillWarning] = useState(false);
 
-  // Paksa langsung isi PIN jika user sudah terdaftar di localstorage atau parent
+  const [isSavedDevice, setIsSavedDevice] = useState(false);
+  const [hasTyped, setHasTyped] = useState(false);
+
+  // BACA OTOMATIS DARI BROWSER (LOCAL STORAGE) SAAT WEB DIBUKA
   useEffect(() => {
-    if (isExistingUser) {
-      try {
-        const savedPin = localStorage.getItem('user_pin') || localStorage.getItem('pin');
-        if (savedPin) {
-          setPin(savedPin);
-        } else if (!pin) {
-          // Fallback paksa isi dummy 6 digit jika kosong agar lolos validasi
-          setPin('333666');
-        }
-      } catch (e) {
-        if (!pin) setPin('333666');
+    try {
+      const savedUser = localStorage.getItem('username');
+      const savedPin = localStorage.getItem('user_pin') || localStorage.getItem('pin');
+
+      if (savedUser && savedPin) {
+        if (!username) setUsername(savedUser);
+        if (!pin) setPin(savedPin);
+        setIsSavedDevice(true);
+        setIsLoginMode(true); // Pastikan ada di mode login
+      } else if (isExistingUser && !hasTyped) {
+        setIsSavedDevice(true);
       }
-    }
-  }, [isExistingUser, pin, setPin]);
+    } catch (e) {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); 
 
+  // ANIMASI PLACEHOLDER
   useEffect(() => {
-    if (isExistingUser) return;
+    if (isSavedDevice) return;
     const targetPlaceholder = "Username (Maks 20 huruf)";
     let index = 0;
     const interval = setInterval(() => {
@@ -257,10 +260,11 @@ export default function Login({
       }
     }, 60);
     return () => clearInterval(interval);
-  }, [isExistingUser]);
+  }, [isSavedDevice]);
 
+  // ANIMASI TEKS NOTE
   useEffect(() => {
-    if (!isExistingUser) return;
+    if (!isSavedDevice) return;
     let index = 0;
     const interval = setInterval(() => {
       if (index < existingNote.length) {
@@ -272,66 +276,68 @@ export default function Login({
       }
     }, 45);
     return () => clearInterval(interval);
-  }, [isExistingUser]);
+  }, [isSavedDevice]);
 
-  const isFormValid = isExistingUser ? true : (isLoginMode
+  const isFormValid = isSavedDevice 
     ? (username?.trim().length > 0 && pin?.length === 6)
-    : (username?.trim().length > 0 && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed));
+    : (isLoginMode
+      ? (username?.trim().length > 0 && pin?.length === 6)
+      : (username?.trim().length > 0 && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed));
 
-  const handleUserLoginWrapper = () => {
-    if (!isExistingUser) {
-      if (!username || username.trim().length === 0) {
-        setValidationMsg("Isi nama dulu sayang");
+  const handleUserLoginWrapper = async () => {
+    if (!username || username.trim().length === 0) {
+      setValidationMsg("Isi nama dulu sayang");
+      return;
+    }
+    if (!pin || pin.length !== 6) {
+      setValidationMsg("PIN harus 6 angka sayang");
+      return;
+    }
+
+    if (!isSavedDevice && !isLoginMode) {
+      if (!umur || !berat) {
+        setValidationMsg("Pilih umur & berat sayang");
         return;
       }
-      if (!pin || pin.length !== 6) {
-        setValidationMsg("PIN harus 6 angka sayang");
+      if (!isUsernameAgreed) {
+        setValidationMsg("Ceklist dulu sayang");
         return;
-      }
-
-      if (isLoginMode) {
-        setPillIcon("⚠️");
-        setPillText("Register dulu sayang");
-        setIsPillWarning(true);
-        setShowWelcomePill(true);
-        setShowFireworks(false);
-
-        setTimeout(() => {
-          setShowWelcomePill(false);
-          setIsLoginMode(false);
-        }, 2200);
-        return;
-      }
-
-      if (!isLoginMode) {
-        if (!umur || !berat) {
-          setValidationMsg("Pilih umur & berat sayang");
-          return;
-        }
-        if (!isUsernameAgreed) {
-          setValidationMsg("Ceklist dulu sayang");
-          return;
-        }
-      }
-    } else {
-      // Pastikan state pin aman saat existing user langsung klik masuk
-      if (!pin || pin.length !== 6) {
-        const savedPin = localStorage.getItem('user_pin') || localStorage.getItem('pin') || '333666';
-        setPin(savedPin);
       }
     }
 
     setValidationMsg("");
 
-    setPillIcon("");
-    setPillText(`Selamat Datang ${username ? `${username} ` : ''} Sayang! `);
-    setIsPillWarning(false);
-    setShowWelcomePill(true);
-    setShowFireworks(true);
+    try {
+      // 1. Eksekusi fungsi login di parent untuk memvalidasi
+      const result = await handleUserLogin(isLoginMode);
+      
+      // 2. LOGIKA DIPERKETAT: Jika result false, null, atau undefined
+      if (!result || result === false || result?.error) {
+        setShowWelcomePill(false);
+        setShowFireworks(false);
+        setValidationMsg("Username atau PIN salah sayang");
+        return; // WAJIB ada return di sini biar eksekusi berhenti dan kembang api gak nyala
+      } 
+      
+      // 3. JIKA BENAR: TANAM USER & PIN KE DEVICE (BROWSER)
+      try {
+        localStorage.setItem('username', username);
+        localStorage.setItem('user_pin', pin);
+        localStorage.setItem('pin', pin); // backup
+        
+        // Ubah state jadi saved device supaya langsung berubah tampilannya jika nggak pindah halaman
+        setIsSavedDevice(true);
+      } catch (e) {}
 
-    setTimeout(() => {
-      handleUserLogin(isLoginMode);
-    }, 3200);
+      // 4. Munculkan kembang api dan ucapan HANYA JIKA BENAR
+      setShowWelcomePill(true);
+      setShowFireworks(true);
+      
+    } catch (err) {
+      setShowWelcomePill(false);
+      setShowFireworks(false);
+      setValidationMsg("Terjadi kesalahan, gagal login");
+    }
   };
 
   const inputInset = 'shadow-[inset_0_4px_8px_rgba(0,0,0,0.25)]';
@@ -358,8 +364,8 @@ export default function Login({
     return normalInputStyle;
   };
 
-  const usernameStyle = getInputStyle(validationMsg === "Isi nama dulu sayang");
-  const pinStyle = getInputStyle(Boolean(validationMsg === "PIN harus 6 angka sayang" || (!isLoginMode && Boolean(validationMsg) && (!pin || pin.length !== 6))));
+  const usernameStyle = getInputStyle(validationMsg === "Isi nama dulu sayang" || validationMsg.includes("salah"));
+  const pinStyle = getInputStyle(Boolean(validationMsg === "PIN harus 6 angka sayang" || validationMsg.includes("salah") || (!isLoginMode && Boolean(validationMsg) && (!pin || pin.length !== 6))));
   const umurStyle = getInputStyle(Boolean(validationMsg && !umur));
   const beratStyle = getInputStyle(Boolean(validationMsg && !berat));
 
@@ -372,7 +378,7 @@ export default function Login({
   let buttonStyleObj: React.CSSProperties = {};
   let buttonText = "";
 
-  if (isExistingUser) {
+  if (isSavedDevice) {
     buttonStyleObj = {
       backgroundColor: "var(--accent)",
       color: "var(--background)",
@@ -411,6 +417,7 @@ export default function Login({
   return (
     <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
       
+      {/* KEMBANG API HANYA NYALA JIKA PIN BENAR */}
       {showFireworks && <FireworksCanvas />}
 
       <AnimatePresence>
@@ -421,19 +428,15 @@ export default function Login({
             exit={{ opacity: 0, y: -20, scale: 0.9 }}
             className="fixed top-8 z-[101] px-6 py-3 rounded-full font-black text-xs sm:text-sm border shadow-2xl flex items-center gap-2 backdrop-blur-xl animate-bounce"
             style={{
-              backgroundColor: isPillWarning 
-                ? "color-mix(in srgb, var(--card-bg) 85%, #f59e0b)" 
-                : "color-mix(in srgb, var(--card-bg) 90%, var(--accent))",
-              borderColor: isPillWarning ? "#f59e0b" : "var(--accent)",
+              backgroundColor: "color-mix(in srgb, var(--card-bg) 90%, var(--accent))",
+              borderColor: "var(--accent)",
               color: "var(--foreground-heading)",
-              boxShadow: isPillWarning 
-                ? "0 0 25px rgba(245, 158, 11, 0.4), inset 0 0 10px rgba(245, 158, 11, 0.2)"
-                : "0 0 25px var(--accent-glow), inset 0 0 10px var(--accent-glow)",
+              boxShadow: "0 0 25px var(--accent-glow), inset 0 0 10px var(--accent-glow)",
             }}
           >
-            <span>{pillIcon}</span>
-            <span>{pillText}</span>
-            {!isPillWarning && <span>✨</span>}
+            <span>✨</span>
+            <span>Selamat Datang {username ? `${username} ` : ''}Sayang!</span>
+            <span>✨</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -460,7 +463,7 @@ export default function Login({
                 color: "var(--foreground)",
               }}
             >
-              {isExistingUser ? null : (
+              {isSavedDevice ? null : (
                 <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
                   
                   <motion.div
@@ -542,6 +545,7 @@ export default function Login({
                     placeholder={placeholderText || "Username"} 
                     value={username || ""} 
                     onChange={(e: any) => {
+                      if (!hasTyped) setHasTyped(true);
                       setUsername(e.target.value.slice(0, 20));
                       if (validationMsg) setValidationMsg(""); 
                     }}
@@ -654,20 +658,25 @@ export default function Login({
                     icon={<UserIcon />} 
                     placeholder="Username" 
                     value={username || ""} 
-                    readOnly={isExistingUser}
+                    readOnly={isSavedDevice} 
+                    onChange={(e: any) => {
+                      if (isSavedDevice) return;
+                      if (!hasTyped) setHasTyped(true); 
+                      setUsername(e.target.value.slice(0, 20));
+                      if (validationMsg) setValidationMsg(""); 
+                    }}
                     className={inputInset}
-                    style={isExistingUser ? existingStyle : usernameStyle}
+                    style={isSavedDevice ? existingStyle : usernameStyle}
                     autoComplete="off"
                   />
                   
                   <InputField 
                     icon={<LockIcon />} 
-                    placeholder={isExistingUser ? "PIN Tersimpan" : "PIN (6 angka)"}
+                    placeholder={isSavedDevice ? "PIN Tersimpan" : "PIN (6 angka)"}
                     type={showPin ? "text" : "password"}
-                    readOnly={isExistingUser}
-                    value={showPin ? (pin || "") : "••••••••"} 
+                    readOnly={false} 
+                    value={pin || ""} 
                     onChange={(e: any) => {
-                      if (isExistingUser) return;
                       const val = e.target.value.replace(/\D/g, '').slice(0, 6);
                       setPin(val);
                       if (validationMsg) setValidationMsg(""); 
@@ -678,11 +687,11 @@ export default function Login({
                       </button>
                     }
                     className={inputInset}
-                    style={isExistingUser ? existingStyle : pinStyle}
+                    style={isSavedDevice ? existingStyle : pinStyle}
                     maxLength={6}
                   />
 
-                  {isExistingUser && (
+                  {isSavedDevice && (
                     <div 
                       className={`w-full text-xs p-4 border rounded-3xl mb-4 font-extrabold text-center whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center ${inputInset}`}
                       style={{
