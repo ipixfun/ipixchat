@@ -172,8 +172,9 @@ export default function Home() {
     await supabase.auth.signOut();
     localStorage.removeItem("is_auth");
     localStorage.removeItem("active_tab");
+    localStorage.removeItem("saved_pin"); // Hapus pin dari device
     sessionStorage.clear();
-    setAuth((p) => ({ ...p, isAuth: false }));
+    setAuth((p) => ({ ...p, isAuth: false, pin: "" })); // Kosongkan pin di memory
     window.location.replace("/");
   };
 
@@ -254,6 +255,7 @@ export default function Home() {
     } catch (e) {}
   }, [ui.tab, usersInfo.selPriv, auth.isAuth, auth.user, getFmt]); 
 
+  // PERBAIKAN: Jangan tarik PIN saat ngetik nama agar tidak bocor
   const handleUsernameChange = async (enteredName: string) => {
     const trimmed = enteredName.slice(0, 20);
     setAuth((p) => ({ ...p, user: trimmed }));
@@ -262,7 +264,7 @@ export default function Home() {
       try {
         const { data: pD } = await supabase
           .from("profiles")
-          .select("username, pin, umur, berat")
+          .select("username") // Cuma ambil username!
           .ilike("username", trimmed.trim())
           .maybeSingle();
 
@@ -270,9 +272,7 @@ export default function Home() {
           setAuth((p) => ({
             ...p,
             isExist: true,
-            pin: pD.pin || p.pin,
-            umur: pD.umur || p.umur,
-            berat: pD.berat || p.berat,
+            // PIN TIDAK DITETAPKAN DI SINI. User wajib ngetik PIN-nya.
           }));
         } else {
           setAuth((p) => ({ ...p, isExist: false }));
@@ -462,12 +462,13 @@ export default function Home() {
       const { data: { session } } = await supabase.auth.getSession();
       
       const savedUsername = localStorage.getItem("active_username");
+      const savedPin = localStorage.getItem("saved_pin");
       const isAuthLocal = localStorage.getItem("is_auth") === "true"; 
       
       if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
           const { data: pD } = await supabase
             .from("profiles")
-            .select("username, pin, umur, berat")
+            .select("username, umur, berat") 
             .ilike("username", savedUsername)
             .maybeSingle();
           
@@ -476,7 +477,7 @@ export default function Home() {
               ...p, 
               isExist: true, 
               user: pD.username,
-              pin: pD.pin || "",
+              pin: isAuthLocal ? savedPin || "" : "", // Autofill dari device ini aja kalau session localnya TRUE
               umur: pD.umur || "",
               berat: pD.berat || ""
             }));
@@ -644,9 +645,8 @@ export default function Home() {
   const currentMsgs = msgs.priv;
   const pinnedMsg = currentMsgs.find((m) => m.is_pinned && m.pesan !== "___DELETED___");
 
-  // DOM SAFETY ADA DI SINI: Pesan tidak akan pernah di-render jika user belum login
   const renderMsgs = (arr: any[], colType: any) => {
-    if (!auth.isAuth) return null; // KUNCI UTAMA ANTI BOCOR DOM
+    if (!auth.isAuth) return null;
 
     const messageContent = arr.length === 0 ? (
       <div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div>
@@ -772,119 +772,127 @@ export default function Home() {
         }}
       />
 
-      {/* OVERLAY LOGIN - Muncul melayang di atas UI Utama kalau belum auth */}
+      {/* OVERLAY LOGIN */}
       {!auth.isAuth && (
-        <div className="absolute inset-0 z-[100] flex flex-col">
-          <Login
-            activeTab={ui.tab}
-            username={auth.user}
-            setUsername={handleUsernameChange}
-            pin={auth.pin}
-            setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))}
-            umur={auth.umur}
-            setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))}
-            berat={auth.berat}
-            setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))}
-            isExistingUser={auth.isExist}
-            adminEmail={auth.adminEmail}
-            setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))}
-            adminPass={auth.adminPass}
-            setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))}
-            handleUserLogin={async (isLoginMode?: boolean) => {
-              const inputName = auth.user.trim();
-              if (!inputName || isCensored(inputName)) return alert("Nama tidak valid");
-              
-              try {
-                const { data: existUser } = await supabase
-                  .from("profiles")
-                  .select("username, pin, email, umur, berat")
-                  .ilike("username", inputName)
-                  .maybeSingle();
+        <div className="absolute inset-0 z-[40] flex flex-col pointer-events-none pb-16">
+          <div className="pointer-events-auto flex-1 flex flex-col">
+            <Login
+              activeTab={ui.tab}
+              username={auth.user}
+              setUsername={handleUsernameChange}
+              pin={auth.pin}
+              setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))}
+              umur={auth.umur}
+              setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))}
+              berat={auth.berat}
+              setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))}
+              isExistingUser={auth.isExist}
+              adminEmail={auth.adminEmail}
+              setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))}
+              adminPass={auth.adminPass}
+              setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))}
+              handleUserLogin={async (isLoginMode?: boolean) => {
+                const inputName = auth.user.trim();
+                if (!inputName || isCensored(inputName)) return alert("Nama tidak valid");
+                
+                try {
+                  const { data: existUser } = await supabase
+                    .from("profiles")
+                    // PERBAIKAN: Tarik semua properti di sini pas button login ditekan
+                    .select("username, pin, email, umur, berat")
+                    .ilike("username", inputName)
+                    .maybeSingle();
 
-                if (existUser && existUser.pin !== auth.pin) {
-                  return alert("Username sudah terdaftar dengan PIN yang berbeda!");
-                }
-                
-                const finalUsername = existUser ? existUser.username : inputName.toLowerCase();
-                
-                if (isLoginMode) {
-                  if (!existUser) {
-                    return alert("User tidak ditemukan, silakan register terlebih dahulu.");
+                  if (existUser && existUser.pin !== auth.pin) {
+                    return alert("Username sudah terdaftar dengan PIN yang berbeda!");
                   }
                   
-                  setAuth((p) => ({ 
-                    ...p, 
-                    isAuth: true, 
-                    user: finalUsername,
-                    umur: existUser.umur || "",
-                    berat: existUser.berat || ""
-                  }));
+                  const finalUsername = existUser ? existUser.username : inputName.toLowerCase();
+                  
+                  if (isLoginMode) {
+                    if (!existUser) {
+                      return alert("User tidak ditemukan, silakan register terlebih dahulu.");
+                    }
+                    
+                    setAuth((p) => ({ 
+                      ...p, 
+                      isAuth: true, 
+                      user: finalUsername,
+                      umur: existUser.umur || "",
+                      berat: existUser.berat || ""
+                    }));
+                    
+                    // SIMPAN PIN KE DEVICE!
+                    localStorage.setItem("active_username", finalUsername);
+                    localStorage.setItem("saved_pin", auth.pin);
+                    localStorage.setItem("is_auth", "true");
+                    localStorage.setItem("active_tab", "user");
+                    return; 
+                  }
+
+                  let finalEmail = "user@ipix.fun";
+                  if (existUser?.email) {
+                    finalEmail = existUser.email;
+                  } else {
+                    const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true });
+                    const nextId = (count || 0) + 1;
+                    finalEmail = `user${nextId}@ipix.fun`;
+                  }
+                  
+                  const { error: upsertError } = await supabase.from("profiles").upsert(
+                    {
+                      email: finalEmail,
+                      username: finalUsername,
+                      user_browser: navigator.userAgent,
+                      pin: auth.pin,     
+                      umur: auth.umur,   
+                      berat: auth.berat, 
+                    },
+                    { onConflict: "username" }
+                  );
+
+                  if (upsertError) {
+                    alert("Gagal simpan data ke database: " + upsertError.message);
+                    return; 
+                  }
+
+                  setAuth((p) => ({ ...p, isAuth: true, user: finalUsername }));
+                  
+                  // SIMPAN PIN KE DEVICE (Register Mode)
                   localStorage.setItem("active_username", finalUsername);
+                  localStorage.setItem("saved_pin", auth.pin);
                   localStorage.setItem("is_auth", "true");
                   localStorage.setItem("active_tab", "user");
-                  return; 
+
+                } catch (e) {
+                  console.error("Error saving profile:", e);
+                  return;
                 }
-
-                let finalEmail = "user@ipix.fun";
-                if (existUser?.email) {
-                  finalEmail = existUser.email;
-                } else {
-                  const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true });
-                  const nextId = (count || 0) + 1;
-                  finalEmail = `user${nextId}@ipix.fun`;
+              }}
+              handleAdminLogin={async () => {
+                const { error } = await supabase.auth.signInWithPassword({
+                  email: auth.adminEmail,
+                  password: auth.adminPass,
+                });
+                if (error) alert("Gagal");
+                else {
+                  setAuth((p) => ({
+                    ...p,
+                    isAuth: true,
+                    user: "Admin●ipix.my.id",
+                  }));
+                  setUi((p) => ({ ...p, tab: "admin" }));
+                  localStorage.setItem("active_username", "Admin●ipix.my.id");
+                  localStorage.setItem("is_auth", "true");
+                  localStorage.setItem("active_tab", "admin");
                 }
-                
-                const { error: upsertError } = await supabase.from("profiles").upsert(
-                  {
-                    email: finalEmail,
-                    username: finalUsername,
-                    user_browser: navigator.userAgent,
-                    pin: auth.pin,     
-                    umur: auth.umur,   
-                    berat: auth.berat, 
-                  },
-                  { onConflict: "username" }
-                );
-
-                if (upsertError) {
-                  alert("Gagal simpan data ke database: " + upsertError.message);
-                  return; 
-                }
-
-                setAuth((p) => ({ ...p, isAuth: true, user: finalUsername }));
-                localStorage.setItem("active_username", finalUsername);
-                localStorage.setItem("is_auth", "true");
-                localStorage.setItem("active_tab", "user");
-
-              } catch (e) {
-                console.error("Error saving profile:", e);
-                return;
-              }
-            }}
-            handleAdminLogin={async () => {
-              const { error } = await supabase.auth.signInWithPassword({
-                email: auth.adminEmail,
-                password: auth.adminPass,
-              });
-              if (error) alert("Gagal");
-              else {
-                setAuth((p) => ({
-                  ...p,
-                  isAuth: true,
-                  user: "Admin●ipix.my.id",
-                }));
-                setUi((p) => ({ ...p, tab: "admin" }));
-                localStorage.setItem("active_username", "Admin●ipix.my.id");
-                localStorage.setItem("is_auth", "true");
-                localStorage.setItem("active_tab", "admin");
-              }
-            }}
-          />
+              }}
+            />
+          </div>
         </div>
       )}
 
       {/* --- UI UTAMA / BACKGROUND LAYER --- */}
-      {/* UI ini selalu dirender sebagai background di belakang Form Login, supaya tidak blank hitam */}
       {ui.tab === "admin" && currentHash !== "#block" && auth.isAuth && (
         <div className="fixed z-[90] bottom-36 right-4 flex flex-col gap-2">
           <div onClick={() => window.open(`${window.location.pathname}#block`, "_blank")} className="px-3 py-1.5 rounded-full font-black text-white tracking-widest text-[9px] cursor-pointer select-none bg-red-600 border border-red-700 shadow-[0_3px_0_#991b1b,0_6px_10px_rgba(0,0,0,0.3)] active:translate-y-[3px] active:shadow-none transition-all duration-150 text-center">
@@ -934,7 +942,7 @@ export default function Home() {
             selPrivUser={usersInfo.selPriv}
             pUsers={usersInfo.privUsers}
             pubMsgs={[]}
-            privMsgs={msgs.priv} // Pesan ditahan di dalam renderMsgs jika belum login
+            privMsgs={msgs.priv}
             isPill={false}
             pDelta={0}
             pTouchX={0}
@@ -953,7 +961,7 @@ export default function Home() {
 
       {currentHash !== "#block" && auth.isAuth && renderInputForm()}
 
-      {/* Interaksi Popup (Edit/Delete) hanya dirender jika auth dan popup aktif */}
+      {/* POPUP ACTION BOX */}
       {auth.isAuth && interact.popup && interact.popup.pesan !== "___DELETED___" && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
           <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col border-t-4 border-emerald-500" onClick={(e) => e.stopPropagation()}>
@@ -992,7 +1000,6 @@ export default function Home() {
                   📌 {interact.popup.is_pinned ? "Unpin" : "Pin"}
                 </button>
               )}
-
               {((interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id") || ui.tab === "admin") && (
                 <button
                   type="button"
@@ -1042,7 +1049,6 @@ export default function Home() {
               >
                 📋 Salin
               </button>
-
               {(ui.tab === "admin" || (interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id")) && (
                 <button
                   type="button"
@@ -1082,8 +1088,10 @@ export default function Home() {
         </div>
       )}
 
-      {/* BottomNav tetap ada di bawah halaman secara paten */}
-      <BottomNav />
+      {/* PERBAIKAN: BottomNav ditempatkan paling atas dengan index yang tidak tertimpa overlay login */}
+      <div className="relative z-[999] w-full shrink-0 bg-transparent">
+        <BottomNav />
+      </div>
     </div>
   );
 }

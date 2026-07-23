@@ -213,7 +213,8 @@ export default function Login({
 }: any) {
   const { theme } = useTheme();
 
-  const existingNote = "Login otomatis ketika anda sudah register .\nUntuk ubah nama atau pin hubungi admin di chat .";
+  // PERBAIKAN: Note disesuaikan karena user wajib mengetik PIN
+  const existingNote = "Username ditemukan.\nSilakan masukkan PIN Anda untuk login.";
   const [displayedNote, setDisplayedNote] = useState("");
   const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
   const [placeholderText, setPlaceholderText] = useState("");
@@ -297,6 +298,11 @@ export default function Login({
           return;
         }
       }
+    } else {
+      if (!pin || pin.length !== 6) {
+        setValidationMsg("PIN belum diisi lengkap!");
+        return;
+      }
     }
 
     setValidationMsg("");
@@ -337,27 +343,14 @@ export default function Login({
   };
 
   const usernameStyle = getInputStyle(validationMsg === "Isi nama dulu sayang");
-  const pinStyle = getInputStyle(Boolean(validationMsg === "PIN harus 6 angka sayang" || (!isLoginMode && Boolean(validationMsg) && (!pin || pin.length !== 6))));
+  const pinStyle = getInputStyle(Boolean(validationMsg === "PIN harus 6 angka sayang" || validationMsg === "PIN belum diisi lengkap!" || (!isLoginMode && Boolean(validationMsg) && (!pin || pin.length !== 6))));
   const umurStyle = getInputStyle(Boolean(validationMsg && !umur));
   const beratStyle = getInputStyle(Boolean(validationMsg && !berat));
-
-  const existingStyle = {
-    backgroundColor: "var(--card-bg)",
-    borderColor: "var(--card-border)",
-    opacity: 0.8,
-  };
 
   let buttonStyleObj: React.CSSProperties = {};
   let buttonText = "";
 
-  if (isExistingUser) {
-    buttonStyleObj = {
-      backgroundColor: "var(--accent)",
-      color: "var(--background)",
-      boxShadow: "0 0 15px var(--accent-glow)",
-    };
-    buttonText = "Masuk Chat";
-  } else if (validationMsg) {
+  if (validationMsg) {
     buttonStyleObj = {
       backgroundColor: "#ef4444",
       color: "#ffffff",
@@ -370,7 +363,7 @@ export default function Login({
       color: "var(--background)",
       boxShadow: "0 0 20px var(--accent-glow)",
     };
-    buttonText = isLoginMode ? "Masuk Sekarang" : "Gabung Sekarang";
+    buttonText = isLoginMode ? "Login & Masuk Chat" : "Gabung Sekarang";
   } else {
     buttonStyleObj = {
       backgroundColor: "var(--card-bg)",
@@ -387,7 +380,7 @@ export default function Login({
   };
 
   return (
-    <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
+    <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6 pointer-events-none">
       
       {showFireworks && <FireworksCanvas />}
 
@@ -416,7 +409,8 @@ export default function Login({
         )}
       </AnimatePresence>
 
-      <div className="absolute inset-0 flex justify-center items-center z-20 pointer-events-none sm:p-6">
+      {/* Layer ini kita ubah sedikit pointer-events nya supaya navbar di page.tsx gak ketutupan sama body ini kalau div nya stretching full layar */}
+      <div className="absolute inset-0 flex justify-center items-center z-20 pointer-events-none sm:p-6 pb-20">
         <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-hidden flex flex-col pointer-events-auto">
         
         {activeTab === 'user' ? (
@@ -491,6 +485,7 @@ export default function Login({
 
             <div className="absolute inset-0 z-10 w-full h-full">
               
+              {/* Form Register */}
               <motion.div
                 initial={false}
                 animate={{ 
@@ -602,6 +597,7 @@ export default function Login({
                 </div>
               </motion.div>
 
+              {/* Form Login / Input PIN Area */}
               <motion.div
                 initial={false}
                 animate={{ 
@@ -627,14 +623,13 @@ export default function Login({
                     icon={<UserIcon />} 
                     placeholder={placeholderText || "Username"} 
                     value={username || ""} 
+                    // PERBAIKAN: User harus tetap bisa mengganti typo di input ini
                     onChange={(e: any) => {
-                      if (isExistingUser) return;
                       setUsername(e.target.value);
                       if (validationMsg) setValidationMsg(""); 
                     }}
-                    readOnly={isExistingUser}
                     className={inputInset}
-                    style={isExistingUser ? existingStyle : usernameStyle}
+                    style={usernameStyle}
                   />
                   
                   <InputField 
@@ -643,8 +638,8 @@ export default function Login({
                     type={showPin ? "text" : "password"}
                     inputMode="numeric"
                     value={pin || ""} 
+                    // PERBAIKAN: Input PIN bebas diakses untuk memverifikasi akun 
                     onChange={(e: any) => {
-                      if (isExistingUser) return;
                       const val = e.target.value.replace(/\D/g, '').slice(0, 6);
                       setPin(val);
                       if (validationMsg) setValidationMsg(""); 
@@ -654,18 +649,17 @@ export default function Login({
                         {showPin ? <EyeOffIcon /> : <EyeIcon />}
                       </button>
                     }
-                    readOnly={isExistingUser}
                     className={inputInset}
-                    style={isExistingUser ? existingStyle : pinStyle}
+                    style={pinStyle}
                     maxLength={6}
                   />
 
                   {isExistingUser && (
                     <div 
-                      className={`w-full text-xs p-4 border rounded-3xl mb-4 font-extrabold text-center whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center ${inputInset}`}
+                      className={`w-full text-[11px] p-4 border rounded-3xl mb-4 font-extrabold text-center whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center ${inputInset}`}
                       style={{
-                        backgroundColor: "var(--card-bg)",
-                        borderColor: "var(--card-border)",
+                        backgroundColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                        borderColor: "var(--accent)",
                         color: "var(--foreground-heading)"
                       }}
                     >
