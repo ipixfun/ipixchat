@@ -242,7 +242,6 @@ export default function Login({
   const [isSavedDevice, setIsSavedDevice] = useState(false);
   const [hasTyped, setHasTyped] = useState(false);
 
-  // --- STATE UNTUK MASKOT BERUANG (Ditambahkan 'adminEmail' agar tidak error) ---
   const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
   useEffect(() => {
@@ -306,15 +305,31 @@ export default function Login({
       ? (username?.trim().length > 0 && pin?.length === 6)
       : (username?.trim().length > 0 && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed));
 
-  // --- LOGIKA GERAK MASKOT BERUANG ---
+  // --- LOGIKA MASKOT BERUANG (Mata, Cinta, Tangan) ---
   const activeTypingLength =
     focusedField === 'username'
       ? (username?.length || 0)
       : focusedField === 'adminEmail'
       ? (adminEmail?.length || 0)
+      : (focusedField === 'pin' && showPin)
+      ? (pin?.length || 0)
+      : (focusedField === 'adminPass' && showPin)
+      ? (adminPass?.length || 0)
       : 0;
-  const bearEyeX = Math.sin(activeTypingLength * 0.9);
-  const isBearCovering = focusedField === 'pin' || focusedField === 'adminPass';
+  
+  const bearEyeX = focusedField ? Math.sin(activeTypingLength * 0.9) : 0;
+  
+  // Jika kolom PIN (atau mode savedDevice) sedang hidden (!showPin), beruang tutup mata
+  const isBearCovering = isSavedDevice
+    ? !showPin 
+    : (focusedField === 'pin' || focusedField === 'adminPass') && !showPin;
+
+  // Jika field aktif dan beruang sedang tidak tutup mata, berarti user sedang interaksi mengetik
+  const isTyping = !isSavedDevice && focusedField !== null && !isBearCovering;
+
+  // Mata berubah jadi love SAAT fokus pada input Username atau Email
+  const isLove = isTyping && (focusedField === 'username' || focusedField === 'adminEmail');
+
 
   const handleUserLoginWrapper = async () => {
     setShowWelcomePill(false);
@@ -533,7 +548,7 @@ export default function Login({
                   {/* --- MASKOT BERUANG REGISTER --- */}
                   {!isSavedDevice && !isLoginMode && (
                     <div className="absolute -top-16 sm:-top-20 z-30 pointer-events-none drop-shadow-xl">
-                      <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} size={120} />
+                      <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={120} />
                     </div>
                   )}
 
@@ -656,9 +671,9 @@ export default function Login({
                   }}
                 >
                   {/* --- MASKOT BERUANG LOGIN --- */}
-                  {!isSavedDevice && isLoginMode && (
+                  {isLoginMode && (
                     <div className="absolute -top-16 sm:-top-20 z-30 pointer-events-none drop-shadow-xl">
-                      <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} size={120} />
+                      <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={120} />
                     </div>
                   )}
 
@@ -680,15 +695,14 @@ export default function Login({
                     autoComplete="off"
                   />
 
-                  {/* KODE PIN DIUBAH DI SINI (readOnly true jika isSavedDevice) */}
                   <InputField
                     icon={<LockIcon />}
                     placeholder={isSavedDevice ? "PIN Tersimpan" : "PIN (6 angka)"}
-                    type={showPin && !isSavedDevice ? "text" : "password"}
+                    type={showPin ? "text" : "password"}
                     readOnly={isSavedDevice}
                     value={pin || ""}
                     onChange={(e: any) => {
-                      if (isSavedDevice) return; // Mencegah perubahan walau dipaksa
+                      if (isSavedDevice) return; 
                       const val = e.target.value.replace(/\D/g, '').slice(0, 6);
                       setPin(val);
                       if (validationMsg) setValidationMsg("");
@@ -696,11 +710,9 @@ export default function Login({
                     onFocus={() => setFocusedField('pin')}
                     onBlur={() => setFocusedField(null)}
                     suffix={
-                      !isSavedDevice && (
-                        <button type="button" onClick={() => setShowPin(!showPin)} className="focus:outline-none">
-                          {showPin ? <EyeOffIcon /> : <EyeIcon />}
-                        </button>
-                      )
+                      <button type="button" onClick={() => setShowPin(!showPin)} className="focus:outline-none">
+                        {showPin ? <EyeOffIcon /> : <EyeIcon />}
+                      </button>
                     }
                     className={inputInset}
                     style={isSavedDevice ? existingStyle : pinStyle}
@@ -749,10 +761,9 @@ export default function Login({
              >
               {/* --- MASKOT BERUANG ADMIN --- */}
               <div className="absolute -top-16 sm:-top-20 z-30 pointer-events-none drop-shadow-xl">
-                <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} size={120} />
+                <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={120} />
               </div>
 
-              {/* DIUBAH JUGA DI SINI AGAR TIDAK ERROR (menghilangkan 'as any') */}
               <InputField
                 icon={<MailIcon />}
                 placeholder="Email Admin"
