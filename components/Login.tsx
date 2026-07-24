@@ -147,14 +147,14 @@ const FireworksCanvas = ({ theme }: { theme?: any }) => {
 // --- REUSABLE INPUT COMPONENTS ---
 const InputField = ({ icon, suffix, readOnly, className, style, type = "text", ...props }: any) => (
   <div
-    className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border transition-all duration-300 ${readOnly && !suffix ? 'cursor-not-allowed opacity-75' : ''} ${className}`}
+    className={`flex items-center w-full rounded-full px-4 py-3 sm:py-3.5 mb-3 border transition-all duration-300 ${readOnly ? 'opacity-75 cursor-not-allowed' : ''} ${className}`}
     style={style}
   >
     <div className="mr-3 flex-shrink-0 opacity-80" style={{ color: "var(--accent)" }}>{icon}</div>
     <input
       type={type}
       readOnly={readOnly}
-      className={`bg-transparent outline-none flex-1 text-sm font-extrabold w-full placeholder:opacity-50 ${readOnly && !suffix ? 'cursor-not-allowed select-none' : ''}`}
+      className={`bg-transparent outline-none flex-1 text-sm font-extrabold w-full placeholder:opacity-50 ${readOnly ? 'cursor-not-allowed select-none' : ''}`}
       style={{ color: "var(--foreground-heading)" }}
       {...props}
     />
@@ -242,8 +242,8 @@ export default function Login({
   const [isSavedDevice, setIsSavedDevice] = useState(false);
   const [hasTyped, setHasTyped] = useState(false);
 
-  // --- STATE UNTUK MASKOT BERUANG ---
-  const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminPass' | null>(null);
+  // --- STATE UNTUK MASKOT BERUANG (Ditambahkan 'adminEmail' agar tidak error) ---
+  const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
   useEffect(() => {
     try {
@@ -680,13 +680,15 @@ export default function Login({
                     autoComplete="off"
                   />
 
+                  {/* KODE PIN DIUBAH DI SINI (readOnly true jika isSavedDevice) */}
                   <InputField
                     icon={<LockIcon />}
                     placeholder={isSavedDevice ? "PIN Tersimpan" : "PIN (6 angka)"}
-                    type={showPin ? "text" : "password"}
-                    readOnly={false}
+                    type={showPin && !isSavedDevice ? "text" : "password"}
+                    readOnly={isSavedDevice}
                     value={pin || ""}
                     onChange={(e: any) => {
+                      if (isSavedDevice) return; // Mencegah perubahan walau dipaksa
                       const val = e.target.value.replace(/\D/g, '').slice(0, 6);
                       setPin(val);
                       if (validationMsg) setValidationMsg("");
@@ -694,9 +696,11 @@ export default function Login({
                     onFocus={() => setFocusedField('pin')}
                     onBlur={() => setFocusedField(null)}
                     suffix={
-                      <button type="button" onClick={() => setShowPin(!showPin)} className="focus:outline-none">
-                        {showPin ? <EyeOffIcon /> : <EyeIcon />}
-                      </button>
+                      !isSavedDevice && (
+                        <button type="button" onClick={() => setShowPin(!showPin)} className="focus:outline-none">
+                          {showPin ? <EyeOffIcon /> : <EyeIcon />}
+                        </button>
+                      )
                     }
                     className={inputInset}
                     style={isSavedDevice ? existingStyle : pinStyle}
@@ -748,12 +752,13 @@ export default function Login({
                 <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} size={120} />
               </div>
 
+              {/* DIUBAH JUGA DI SINI AGAR TIDAK ERROR (menghilangkan 'as any') */}
               <InputField
                 icon={<MailIcon />}
                 placeholder="Email Admin"
                 value={adminEmail || ""}
                 onChange={(e: any) => setAdminEmail(e.target.value)}
-                onFocus={() => setFocusedField('adminEmail' as any)}
+                onFocus={() => setFocusedField('adminEmail')}
                 onBlur={() => setFocusedField(null)}
                 className={inputInset}
                 style={normalInputStyle}
