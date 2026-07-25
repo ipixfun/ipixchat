@@ -1,111 +1,101 @@
 'use client';
+
 import { motion } from 'framer-motion';
+import { useRef, useState } from 'react';
 
-export interface SiteInfo {
-  id: number;
-  name: string;
-  url: string;
-  desc: string;
-  bg: string;
-  text: string;
-  border: string;
-  shadow: string;
-}
-
-interface IpixProps {
+interface PixVideoPlayerProps {
   className?: string;
-  onSelect?: (site: SiteInfo) => void;
-  selectedId?: number | null;
+  src?: string;
+  title?: string;
+  autoPlay?: boolean;
+  loop?: boolean;
 }
 
-export default function Ipix({ className = '', onSelect, selectedId }: IpixProps) {
-  // Data 3 link beserta deskripsinya
-  const logos: SiteInfo[] = [
-    { 
-      id: 1, 
-      name: 'ipix', 
-      url: 'https://ipix.my.id', 
-      desc: 'Portal utama ekosistem ipix. Temukan layanan menarik, informasi terbaru, dan semua hal tentang kami di sini!',
-      bg: 'var(--accent)', 
-      text: '#ffffff',
-      border: '1px solid transparent',
-      shadow: 'color-mix(in srgb, var(--accent) 50%, transparent)' 
-    },
-    { 
-      id: 2, 
-      name: 'sukachub', 
-      url: 'https://sukachub.my.id', 
-      desc: 'Komunitas hangat buat kamu yang suka hal-hal unik. Jelajahi galeri dan forum diskusi seru di sukachub!',
-      bg: 'var(--card-bg)', 
-      text: 'var(--foreground-heading)',
-      border: '1px solid var(--card-border)',
-      shadow: 'color-mix(in srgb, var(--foreground) 10%, transparent)' 
-    },
-    { 
-      id: 3, 
-      name: 'ipixfun', 
-      url: 'https://ipix.fun', 
-      desc: 'Platform hiburan paling asik! Mainkan game seru, ikuti kuis, dan nikmati waktu santaimu di ipixfun.',
-      bg: 'color-mix(in srgb, var(--accent) 15%, var(--background))', 
-      text: 'var(--foreground-heading)',
-      border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
-      shadow: 'color-mix(in srgb, var(--accent) 20%, transparent)' 
-    },
-  ];
+export default function PixVideoPlayer({
+  className = '',
+  src = 'https://res.cloudinary.com/bjamo8ld/video/upload/v1785016972/pixvideo_z1kfhn.mp4',
+  title = 'ipix Video Player',
+  autoPlay = false,
+  loop = true,
+}: PixVideoPlayerProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(autoPlay);
+
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
 
   return (
-    <div 
-      className={`flex flex-wrap justify-center items-center gap-4 sm:gap-6 min-h-[160px] ${className}`}
+    <motion.div
+      // Animasi Masuk
+      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      // Interaksi Hover
+      whileHover={{
+        scale: 1.01,
+        boxShadow: '0 25px 50px -12px color-mix(in srgb, var(--accent) 35%, transparent)',
+      }}
+      style={{
+        backgroundColor: 'var(--card-bg)',
+        border: '1px solid color-mix(in srgb, var(--accent) 30%, var(--card-border, transparent))',
+        boxShadow: '0 15px 35px -10px color-mix(in srgb, var(--accent) 25%, transparent)',
+      }}
+      className={`relative w-full max-w-4xl mx-auto rounded-3xl overflow-hidden p-2 sm:p-3 transition-all ${className}`}
     >
-      {logos.map((logo, index) => {
-        const isSelected = selectedId === logo.id;
-        const isDimmed = selectedId !== null && !isSelected;
+      {/* Inner Container dengan Rounded mengikuti tema */}
+      <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black/40 group">
+        <video
+          ref={videoRef}
+          src={src}
+          controls
+          autoPlay={autoPlay}
+          loop={loop}
+          playsInline
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          className="w-full h-full object-cover rounded-2xl"
+        />
 
-        return (
-          <motion.button
-            key={logo.id}
-            onClick={() => onSelect && onSelect(logo)}
-            style={{
-              backgroundColor: logo.bg,
-              color: logo.text,
-              border: logo.border,
-              boxShadow: isSelected ? `0 15px 30px -5px ${logo.shadow}` : `0 10px 25px -5px ${logo.shadow}`,
-            }}
-            className="relative flex items-center justify-center px-6 py-3 sm:px-8 sm:py-4 rounded-2xl font-bold text-lg md:text-2xl tracking-wide decoration-transparent overflow-hidden outline-none"
-            
-            // Animasi Masuk
-            initial={{ opacity: 0, y: 40, scale: 0.5 }}
-            
-            // Animasi Melayang (berhenti jika item lain dipilih)
-            animate={{
-              opacity: isDimmed ? 0.5 : 1, // Redupkan yang tidak dipilih
-              scale: isSelected ? 1.1 : 1, // Besarkan yang dipilih
-              y: isSelected ? -5 : (isDimmed ? 0 : [0, -10, 0]), 
-            }}
-            
-            transition={{
-              y: { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: index * 0.25 },
-              opacity: { duration: 0.3 },
-              scale: { type: 'spring', bounce: 0.5 }
-            }}
-            
-            // Interaksi Hover
-            whileHover={{
-              scale: 1.15,
-              rotate: index % 2 === 0 ? 4 : -4,
-              boxShadow: `0 20px 35px -5px ${logo.shadow}`,
-            }}
-            whileTap={{ scale: 0.95, rotate: 0 }}
+        {/* Overlay Efek Kilauan Kaca saat di-hover */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl" />
+      </div>
+
+      {/* Bar Informasi / Header Kecil di Bawah Video */}
+      <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span 
+            className="w-3 h-3 rounded-full animate-pulse"
+            style={{ backgroundColor: 'var(--accent)' }}
+          />
+          <h3 
+            className="font-bold text-base sm:text-lg tracking-wide"
+            style={{ color: 'var(--foreground-heading)' }}
           >
-            {/* Efek kilauan kaca */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-            
-            <span className="relative z-10 drop-shadow-sm">
-              {logo.name}
-            </span>
-          </motion.button>
-        )
-      })}
-    </div>
+            {title}
+          </h3>
+        </div>
+
+        {/* Tombol Quick Play/Pause Kustom */}
+        <button
+          onClick={togglePlay}
+          className="px-4 py-1.5 rounded-xl font-medium text-xs sm:text-sm transition-transform active:scale-95"
+          style={{
+            backgroundColor: 'color-mix(in srgb, var(--accent) 20%, var(--background))',
+            color: 'var(--foreground-heading)',
+            border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
+          }}
+        >
+          {isPlaying ? 'Pause' : 'Play'}
+        </button>
+      </div>
+    </motion.div>
   );
 }
