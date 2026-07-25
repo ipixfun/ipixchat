@@ -1,40 +1,15 @@
-// home.tsx
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import BottomNav from "@/components/bottomnav";
 import { motion } from 'framer-motion';
-import ChubbyGuy from "./chubby";
-
-// Data Tema untuk setiap Chubby Guy
-const chubbyGuys = [
-  { id: "smart", label: "Si Pintar", delay: 0 },
-  { id: "sporty", label: "Si Sporty", delay: 0.5 },
-  { id: "worker", label: "Si Pekerja", delay: 0.2 },
-  { id: "cozy", label: "Si Santai", delay: 0.8 },
-  { id: "cool", label: "Si Keren", delay: 0.4 },
-];
+import Ipix from "./ipix";
 
 export default function HomePage() {
-  const [activeGuy, setActiveGuy] = useState<string | null>(null);
-
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px] relative overflow-hidden bg-[var(--background)]">
       {/* Gaya Animasi Keyframes */}
       <style>{`
-        @keyframes float-chubby {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-        @keyframes wave-arm {
-          0%, 100% { transform: rotate(0deg); }
-          30%, 70% { transform: rotate(20deg); }
-        }
-        @keyframes gradient-shift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
         .hide-scroll::-webkit-scrollbar {
           display: none;
         }
@@ -97,51 +72,11 @@ export default function HomePage() {
 
       {/* Konten Utama */}
       <div className="flex-1 overflow-y-auto hide-scroll space-y-6 pb-6">
-        {/* Hero Section: 5 Karakter Chubby Guy */}
-        <div className="w-full pt-6 pb-2">
-          <div className="flex overflow-x-auto hide-scroll px-5 gap-5 snap-x snap-mandatory">
-            {chubbyGuys.map((guy) => (
-              <div
-                key={guy.id}
-                className="snap-center flex-shrink-0 flex flex-col items-center cursor-pointer"
-                onClick={() => setActiveGuy(activeGuy === guy.id ? null : guy.id)}
-                style={{
-                  animation: `float-chubby 3s ease-in-out infinite ${guy.delay}s`,
-                }}
-              >
-                <div
-                  className={`w-28 h-28 flex items-center justify-center rounded-full transition-all duration-300 ${
-                    activeGuy === guy.id ? "scale-110" : "hover:scale-105"
-                  }`}
-                  style={{
-                    backgroundColor: activeGuy === guy.id
-                      ? "color-mix(in srgb, var(--accent) 25%, transparent)"
-                      : "transparent",
-                  }}
-                >
-                  <ChubbyGuy
-                    isSpeaking={activeGuy === guy.id}
-                    size={activeGuy === guy.id ? 120 : 110}
-                    className="drop-shadow-xl"
-                  />
-                </div>
-                <span
-                  className="text-xs font-bold mt-2 px-3 py-1 rounded-full transition-all duration-300"
-                  style={{
-                    color: activeGuy === guy.id ? "white" : "var(--foreground)",
-                    backgroundColor: activeGuy === guy.id
-                      ? "var(--accent)"
-                      : "color-mix(in srgb, var(--card-bg) 50%, transparent)",
-                    boxShadow: activeGuy === guy.id
-                      ? "0 4px 12px color-mix(in srgb, var(--accent) 50%, transparent)"
-                      : "none",
-                  }}
-                >
-                  {guy.label}
-                </span>
-              </div>
-            ))}
-          </div>
+        
+        {/* Hero Section: 3 Logo Web Dinamis */}
+        <div className="w-full pt-4 pb-2">
+          {/* Menggunakan komponen Ipix dengan tema bawaan atau bisa ditambah prop theme={1} */}
+          <Ipix theme={1} className="scale-90 sm:scale-100" />
         </div>
 
         {/* Ucapan Selamat Datang dengan Gradient Background */}
@@ -178,24 +113,8 @@ export default function HomePage() {
               Halo, Sobat!
             </h2>
             <p className="text-sm opacity-90 leading-relaxed" style={{ color: "var(--foreground)" }}>
-              Klik salah satu karakter di atas untuk menyapa mereka! Mereka akan membalas dengan{" "}
-              <strong style={{ color: "var(--accent)" }}>"Hallo!"</strong>.
+              Jelajahi ekosistem kami dengan mengklik salah satu logo di atas. Temukan keseruan baru di <strong style={{ color: "var(--accent)" }}>ipix.fun</strong> dan lainnya!
             </p>
-
-            {/* Indikator Aktif */}
-            {activeGuy && (
-              <div className="mt-3 flex items-center gap-2">
-                <span
-                  className="text-xs font-semibold px-3 py-1 rounded-full"
-                  style={{
-                    color: "white",
-                    backgroundColor: "var(--accent)",
-                  }}
-                >
-                  🗣️ {chubbyGuys.find((g) => g.id === activeGuy)?.label} sedang menyapa!
-                </span>
-              </div>
-            )}
           </div>
         </div>
 
@@ -235,39 +154,6 @@ export default function HomePage() {
               Sesuaikan gayamu
             </p>
           </Link>
-        </div>
-
-        {/* Fitur Unggulan */}
-        <div className="px-5 space-y-3">
-          <h3
-            className="font-extrabold text-sm tracking-wider uppercase flex items-center gap-2"
-            style={{ color: "var(--foreground-heading)" }}
-          >
-            <span className="text-lg">✨</span> Fitur Unggulan
-          </h3>
-
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { icon: "🔒", label: "Privasi Aman" },
-              { icon: "⚡", label: "Cepat Kilat" },
-              { icon: "🎙️", label: "Voice Note" },
-            ].map((feature, i) => (
-              <div
-                key={i}
-                className="p-4 rounded-2xl flex flex-col items-center justify-center text-center transition-all duration-300 hover:-translate-y-1 active:scale-95"
-                style={{
-                  backgroundColor: "var(--card-bg)",
-                  border: "1px solid var(--card-border)",
-                  boxShadow: "0 4px 15px color-mix(in srgb, var(--foreground) 3%, transparent)",
-                }}
-              >
-                <span className="text-2xl mb-2">{feature.icon}</span>
-                <span className="text-[11px] font-bold" style={{ color: "var(--foreground-heading)" }}>
-                  {feature.label}
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
 
         {/* Status Hari Ini */}

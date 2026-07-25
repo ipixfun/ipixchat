@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'ipixchat',
   webDir: 'public',
   server: {
-    url: 'https://ipixchat.my.id',
+    url: 'https://sukachub.my.id',
     cleartext: true
   }
 };
