@@ -3,10 +3,12 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import BottomNav from '@/components/bottomnav';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function HomePage() {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showDownloadConfirm, setShowDownloadConfirm] = useState(false);
+  
   const videoUrl = "https://res.cloudinary.com/bjamo8ld/video/upload/v1785016972/pixvideo_z1kfhn.mp4";
   const apkDownloadUrl = "https://github.com/ipixfun/ipix.apk/raw/refs/heads/main/ipixchat.apk";
 
@@ -45,6 +47,60 @@ export default function HomePage() {
           100% { background-position: 0% 50%; }
         }
       `}</style>
+
+      {/* Popup Konfirmasi Download */}
+      <AnimatePresence>
+        {showDownloadConfirm && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 glass-card"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="w-full max-w-sm p-6 rounded-3xl text-center shadow-2xl"
+              style={{
+                backgroundColor: "var(--card-bg)",
+                border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+              }}
+            >
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center text-3xl shadow-lg"
+                style={{ backgroundColor: "color-mix(in srgb, var(--accent) 20%, transparent)" }}
+              >
+                📲
+              </div>
+              <h3 className="text-lg font-black mb-2" style={{ color: "var(--foreground-heading)" }}>
+                Konfirmasi Unduhan
+              </h3>
+              <p className="text-sm mb-6 opacity-80" style={{ color: "var(--foreground)" }}>
+                Setuju download <strong>ipixchat.apk</strong>?
+              </p>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowDownloadConfirm(false)}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm transition-transform active:scale-95"
+                  style={{ backgroundColor: "var(--background)", color: "var(--foreground)", border: "1px solid var(--card-border)" }}
+                >
+                  Batal
+                </button>
+                <a 
+                  href={apkDownloadUrl}
+                  download="ipixchat.apk"
+                  onClick={() => setShowDownloadConfirm(false)}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm text-white shadow-lg transition-transform active:scale-95 color-shift-bg"
+                  style={{ backgroundImage: 'linear-gradient(270deg, var(--accent), #ff6b6b, #4ecdc4, var(--accent))' }}
+                >
+                  Setuju
+                </a>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Header Modern Glassmorphism */}
       <header
@@ -99,7 +155,7 @@ export default function HomePage() {
       {/* Konten Utama (Scrollable) */}
       <div className="flex-1 overflow-y-auto hide-scroll space-y-5 pt-4 pb-6 px-4 sm:px-6">
         
-        {/* Top Hero: Embedded Video Player Estetik */}
+        {/* Top Hero: Embedded Video Player (FULL TANPA TERPOTONG) */}
         <motion.div
           initial={{ opacity: 0, y: 20, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -111,8 +167,8 @@ export default function HomePage() {
             boxShadow: "0 15px 35px -10px color-mix(in srgb, var(--accent) 20%, transparent)",
           }}
         >
-          {/* Frame Video */}
-          <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black/50 group">
+          {/* Frame Video - Menyesuaikan bentuk asli tanpa cropping */}
+          <div className="relative w-full rounded-2xl overflow-hidden bg-black flex justify-center items-center group">
             <video
               src={videoUrl}
               controls
@@ -120,7 +176,7 @@ export default function HomePage() {
               playsInline
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
-              className="w-full h-full object-cover rounded-2xl"
+              className="w-full h-auto max-h-[60vh] object-contain rounded-2xl"
             />
             {/* Efek Kaca Shine Hover */}
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl" />
@@ -184,13 +240,10 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* Tombol Download APK */}
-            <motion.a
-              href={apkDownloadUrl}
-              download="ipixchat.apk"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl text-white font-extrabold text-sm tracking-wide flex items-center justify-center gap-2.5 shadow-xl color-shift-bg shrink-0"
+            {/* Tombol Download (Memicu Popup) */}
+            <motion.button
+              onClick={() => setShowDownloadConfirm(true)}
+              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl text-white font-extrabold text-sm tracking-wide flex items-center justify-center gap-2.5 shadow-xl color-shift-bg shrink-0 outline-none"
               style={{
                 backgroundImage: 'linear-gradient(270deg, var(--accent), #ff6b6b, #4ecdc4, var(--accent))'
               }}
@@ -201,7 +254,7 @@ export default function HomePage() {
                 <path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/>
               </svg>
               Download APK
-            </motion.a>
+            </motion.button>
           </div>
         </motion.div>
 
@@ -243,7 +296,7 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Card Ekosistem Links / Quick Portal */}
+        {/* Card Ekosistem Links (Tanpa Emoji) */}
         <div
           className="p-5 rounded-3xl space-y-3"
           style={{
@@ -256,48 +309,26 @@ export default function HomePage() {
           </h3>
           <div className="grid grid-cols-3 gap-2">
             {[
-              { name: "ipix", url: "https://ipix.my.id", icon: "🌐" },
-              { name: "sukachub", url: "https://sukachub.my.id", icon: "👥" },
-              { name: "ipixfun", url: "https://ipix.fun", icon: "🎮" },
+              { name: "ipix", url: "https://ipix.my.id" },
+              { name: "sukachub", url: "https://sukachub.my.id" },
+              { name: "ipixfun", url: "https://ipix.fun" },
             ].map((item) => (
               <a
                 key={item.name}
                 href={item.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 rounded-2xl flex flex-col items-center justify-center text-center transition-transform hover:scale-105 active:scale-95"
+                className="py-3 px-1 rounded-2xl flex items-center justify-center text-center transition-transform hover:scale-105 active:scale-95"
                 style={{
                   backgroundColor: "color-mix(in srgb, var(--accent) 10%, var(--background))",
                   border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)"
                 }}
               >
-                <span className="text-xl mb-1">{item.icon}</span>
                 <span className="text-xs font-bold" style={{ color: "var(--foreground-heading)" }}>
                   {item.name}
                 </span>
               </a>
             ))}
-          </div>
-        </div>
-
-        {/* Tips Hari Ini */}
-        <div
-          className="p-4 sm:p-5 rounded-3xl relative overflow-hidden"
-          style={{
-            background: `linear-gradient(to right, color-mix(in srgb, var(--accent) 12%, transparent), transparent)`,
-            border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
-          }}
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold opacity-70" style={{ color: "var(--foreground)" }}>
-                💡 Tips
-              </p>
-              <p className="text-xs sm:text-sm font-bold mt-0.5" style={{ color: "var(--foreground-heading)" }}>
-                Unduh file APK di atas untuk akses fitur penuh tanpa hambatan browser!
-              </p>
-            </div>
-            <span className="text-3xl shrink-0">🚀</span>
           </div>
         </div>
 
