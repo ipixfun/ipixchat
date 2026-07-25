@@ -130,14 +130,15 @@ export default function HomePage() {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
+            {/* Logo dari icon.png */}
             <div
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center text-white text-lg sm:text-xl font-black shadow-md shrink-0"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center shadow-md shrink-0 overflow-hidden bg-black/10"
               style={{
-                backgroundColor: "var(--accent)",
                 boxShadow: "0 6px 20px color-mix(in srgb, var(--accent) 40%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)"
               }}
             >
-              💬
+              <img src="/icon.png" alt="ipixchat" className="w-full h-full object-cover" />
             </div>
             <div>
               <h1
@@ -146,13 +147,6 @@ export default function HomePage() {
               >
                 ipixchat
               </h1>
-              <p
-                className="text-[10px] sm:text-[11px] font-semibold flex items-center gap-1.5 opacity-80"
-                style={{ color: "var(--foreground)" }}
-              >
-                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full pulse-dot" style={{ backgroundColor: "var(--accent)" }} />
-                Komunitas & Hiburan
-              </p>
             </div>
           </div>
 
@@ -236,36 +230,34 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="p-5 sm:p-6 rounded-3xl relative overflow-hidden transition-all border text-center flex flex-col items-center justify-center gap-3"
+            className="py-10 px-5 sm:px-6 rounded-3xl relative overflow-hidden transition-all border text-center flex flex-col items-center justify-center gap-3"
             style={{
-              background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, var(--background)) 0%, var(--card-bg) 100%)`,
+              background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--background)) 0%, var(--card-bg) 100%)`,
               borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
               boxShadow: "0 12px 35px color-mix(in srgb, var(--accent) 15%, transparent)",
             }}
           >
-            {/* Background Decorative Circles */}
+            {/* Background Decorative Bulat Besar Kiri Bawah */}
             <div
-              className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-20 pointer-events-none blur-2xl"
+              className="absolute -bottom-14 -left-12 w-48 h-48 rounded-full opacity-25 pointer-events-none blur-3xl"
               style={{ backgroundColor: "var(--accent)" }}
             />
+            {/* Background Decorative Bulat Kecil Kanan Atas */}
             <div
-              className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full opacity-20 pointer-events-none blur-2xl"
+              className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-30 pointer-events-none blur-2xl"
               style={{ backgroundColor: "var(--accent)" }}
             />
 
-            <div className="relative z-10 w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-lg mb-1"
-              style={{ 
-                backgroundColor: "color-mix(in srgb, var(--accent) 20%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--accent) 40%, transparent)"
-              }}
-            >
-            </div>
             <div className="relative z-10">
-              <h2 className="text-xl sm:text-2xl font-black tracking-tight mb-1" style={{ color: "var(--foreground-heading)" }}>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight mb-2" 
+                style={{ 
+                  color: "var(--accent)", 
+                  textShadow: "0 0 15px color-mix(in srgb, var(--accent) 40%, transparent)" 
+                }}>
                 Terima Kasih!
               </h2>
-              <p className="text-xs sm:text-sm opacity-85 leading-relaxed max-w-sm mx-auto" style={{ color: "var(--foreground)" }}>
-                Sudah menggunakan <span className="font-bold" style={{ color: "var(--accent)" }}>ipixchat</span> versi Aplikasi Android. Nikmati pengalaman menjelajah lewat aplikasi.
+              <p className="text-xs sm:text-sm opacity-90 leading-relaxed max-w-[260px] mx-auto" style={{ color: "var(--foreground)" }}>
+                Sudah menggunakan <span className="font-extrabold" style={{ color: "var(--accent)" }}>ipixchat</span> versi Aplikasi Android. Nikmati pengalaman menjelajah yang lebih cepat dan lancar.
               </p>
             </div>
           </motion.div>
