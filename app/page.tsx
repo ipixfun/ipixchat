@@ -21,8 +21,8 @@ export default function HomePage() {
       const userAgent = navigator.userAgent.toLowerCase();
       // Deteksi Android WebView (mengandung 'wv')
       const isWebView = userAgent.includes('wv');
-      // Deteksi PWA / TWA (standalone mode)
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      // Deteksi PWA / TWA (standalone mode) menggunakan type assertion as any untuk menghindari error TypeScript
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
 
       return isWebView || isStandalone;
     };
