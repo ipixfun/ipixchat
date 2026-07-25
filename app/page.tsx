@@ -104,16 +104,16 @@ export default function HomePage() {
 
       {/* Header Modern Glassmorphism */}
       <header
-        className="sticky top-0 z-20 px-5 py-4 glass-card border-b transition-all duration-500"
+        className="sticky top-0 z-20 px-4 sm:px-5 py-3 sm:py-4 glass-card border-b transition-all duration-500"
         style={{
           backgroundColor: "color-mix(in srgb, var(--background) 75%, transparent)",
           borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)",
         }}
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <div
-              className="w-10 h-10 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-md"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center text-white text-lg sm:text-xl font-black shadow-md shrink-0"
               style={{
                 backgroundColor: "var(--accent)",
                 boxShadow: "0 6px 20px color-mix(in srgb, var(--accent) 40%, transparent)",
@@ -123,32 +123,44 @@ export default function HomePage() {
             </div>
             <div>
               <h1
-                className="text-xl font-black tracking-tight glow-text leading-tight"
+                className="text-lg sm:text-xl font-black tracking-tight glow-text leading-tight"
                 style={{ color: "var(--foreground-heading)" }}
               >
                 ipixchat
               </h1>
               <p
-                className="text-[11px] font-semibold flex items-center gap-1.5 opacity-80"
+                className="text-[10px] sm:text-[11px] font-semibold flex items-center gap-1.5 opacity-80"
                 style={{ color: "var(--foreground)" }}
               >
-                <span className="w-2 h-2 rounded-full pulse-dot" style={{ backgroundColor: "var(--accent)" }} />
+                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full pulse-dot" style={{ backgroundColor: "var(--accent)" }} />
                 Komunitas & Hiburan
               </p>
             </div>
           </div>
 
-          <Link
-            href="/profile"
-            className="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm text-white shadow-md transition-transform hover:scale-105 active:scale-95"
-            style={{
-              backgroundColor: "color-mix(in srgb, var(--accent) 20%, var(--card-bg))",
-              color: "var(--foreground-heading)",
-              border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)"
-            }}
-          >
-            U
-          </Link>
+          {/* Pengganti Link "U" -> Link Ekosistem bergaya Pill Outline */}
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            {[
+              { name: "ipix.my.id", url: "https://ipix.my.id" },
+              { name: "sukachub", url: "https://sukachub.my.id" },
+              { name: "ipix.fun", url: "https://ipix.fun" },
+            ].map((item) => (
+              <a
+                key={item.name}
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-extrabold tracking-wide transition-transform hover:scale-105 active:scale-95 whitespace-nowrap"
+                style={{
+                  color: "var(--accent)",
+                  border: "1px solid color-mix(in srgb, var(--accent) 60%, transparent)",
+                  backgroundColor: "color-mix(in srgb, var(--accent) 5%, transparent)",
+                }}
+              >
+                {item.name}
+              </a>
+            ))}
+          </div>
         </div>
       </header>
 
@@ -190,11 +202,11 @@ export default function HomePage() {
                 style={{ backgroundColor: 'var(--accent)' }}
               />
               <span className="font-extrabold text-xs sm:text-sm tracking-wide" style={{ color: 'var(--foreground-heading)' }}>
-                Tutorial ipix chat jika ada pertanyaan
+                Tutorial ipix chat
               </span>
             </div>
             <span className="text-[10px] px-2.5 py-1 rounded-full font-bold opacity-75" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)' }}>
-              Lagu : Diatas Normal / Peterpan ( NOAH )
+              Lagu : Diatas Normal ( NOAH )
             </span>
           </div>
         </motion.div>
@@ -230,17 +242,17 @@ export default function HomePage() {
                   border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)'
                 }}
               >
-                📱 Android App Available
+                📱 Android App
               </div>
               <h2 className="text-xl sm:text-2xl font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>
-                Download <span style={{ color: "var(--accent)" }}>ipixchat</span> App
+                Download <span style={{ color: "var(--accent)" }}>ipixchat</span>
               </h2>
               <p className="text-xs sm:text-sm opacity-85 leading-relaxed" style={{ color: "var(--foreground)" }}>
                 Nikmati pengalaman chat & jelajah ekosistem ipix yang lebih cepat, ringan, dan responsif langsung di smartphone Android kamu.
               </p>
             </div>
 
-            {/* Tombol Download (Memicu Popup) */}
+            {/* Tombol Download */}
             <motion.button
               onClick={() => setShowDownloadConfirm(true)}
               className="w-full sm:w-auto px-6 py-3.5 rounded-2xl text-white font-extrabold text-sm tracking-wide flex items-center justify-center gap-2.5 shadow-xl color-shift-bg shrink-0 outline-none"
@@ -258,78 +270,111 @@ export default function HomePage() {
           </div>
         </motion.div>
 
-        {/* Quick Actions / Menu Utama */}
-        <div className="grid grid-cols-2 gap-4">
-          <Link
-            href="/chat"
-            className="p-5 rounded-3xl flex flex-col items-center justify-center text-center transition-all duration-300 hover:-translate-y-1.5 active:scale-[0.96] relative overflow-hidden group"
-            style={{
-              background: `linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 70%, #ff6b6b) 100%)`,
-              boxShadow: "0 10px 30px color-mix(in srgb, var(--accent) 35%, transparent)",
-            }}
-          >
-            <span className="text-4xl mb-2 drop-shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12">
-              💬
-            </span>
-            <p className="text-sm font-extrabold text-white tracking-wide">Mulai Chat</p>
-            <p className="text-[10px] text-white/80 mt-0.5">Temukan teman baru!</p>
-          </Link>
-
-          <Link
-            href="/tema"
-            className="p-5 rounded-3xl flex flex-col items-center justify-center text-center transition-all duration-300 hover:-translate-y-1.5 active:scale-[0.96] relative overflow-hidden group"
-            style={{
-              backgroundColor: "var(--card-bg)",
-              border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
-              boxShadow: "0 8px 25px color-mix(in srgb, var(--foreground) 5%, transparent)",
-            }}
-          >
-            <span className="text-4xl mb-2 drop-shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-12">
-              🎨
-            </span>
-            <p className="text-sm font-extrabold tracking-wide" style={{ color: "var(--foreground-heading)" }}>
-              Ubah Tema
-            </p>
-            <p className="text-[10px] mt-0.5 opacity-70" style={{ color: "var(--foreground)" }}>
-              Kustomisasi tampilan
-            </p>
-          </Link>
-        </div>
-
-        {/* Card Ekosistem Links (Tanpa Emoji) */}
-        <div
-          className="p-5 rounded-3xl space-y-3"
+        {/* --- SECTION: Info Versi & Actions --- */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="p-5 sm:p-6 rounded-3xl relative overflow-hidden"
           style={{
             backgroundColor: "var(--card-bg)",
-            border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+            boxShadow: "0 10px 30px color-mix(in srgb, var(--accent) 15%, transparent)",
           }}
         >
-          <h3 className="font-extrabold text-sm tracking-wide" style={{ color: "var(--foreground-heading)" }}>
-            🌐 Web ipix
-          </h3>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { name: "ipix.my.id", url: "https://ipix.my.id" },
-              { name: "sukachub.my.id", url: "https://sukachub.my.id" },
-              { name: "ipix.fun", url: "https://ipix.fun" },
-            ].map((item) => (
-              <a
-                key={item.name}
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="py-3 px-1 rounded-2xl flex items-center justify-center text-center transition-transform hover:scale-105 active:scale-95"
-                style={{
-                  backgroundColor: "color-mix(in srgb, var(--accent) 10%, var(--background))",
-                  border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)"
-                }}
-              >
-                <span className="text-xs font-bold" style={{ color: "var(--foreground-heading)" }}>
-                  {item.name}
-                </span>
-              </a>
-            ))}
+          {/* Header Versi */}
+          <div className="flex items-center gap-3 mb-5 border-b pb-4" style={{ borderColor: "color-mix(in srgb, var(--foreground) 10%, transparent)" }}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-base shadow-md" style={{ backgroundColor: "var(--accent)" }}>
+              🚀
+            </div>
+            <h3 className="text-lg font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>
+              ipixchat v1.0.0
+            </h3>
           </div>
+
+          {/* Daftar Fitur / Update */}
+          <ul className="space-y-4">
+            {/* Poin 1 & Tombol Chat (Diperkecil menjadi pill) */}
+            <li className="space-y-2.5">
+              <div className="flex gap-3">
+                <span className="font-black text-sm mt-0.5" style={{ color: "var(--accent)" }}>1.</span>
+                <p className="text-sm opacity-90 leading-relaxed" style={{ color: "var(--foreground)" }}>
+                  Chat auto login setelah register nama dan pin. Untuk ubah nama dan pin hubungi admin by chat.
+                </p>
+              </div>
+              <div className="pl-6">
+                <Link
+                  href="/chat"
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-full text-white font-bold text-xs shadow-md transition-transform hover:scale-105 active:scale-95"
+                  style={{
+                    background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 60%, white), var(--accent))",
+                    boxShadow: "0 4px 15px color-mix(in srgb, var(--accent) 40%, transparent)",
+                    textShadow: "0 1px 2px rgba(0,0,0,0.15)"
+                  }}
+                >
+                  <span className="mr-1.5 text-sm drop-shadow-md">💬</span> Mulai Chat
+                </Link>
+              </div>
+            </li>
+
+            {/* Poin 2 */}
+            <li className="flex gap-3">
+              <span className="font-black text-sm mt-0.5" style={{ color: "var(--accent)" }}>2.</span>
+              <p className="text-sm opacity-90 leading-relaxed" style={{ color: "var(--foreground)" }}>
+                Kirim gambar di kolom input chat.
+              </p>
+            </li>
+
+            {/* Poin 3 & Tombol Tema (Diperkecil menjadi pill) */}
+            <li className="space-y-2.5">
+              <div className="flex gap-3">
+                <span className="font-black text-sm mt-0.5" style={{ color: "var(--accent)" }}>3.</span>
+                <p className="text-sm opacity-90 leading-relaxed" style={{ color: "var(--foreground)" }}>
+                  Ubah tema setelah login bisa costumisasi tema sesuka kamu.
+                </p>
+              </div>
+              <div className="pl-6">
+                <Link
+                  href="/tema"
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-full text-white font-bold text-xs shadow-md transition-transform hover:scale-105 active:scale-95"
+                  style={{
+                    background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 60%, white), var(--accent))",
+                    boxShadow: "0 4px 15px color-mix(in srgb, var(--accent) 40%, transparent)",
+                    textShadow: "0 1px 2px rgba(0,0,0,0.15)"
+                  }}
+                >
+                  <span className="mr-1.5 text-sm drop-shadow-md">🎨</span> Ubah Tema
+                </Link>
+              </div>
+            </li>
+
+            {/* Poin 4 */}
+            <li className="flex gap-3">
+              <span className="font-black text-sm mt-0.5" style={{ color: "var(--accent)" }}>4.</span>
+              <p className="text-sm opacity-90 leading-relaxed" style={{ color: "var(--foreground)" }}>
+                Tentang ipix geser pill dan drop pill untuk info sosmed ipix.
+              </p>
+            </li>
+
+            {/* Poin 5 */}
+            <li className="flex gap-3">
+              <span className="font-black text-sm mt-0.5" style={{ color: "var(--accent)" }}>5.</span>
+              <p className="text-sm opacity-90 leading-relaxed font-bold italic" style={{ color: "var(--accent)" }}>
+                Next...
+              </p>
+            </li>
+          </ul>
+        </motion.div>
+        
+        {/* Footer / Copyright Mark */}
+        <div className="flex flex-col items-center justify-center mt-8 mb-2 space-y-1.5">
+          <div className="w-10 h-1 rounded-full mb-1" style={{ backgroundColor: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />
+          <p className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>
+            ipixchat © {new Date().getFullYear()}
+          </p>
+          <p className="text-[9px] font-bold opacity-60 uppercase tracking-widest" style={{ color: "var(--foreground)" }}>
+            All Rights Reserved
+          </p>
         </div>
 
       </div>
