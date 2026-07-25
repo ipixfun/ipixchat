@@ -57,6 +57,7 @@ const PLAYLIST: Track[] = [
 
 const W = 139;
 const H = 46;
+const BOTTOM_NAV_HEIGHT = 70; 
 
 /* =========================
    Helpers
@@ -73,13 +74,28 @@ function randomHslPair(): { c1: string; c2: string } {
 /* =========================
    Component
    ========================= */
-export default function IpixFun(): JSX.Element {
+export default function IpixFun(): JSX.Element | null {
   // ---------- Refs ----------
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const targetRef = useRef<HTMLDivElement | null>(null);
   const ipixCapRef = useRef<HTMLAnchorElement | null>(null);
-  const pillRefs = useRef<PillRef[]>([]);
+
+  // ✅ FIX 1: Inisialisasi awal dengan data statis dan aman untuk Server Render (SSR).
+  // Mencegah mismatch Hydration karena hilangnya nilai random dan eksekusi window di render awal.
+  const pillRefs = useRef<PillRef[]>(
+    LINKS.map((link) => ({
+      el: null,
+      x: -500, // Disembunyikan di luar layar sebelum posisi aslinya dihitung oleh useEffect
+      y: -500,
+      vx: 0,
+      vy: 0,
+      url: link.url,
+      label: link.label,
+      c1: "hsl(0, 70%, 50%)",
+      c2: "hsl(60, 70%, 50%)",
+    }))
+  );
 
   const activePillRef = useRef<PillRef | null>(null);
   const offsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -111,72 +127,6 @@ export default function IpixFun(): JSX.Element {
       tgt: tgt?.getBoundingClientRect() ?? new DOMRect(),
       containerWidth: body.clientWidth,
     };
-  }, []);
-
-  // ---------- Canvas drawing ----------
-  const drawConnections = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const bodyRect = document.body.getBoundingClientRect();
-
-    const active = activePillRef.current;
-    if (active) {
-      const { tgt } = getBounds();
-      const targetX = tgt.left + tgt.width / 2;
-      const targetY = tgt.top + tgt.height / 2;
-      const pillX = active.x + W / 2 + bodyRect.left;
-      const pillY = active.y + H / 2;
-
-      const hslaColor = active.c1.replace("hsl", "hsla").replace(")", ", 0.3)");
-      const transparent = "hsla(0, 0%, 100%, 0)";
-
-      const grad = ctx.createLinearGradient(pillX, pillY, targetX, targetY);
-      grad.addColorStop(0, hslaColor);
-      grad.addColorStop(1, transparent);
-
-      ctx.beginPath();
-      ctx.fillStyle = grad;
-      ctx.moveTo(pillX - W / 2, pillY);
-      ctx.lineTo(pillX + W / 2, pillY);
-      ctx.lineTo(targetX, targetY);
-      ctx.closePath();
-      ctx.fill();
-    }
-  }, [getBounds]);
-
-  // ---------- Init pills ----------
-  useEffect(() => {
-    pillRefs.current = LINKS.map((link) => {
-      const colors = randomHslPair();
-      return {
-        el: null,
-        x: 0,
-        y: 0,
-        vx: (Math.random() - 0.5) * 3,
-        vy: (Math.random() - 0.5) * 3,
-        url: link.url,
-        label: link.label,
-        c1: colors.c1,
-        c2: colors.c2,
-      };
-    });
-  }, []);
-
-  // ---------- Canvas resize ----------
-  useEffect(() => {
-    const resize = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    window.addEventListener("resize", resize);
-    resize();
-    return () => window.removeEventListener("resize", resize);
   }, []);
 
   // ---------- Apply pill style helper ----------
@@ -213,11 +163,59 @@ export default function IpixFun(): JSX.Element {
     setCapVisible(true);
   }, [getBounds, applyPillStyle]);
 
-  // Run initial reset after mount (when DOM is ready)
+  // Jalankan perhitungan posisi dan random client-side (hanya setelah DOM & Hydration aman)
   useEffect(() => {
     const id = requestAnimationFrame(() => resetPositions());
     return () => cancelAnimationFrame(id);
   }, [resetPositions]);
+
+  // ---------- Canvas drawing ----------
+  const drawConnections = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const bodyRect = document.body.getBoundingClientRect();
+
+    const active = activePillRef.current;
+    if (active) {
+      const { tgt } = getBounds();
+      const targetX = tgt.left + tgt.width / 2;
+      const targetY = tgt.top + tgt.height / 2;
+      const pillX = active.x + W / 2 + bodyRect.left;
+      const pillY = active.y + H / 2;
+
+      const hslaColor = active.c1.replace("hsl", "hsla").replace(")", ", 0.3)");
+      const transparent = "hsla(0, 0%, 100%, 0)";
+
+      const grad = ctx.createLinearGradient(pillX, pillY, targetX, targetY);
+      grad.addColorStop(0, hslaColor);
+      grad.addColorStop(1, transparent);
+
+      ctx.beginPath();
+      ctx.fillStyle = grad;
+      ctx.moveTo(pillX - W / 2, pillY);
+      ctx.lineTo(pillX + W / 2, pillY);
+      ctx.lineTo(targetX, targetY);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }, [getBounds]);
+
+  // ---------- Canvas resize ----------
+  useEffect(() => {
+    const resize = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    window.addEventListener("resize", resize);
+    resize();
+    return () => window.removeEventListener("resize", resize);
+  }, []);
 
   // ---------- Align pills (on tap) ----------
   const alignPills = useCallback(() => {
@@ -391,7 +389,6 @@ export default function IpixFun(): JSX.Element {
       const cap = ipixCapRef.current;
 
       if (!isPausedRef.current) {
-        // ipix capsule
         if (cap) {
           const capWidth = cap.offsetWidth;
           const viewWidth = window.innerWidth;
@@ -406,8 +403,9 @@ export default function IpixFun(): JSX.Element {
           cap.style.transform = `translateX(${ipixXRef.current}px)`;
         }
 
-        // pills
-        const { music, tgt, cap: capRect, containerWidth } = getBounds();
+        const { music, tgt, containerWidth } = getBounds();
+        const bottomLimit = window.innerHeight - BOTTOM_NAV_HEIGHT;
+
         pillRefs.current.forEach((p, i) => {
           if (p === activePillRef.current) return;
           p.x += p.vx;
@@ -427,8 +425,8 @@ export default function IpixFun(): JSX.Element {
               p.y = tgt.bottom;
               p.vy *= -1;
             }
-            if (p.y + H >= capRect.top) {
-              p.y = capRect.top - H;
+            if (p.y + H >= bottomLimit) {
+              p.y = bottomLimit - H;
               p.vy *= -1;
             }
           }
@@ -464,12 +462,10 @@ export default function IpixFun(): JSX.Element {
       const target = e.target as HTMLElement | null;
       const id = target?.id ?? "";
 
-      // start audio on first interaction
       if (!hasStartedRef.current) toggleAudio();
       if (id === "reload-btn") return;
 
-      // ignore clicks on interactive elements
-      if (target?.closest("a, button, .pill, .header-capsule, .music-player, #modal-card")) return;
+      if (target?.closest("a, button, .pill, .header-capsule, .music-player, #modal-card, .bottom-nav")) return;
 
       if (appStateRef.current === "moving") {
         isPausedRef.current = true;
@@ -483,7 +479,6 @@ export default function IpixFun(): JSX.Element {
     return () => window.removeEventListener("mousedown", onClick);
   }, [toggleAudio, alignPills, randomizeAllColors]);
 
-  // ---------- Pill render helper ----------
   const pillBaseStyle: CSSProperties = {
     width: W,
     height: H,
@@ -491,7 +486,9 @@ export default function IpixFun(): JSX.Element {
 
   return (
     <>
-      <style>{`
+      {/* ✅ FIX 2: Gunakan dangerouslySetInnerHTML untuk mencegah minify error pada Hydration */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
         * { box-sizing: border-box; }
         html, body { height: 100dvh; margin: 0; background-color: #0f172a; overflow: hidden; touch-action: none; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
         body { margin: 0 auto; width: 100%; max-width: 800px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); position: relative; border-left: 1px solid #334155; border-right: 1px solid #334155; }
@@ -510,25 +507,25 @@ export default function IpixFun(): JSX.Element {
         .music-player { padding: 9px 13px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 45px; color: white; display: flex; align-items: center; gap: 9px; font-size: 0.81rem; box-shadow: 0 5px 15px rgba(0,0,0,0.3); height: 36px; }
         .music-player button { background: rgba(255, 255, 255, 0.2); border: none; color: white; padding: 4px 9px; border-radius: 13px; cursor: pointer; font-weight: bold; }
 
-        .ipix-capsule { position: fixed; bottom: 25px; left: 0; padding: 13px 27px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(15px); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 45px; color: white; font-weight: 800; text-decoration: none; font-size: 1rem; z-index: 999; cursor: pointer; box-shadow: 0 10px 25px rgba(0,0,0,0.2); white-space: nowrap; max-width: 90%; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
+        .ipix-capsule { position: fixed; bottom: calc(${BOTTOM_NAV_HEIGHT}px + 25px); left: 0; padding: 13px 27px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(15px); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 45px; color: white; font-weight: 800; text-decoration: none; font-size: 1rem; z-index: 999; cursor: pointer; box-shadow: 0 10px 25px rgba(0,0,0,0.2); white-space: nowrap; max-width: 90%; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
 
         #control-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 10px; z-index: 998; }
         #reload-btn, #info-trigger { padding: 9px 18px; border-radius: 18px; cursor: pointer; font-weight: bold; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); font-size: 0.81rem; user-select: none; color: white; background: rgba(255, 255, 255, 0.1); }
         #reload-btn { background: rgba(255, 87, 34, 0.4); }
 
-        .pill { position: absolute; border-radius: 45px; background: linear-gradient(45deg, var(--c1), var(--c2)); background-size: 200% 200%; animation: gradientMove 4s ease infinite; border: 2px solid rgba(255,255,255,0.2); color: white; display: flex; align-items: center; justify-content: flex-start; padding-left: 40px; font-size: 0.81rem; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: grab; user-select: none; z-index: 1; touch-action: none; }
+        .pill { position: absolute; left: 0; top: 0; border-radius: 45px; background: linear-gradient(45deg, var(--c1), var(--c2)); background-size: 200% 200%; animation: gradientMove 4s ease infinite; border: 2px solid rgba(255,255,255,0.2); color: white; display: flex; align-items: center; justify-content: flex-start; padding-left: 40px; font-size: 0.81rem; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: grab; user-select: none; z-index: 1; touch-action: none; }
         .pill-icon { position: absolute; left: 10px; width: 20px; height: 20px; animation: wiggle 1s ease-in-out infinite alternate; }
         @keyframes wiggle { 0% { transform: translateY(-2px) rotate(-15deg); } 100% { transform: translateY(2px) rotate(15deg); } }
         @keyframes gradientMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
-        #target-pill { width: 146px; height: 46px; border-radius: 45px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px); border: 2px solid rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.75rem; pointer-events: none; transition: all 0.2s ease; }
+        #target-pill, .target-pill-demo { width: 146px; height: 46px; border-radius: 45px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px); border: 2px solid rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.75rem; pointer-events: none; transition: all 0.2s ease; }
         .target-glow { background: rgba(255, 255, 255, 0.25) !important; box-shadow: 0 0 30px rgba(255, 255, 255, 0.5); transform: scale(1.1) !important; border-color: rgba(255, 255, 255, 0.8) !important; }
 
         #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100dvh; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px); z-index: 2000; align-items: center; justify-content: center; }
         #modal.open { display: flex; }
         #modal-card { width: 85%; max-width: 350px; padding: 27px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(20px); border-radius: 27px; color: white; text-align: left; }
         #close-btn { width: 45px; height: 45px; background: #ff416c; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; margin: 18px auto 0; color: white; font-weight: bold; }
-      `}</style>
+      `}} />
 
       <canvas ref={canvasRef} id="fx-canvas" />
 
@@ -571,7 +568,6 @@ export default function IpixFun(): JSX.Element {
         </div>
       </div>
 
-      {/* Pills */}
       {LINKS.map((link, idx) => (
         <div
           key={link.label}
@@ -589,7 +585,6 @@ export default function IpixFun(): JSX.Element {
         </div>
       ))}
 
-      {/* Modal */}
       <div id="modal" className={modalOpen ? "open" : ""}>
         <div id="modal-card">
           <p>
@@ -608,8 +603,9 @@ export default function IpixFun(): JSX.Element {
             </li>
             <li>
               <b>Geser Capsule</b> lalu arahkan Capsule ke :
+              {/* ✅ FIX 3: Hapus ID yang duplikat agar struktur HTML Valid */}
               <div
-                id="target-pill"
+                className="target-pill-demo"
                 style={{ marginTop: 6, background: "rgba(255,255,255,0.05)" }}
               >
                 <b>Menuju Link</b>
@@ -648,8 +644,8 @@ export default function IpixFun(): JSX.Element {
         </div>
       </div>
 
-      {/* Hidden audio element */}
       <audio ref={audioRef} preload="none" />
+      <BottomNav />
     </>
   );
 }
