@@ -190,11 +190,11 @@ export default function HomePage() {
                 style={{ backgroundColor: 'var(--accent)' }}
               />
               <span className="font-extrabold text-xs sm:text-sm tracking-wide" style={{ color: 'var(--foreground-heading)' }}>
-                ipix Ecosystem Highlight
+                Tutorial ipix chat jika ada pertanyaan
               </span>
             </div>
             <span className="text-[10px] px-2.5 py-1 rounded-full font-bold opacity-75" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)' }}>
-              HD Video
+              Lagu : Diatas Normal / Peterpan ( NOAH )
             </span>
           </div>
         </motion.div>
@@ -305,13 +305,13 @@ export default function HomePage() {
           }}
         >
           <h3 className="font-extrabold text-sm tracking-wide" style={{ color: "var(--foreground-heading)" }}>
-            🌐 Ekosistem ipix
+            🌐 Web ipix
           </h3>
           <div className="grid grid-cols-3 gap-2">
             {[
-              { name: "ipix", url: "https://ipix.my.id" },
-              { name: "sukachub", url: "https://sukachub.my.id" },
-              { name: "ipixfun", url: "https://ipix.fun" },
+              { name: "ipix.my.id", url: "https://ipix.my.id" },
+              { name: "sukachub.my.id", url: "https://sukachub.my.id" },
+              { name: "ipix.fun", url: "https://ipix.fun" },
             ].map((item) => (
               <a
                 key={item.name}
