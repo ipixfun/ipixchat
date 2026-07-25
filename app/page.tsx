@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import BottomNav from '@/components/bottomnav';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,9 +8,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function HomePage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showDownloadConfirm, setShowDownloadConfirm] = useState(false);
+  const [isApk, setIsApk] = useState(false); // State untuk deteksi APK/WebView
   
   const videoUrl = "https://res.cloudinary.com/bjamo8ld/video/upload/v1785016972/pixvideo_z1kfhn.mp4";
   const apkDownloadUrl = "https://github.com/ipixfun/ipix.apk/raw/refs/heads/main/ipixchat.apk";
+
+  useEffect(() => {
+    // Fungsi untuk mendeteksi apakah diakses dari dalam APK / WebView / Standalone
+    const checkIsApp = () => {
+      if (typeof window === 'undefined') return false;
+
+      const userAgent = navigator.userAgent.toLowerCase();
+      // Deteksi Android WebView (mengandung 'wv')
+      const isWebView = userAgent.includes('wv');
+      // Deteksi PWA / TWA (standalone mode)
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+      return isWebView || isStandalone;
+    };
+
+    setIsApk(checkIsApp());
+  }, []);
 
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px] relative overflow-hidden bg-[var(--background)]">
@@ -138,7 +156,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Pengganti Link "U" -> Link Ekosistem bergaya Pill Outline */}
+          {/* Link Ekosistem bergaya Pill Outline */}
           <div className="flex items-center gap-1.5 flex-wrap justify-end">
             {[
               { name: "ipix.my.id", url: "https://ipix.my.id" },
@@ -167,7 +185,7 @@ export default function HomePage() {
       {/* Konten Utama (Scrollable) */}
       <div className="flex-1 overflow-y-auto hide-scroll space-y-5 pt-4 pb-6 px-4 sm:px-6">
         
-        {/* Top Hero: Embedded Video Player (FULL TANPA TERPOTONG) */}
+        {/* Top Hero: Embedded Video Player */}
         <motion.div
           initial={{ opacity: 0, y: 20, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -179,7 +197,7 @@ export default function HomePage() {
             boxShadow: "0 15px 35px -10px color-mix(in srgb, var(--accent) 20%, transparent)",
           }}
         >
-          {/* Frame Video - Menyesuaikan bentuk asli tanpa cropping */}
+          {/* Frame Video */}
           <div className="relative w-full rounded-2xl overflow-hidden bg-black flex justify-center items-center group">
             <video
               src={videoUrl}
@@ -211,64 +229,66 @@ export default function HomePage() {
           </div>
         </motion.div>
 
-        {/* Hero Banner: Download App ipixchat.apk */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="p-5 sm:p-6 rounded-3xl relative overflow-hidden transition-all border"
-          style={{
-            background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 25%, var(--background)) 0%, var(--card-bg) 100%)`,
-            borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
-            boxShadow: "0 12px 35px color-mix(in srgb, var(--accent) 15%, transparent)",
-          }}
-        >
-          {/* Background Decorative Circles */}
-          <div
-            className="absolute top-0 right-0 w-36 h-36 rounded-full opacity-15 pointer-events-none blur-2xl"
-            style={{ backgroundColor: "var(--accent)" }}
-          />
-          <div
-            className="absolute bottom-0 left-0 w-28 h-28 rounded-full opacity-15 pointer-events-none blur-xl"
-            style={{ backgroundColor: "var(--accent)" }}
-          />
+        {/* Hero Banner: Download App ipixchat.apk (Hanya tampil jika bukan di dalam APK) */}
+        {!isApk && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="p-5 sm:p-6 rounded-3xl relative overflow-hidden transition-all border"
+            style={{
+              background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 25%, var(--background)) 0%, var(--card-bg) 100%)`,
+              borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
+              boxShadow: "0 12px 35px color-mix(in srgb, var(--accent) 15%, transparent)",
+            }}
+          >
+            {/* Background Decorative Circles */}
+            <div
+              className="absolute top-0 right-0 w-36 h-36 rounded-full opacity-15 pointer-events-none blur-2xl"
+              style={{ backgroundColor: "var(--accent)" }}
+            />
+            <div
+              className="absolute bottom-0 left-0 w-28 h-28 rounded-full opacity-15 pointer-events-none blur-xl"
+              style={{ backgroundColor: "var(--accent)" }}
+            />
 
-          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="space-y-1.5 flex-1">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase mb-1"
-                style={{
-                  backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
-                  color: 'var(--accent)',
-                  border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)'
-                }}
-              >
-                📱 Android App
+            <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1.5 flex-1">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase mb-1"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
+                    color: 'var(--accent)',
+                    border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)'
+                  }}
+                >
+                  📱 Android App
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>
+                  Download <span style={{ color: "var(--accent)" }}>ipixchat</span>
+                </h2>
+                <p className="text-xs sm:text-sm opacity-85 leading-relaxed" style={{ color: "var(--foreground)" }}>
+                  Nikmati pengalaman chat & jelajah ekosistem ipix yang lebih cepat, ringan, dan responsif langsung di smartphone Android kamu.
+                </p>
               </div>
-              <h2 className="text-xl sm:text-2xl font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>
-                Download <span style={{ color: "var(--accent)" }}>ipixchat</span>
-              </h2>
-              <p className="text-xs sm:text-sm opacity-85 leading-relaxed" style={{ color: "var(--foreground)" }}>
-                Nikmati pengalaman chat & jelajah ekosistem ipix yang lebih cepat, ringan, dan responsif langsung di smartphone Android kamu.
-              </p>
-            </div>
 
-            {/* Tombol Download */}
-            <motion.button
-              onClick={() => setShowDownloadConfirm(true)}
-              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl text-white font-extrabold text-sm tracking-wide flex items-center justify-center gap-2.5 shadow-xl color-shift-bg shrink-0 outline-none"
-              style={{
-                backgroundImage: 'linear-gradient(270deg, var(--accent), #ff6b6b, #4ecdc4, var(--accent))'
-              }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                <path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/>
-              </svg>
-              Download APK
-            </motion.button>
-          </div>
-        </motion.div>
+              {/* Tombol Download */}
+              <motion.button
+                onClick={() => setShowDownloadConfirm(true)}
+                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl text-white font-extrabold text-sm tracking-wide flex items-center justify-center gap-2.5 shadow-xl color-shift-bg shrink-0 outline-none"
+                style={{
+                  backgroundImage: 'linear-gradient(270deg, var(--accent), #ff6b6b, #4ecdc4, var(--accent))'
+                }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                  <path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/>
+                </svg>
+                Download APK
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
 
         {/* --- SECTION: Info Versi & Actions --- */}
         <motion.div
@@ -294,7 +314,7 @@ export default function HomePage() {
 
           {/* Daftar Fitur / Update */}
           <ul className="space-y-4">
-            {/* Poin 1 & Tombol Chat (Diperkecil menjadi pill) */}
+            {/* Poin 1 & Tombol Chat */}
             <li className="space-y-2.5">
               <div className="flex gap-3">
                 <span className="font-black text-sm mt-0.5" style={{ color: "var(--accent)" }}>1.</span>
@@ -325,7 +345,7 @@ export default function HomePage() {
               </p>
             </li>
 
-            {/* Poin 3 & Tombol Tema (Diperkecil menjadi pill) */}
+            {/* Poin 3 & Tombol Tema */}
             <li className="space-y-2.5">
               <div className="flex gap-3">
                 <span className="font-black text-sm mt-0.5" style={{ color: "var(--accent)" }}>3.</span>
