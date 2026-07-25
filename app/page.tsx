@@ -75,8 +75,8 @@ export default function HomePage() {
         
         {/* Hero Section: 3 Logo Web Dinamis */}
         <div className="w-full pt-4 pb-2">
-          {/* Menggunakan komponen Ipix dengan tema bawaan atau bisa ditambah prop theme={1} */}
-          <Ipix theme={1} className="scale-90 sm:scale-100" />
+          {/* Komponen Ipix menyesuaikan dengan CSS Global secara otomatis */}
+          <Ipix className="scale-90 sm:scale-100" />
         </div>
 
         {/* Ucapan Selamat Datang dengan Gradient Background */}
