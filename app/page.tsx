@@ -259,14 +259,13 @@ export default function HomePage() {
                 border: "1px solid color-mix(in srgb, var(--accent) 40%, transparent)"
               }}
             >
-              💖
             </div>
             <div className="relative z-10">
               <h2 className="text-xl sm:text-2xl font-black tracking-tight mb-1" style={{ color: "var(--foreground-heading)" }}>
                 Terima Kasih!
               </h2>
               <p className="text-xs sm:text-sm opacity-85 leading-relaxed max-w-sm mx-auto" style={{ color: "var(--foreground)" }}>
-                Kamu sedang menggunakan <span className="font-bold" style={{ color: "var(--accent)" }}>ipixchat</span> versi Aplikasi Android. Nikmati pengalaman menjelajah yang lebih cepat dan lancar.
+                Sudah menggunakan <span className="font-bold" style={{ color: "var(--accent)" }}>ipixchat</span> versi Aplikasi Android. Nikmati pengalaman menjelajah lewat aplikasi.
               </p>
             </div>
           </motion.div>
