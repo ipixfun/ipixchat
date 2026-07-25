@@ -1,11 +1,14 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import BottomNav from "@/components/bottomnav";
-import { motion } from 'framer-motion';
-import Ipix from "./ipix";
+import { motion, AnimatePresence } from 'framer-motion';
+import Ipix, { SiteInfo } from "./ipix";
 
 export default function HomePage() {
+  // State untuk menyimpan data web yang sedang diklik
+  const [selectedSite, setSelectedSite] = useState<SiteInfo | null>(null);
+
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px] relative overflow-hidden bg-[var(--background)]">
       {/* Gaya Animasi Keyframes */}
@@ -30,6 +33,16 @@ export default function HomePage() {
         @keyframes pulse-dot {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
+        }
+        /* Animasi warna berpindah untuk tombol link */
+        .color-shift-bg {
+          background-size: 300% 300%;
+          animation: color-shift 4s ease infinite;
+        }
+        @keyframes color-shift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
         }
       `}</style>
 
@@ -71,16 +84,69 @@ export default function HomePage() {
       </header>
 
       {/* Konten Utama */}
-      <div className="flex-1 overflow-y-auto hide-scroll space-y-6 pb-6">
+      <div className="flex-1 overflow-y-auto hide-scroll space-y-4 pb-6">
         
         {/* Hero Section: 3 Logo Web Dinamis */}
-        <div className="w-full pt-4 pb-2">
-          {/* Komponen Ipix menyesuaikan dengan CSS Global secara otomatis */}
-          <Ipix className="scale-90 sm:scale-100" />
+        <div className="w-full pt-4 pb-0">
+          <Ipix 
+            className="scale-90 sm:scale-100" 
+            selectedId={selectedSite?.id}
+            onSelect={(site) => setSelectedSite(selectedSite?.id === site.id ? null : site)} 
+          />
         </div>
 
+        {/* Arahan & Deskripsi Link (Muncul Saat Logo Diklik) */}
+        <AnimatePresence>
+          {selectedSite && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, y: -20 }}
+              animate={{ opacity: 1, height: "auto", y: 0 }}
+              exit={{ opacity: 0, height: 0, y: -20, margin: 0 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="px-5 overflow-hidden"
+            >
+              <div 
+                className="p-5 rounded-3xl text-center border relative"
+                style={{ 
+                  backgroundColor: "var(--card-bg)", 
+                  borderColor: selectedSite.shadow,
+                  boxShadow: `0 10px 30px -10px ${selectedSite.shadow}`
+                }}
+              >
+                <button 
+                  onClick={() => setSelectedSite(null)}
+                  className="absolute top-3 right-4 text-xs font-bold opacity-50 hover:opacity-100 transition-opacity"
+                >
+                  ✕ Tutup
+                </button>
+                <h3 className="font-extrabold text-lg mb-2" style={{ color: "var(--foreground-heading)" }}>
+                  Menuju <span style={{ color: "var(--accent)" }}>{selectedSite.name}</span>
+                </h3>
+                <p className="text-sm opacity-90 leading-relaxed mb-5" style={{ color: "var(--foreground)" }}>
+                  {selectedSite.desc}
+                </p>
+                
+                {/* Tombol Lanjutkan dengan Warna Berpindah */}
+                <motion.a
+                  href={selectedSite.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block w-full sm:w-auto px-8 py-3 rounded-full text-white font-bold text-sm tracking-wide shadow-lg color-shift-bg"
+                  style={{
+                    backgroundImage: 'linear-gradient(270deg, var(--accent), #ff6b6b, #4ecdc4, var(--accent))'
+                  }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  🚀 Buka Situs Sekarang
+                </motion.a>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Ucapan Selamat Datang dengan Gradient Background */}
-        <div className="px-5">
+        <div className="px-5 mt-2">
           <div
             className="p-5 rounded-3xl relative overflow-hidden transition-all duration-500 hover:scale-[1.02]"
             style={{
@@ -89,7 +155,6 @@ export default function HomePage() {
               boxShadow: "0 8px 30px color-mix(in srgb, var(--accent) 8%, transparent)",
             }}
           >
-            {/* Dekorasi Latar Belakang */}
             <div
               className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-10 pointer-events-none"
               style={{ backgroundColor: "var(--accent)", transform: "translate(20%, -20%)" }}
