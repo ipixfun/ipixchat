@@ -229,8 +229,49 @@ export default function HomePage() {
           </div>
         </motion.div>
 
-        {/* Hero Banner: Download App ipixchat.apk (Hanya tampil jika bukan di dalam APK) */}
-        {!isApk && (
+        {/* Dynamic Section: Thank You (APK) OR Download Banner (Web) */}
+        {isApk ? (
+          // Tampilan jika dibuka di dalam APK / Standalone PWA
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="p-5 sm:p-6 rounded-3xl relative overflow-hidden transition-all border text-center flex flex-col items-center justify-center gap-3"
+            style={{
+              background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, var(--background)) 0%, var(--card-bg) 100%)`,
+              borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
+              boxShadow: "0 12px 35px color-mix(in srgb, var(--accent) 15%, transparent)",
+            }}
+          >
+            {/* Background Decorative Circles */}
+            <div
+              className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-20 pointer-events-none blur-2xl"
+              style={{ backgroundColor: "var(--accent)" }}
+            />
+            <div
+              className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full opacity-20 pointer-events-none blur-2xl"
+              style={{ backgroundColor: "var(--accent)" }}
+            />
+
+            <div className="relative z-10 w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-lg mb-1"
+              style={{ 
+                backgroundColor: "color-mix(in srgb, var(--accent) 20%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--accent) 40%, transparent)"
+              }}
+            >
+              💖
+            </div>
+            <div className="relative z-10">
+              <h2 className="text-xl sm:text-2xl font-black tracking-tight mb-1" style={{ color: "var(--foreground-heading)" }}>
+                Terima Kasih!
+              </h2>
+              <p className="text-xs sm:text-sm opacity-85 leading-relaxed max-w-sm mx-auto" style={{ color: "var(--foreground)" }}>
+                Kamu sedang menggunakan <span className="font-bold" style={{ color: "var(--accent)" }}>ipixchat</span> versi Aplikasi Android. Nikmati pengalaman menjelajah yang lebih cepat dan lancar.
+              </p>
+            </div>
+          </motion.div>
+        ) : (
+          // Tampilan Banner Download jika dibuka di Browser biasa
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
