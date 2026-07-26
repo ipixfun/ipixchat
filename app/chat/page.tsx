@@ -624,7 +624,7 @@ export default function Home() {
       // PERHATIAN: 
       // Jika "Admin●ipix.my.id" bukan nilai yang ada di dashboard OneSignal kamu, 
       // ganti dengan email admin yang asli, misal: "onlinezoezoe@gmail.com"
-      const targetId = ui.tab === "user" ? "Ipix@my.id" : usersInfo.selPriv;
+      const targetId = ui.tab === "user" ? "Admin●ipix.my.id" : usersInfo.selPriv;
 
       if (targetId) {
         await fetch('/api/send-notif', {
