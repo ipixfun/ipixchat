@@ -599,6 +599,7 @@ export default function Home() {
       }
     }
 
+    // 1. Simpan pesan ke database Supabase
     await supabase.from("messages").insert([
       {
         username: auth.user,
@@ -610,6 +611,21 @@ export default function Home() {
         user_browser: navigator.userAgent,
       },
     ]);
+
+    // 2. Picu API Route OneSignal untuk mengirim Push Notif
+    try {
+      await fetch('/api/send-notif', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          username: auth.user, 
+          text: txt 
+        }),
+      });
+    } catch (err) {
+      console.error('Gagal memicu notif OneSignal:', err);
+    }
+
     setInput({
       text: "",
       sending: false,
@@ -792,7 +808,6 @@ export default function Home() {
               handleUserLogin={async (isLoginMode?: boolean) => {
                 const inputName = auth.user.trim();
                 
-                // Return { error: true } alih-alih pake alert yang nge-blokir
                 if (!inputName || isCensored(inputName)) return { error: true };
                 
                 const plainPin = auth.pin || localStorage.getItem("saved_pin") || "";
@@ -809,21 +824,18 @@ export default function Home() {
                   
                   if (isLoginMode) {
                     if (!existUser) {
-                      return { error: true }; // Memicu tombol error berkedip merah
+                      return { error: true };
                     }
                     
                     if (existUser.pin !== plainPin) {
-                      return { error: true }; // Memicu tombol error berkedip merah
+                      return { error: true };
                     }
 
-                    // --- JIKA SUKSES LOG IN ---
                     localStorage.setItem("active_username", finalUsername);
                     localStorage.setItem("saved_pin", plainPin);
                     localStorage.setItem("is_auth", "true");
                     localStorage.setItem("active_tab", "user");
 
-                    // Tunda perbaruan state isAuth selama 3 detik, agar
-                    // kembang api di komponen Login.tsx sempat menyala & meledak
                     setTimeout(() => {
                       setAuth((p) => ({ 
                         ...p, 
@@ -838,7 +850,6 @@ export default function Home() {
                     return true; 
                   }
 
-                  // --- JIKA REGISTER ---
                   if (existUser && existUser.pin !== plainPin) {
                     return { error: true }; 
                   }
@@ -873,7 +884,6 @@ export default function Home() {
                   localStorage.setItem("is_auth", "true");
                   localStorage.setItem("active_tab", "user");
 
-                  // Tunda juga di mode register untuk lihat kembang apinya
                   setTimeout(() => {
                     setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: "" }));
                   }, 3000);
