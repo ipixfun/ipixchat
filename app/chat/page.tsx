@@ -196,7 +196,8 @@ export default function Home() {
           .select("*")
           .eq("is_private", true)
           .or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},private_with.eq.${auth.user}` : usersInfo.selPriv ? `username.eq.${usersInfo.selPriv},private_with.eq.${usersInfo.selPriv}` : "id.eq.0")
-          .order("created_at", { ascending: true }),
+          .order("created_at", { ascending: false }) // OPTIMASI: false untuk ambil data terbaru
+          .limit(100), // OPTIMASI: limit untuk menghemat egress
       ]);
       
       if (bW) setCensor((p) => ({ ...p, words: bW.map((w) => w.word) }));
@@ -214,7 +215,11 @@ export default function Home() {
         setCounts({ ...counts, priv: privC || 0 });
       }
 
-      const vPriv = prD?.filter((m) => !bD?.map((b) => b.username).includes(m.username)) || [];
+      // OPTIMASI: .reverse() agar obrolan terbaru tetap di bagian bawah chat
+      const vPriv = (prD || [])
+        .reverse()
+        .filter((m) => !bD?.map((b) => b.username).includes(m.username));
+      
       setMsgs({ all: vPriv, pub: [], priv: vPriv });
 
       const lAdmin = vPriv.filter((m) => m.username === "Admin●ipix.my.id").pop();
@@ -241,7 +246,14 @@ export default function Home() {
       setUsersInfo((p) => ({ ...p, status: sMap, blockedList: bD || [] }));
 
       if (ui.tab === "admin" && !usersInfo.selPriv) {
-        const { data: aP } = await supabase.from("messages").select("username, created_at").eq("is_private", true).order("created_at", { ascending: false });
+        // OPTIMASI: limit history panel admin
+        const { data: aP } = await supabase
+          .from("messages")
+          .select("username, created_at")
+          .eq("is_private", true)
+          .order("created_at", { ascending: false })
+          .limit(500); 
+          
         if (aP) {
           const uMap = new Map();
           const c: Record<string, number> = {};
@@ -436,17 +448,28 @@ export default function Home() {
         fetchData();
       }
     },
+    
+    // AKTIVASI FITUR TAMBAH BLOCKED WORD DENGAN ERROR HANDLING
     addWrd: async () => {
       if (censor.newWord.trim()) {
-        await supabase.from("blocked_words").insert([{ word: censor.newWord.trim().toLowerCase() }]);
-        setCensor((p) => ({ ...p, newWord: "" }));
-        fetchData();
+        const { error } = await supabase.from("blocked_words").insert([{ word: censor.newWord.trim().toLowerCase() }]);
+        if (error) {
+           alert("Gagal menambah kata terlarang. Periksa apakah tabel 'blocked_words' sudah dibuat di Supabase dan aturan RLS mengizinkan Insert.");
+           console.error(error);
+        } else {
+           setCensor((p) => ({ ...p, newWord: "" }));
+           fetchData();
+        }
       }
     },
     rmWrd: async (w: string) => {
-      await supabase.from("blocked_words").delete().eq("word", w);
+      const { error } = await supabase.from("blocked_words").delete().eq("word", w);
+      if (error) {
+          alert("Gagal menghapus kata terlarang.");
+      }
       fetchData();
     },
+    
     approveImg: async (id: number) => {
       await supabase.from("messages").update({ is_approved: true }).eq("id", id);
       fetchData();
