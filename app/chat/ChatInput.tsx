@@ -52,29 +52,49 @@ export default function ChatInput({
   sendMsg: (e: React.FormEvent) => void;
 }) {
 
-  // Auto-register push subscription agar masuk ke database Supabase
+  // Auto-register push subscription dengan Debug Log
   useEffect(() => {
     async function setupPushSubscription() {
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+      console.log("[Push] Memulai setup push subscription...");
+
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        console.warn("[Push] Browser tidak mendukung Service Worker atau PushManager.");
+        return;
+      }
 
       try {
         const currentUsername = auth?.user?.username || auth?.username;
-        if (!currentUsername) return;
+        console.log("[Push] Current Username:", currentUsername, "| Auth object:", auth);
+        
+        if (!currentUsername) {
+          console.warn("[Push] Username belum tersedia (user belum terdeteksi login).");
+          return;
+        }
 
+        console.log("[Push] Menunggu service worker siap...");
         const registration = await navigator.serviceWorker.ready;
+        console.log("[Push] Service Worker siap:", registration);
 
         const permission = await Notification.requestPermission();
-        if (permission !== "granted") return;
+        console.log("[Push] Status izin notifikasi:", permission);
+        
+        if (permission !== "granted") {
+          console.warn("[Push] Izin notifikasi ditolak oleh user.");
+          return;
+        }
 
         const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        console.log("[Push] VAPID Public Key:", publicVapidKey ? "Ditemukan" : "TIDAK ADA DI .env.local!");
+        
         if (!publicVapidKey) return;
 
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
         });
+        console.log("[Push] Berhasil membuat push subscription:", subscription);
 
-        await fetch("/api/save-subscription", {
+        const res = await fetch("/api/save-subscription", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -82,13 +102,18 @@ export default function ChatInput({
             subscription: subscription,
           }),
         });
+
+        const data = await res.json();
+        console.log("[Push] Hasil simpan ke Supabase:", data);
       } catch (err) {
-        console.error("Gagal setup push subscription:", err);
+        console.error("[Push] Error saat setup push subscription:", err);
       }
     }
 
     if (auth?.isAuth || auth?.user) {
       setupPushSubscription();
+    } else {
+      console.log("[Push] Auth belum aktif, melewati setup.");
     }
   }, [auth]);
 
@@ -235,7 +260,7 @@ export default function ChatInput({
                       setInput((p: any) => ({
                         ...p,
                         text: "",
-                        image: null,
+                        image: window.location.reload(),
                         uploadingImage: false,
                       }));
                       setInteract((p: any) => ({ ...p, replyTo: null }));
