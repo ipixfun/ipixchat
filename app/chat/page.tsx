@@ -12,6 +12,18 @@ import Loading from "../loading";
 import BottomNav from "../../components/bottomnav";
 import { useTheme } from "../context/ThemeContext";
 
+// Fungsi helper konversi VAPID key ke Uint8Array (Langkah 4: Push Notification)
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 export default function Home() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -102,6 +114,36 @@ export default function Home() {
     }),
     [],
   );
+
+  // Registrasi Push Notification di Client
+  useEffect(() => {
+    if (auth.isAuth && "serviceWorker" in navigator && "PushManager" in window) {
+      const registerPush = async () => {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          const res = await fetch("/api/vapid-public-key");
+          const data = await res.json();
+          if (!data?.publicKey) return;
+
+          const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(data.publicKey),
+          });
+
+          await supabase.from("push_subscriptions").upsert(
+            {
+              username: auth.user,
+              subscription: JSON.stringify(subscription),
+            },
+            { onConflict: "username" }
+          );
+        } catch (err) {
+          console.error("Gagal mendaftarkan push notification:", err);
+        }
+      };
+      registerPush();
+    }
+  }, [auth.isAuth, auth.user]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -196,8 +238,8 @@ export default function Home() {
           .select("*")
           .eq("is_private", true)
           .or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},private_with.eq.${auth.user}` : usersInfo.selPriv ? `username.eq.${usersInfo.selPriv},private_with.eq.${usersInfo.selPriv}` : "id.eq.0")
-          .order("created_at", { ascending: false }) // OPTIMASI: false untuk ambil data terbaru
-          .limit(100), // OPTIMASI: limit untuk menghemat egress
+          .order("created_at", { ascending: false })
+          .limit(100),
       ]);
       
       if (bW) setCensor((p) => ({ ...p, words: bW.map((w) => w.word) }));
@@ -215,7 +257,6 @@ export default function Home() {
         setCounts({ ...counts, priv: privC || 0 });
       }
 
-      // OPTIMASI: .reverse() agar obrolan terbaru tetap di bagian bawah chat
       const vPriv = (prD || [])
         .reverse()
         .filter((m) => !bD?.map((b) => b.username).includes(m.username));
@@ -246,7 +287,6 @@ export default function Home() {
       setUsersInfo((p) => ({ ...p, status: sMap, blockedList: bD || [] }));
 
       if (ui.tab === "admin" && !usersInfo.selPriv) {
-        // OPTIMASI: limit history panel admin
         const { data: aP } = await supabase
           .from("messages")
           .select("username, created_at")
@@ -448,8 +488,6 @@ export default function Home() {
         fetchData();
       }
     },
-    
-    // AKTIVASI FITUR TAMBAH BLOCKED WORD DENGAN ERROR HANDLING
     addWrd: async () => {
       if (censor.newWord.trim()) {
         const { error } = await supabase.from("blocked_words").insert([{ word: censor.newWord.trim().toLowerCase() }]);
@@ -469,7 +507,6 @@ export default function Home() {
       }
       fetchData();
     },
-    
     approveImg: async (id: number) => {
       await supabase.from("messages").update({ is_approved: true }).eq("id", id);
       fetchData();
@@ -629,18 +666,37 @@ export default function Home() {
       }
     }
 
+    const recipientUsername = ui.tab === "user" ? "Admin●ipix.my.id" : usersInfo.selPriv;
+
     // 1. Simpan pesan ke database Supabase
-    await supabase.from("messages").insert([
+    const { error: insertError } = await supabase.from("messages").insert([
       {
         username: auth.user,
         pesan: txt,
         image_url: input.image,
         is_approved: auth.user === "Admin●ipix.my.id",
         is_private: true,
-        private_with: ui.tab === "user" ? "admin" : usersInfo.selPriv,
+        private_with: recipientUsername,
         user_browser: navigator.userAgent,
       },
     ]);
+
+    // 2. Panggil API Push Notifikasi (Langkah 6)
+    if (!insertError) {
+      try {
+        await fetch("/api/send-push", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientUsername: recipientUsername,
+            senderUsername: auth.user,
+            message: txt,
+          }),
+        });
+      } catch (err) {
+        console.error("Gagal mengirim push notification:", err);
+      }
+    }
 
     setInput({
       text: "",
@@ -802,7 +858,6 @@ export default function Home() {
         }}
       />
 
-      {/* OVERLAY LOGIN */}
       {!auth.isAuth && (
         <div className="absolute inset-0 z-[40] flex flex-col pointer-events-none pb-16">
           <div className="pointer-events-auto flex-1 flex flex-col">
