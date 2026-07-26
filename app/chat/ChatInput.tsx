@@ -51,6 +51,48 @@ export default function ChatInput({
   scrollMsg: (id: number) => void;
   sendMsg: (e: React.FormEvent) => void;
 }) {
+  
+  // Fungsi wrapper untuk mengirim pesan sekaligus memicu push notification
+  const handleSendWithPush = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!input.text.trim() && !input.image) return;
+
+    // Tentukan siapa penerima pesannya berdasarkan tab aktif (admin atau user biasa)
+    let recipientUsername = "";
+    if (ui.tab === "admin") {
+      recipientUsername = usersInfo?.selPriv || "";
+    } else {
+      // Jika user biasa, biasanya targetnya adalah admin utama atau lawan chat-nya
+      recipientUsername = usersInfo?.adminUsername || "admin"; 
+    }
+
+    const currentMessageText = input.text;
+    const senderName = auth?.user?.username || "Seseorang";
+
+    // Panggil fungsi sendMsg bawaan props terlebih dahulu
+    sendMsg(e);
+
+    // Kirim trigger push notification ke backend API
+    if (recipientUsername) {
+      try {
+        await fetch("/api/send-push", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            recipientUsername: recipientUsername,
+            senderUsername: senderName,
+            message: currentMessageText || "[Mengirim Gambar]",
+          }),
+        });
+      } catch (err) {
+        console.error("Gagal mengirim trigger push notification:", err);
+      }
+    }
+  };
+
   return (
     <InputThemeWrapper>
       {(styles) => (
@@ -76,7 +118,7 @@ export default function ChatInput({
             </div>
           )}
 
-          <form onSubmit={sendMsg} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 items-end w-full relative transition-all duration-300">
+          <form onSubmit={handleSendWithPush} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 items-end w-full relative transition-all duration-300">
             <div className="relative shrink-0 flex items-center justify-center w-8 mb-2">
               <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isBlocked || input.uploadingImage || input.image !== null} />
               <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full ${(ui.tab === "admin" && !usersInfo.selPriv) || input.image !== null || isBlocked ? "opacity-30 pointer-events-none" : styles.uploadIcon}`}>
@@ -123,7 +165,7 @@ export default function ChatInput({
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
-                        sendMsg(e as any);
+                        handleSendWithPush(e as any);
                       }
                     }}
                     placeholder={isBlocked ? "Akun Anda diblokir..." : (ui.tab === "admin" && !usersInfo.selPriv ? "Pilih user..." : "Ketik pesan...")}
