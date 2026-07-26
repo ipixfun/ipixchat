@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '@/app/context/ThemeContext';
 import BearMascot from './BearMascot';
+import OneSignal from 'react-onesignal'; // <-- Tambahan Import OneSignal
 
 // --- ICONS ---
 const UserIcon = () => (
@@ -371,6 +372,15 @@ export default function Login({
         localStorage.setItem('pin', pin);
         setIsSavedDevice(true);
       } catch (e) {}
+
+      // --- TAMBAHAN KODE ONESIGNAL ---
+      try {
+        await OneSignal.login(String(username));
+        console.log("OneSignal External ID sukses diset:", username);
+      } catch (error) {
+        console.error("Gagal set OneSignal ID:", error);
+      }
+      // -------------------------------
 
       setShowWelcomePill(true);
       setShowFireworks(true);
