@@ -19,6 +19,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Recipient username tidak ada" }, { status: 400 });
     }
 
+    // 1. Cari subscription penerima di Supabase
     const { data: subData, error: subError } = await supabase
       .from("push_subscriptions")
       .select("subscription")
@@ -33,6 +34,42 @@ export async function POST(req: Request) {
       ? JSON.parse(subData.subscription) 
       : subData.subscription;
 
+    // -------------------------------------------------------------
+    // JALUR 1: JIKA PENERIMA MENGGUNAKAN APK ANDROID (FCM TOKEN)
+    // -------------------------------------------------------------
+    if (pushSubscription.type === "fcm" && pushSubscription.token) {
+      console.log(`Mengirim FCM Push Notification ke APK Android (${recipientUsername})...`);
+
+      const fcmResponse = await fetch("https://fcm.googleapis.com/fcm/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `key=${process.env.FCM_SERVER_KEY}`, // Ambil dari Server Key Firebase
+        },
+        body: JSON.stringify({
+          to: pushSubscription.token,
+          priority: "high",
+          notification: {
+            title: `Pesan dari ${senderUsername}`,
+            body: message,
+            sound: "default",
+          },
+          data: {
+            senderUsername: senderUsername,
+            message: message,
+          },
+        }),
+      });
+
+      const fcmData = await fcmResponse.json();
+      return NextResponse.json({ success: true, message: "FCM Push notification terkirim", fcmData });
+    }
+
+    // -------------------------------------------------------------
+    // JALUR 2: JIKA PENERIMA MENGGUNAKAN BROWSER WEB
+    // -------------------------------------------------------------
+    console.log(`Mengirim Web Push Notification ke Browser (${recipientUsername})...`);
+    
     const payload = JSON.stringify({
       title: `Pesan dari ${senderUsername}`,
       body: message,
@@ -41,7 +78,8 @@ export async function POST(req: Request) {
 
     await webpush.sendNotification(pushSubscription, payload);
 
-    return NextResponse.json({ success: true, message: "Push notification terkirim" });
+    return NextResponse.json({ success: true, message: "Web Push notification terkirim" });
+
   } catch (err: any) {
     console.error("Error sending push:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
