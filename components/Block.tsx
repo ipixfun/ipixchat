@@ -6,8 +6,8 @@ export default function Block({
   blockedList,
   unblock,
   blockedWords,
-  newBadWord,
-  setNewBadWord,
+  newWord,         // <-- Diperbaiki agar cocok dengan Home.tsx
+  setNewWord,      // <-- Diperbaiki agar cocok dengan Home.tsx
   addBlockedWord,
   removeBlockedWord,
   formatMessageTime
@@ -15,20 +15,27 @@ export default function Block({
   const [isDraggingOverTrash, setIsDraggingOverTrash] = React.useState(false);
 
   const handleAddBlockedWord = () => {
-    const trimmed = newBadWord?.trim();
-    if (!trimmed) return;
+    const trimmed = newWord?.trim();
+    
+    // Jika kosong, hentikan
+    if (!trimmed) {
+      alert("Masukkan kata terlebih dahulu!");
+      return;
+    }
 
+    // Cek duplikat
     const exists = blockedWords?.some(
       (word: string) => word.toLowerCase() === trimmed.toLowerCase()
     );
 
     if (exists) {
       alert('Kata ini sudah ada di daftar blokir!');
+      setNewWord('');
       return;
     }
 
+    // Jalankan fungsi tambah dari Home.tsx
     addBlockedWord();
-    setNewBadWord('');
   };
 
   // Refresh Page
@@ -76,7 +83,6 @@ export default function Block({
             </div>
           </div>
 
-          {/* Tombol Refresh */}
           <button
             onClick={handleRefresh}
             className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full text-sm font-medium transition-all active:scale-95"
@@ -86,8 +92,9 @@ export default function Block({
         </div>
       </div>
 
-      {/* Main Content - Full height on mobile */}
+      {/* Main Content */}
       <div className="max-w-4xl mx-auto p-4 md:p-6 pb-24 min-h-[calc(100vh-80px)]">
+        
         {/* User Terblokir */}
         <section className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-5 mb-8">
           <h3 className="text-lg font-medium mb-5 flex items-center gap-2 text-white/90">
@@ -103,7 +110,6 @@ export default function Block({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {blockedList.map((b: any, index: number) => (
                 <div
-                  // FOKUS USERNAME: Jadikan username sebagai key
                   key={b.username || index}
                   className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-red-500/30 p-5 rounded-2xl transition-all"
                 >
@@ -112,20 +118,15 @@ export default function Block({
                       <p className="font-medium text-base truncate">
                         {b.username || 'Tanpa Nama'}
                       </p>
-                      {/* device_id dihilangkan sepenuhnya, hanya menampilkan browser jika ada */}
                       {b.browser && (
                         <p className="text-xs text-white/50 mt-1 line-clamp-1">{b.browser}</p>
                       )}
                     </div>
-
                     <div className="text-right text-xs text-white/50 whitespace-nowrap">
                       {formatMessageTime(b.created_at || new Date().toISOString())}
                     </div>
                   </div>
-
-                  {/* Pill Unblock */}
                   <button
-                    // FOKUS USERNAME: Patokan aksi unblock hanya butuh username
                     onClick={() => unblock(b.username)}
                     className="w-full mt-2 bg-red-600/80 hover:bg-red-600 text-white text-sm font-medium py-2.5 rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                   >
@@ -146,9 +147,14 @@ export default function Block({
             <input
               className="flex-1 bg-white/5 border border-white/20 focus:border-emerald-500 rounded-2xl px-5 py-3.5 text-sm placeholder:text-white/40 focus:outline-none transition-all"
               placeholder="Tambah kata terlarang..."
-              value={newBadWord}
-              onChange={(e) => setNewBadWord(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleAddBlockedWord()}
+              value={newWord || ''}
+              onChange={(e) => setNewWord(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddBlockedWord();
+                }
+              }}
             />
             <button
               onClick={handleAddBlockedWord}
