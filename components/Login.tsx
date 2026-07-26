@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '@/app/context/ThemeContext';
 import BearMascot from './BearMascot';
-import OneSignal from 'react-onesignal';
 
 // --- ICONS ---
 const UserIcon = () => (
@@ -374,14 +373,6 @@ export default function Login({
         setIsSavedDevice(true);
       } catch (e) {}
 
-      // Mendaftarkan Username ke OneSignal saat login sukses
-      try {
-        await OneSignal.login(String(username));
-        console.log("OneSignal External ID sukses diset:", username);
-      } catch (error) {
-        console.error("Gagal set OneSignal ID:", error);
-      }
-
       setShowWelcomePill(true);
       setShowFireworks(true);
 
@@ -399,14 +390,6 @@ export default function Login({
 
       if (result === false || (result && result.error)) {
         return;
-      }
-
-      // Mendaftarkan ID Admin yang konsisten ke OneSignal
-      try {
-        await OneSignal.login("Admin●ipix.my.id");
-        console.log("OneSignal External ID Admin sukses diset: Admin●ipix.my.id");
-      } catch (error) {
-        console.error("Gagal set OneSignal ID Admin:", error);
       }
 
     } catch (err) {
