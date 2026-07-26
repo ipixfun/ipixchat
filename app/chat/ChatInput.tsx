@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React from "react";
 import { useTheme } from "../context/ThemeContext";
 
 const InputThemeWrapper = ({ children }: { children: (styles: any) => React.ReactNode }) => {
@@ -51,82 +51,6 @@ export default function ChatInput({
   scrollMsg: (id: number) => void;
   sendMsg: (e: React.FormEvent) => void;
 }) {
-
-  // Auto-register push subscription dengan Debug Log
-  useEffect(() => {
-    async function setupPushSubscription() {
-      console.log("[Push] Memulai setup push subscription...");
-
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-        console.warn("[Push] Browser tidak mendukung Service Worker atau PushManager.");
-        return;
-      }
-
-      try {
-        const currentUsername = auth?.user?.username || auth?.username;
-        console.log("[Push] Current Username:", currentUsername, "| Auth object:", auth);
-        
-        if (!currentUsername) {
-          console.warn("[Push] Username belum tersedia (user belum terdeteksi login).");
-          return;
-        }
-
-        console.log("[Push] Menunggu service worker siap...");
-        const registration = await navigator.serviceWorker.ready;
-        console.log("[Push] Service Worker siap:", registration);
-
-        const permission = await Notification.requestPermission();
-        console.log("[Push] Status izin notifikasi:", permission);
-        
-        if (permission !== "granted") {
-          console.warn("[Push] Izin notifikasi ditolak oleh user.");
-          return;
-        }
-
-        const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-        console.log("[Push] VAPID Public Key:", publicVapidKey ? "Ditemukan" : "TIDAK ADA DI .env.local!");
-        
-        if (!publicVapidKey) return;
-
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
-        });
-        console.log("[Push] Berhasil membuat push subscription:", subscription);
-
-        const res = await fetch("/api/save-subscription", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: currentUsername,
-            subscription: subscription,
-          }),
-        });
-
-        const data = await res.json();
-        console.log("[Push] Hasil simpan ke Supabase:", data);
-      } catch (err) {
-        console.error("[Push] Error saat setup push subscription:", err);
-      }
-    }
-
-    if (auth?.isAuth || auth?.user) {
-      setupPushSubscription();
-    } else {
-      console.log("[Push] Auth belum aktif, melewati setup.");
-    }
-  }, [auth]);
-
-  function urlBase64ToUint8Array(base64String: string) {
-    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-  }
   
   // Fungsi wrapper untuk mengirim pesan sekaligus memicu push notification
   const handleSendWithPush = async (e: React.FormEvent) => {
@@ -142,7 +66,7 @@ export default function ChatInput({
     }
 
     const currentMessageText = input.text;
-    const senderName = auth?.user?.username || "Seseorang";
+    const senderName = auth?.user?.username || auth?.user || "Seseorang";
 
     sendMsg(e);
 

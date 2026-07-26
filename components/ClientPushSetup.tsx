@@ -14,40 +14,51 @@ export default function ClientPushSetup() {
         // Tunggu sampai Service Worker benar-benar siap
         await navigator.serviceWorker.ready;
 
-        // 2. Ambil username dari localStorage (sesuaikan key penyimpanan login Anda)
-        // Contoh umum: localStorage.getItem('username') atau dari state/session storage
+        // 2. Ambil username dari localStorage
         const userStr = localStorage.getItem("ipix_user") || localStorage.getItem("user");
         let username = "";
         
         if (userStr) {
           try {
             const parsed = JSON.parse(userStr);
-            username = parsed.username || parsed;
+            // Tambahkan pengecekan parsed.user menyesuaikan objek auth di console Anda
+            username = parsed.username || parsed.user || parsed;
+            
+            // Mencegah username berupa [object Object] jika format tidak sesuai
+            if (typeof username === "object") {
+               username = "";
+            }
           } catch {
             username = userStr;
           }
         }
 
-        if (!username) return; // Jika belum login, abaikan dulu sampai login
-
-        // 3. Minta izin notifikasi browser
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") return;
-
-        const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-        if (!publicVapidKey) {
-          console.error("VAPID Public Key tidak ditemukan di environment variable!");
+        if (!username) {
+          console.log("[Push] Menunggu user login untuk setup notifikasi...");
           return;
         }
 
-        // 4. Lakukan Push Subscribe
+        // 3. Minta izin notifikasi browser
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          console.warn("[Push] Izin notifikasi tidak diberikan oleh user.");
+          return;
+        }
+
+        // 4. Lakukan Push Subscribe via Environment Variable
+        const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        if (!publicVapidKey) {
+          console.error("VAPID Public Key tidak ditemukan di environment variable (.env.local)!");
+          return;
+        }
+
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
         });
 
         // 5. Kirim ke API backend untuk disimpan ke Supabase
-        await fetch("/api/save-subscription", {
+        const response = await fetch("/api/save-subscription", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -55,6 +66,10 @@ export default function ClientPushSetup() {
             subscription: subscription,
           }),
         });
+
+        if (!response.ok) {
+          throw new Error(`Gagal menyimpan ke database. Status: ${response.status}`);
+        }
 
         console.log("Push subscription berhasil disimpan ke database!");
       } catch (err) {

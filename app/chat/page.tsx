@@ -12,18 +12,6 @@ import Loading from "../loading";
 import BottomNav from "../../components/bottomnav";
 import { useTheme } from "../context/ThemeContext";
 
-// Fungsi helper konversi VAPID key ke Uint8Array (Langkah 4: Push Notification)
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
 export default function Home() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -114,60 +102,6 @@ export default function Home() {
     }),
     [],
   );
-
-  // 1. Basic Service Worker Registration (Independent of Auth)
-  useEffect(() => {
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js")
-        .then((registration) => {
-          console.log("Service Worker berhasil terdaftar dengan scope:", registration.scope);
-        })
-        .catch((error) => {
-          console.error("Service Worker gagal terdaftar:", error);
-        });
-    }
-  }, []);
-
-  // 2. Push Manager Subscription (Requires Auth to link to username)
-  useEffect(() => {
-    if (auth.isAuth && "serviceWorker" in navigator && "PushManager" in window) {
-      const registerPush = async () => {
-        try {
-          const registration = await navigator.serviceWorker.ready;
-          
-          const permission = await Notification.requestPermission();
-          if (permission !== "granted") {
-             console.log("Izin push notification ditolak pengguna.");
-             return; 
-          }
-
-          const res = await fetch("/api/vapid-public-key");
-          const data = await res.json();
-          if (!data?.publicKey) {
-            console.error("VAPID public key tidak ditemukan dari server.");
-            return;
-          }
-
-          const subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(data.publicKey),
-          });
-
-          await supabase.from("push_subscriptions").upsert(
-            {
-              username: auth.user,
-              subscription: JSON.stringify(subscription),
-            },
-            { onConflict: "username" }
-          );
-          console.log("Push subscription berhasil disimpan ke database!");
-        } catch (err) {
-          console.error("Gagal mendaftarkan push notification:", err);
-        }
-      };
-      registerPush();
-    }
-  }, [auth.isAuth, auth.user]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

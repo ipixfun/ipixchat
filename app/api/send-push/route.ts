@@ -16,48 +16,34 @@ export async function POST(req: Request) {
     const { recipientUsername, senderUsername, message } = body;
 
     if (!recipientUsername) {
-      return NextResponse.json(
-        { error: "Recipient username tidak boleh kosong" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Recipient username tidak ada" }, { status: 400 });
     }
 
-    console.log(`Mencoba mengirim push notification ke: ${recipientUsername} dari ${senderUsername}`);
-
-    // 1. Ambil data subscription dari tabel Supabase berdasarkan username penerima
-    const { data, error } = await supabase
+    const { data: subData, error: subError } = await supabase
       .from("push_subscriptions")
       .select("subscription")
       .eq("username", recipientUsername)
       .maybeSingle();
 
-    if (error || !data || !data.subscription) {
-      console.log(`Gagal: Subscription untuk user ${recipientUsername} tidak ditemukan di database.`);
-      return NextResponse.json(
-        { success: false, message: "Subscription not found" },
-        { status: 404 }
-      );
+    if (subError || !subData || !subData.subscription) {
+      return NextResponse.json({ success: false, message: "Subscription tidak ditemukan" });
     }
 
-    const subscription = JSON.parse(data.subscription);
+    const pushSubscription = typeof subData.subscription === "string" 
+      ? JSON.parse(subData.subscription) 
+      : subData.subscription;
 
-    // 2. Buat payload isi notifikasi
-    const pushPayload = JSON.stringify({
-      title: `Pesan baru dari ${senderUsername ? senderUsername.split("●")[0] : "Seseorang"}`,
-      body: message && message.length > 50 ? message.substring(0, 50) + "..." : (message || "Ada pesan masuk."),
-      url: "/chat",
+    const payload = JSON.stringify({
+      title: `Pesan dari ${senderUsername}`,
+      body: message,
+      icon: "/icon-192.png",
     });
 
-    // 3. Kirim push notification menggunakan library web-push
-    await webpush.sendNotification(subscription, pushPayload);
-    console.log("Push notification berhasil dikirim ke server browser!");
+    await webpush.sendNotification(pushSubscription, payload);
 
-    return NextResponse.json({ success: true, message: "Notifikasi berhasil dikirim" });
+    return NextResponse.json({ success: true, message: "Push notification terkirim" });
   } catch (err: any) {
-    console.error("Error saat mengirim push notification:", err);
-    return NextResponse.json(
-      { error: err.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    console.error("Error sending push:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
