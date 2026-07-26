@@ -14,6 +14,18 @@ import { useTheme } from "../context/ThemeContext";
 import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 
+// Helper konversi VAPID key untuk Web Push Browser
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 export default function Home() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -547,11 +559,12 @@ export default function Home() {
     }
   }, [mounted, auth.isAuth, fetchData]);
 
-  // --- REGISTRASI PUSH NOTIFICATION UNTUK APK ANDROID (CAPACITOR) ---
+  // --- REGISTRASI PUSH NOTIFICATION (NATIVE APK & BROWSER SERVICE WORKER) ---
   useEffect(() => {
     if (!mounted || !auth.isAuth || !auth.user) return;
 
-    const setupCapacitorPush = async () => {
+    const setupPushNotifications = async () => {
+      // 1. Jalur APK Capacitor Android
       if (Capacitor.isNativePlatform()) {
         try {
           let perm = await PushNotifications.checkPermissions();
@@ -581,10 +594,41 @@ export default function Home() {
         } catch (err) {
           console.error("Gagal inisialisasi push notification APK:", err);
         }
+      } 
+      // 2. Jalur Web Push Service Worker (Agar tetap bunyi jika Chrome/App ditutup)
+      else if ("serviceWorker" in navigator && "PushManager" in window) {
+        try {
+          const reg = await navigator.serviceWorker.register("/sw.js");
+          console.log("Service Worker berhasil terdaftar:", reg);
+
+          const permission = await Notification.requestPermission();
+          if (permission === "granted") {
+            const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+            if (!vapidPublicKey) return;
+
+            let sub = await reg.pushManager.getSubscription();
+            if (!sub) {
+              sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+              });
+            }
+
+            await supabase.from("push_subscriptions").upsert(
+              {
+                username: auth.user,
+                subscription: JSON.stringify(sub),
+              },
+              { onConflict: "username" }
+            );
+          }
+        } catch (err) {
+          console.error("Gagal registrasi Service Worker / Web Push:", err);
+        }
       }
     };
 
-    setupCapacitorPush();
+    setupPushNotifications();
   }, [mounted, auth.isAuth, auth.user]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
