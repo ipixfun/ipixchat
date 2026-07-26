@@ -11,6 +11,8 @@ import { MessageItem } from "./MessageItem";
 import Loading from "../loading";
 import BottomNav from "../../components/bottomnav";
 import { useTheme } from "../context/ThemeContext";
+import { Capacitor } from "@capacitor/core";
+import { PushNotifications } from "@capacitor/push-notifications";
 
 export default function Home() {
   const pathname = usePathname();
@@ -515,7 +517,6 @@ export default function Home() {
         tab: isAdmin ? "admin" : (localStorage.getItem("active_tab") as "user" | "admin") || "user",
       }));
       
-      // PERBAIKAN DI SINI: Admin tidak wajib pakai savedPin agar status isAuth tetap aktif di HP/browser lain
       if (session || (isAuthLocal && savedUsername === "Admin●ipix.my.id") || (isAuthLocal && savedPin)) {
         const currentAdmin = savedUsername === "Admin●ipix.my.id" || session;
         setAuth((p) => ({
@@ -545,6 +546,46 @@ export default function Home() {
       };
     }
   }, [mounted, auth.isAuth, fetchData]);
+
+  // --- REGISTRASI PUSH NOTIFICATION UNTUK APK ANDROID (CAPACITOR) ---
+  useEffect(() => {
+    if (!mounted || !auth.isAuth || !auth.user) return;
+
+    const setupCapacitorPush = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          let perm = await PushNotifications.checkPermissions();
+          if (perm.receive === "prompt") {
+            perm = await PushNotifications.requestPermissions();
+          }
+
+          if (perm.receive === "granted") {
+            await PushNotifications.register();
+
+            PushNotifications.addListener("registration", async (token) => {
+              console.log("FCM Token Android berhasil didapat:", token.value);
+
+              await fetch("/api/save-subscription", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  username: auth.user,
+                  subscription: {
+                    type: "fcm",
+                    token: token.value,
+                  },
+                }),
+              });
+            });
+          }
+        } catch (err) {
+          console.error("Gagal inisialisasi push notification APK:", err);
+        }
+      }
+    };
+
+    setupCapacitorPush();
+  }, [mounted, auth.isAuth, auth.user]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -628,7 +669,6 @@ export default function Home() {
 
     const recipientUsername = ui.tab === "user" ? "Admin●ipix.my.id" : usersInfo.selPriv;
 
-    // 1. Simpan pesan ke database Supabase
     const { error: insertError } = await supabase.from("messages").insert([
       {
         username: auth.user,
@@ -641,7 +681,6 @@ export default function Home() {
       },
     ]);
 
-    // 2. Panggil API Push Notifikasi
     if (!insertError) {
       try {
         await fetch("/api/send-push", {
@@ -845,7 +884,7 @@ export default function Home() {
                 if (!plainPin) return { error: true };
                 
                 try {
-                  const { data: existUser, error } = await supabase
+                  const { data: existUser } = await supabase
                     .from("profiles")
                     .select("username, pin, email, umur, berat")
                     .ilike("username", inputName)
