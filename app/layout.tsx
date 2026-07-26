@@ -18,6 +18,7 @@ export default function RootLayout({
       <head>
         {/* Script anti-flash: set tema sebelum React render */}
         <script
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
