@@ -66,7 +66,6 @@ export default function Home() {
     swipeId: null as number | null,
   });
 
-  // Memperbaiki Hydration Error dengan state & useEffect
   const [currentHash, setCurrentHash] = useState("");
 
   useEffect(() => {
@@ -622,14 +621,22 @@ export default function Home() {
 
     // 2. Picu API Route OneSignal untuk mengirim Push Notif
     try {
-      await fetch('/api/send-notif', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          username: auth.user, 
-          text: txt 
-        }),
-      });
+      // PERHATIAN: 
+      // Jika "Admin●ipix.my.id" bukan nilai yang ada di dashboard OneSignal kamu, 
+      // ganti dengan email admin yang asli, misal: "onlinezoezoe@gmail.com"
+      const targetId = ui.tab === "user" ? "Admin●ipix.my.id" : usersInfo.selPriv;
+
+      if (targetId) {
+        await fetch('/api/send-notif', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            penerimaId: targetId,
+            namaPengirim: auth.user, 
+            isiPesan: txt 
+          }),
+        });
+      }
     } catch (err) {
       console.error('Gagal memicu notif OneSignal:', err);
     }

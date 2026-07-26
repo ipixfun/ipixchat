@@ -2,9 +2,7 @@
 import React from "react";
 import { useTheme } from "../context/ThemeContext";
 
-// Wrapper dinamis menggunakan CSS Variables
 const InputThemeWrapper = ({ children }: { children: (styles: any) => React.ReactNode }) => {
-  // Menggunakan CSS Variables agar otomatis mendukung seluruh 10 tema
   const styles = {
     container: "bg-[var(--card-bg)] border-[var(--card-border)]",
     input: "bg-[var(--card-bg)] border-[var(--card-border)] focus:border-[var(--accent)] text-[var(--foreground-heading)] placeholder:text-[var(--foreground)]/40",

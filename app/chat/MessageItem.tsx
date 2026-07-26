@@ -44,7 +44,6 @@ export function MessageItem({
     : "Unknown Browser";
     
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
-  // FOKUS USERNAME: Patokan pesan milik kita sendiri murni dari kecocokan username
   const isMsgMine = m.username === authUser;
   
   const isEdited =
@@ -597,7 +596,6 @@ export function MessageItem({
                             <button
                               type="button"
                               onClick={() => {
-                                // FOKUS USERNAME: Patokan aksi blokir hanya butuh username
                                 blockUser(m.username);
                                 setActiveMenuId(null);
                               }}
@@ -608,7 +606,6 @@ export function MessageItem({
                             <button
                               type="button"
                               onClick={() => {
-                                // FOKUS USERNAME: Patokan aksi invite hanya butuh username
                                 inviteToPrivate(m.username);
                                 setActiveMenuId(null);
                               }}
