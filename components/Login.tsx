@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '@/app/context/ThemeContext';
 import BearMascot from './BearMascot';
-import OneSignal from 'react-onesignal'; // <-- Tambahan Import OneSignal
+import OneSignal from 'react-onesignal'; // <-- Import OneSignal
 
 // --- ICONS ---
 const UserIcon = () => (
@@ -332,6 +332,7 @@ export default function Login({
   const isLove = isTyping && (focusedField === 'username' || focusedField === 'adminEmail');
 
 
+  // --- WRAPPER LOGIN USER ---
   const handleUserLoginWrapper = async () => {
     setShowWelcomePill(false);
     setShowFireworks(false);
@@ -373,14 +374,13 @@ export default function Login({
         setIsSavedDevice(true);
       } catch (e) {}
 
-      // --- TAMBAHAN KODE ONESIGNAL ---
+      // Mendaftarkan Username ke OneSignal saat login sukses
       try {
         await OneSignal.login(String(username));
         console.log("OneSignal External ID sukses diset:", username);
       } catch (error) {
         console.error("Gagal set OneSignal ID:", error);
       }
-      // -------------------------------
 
       setShowWelcomePill(true);
       setShowFireworks(true);
@@ -389,6 +389,30 @@ export default function Login({
 
     } catch (err) {
       setValidationMsg("Username atau PIN salah sayang");
+    }
+  };
+
+  // --- WRAPPER LOGIN ADMIN ---
+  const handleAdminLoginWrapper = async () => {
+    try {
+      // Panggil fungsi login admin bawaan parent
+      const result = await handleAdminLogin();
+
+      // Cek jika API/Backend memberikan response error
+      if (result === false || (result && result.error)) {
+        return; // Hentikan fungsi jika login admin gagal
+      }
+
+      // Mendaftarkan Email Admin ke OneSignal saat login sukses
+      try {
+        await OneSignal.login(String(adminEmail));
+        console.log("OneSignal External ID Admin sukses diset:", adminEmail);
+      } catch (error) {
+        console.error("Gagal set OneSignal ID Admin:", error);
+      }
+
+    } catch (err) {
+      console.error("Login admin error:", err);
     }
   };
 
@@ -804,7 +828,8 @@ export default function Login({
               />
 
               <button
-                onClick={handleAdminLogin}
+                // --- DIUBAH MENJADI WRAPPER ---
+                onClick={handleAdminLoginWrapper} 
                 className="w-full py-3.5 mt-2 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] shadow-md"
                 style={{
                   backgroundColor: "var(--accent)",
