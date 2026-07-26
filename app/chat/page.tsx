@@ -115,15 +115,38 @@ export default function Home() {
     [],
   );
 
-  // Registrasi Push Notification di Client
+  // 1. Basic Service Worker Registration (Independent of Auth)
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js")
+        .then((registration) => {
+          console.log("Service Worker berhasil terdaftar dengan scope:", registration.scope);
+        })
+        .catch((error) => {
+          console.error("Service Worker gagal terdaftar:", error);
+        });
+    }
+  }, []);
+
+  // 2. Push Manager Subscription (Requires Auth to link to username)
   useEffect(() => {
     if (auth.isAuth && "serviceWorker" in navigator && "PushManager" in window) {
       const registerPush = async () => {
         try {
           const registration = await navigator.serviceWorker.ready;
+          
+          const permission = await Notification.requestPermission();
+          if (permission !== "granted") {
+             console.log("Izin push notification ditolak pengguna.");
+             return; 
+          }
+
           const res = await fetch("/api/vapid-public-key");
           const data = await res.json();
-          if (!data?.publicKey) return;
+          if (!data?.publicKey) {
+            console.error("VAPID public key tidak ditemukan dari server.");
+            return;
+          }
 
           const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
@@ -137,6 +160,7 @@ export default function Home() {
             },
             { onConflict: "username" }
           );
+          console.log("Push subscription berhasil disimpan ke database!");
         } catch (err) {
           console.error("Gagal mendaftarkan push notification:", err);
         }
