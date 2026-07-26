@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "795973704231",
+    "project_id": "ipixchat",
+    "storage_bucket": "ipixchat.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:795973704231:android:dee7e559a69705a92bcc02",
+        "android_client_info": {
+          "package_name": "com.ipix.chat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQrch2deg5bxp_pWs_racs3PD9fQQUz8A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
