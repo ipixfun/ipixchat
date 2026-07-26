@@ -14,6 +14,7 @@
     "@capacitor/push-notifications": "^8.1.2",
     "@supabase/supabase-js": "^2.45.0",
     "cloudinary": "^2.2.0",
+    "firebase-admin": "^14.2.0",
     "framer-motion": "^11.18.2",
     "next": "14.2.10",
     "onesignal-cordova-plugin": "^5.5.2",
