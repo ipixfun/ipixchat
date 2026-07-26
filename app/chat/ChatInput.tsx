@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import { useTheme } from "../context/ThemeContext";
 
 const InputThemeWrapper = ({ children }: { children: (styles: any) => React.ReactNode }) => {
@@ -51,43 +51,77 @@ export default function ChatInput({
   scrollMsg: (id: number) => void;
   sendMsg: (e: React.FormEvent) => void;
 }) {
-  
-  // Fungsi wrapper untuk mengirim pesan sekaligus memicu push notification
-  const handleSendWithPush = async (e: React.FormEvent) => {
-    e.preventDefault();
 
-    if (!input.text.trim() && !input.image) return;
+  // Auto-register push subscription (mencegah AbortError dengan mengecek getSubscription lebih dulu)
+  useEffect(() => {
+    async function setupPushSubscription() {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
-    let recipientUsername = "";
-    if (ui.tab === "admin") {
-      recipientUsername = usersInfo?.selPriv || "";
-    } else {
-      recipientUsername = usersInfo?.adminUsername || "admin"; 
-    }
-
-    const currentMessageText = input.text;
-    const senderName = auth?.user?.username || auth?.user || "Seseorang";
-
-    sendMsg(e);
-
-    if (recipientUsername) {
       try {
-        await fetch("/api/send-push", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            recipientUsername: recipientUsername,
-            senderUsername: senderName,
-            message: currentMessageText || "[Mengirim Gambar]",
-          }),
-        });
+        const currentUsername = typeof auth?.user === "string" ? auth.user : auth?.user?.username;
+        if (!currentUsername) return;
+
+        // 1. Dapatkan atau daftarkan Service Worker
+        let registration = await navigator.serviceWorker.getRegistration();
+        if (!registration) {
+          registration = await navigator.serviceWorker.register("/sw.js");
+        }
+        await navigator.serviceWorker.ready;
+
+        // 2. Minta izin notifikasi
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") return;
+
+        const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        if (!publicVapidKey) {
+          console.error("[Push] VAPID Public Key tidak ditemukan!");
+          return;
+        }
+
+        // 3. Cek apakah subscription sudah ada di browser sebelum membuat baru
+        let subscription = await registration.pushManager.getSubscription();
+
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
+          });
+        }
+
+        // 4. Simpan ke Supabase
+        if (subscription) {
+          const res = await fetch("/api/save-subscription", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: currentUsername,
+              subscription: subscription,
+            }),
+          });
+
+          const resData = await res.json();
+          console.log("[Push] Hasil simpan untuk user:", currentUsername, resData);
+        }
       } catch (err) {
-        console.error("Gagal mengirim trigger push notification:", err);
+        console.error("[Push] Error setup push subscription:", err);
       }
     }
-  };
+
+    if (auth?.isAuth && auth?.user) {
+      setupPushSubscription();
+    }
+  }, [auth?.isAuth, auth?.user]);
+
+  function urlBase64ToUint8Array(base64String: string) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
 
   return (
     <InputThemeWrapper>
@@ -114,7 +148,7 @@ export default function ChatInput({
             </div>
           )}
 
-          <form onSubmit={handleSendWithPush} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 items-end w-full relative transition-all duration-300">
+          <form onSubmit={sendMsg} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 items-end w-full relative transition-all duration-300">
             <div className="relative shrink-0 flex items-center justify-center w-8 mb-2">
               <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isBlocked || input.uploadingImage || input.image !== null} />
               <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full ${(ui.tab === "admin" && !usersInfo.selPriv) || input.image !== null || isBlocked ? "opacity-30 pointer-events-none" : styles.uploadIcon}`}>
@@ -161,7 +195,7 @@ export default function ChatInput({
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
-                        handleSendWithPush(e as any);
+                        sendMsg(e as any);
                       }
                     }}
                     placeholder={isBlocked ? "Akun Anda diblokir..." : (ui.tab === "admin" && !usersInfo.selPriv ? "Pilih user..." : "Ketik pesan...")}

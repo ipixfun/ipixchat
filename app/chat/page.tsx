@@ -515,13 +515,15 @@ export default function Home() {
         tab: isAdmin ? "admin" : (localStorage.getItem("active_tab") as "user" | "admin") || "user",
       }));
       
-      if (session || (isAuthLocal && savedPin)) {
+      // PERBAIKAN DI SINI: Admin tidak wajib pakai savedPin agar status isAuth tetap aktif di HP/browser lain
+      if (session || (isAuthLocal && savedUsername === "Admin●ipix.my.id") || (isAuthLocal && savedPin)) {
+        const currentAdmin = savedUsername === "Admin●ipix.my.id" || session;
         setAuth((p) => ({
           ...p,
           isAuth: true,
-          user: session ? "Admin●ipix.my.id" : savedUsername || p.user,
+          user: currentAdmin ? "Admin●ipix.my.id" : savedUsername || p.user,
         }));
-        if (session) setUi((p) => ({ ...p, tab: "admin" }));
+        if (currentAdmin) setUi((p) => ({ ...p, tab: "admin" }));
       }
       
       setMounted(true);
@@ -639,7 +641,7 @@ export default function Home() {
       },
     ]);
 
-    // 2. Panggil API Push Notifikasi (Langkah 6)
+    // 2. Panggil API Push Notifikasi
     if (!insertError) {
       try {
         await fetch("/api/send-push", {

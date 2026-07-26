@@ -1,64 +1,41 @@
-// sw.js - Service Worker untuk Push Notifications
+self.addEventListener("push", function (event) {
+  if (!event.data) return;
 
-self.addEventListener("install", (event) => {
-  self.skipWaiting();
-});
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
-});
-
-// Event saat server mengirim push notification
-self.addEventListener("push", (event) => {
-  let data = { 
-    title: "Pesan Baru", 
-    body: "Ada pesan masuk di chat.", 
-    url: "/chat" 
+  let title = "Pesan Baru";
+  let options = {
+    body: "Anda menerima pesan baru.",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    vibrate: [100, 50, 100],
+    data: {
+      url: self.location.origin + "/chat",
+    },
   };
-  
+
   try {
-    if (event.data) {
-      const jsonPayload = event.data.json();
-      data = {
-        title: jsonPayload.title || "Pesan Baru",
-        body: jsonPayload.body || jsonPayload.message || "Ada pesan masuk.",
-        url: jsonPayload.url || "/chat"
-      };
-    }
-  } catch (e) {
-    if (event.data) {
-      data.body = event.data.text();
-    }
+    // Kalau dari backend (format JSON)
+    const data = event.data.json();
+    if (data.title) title = data.title;
+    if (data.body) options.body = data.body;
+    if (data.icon) options.icon = data.icon;
+  } catch (err) {
+    // Kalau tes tombol Push DevTools (format teks biasa)
+    options.body = event.data.text();
   }
 
-  const options = {
-    body: data.body,
-    icon: "/favicon.ico", 
-    badge: "/favicon.ico",
-    data: { url: data.url }
-  };
-
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  );
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// Event saat notifikasi diklik oleh user
-self.addEventListener("notificationclick", (event) => {
+self.addEventListener("notificationclick", function (event) {
   event.notification.close();
-  const urlToOpen = event.notification.data?.url || "/chat";
 
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
-      for (let i = 0; i < windowClients.length; i++) {
-        const client = windowClients[i];
-        if (client.url.includes(urlToOpen) && "focus" in client) {
-          return client.focus();
-        }
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
+      for (let i = 0; i < clientList.length; i++) {
+        let client = clientList[i];
+        if ("focus" in client) return client.focus();
       }
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
-      }
+      if (clients.openWindow) return clients.openWindow("/chat");
     })
   );
 });
