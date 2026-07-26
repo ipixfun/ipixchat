@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-        included_segments: ['Subscribed Users'],
+        included_segments: ['All'],
         headings: { en: `Pesan baru dari ${username}` },
         contents: { en: text },
       }),
