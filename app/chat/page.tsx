@@ -544,27 +544,45 @@ export default function Home() {
     chk();
   }, [pathname]);
 
+  // --- REALTIME LISTENER SUPABASE + NOTIFIKASI LOKAL UNTUK APK WEBVIEW ---
   useEffect(() => {
-    if (mounted && auth.isAuth) {
-      fetchData();
-      const messageSubscription = supabase
-        .channel("public:messages")
-        .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, (payload) => {
-          fetchData();
-        })
-        .subscribe();
-      return () => {
-        supabase.removeChannel(messageSubscription);
-      };
+    if (!mounted || !auth.isAuth) return;
+    fetchData();
+
+    // Minta izin notifikasi browser/webview jika belum ada
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
     }
-  }, [mounted, auth.isAuth, fetchData]);
+
+    const messageSubscription = supabase
+      .channel("public:messages")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const newMsg = payload.new;
+        fetchData();
+
+        // Jika pesan ditujukan untuk user yang sedang login & dari user lain
+        if (newMsg.private_with === auth.user && newMsg.username !== auth.user) {
+          // Tampilkan notifikasi pop-up langsung jika berada di APK WebView / Browser
+          if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(`Pesan baru dari ${newMsg.username.split("●")[0]}`, {
+              body: newMsg.pesan || "Mengirim Gambar",
+              icon: "/icon.png",
+            });
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(messageSubscription);
+    };
+  }, [mounted, auth.isAuth, auth.user, fetchData]);
 
   // --- REGISTRASI PUSH NOTIFICATION (NATIVE APK & BROWSER SERVICE WORKER) ---
   useEffect(() => {
     if (!mounted || !auth.isAuth || !auth.user) return;
 
     const setupPushNotifications = async () => {
-      // 1. Jalur APK Capacitor Android
       if (Capacitor.isNativePlatform()) {
         try {
           let perm = await PushNotifications.checkPermissions();
@@ -594,9 +612,7 @@ export default function Home() {
         } catch (err) {
           console.error("Gagal inisialisasi push notification APK:", err);
         }
-      } 
-      // 2. Jalur Web Push Service Worker (Agar tetap bunyi jika Chrome/App ditutup)
-      else if ("serviceWorker" in navigator && "PushManager" in window) {
+      } else if ("serviceWorker" in navigator && "PushManager" in window) {
         try {
           const reg = await navigator.serviceWorker.register("/sw.js");
           console.log("Service Worker berhasil terdaftar:", reg);
@@ -727,7 +743,6 @@ export default function Home() {
 
     if (!insertError) {
       try {
-        // Panggil API backend tanpa query token gaib dari frontend
         await fetch("/api/send-push", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
