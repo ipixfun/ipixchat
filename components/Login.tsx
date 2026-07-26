@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '@/app/context/ThemeContext';
 import BearMascot from './BearMascot';
-import OneSignal from 'react-onesignal'; // <-- Import OneSignal
+import OneSignal from 'react-onesignal';
 
 // --- ICONS ---
 const UserIcon = () => (
@@ -395,18 +395,16 @@ export default function Login({
   // --- WRAPPER LOGIN ADMIN ---
   const handleAdminLoginWrapper = async () => {
     try {
-      // Panggil fungsi login admin bawaan parent
       const result = await handleAdminLogin();
 
-      // Cek jika API/Backend memberikan response error
       if (result === false || (result && result.error)) {
-        return; // Hentikan fungsi jika login admin gagal
+        return;
       }
 
-      // Mendaftarkan Email Admin ke OneSignal saat login sukses
+      // Mendaftarkan ID Admin yang konsisten ke OneSignal
       try {
-        await OneSignal.login(String(adminEmail));
-        console.log("OneSignal External ID Admin sukses diset:", adminEmail);
+        await OneSignal.login("Admin●ipix.my.id");
+        console.log("OneSignal External ID Admin sukses diset: Admin●ipix.my.id");
       } catch (error) {
         console.error("Gagal set OneSignal ID Admin:", error);
       }
@@ -828,8 +826,7 @@ export default function Login({
               />
 
               <button
-                // --- DIUBAH MENJADI WRAPPER ---
-                onClick={handleAdminLoginWrapper} 
+                onClick={handleAdminLoginWrapper}
                 className="w-full py-3.5 mt-2 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] shadow-md"
                 style={{
                   backgroundColor: "var(--accent)",
