@@ -66,7 +66,15 @@ export default function Home() {
     swipeId: null as number | null,
   });
 
-  const currentHash = typeof window !== "undefined" ? window.location.hash : "";
+  // Memperbaiki Hydration Error dengan state & useEffect
+  const [currentHash, setCurrentHash] = useState("");
+
+  useEffect(() => {
+    setCurrentHash(window.location.hash);
+    const handleHashChange = () => setCurrentHash(window.location.hash);
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
 
   const CLOUDINARY_CLOUD_NAME = "bjamo8ld";
   const CLOUDINARY_UPLOAD_PRESET = "ipixchat";
