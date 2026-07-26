@@ -565,6 +565,7 @@ export default function Home() {
             PushNotifications.addListener("registration", async (token) => {
               console.log("FCM Token Android berhasil didapat:", token.value);
 
+              // 1. Simpan ke API
               await fetch("/api/save-subscription", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -576,6 +577,12 @@ export default function Home() {
                   },
                 }),
               });
+
+              // 2. Simpan/Update fcm_token langsung ke tabel profiles Supabase
+              await supabase
+                .from("profiles")
+                .update({ fcm_token: token.value })
+                .ilike("username", auth.user);
             });
           }
         } catch (err) {
@@ -683,15 +690,45 @@ export default function Home() {
 
     if (!insertError) {
       try {
-        await fetch("/api/send-push", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recipientUsername: recipientUsername,
-            senderUsername: auth.user,
-            message: txt,
-          }),
-        });
+        let recipientToken = null;
+
+        // 1. Ambil FCM token penerima dari tabel profiles
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("fcm_token")
+          .ilike("username", recipientUsername || "")
+          .maybeSingle();
+
+        if (profileData?.fcm_token) {
+          recipientToken = profileData.fcm_token;
+        } else {
+          // Fallback: Ambil dari push_subscriptions jika ada
+          const { data: subData } = await supabase
+            .from("push_subscriptions")
+            .select("token")
+            .ilike("username", recipientUsername || "")
+            .maybeSingle();
+          if (subData?.token) {
+            recipientToken = subData.token;
+          }
+        }
+
+        // 2. Jika token ketemu, panggil /api/send-push
+        if (recipientToken) {
+          await fetch("/api/send-push", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token: recipientToken,
+              title: `Pesan baru dari ${auth.user.split("●")[0]}`,
+              body: txt || (input.image ? "📷 Mengirim Gambar" : "Pesan baru"),
+              recipientUsername: recipientUsername,
+              senderUsername: auth.user,
+            }),
+          });
+        } else {
+          console.warn(`FCM Token untuk user ${recipientUsername} tidak ditemukan di database.`);
+        }
       } catch (err) {
         console.error("Gagal mengirim push notification:", err);
       }
