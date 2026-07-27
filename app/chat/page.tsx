@@ -593,6 +593,7 @@ export default function Home() {
           if (perm.receive === "granted") {
             await PushNotifications.register();
 
+            // Listener token registrasi FCM
             PushNotifications.addListener("registration", async (token) => {
               console.log("FCM Token Android berhasil didapat:", token.value);
 
@@ -607,6 +608,16 @@ export default function Home() {
                   },
                 }),
               });
+            });
+
+            // Listener saat notifikasi diterima saat aplikasi dibuka
+            PushNotifications.addListener("pushNotificationReceived", (notification) => {
+              console.log("Push Notification Diterima:", notification);
+            });
+
+            // Listener saat notifikasi diklik oleh user
+            PushNotifications.addListener("pushNotificationActionPerformed", (notification) => {
+              console.log("Push Notification Diklik:", notification);
             });
           }
         } catch (err) {
