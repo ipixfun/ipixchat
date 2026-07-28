@@ -36,7 +36,8 @@ export async function POST(request: Request) {
   try {
     const reqData = await request.json();
     const recipientUsername = reqData.recipientUsername || reqData.targetUser;
-    const title = reqData.title || `Pesan dari ${reqData.senderUsername || 'Seseorang'}`;
+    const senderUsername = reqData.senderUsername || 'Seseorang';
+    const title = reqData.title || `Pesan dari ${senderUsername}`;
     const body = reqData.body || reqData.message || 'Kamu menerima pesan baru';
 
     if (!recipientUsername) {
@@ -78,11 +79,13 @@ export async function POST(request: Request) {
           notification: {
             sound: 'default',
             channelId: 'default',
+            tag: `chat-${senderUsername}`, // Tag pengelompokan native Android
           },
         },
         data: {
           title: String(title),
           body: String(body),
+          senderUsername: senderUsername,
         },
       };
 
@@ -93,10 +96,14 @@ export async function POST(request: Request) {
     // ==========================================
     // 2. JIKA PENERIMA ADALAH WEB BROWSER (CHROME/WEB-PUSH)
     // ==========================================
+    
+    // Kita sisipkan senderUsername agar ditangkap oleh Service Worker
     const payload = JSON.stringify({
       title: String(title),
       body: String(body),
       icon: '/icon.png',
+      senderUsername: senderUsername,
+      url: '/'
     });
 
     const response = await webpush.sendNotification(subscription, payload);

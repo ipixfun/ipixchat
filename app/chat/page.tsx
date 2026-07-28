@@ -658,6 +658,61 @@ export default function Home() {
     setupPushNotifications();
   }, [mounted, auth.isAuth, auth.user]);
 
+  // --- PENANGKAP KLIK NOTIFIKASI UNTUK FOKUS KE INPUT PESAN ---
+  useEffect(() => {
+    if (!mounted) return;
+
+    // Fungsi untuk memfokuskan kursor ke input chat
+    const focusChatInput = () => {
+      setUi((prev) => ({ ...prev, inputFocus: true }));
+      setTimeout(() => {
+        const inputEl = document.getElementById("chat-input");
+        if (inputEl) {
+          inputEl.focus();
+        }
+      }, 300);
+    };
+
+    // 1. Cek parameter URL jika aplikasi baru dibuka dari klik tombol "Balas" (Aplikasi mati/tertutup)
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("action") === "reply") {
+        focusChatInput();
+        // Bersihkan parameter url agar tidak refresh terus menerus
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+
+    // 2. Listener Web Push: Menerima sinyal dari Service Worker jika aplikasi terbuka di Background
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data && (event.data.type === "ACTION_REPLY" || event.data.type === "ACTION_OPEN")) {
+        focusChatInput();
+      }
+    };
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", handleServiceWorkerMessage);
+    }
+
+    // 3. Listener Capacitor Android (Native APK)
+    let pushListener: any;
+    if (Capacitor.isNativePlatform()) {
+      pushListener = PushNotifications.addListener("pushNotificationActionPerformed", (notification) => {
+        // Apapun aksinya pada native klik notifikasi, arahkan untuk fokus ke chat
+        focusChatInput();
+      });
+    }
+
+    return () => {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", handleServiceWorkerMessage);
+      }
+      if (pushListener) {
+        pushListener.remove();
+      }
+    };
+  }, [mounted]);
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
