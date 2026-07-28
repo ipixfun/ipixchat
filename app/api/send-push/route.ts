@@ -43,15 +43,15 @@ export async function POST(request: Request) {
     // ==========================================
     let senderUsername = reqData.senderUsername || 'Seseorang';
     
-    // Jika nama pengirimnya adalah "Admin" atau "admin", paksa ubah jadi "pix"
+    // Jika nama pengirim "Admin", ubah jadi Unicode Bold "[𝗣𝗜𝗫]" ditambah emoji bola ijo
     if (senderUsername.toLowerCase() === 'admin') {
-      senderUsername = 'pix';
+      senderUsername = '🟢 [𝗣𝗜𝗫]';
     }
 
     // Tangani juga jika title dikirim dari frontend sudah memuat kata "Admin"
     let title = reqData.title || `Pesan dari ${senderUsername}`;
     if (title.includes('Admin')) {
-      title = title.replace('Admin', 'pix');
+      title = title.replace('Admin', '🟢 [𝗣𝗜𝗫]');
     }
     // ==========================================
     // MODIFIKASI FILTER NAMA SELESAI
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
           notification: {
             sound: 'default',
             channelId: 'default',
-            tag: `chat-${senderUsername}`, // Tag pengelompokan native Android
+            tag: `chat-admin`, // Pakai tag statis agar notif admin saling menumpuk
           },
         },
         data: {
