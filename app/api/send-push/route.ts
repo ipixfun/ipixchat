@@ -35,9 +35,28 @@ webpush.setVapidDetails(
 export async function POST(request: Request) {
   try {
     const reqData = await request.json();
+    
     const recipientUsername = reqData.recipientUsername || reqData.targetUser;
-    const senderUsername = reqData.senderUsername || 'Seseorang';
-    const title = reqData.title || `Pesan dari ${senderUsername}`;
+    
+    // ==========================================
+    // MODIFIKASI FILTER NAMA DIMULAI DI SINI
+    // ==========================================
+    let senderUsername = reqData.senderUsername || 'Seseorang';
+    
+    // Jika nama pengirimnya adalah "Admin" atau "admin", paksa ubah jadi "pix"
+    if (senderUsername.toLowerCase() === 'admin') {
+      senderUsername = 'pix';
+    }
+
+    // Tangani juga jika title dikirim dari frontend sudah memuat kata "Admin"
+    let title = reqData.title || `Pesan dari ${senderUsername}`;
+    if (title.includes('Admin')) {
+      title = title.replace('Admin', 'pix');
+    }
+    // ==========================================
+    // MODIFIKASI FILTER NAMA SELESAI
+    // ==========================================
+
     const body = reqData.body || reqData.message || 'Kamu menerima pesan baru';
 
     if (!recipientUsername) {
