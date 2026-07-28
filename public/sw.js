@@ -6,7 +6,7 @@ self.addEventListener("push", function (event) {
   event.waitUntil((async () => {
     try {
       const data = event.data.json();
-      const sender = data.senderUsername || "Admin";
+      const sender = data.senderUsername || "(PIX)";
       const tag = `chat-${sender}`; 
 
       // 1. Ambil notif lama
