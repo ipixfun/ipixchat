@@ -194,6 +194,10 @@ export default function Home() {
     localStorage.removeItem("is_auth");
     localStorage.removeItem("active_tab");
     localStorage.removeItem("saved_pin"); 
+    localStorage.removeItem("username");
+    localStorage.removeItem("user_pin");
+    localStorage.removeItem("pin");
+    localStorage.removeItem("active_username");
     sessionStorage.clear();
     setAuth((p) => ({ ...p, isAuth: false, pin: "" })); 
     window.location.replace("/");
@@ -377,6 +381,14 @@ export default function Home() {
              return alert("Gagal ubah nama. Pastikan username baru belum dipakai atau cek relasi Foreign Key (ON UPDATE CASCADE) di Supabase.");
           }
 
+          const { data: updatedProfile } = await supabase
+            .from("profiles")
+            .select("pin")
+            .ilike("username", newUsername)
+            .maybeSingle();
+
+          const userPin = updatedProfile?.pin || "";
+
           await Promise.all([
               supabase.from("push_subscriptions").update({ username: newUsername }).eq("username", m.username),
               supabase.from("messages").update({ username: newUsername }).eq("username", m.username),
@@ -386,20 +398,24 @@ export default function Home() {
 
           alert(`Berhasil mengubah nama dari ${m.username} menjadi ${newUsername}`);
 
-          // Jika user yang sedang diedit adalah user yang sedang aktif di perangkat ini
           if (auth.user === m.username || localStorage.getItem("active_username") === m.username) {
-            localStorage.removeItem("is_auth");
-            localStorage.removeItem("active_username");
-            localStorage.removeItem("saved_pin");
-            sessionStorage.clear();
+            localStorage.setItem("is_auth", "true");
+            localStorage.setItem("active_username", newUsername);
+            localStorage.setItem("username", newUsername);
+            if (userPin) {
+              localStorage.setItem("saved_pin", userPin);
+              localStorage.setItem("user_pin", userPin);
+              localStorage.setItem("pin", userPin);
+            }
+            localStorage.setItem("active_tab", "user");
             
             setAuth({
-              isAuth: false,
-              isExist: false,
+              isAuth: true,
+              isExist: true,
               user: newUsername,
               adminEmail: "",
               adminPass: "",
-              pin: "",
+              pin: userPin,
               umur: "",
               berat: "",
             });
@@ -537,8 +553,8 @@ export default function Home() {
     const chk = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
-      const savedUsername = localStorage.getItem("active_username");
-      const savedPin = localStorage.getItem("saved_pin"); 
+      const savedUsername = localStorage.getItem("active_username") || localStorage.getItem("username");
+      const savedPin = localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin"); 
       const isAuthLocal = localStorage.getItem("is_auth") === "true"; 
       
       if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
@@ -583,12 +599,10 @@ export default function Home() {
     chk();
   }, [pathname]);
 
-  // --- REALTIME LISTENER SUPABASE + NOTIFIKASI LOKAL UNTUK APK WEBVIEW ---
   useEffect(() => {
     if (!mounted || !auth.isAuth) return;
     fetchData();
 
-    // Minta izin notifikasi browser/webview jika belum ada
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
@@ -599,9 +613,7 @@ export default function Home() {
         const newMsg = payload.new;
         fetchData();
 
-        // Jika pesan ditujukan untuk user yang sedang login & dari user lain
         if (newMsg.private_with === auth.user && newMsg.username !== auth.user) {
-          // Tampilkan notifikasi pop-up langsung jika berada di APK WebView / Browser
           if ("Notification" in window && Notification.permission === "granted") {
             new Notification(`Pesan baru dari ${newMsg.username.split("●")[0]}`, {
               body: newMsg.pesan || "Mengirim Gambar",
@@ -617,7 +629,6 @@ export default function Home() {
     };
   }, [mounted, auth.isAuth, auth.user, fetchData]);
 
-  // --- REGISTRASI PUSH NOTIFICATION (NATIVE APK & BROWSER SERVICE WORKER) ---
   useEffect(() => {
     if (!mounted || !auth.isAuth || !auth.user) return;
 
@@ -632,10 +643,7 @@ export default function Home() {
           if (perm.receive === "granted") {
             await PushNotifications.register();
 
-            // Listener token registrasi FCM
             PushNotifications.addListener("registration", async (token) => {
-              console.log("FCM Token Android berhasil didapat:", token.value);
-
               await fetch("/api/save-subscription", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -649,24 +657,13 @@ export default function Home() {
               });
             });
 
-            // Listener saat notifikasi diterima saat aplikasi dibuka
-            PushNotifications.addListener("pushNotificationReceived", (notification) => {
-              console.log("Push Notification Diterima:", notification);
-            });
-
-            // Listener saat notifikasi diklik oleh user
-            PushNotifications.addListener("pushNotificationActionPerformed", (notification) => {
-              console.log("Push Notification Diklik:", notification);
-            });
+            PushNotifications.addListener("pushNotificationReceived", (notification) => {});
+            PushNotifications.addListener("pushNotificationActionPerformed", (notification) => {});
           }
-        } catch (err) {
-          console.error("Gagal inisialisasi push notification APK:", err);
-        }
+        } catch (err) {}
       } else if ("serviceWorker" in navigator && "PushManager" in window) {
         try {
           const reg = await navigator.serviceWorker.register("/sw.js");
-          console.log("Service Worker berhasil terdaftar:", reg);
-
           const permission = await Notification.requestPermission();
           if (permission === "granted") {
             const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -688,20 +685,16 @@ export default function Home() {
               { onConflict: "username" }
             );
           }
-        } catch (err) {
-          console.error("Gagal registrasi Service Worker / Web Push:", err);
-        }
+        } catch (err) {}
       }
     };
 
     setupPushNotifications();
   }, [mounted, auth.isAuth, auth.user]);
 
-  // --- PENANGKAP KLIK NOTIFIKASI UNTUK FOKUS KE INPUT PESAN ---
   useEffect(() => {
     if (!mounted) return;
 
-    // Fungsi untuk memfokuskan kursor ke input chat
     const focusChatInput = () => {
       setUi((prev) => ({ ...prev, inputFocus: true }));
       setTimeout(() => {
@@ -712,17 +705,14 @@ export default function Home() {
       }, 300);
     };
 
-    // 1. Cek parameter URL jika aplikasi baru dibuka dari klik tombol "Balas" (Aplikasi mati/tertutup)
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get("action") === "reply") {
         focusChatInput();
-        // Bersihkan parameter url agar tidak refresh terus menerus
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
 
-    // 2. Listener Web Push: Menerima sinyal dari Service Worker jika aplikasi terbuka di Background
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (event.data && (event.data.type === "ACTION_REPLY" || event.data.type === "ACTION_OPEN")) {
         focusChatInput();
@@ -733,11 +723,9 @@ export default function Home() {
       navigator.serviceWorker.addEventListener("message", handleServiceWorkerMessage);
     }
 
-    // 3. Listener Capacitor Android (Native APK)
     let pushListener: any;
     if (Capacitor.isNativePlatform()) {
       pushListener = PushNotifications.addListener("pushNotificationActionPerformed", (notification) => {
-        // Apapun aksinya pada native klik notifikasi, arahkan untuk fokus ke chat
         focusChatInput();
       });
     }
@@ -858,9 +846,7 @@ export default function Home() {
             body: txt || (input.image ? "📷 Mengirim Gambar" : "Pesan baru"),
           }),
         });
-      } catch (err) {
-        console.error("Gagal mengirim push notification:", err);
-      }
+      } catch (err) {}
     }
 
     setInput({
@@ -1046,7 +1032,7 @@ export default function Home() {
                 
                 if (!inputName || isCensored(inputName)) return { error: true };
                 
-                const plainPin = auth.pin || localStorage.getItem("saved_pin") || "";
+                const plainPin = auth.pin || localStorage.getItem("saved_pin") || localStorage.getItem("pin") || "";
                 if (!plainPin) return { error: true };
                 
                 try {
@@ -1068,7 +1054,10 @@ export default function Home() {
                     }
 
                     localStorage.setItem("active_username", finalUsername);
+                    localStorage.setItem("username", finalUsername);
                     localStorage.setItem("saved_pin", plainPin);
+                    localStorage.setItem("user_pin", plainPin);
+                    localStorage.setItem("pin", plainPin);
                     localStorage.setItem("is_auth", "true");
                     localStorage.setItem("active_tab", "user");
 
@@ -1116,7 +1105,10 @@ export default function Home() {
                   }
                   
                   localStorage.setItem("active_username", finalUsername);
+                  localStorage.setItem("username", finalUsername);
                   localStorage.setItem("saved_pin", plainPin);
+                  localStorage.setItem("user_pin", plainPin);
+                  localStorage.setItem("pin", plainPin);
                   localStorage.setItem("is_auth", "true");
                   localStorage.setItem("active_tab", "user");
 
@@ -1144,6 +1136,7 @@ export default function Home() {
                   }));
                   setUi((p) => ({ ...p, tab: "admin" }));
                   localStorage.setItem("active_username", "Admin●ipix.my.id");
+                  localStorage.setItem("username", "Admin●ipix.my.id");
                   localStorage.setItem("is_auth", "true");
                   localStorage.setItem("active_tab", "admin");
                 }

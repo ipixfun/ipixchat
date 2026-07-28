@@ -244,13 +244,11 @@ export default function Login({
 
   const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
-  // Perbaikan sinkronisasi localStorage dengan props username terbaru dari page.tsx
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem('username') || localStorage.getItem('active_username');
       const savedPin = localStorage.getItem('user_pin') || localStorage.getItem('pin') || localStorage.getItem('saved_pin');
 
-      // Jika props username dikirim dari parent (hasil edit nama baru), pastikan abaikan savedDevice lama
       if (username && savedUser && username !== savedUser) {
         setIsSavedDevice(false);
         localStorage.removeItem('username');
@@ -316,7 +314,6 @@ export default function Login({
       ? (username?.trim().length > 0 && pin?.length === 6)
       : (username?.trim().length > 0 && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed));
 
-  // --- LOGIKA MASKOT BERUANG (Mata, Cinta, Tangan) ---
   const activeTypingLength =
     focusedField === 'username'
       ? (username?.length || 0)
@@ -329,15 +326,10 @@ export default function Login({
       : 0;
   
   const bearEyeX = focusedField ? Math.sin(activeTypingLength * 0.9) : 0;
-  
-  const isBearCovering = isSavedDevice
-    ? !showPin 
-    : (focusedField === 'pin' || focusedField === 'adminPass') && !showPin;
-
+  const isBearCovering = isSavedDevice ? !showPin : (focusedField === 'pin' || focusedField === 'adminPass') && !showPin;
   const isTyping = !isSavedDevice && focusedField !== null && !isBearCovering;
   const isLove = isTyping && (focusedField === 'username' || focusedField === 'adminEmail');
 
-  // --- WRAPPER LOGIN USER ---
   const handleUserLoginWrapper = async () => {
     setShowWelcomePill(false);
     setShowFireworks(false);
@@ -374,10 +366,11 @@ export default function Login({
 
       try {
         localStorage.setItem('username', username);
-        localStorage.setItem('user_pin', pin);
-        localStorage.setItem('pin', pin);
         localStorage.setItem('active_username', username);
+        localStorage.setItem('user_pin', pin);
         localStorage.setItem('saved_pin', pin);
+        localStorage.setItem('pin', pin);
+        localStorage.setItem('is_auth', 'true');
         setIsSavedDevice(true);
       } catch (e) {}
 
@@ -391,18 +384,13 @@ export default function Login({
     }
   };
 
-  // --- WRAPPER LOGIN ADMIN ---
   const handleAdminLoginWrapper = async () => {
     try {
       const result = await handleAdminLogin();
-
       if (result === false || (result && result.error)) {
         return;
       }
-
-    } catch (err) {
-      console.error("Login admin error:", err);
-    }
+    } catch (err) {}
   };
 
   const inputInset = 'shadow-[inset_0_4px_8px_rgba(0,0,0,0.25)]';
