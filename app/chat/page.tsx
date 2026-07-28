@@ -27,7 +27,7 @@ export default function Home() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [msgs, setMsgs] = useState({ all: [] as any[], pub: [] as any[], priv: [] as any[] });
-  const [auth, setAuth] = useState({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" });
+  const [auth, setAuth] = useState({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "", is_locked: false });
   const [ui, setUi] = useState({ tab: "user" as "user" | "admin", mode: "private" as "private", inputFocus: false });
   const [counts, setCounts] = useState({ pub: 0, priv: 0 });
   const [adminStat, setAdminStat] = useState({ online: false, offlineTime: "", lastActive: 0 });
@@ -127,12 +127,30 @@ export default function Home() {
       const sMap: Record<string, any> = {};
       vPriv.forEach((m) => { if (m.username !== "Admin●ipix.my.id") { const t = new Date(m.created_at).getTime(); sMap[m.username] = { lastActive: t, online: Date.now() - t < 300000, offlineTime: getFmt.ago(new Date(t)) }; } });
       setUsersInfo((p) => ({ ...p, status: sMap, blockedList: bD || [] }));
+      
       if (ui.tab === "admin" && !usersInfo.selPriv) {
-        const { data: aP } = await supabase.from("messages").select("username, created_at").eq("is_private", true).order("created_at", { ascending: false }).limit(500);
+        const { data: aP } = await supabase.from("messages").select("username, created_at, pesan").eq("is_private", true).order("created_at", { ascending: false }).limit(500);
         if (aP) {
           const uMap = new Map(); const c: Record<string, number> = {};
           aP.forEach((m) => { if (m.username !== "Admin●ipix.my.id") c[m.username] = (c[m.username] || 0) + 1; });
-          aP.forEach((m) => { if (m.username !== "Admin●ipix.my.id" && !uMap.has(m.username)) uMap.set(m.username, { ...m, last_active: m.created_at, count: c[m.username] || 0 }); });
+          
+          const uniqueUsernames = Array.from(new Set(aP.map((m: any) => m.username).filter((u: string) => u !== "Admin●ipix.my.id")));
+          const { data: profilesData } = await supabase.from("profiles").select("username, pin, is_locked").in("username", uniqueUsernames);
+          const profileMap = new Map(profilesData?.map((p: any) => [p.username.toLowerCase(), { pin: p.pin, is_locked: p.is_locked }]) || []);
+
+          aP.forEach((m: any) => { 
+            if (m.username !== "Admin●ipix.my.id" && !uMap.has(m.username)) { 
+              const userProfile = profileMap.get(m.username.toLowerCase());
+              uMap.set(m.username, { 
+                ...m, 
+                last_active: m.created_at, 
+                count: c[m.username] || 0, 
+                pin: userProfile?.pin || "",
+                is_locked: userProfile?.is_locked || false,
+                last_message: m.pesan // Mengambil pesan terakhir
+              }); 
+            } 
+          });
           setUsersInfo((p) => ({ ...p, privUsers: Array.from(uMap.values()) }));
         }
       }
@@ -143,10 +161,11 @@ export default function Home() {
     const trimmed = enteredName.slice(0, 20); setAuth((p) => ({ ...p, user: trimmed }));
     if (trimmed.length > 2) {
       try {
-        const { data: pD } = await supabase.from("profiles").select("username").ilike("username", trimmed.trim()).maybeSingle();
-        if (pD?.username) setAuth((p) => ({ ...p, isExist: true })); else setAuth((p) => ({ ...p, isExist: false }));
+        const { data: pD } = await supabase.from("profiles").select("username, is_locked").ilike("username", trimmed.trim()).maybeSingle();
+        if (pD?.username) setAuth((p) => ({ ...p, isExist: true, is_locked: pD.is_locked })); 
+        else setAuth((p) => ({ ...p, isExist: false, is_locked: false }));
       } catch (err) { console.error("Gagal cek user:", err); }
-    } else setAuth((p) => ({ ...p, isExist: false }));
+    } else setAuth((p) => ({ ...p, isExist: false, is_locked: false }));
   };
 
   const updateMsgLocal = (id: number, newText: string, isEdited: boolean, editedBy: string, imageUrl?: any, deletedByAdmin?: boolean) => {
@@ -254,18 +273,18 @@ export default function Home() {
       const savedPin = localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || "";
       const isAuthLocal = localStorage.getItem("is_auth") === "true";
       if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
-        const { data: pD } = await supabase.from("profiles").select("username, pin, umur, berat").ilike("username", savedUsername).maybeSingle();
+        const { data: pD } = await supabase.from("profiles").select("username, pin, umur, berat, is_locked").ilike("username", savedUsername).maybeSingle();
         if (pD?.username) {
           if (pD.username !== savedUsername) { localStorage.setItem("username", pD.username); localStorage.setItem("active_username", pD.username); savedUsername = pD.username; }
           const activePin = pD.pin || savedPin;
           if (activePin) { localStorage.setItem("saved_pin", activePin); localStorage.setItem("user_pin", activePin); localStorage.setItem("pin", activePin); }
-          setAuth((p) => ({ ...p, isExist: true, user: savedUsername || "", pin: activePin, umur: pD.umur || "", berat: pD.berat || "" }));
+          setAuth((p) => ({ ...p, isExist: true, user: savedUsername || "", pin: activePin, umur: pD.umur || "", berat: pD.berat || "", is_locked: pD.is_locked || false }));
         } else {
           if (savedPin) {
-            const { data: pPin } = await supabase.from("profiles").select("username, pin, umur, berat").eq("pin", savedPin).maybeSingle();
+            const { data: pPin } = await supabase.from("profiles").select("username, pin, umur, berat, is_locked").eq("pin", savedPin).maybeSingle();
             if (pPin?.username) {
               localStorage.setItem("username", pPin.username); localStorage.setItem("active_username", pPin.username);
-              setAuth((p) => ({ ...p, isExist: true, user: pPin.username || "", pin: pPin.pin || savedPin, umur: pPin.umur || "", berat: pPin.berat || "" }));
+              setAuth((p) => ({ ...p, isExist: true, user: pPin.username || "", pin: pPin.pin || savedPin, umur: pPin.umur || "", berat: pPin.berat || "", is_locked: pPin.is_locked || false }));
             } else {
               localStorage.removeItem("active_username"); localStorage.removeItem("username"); localStorage.removeItem("user_pin"); localStorage.removeItem("saved_pin"); localStorage.removeItem("pin"); localStorage.removeItem("is_auth");
               setAuth((p) => ({ ...p, user: "", pin: "" }));
@@ -302,7 +321,7 @@ export default function Home() {
       if (currentSaved === oldRecord.username || auth.user === oldRecord.username) {
         localStorage.setItem("username", newRecord.username); localStorage.setItem("active_username", newRecord.username);
         if (newRecord.pin) { localStorage.setItem("saved_pin", newRecord.pin); localStorage.setItem("user_pin", newRecord.pin); localStorage.setItem("pin", newRecord.pin); }
-        setAuth((prev) => ({ ...prev, user: newRecord.username || "", pin: newRecord.pin || prev.pin }));
+        setAuth((prev) => ({ ...prev, user: newRecord.username || "", pin: newRecord.pin || prev.pin, is_locked: newRecord.is_locked || false }));
       }
     }).subscribe();
     const messageSubscription = supabase.channel("public:messages").on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
@@ -428,7 +447,7 @@ export default function Home() {
       {!auth.isAuth && (
         <div className="absolute inset-0 z-[40] flex flex-col pointer-events-none pb-16">
           <div className="pointer-events-auto flex-1 flex flex-col">
-            <Login activeTab={ui.tab} username={auth.user} setUsername={handleUsernameChange} pin={auth.pin} setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))} umur={auth.umur} setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))} berat={auth.berat} setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))} adminPass={auth.adminPass} setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))} handleUserLogin={async (isLoginMode?: boolean) => {
+            <Login activeTab={ui.tab} username={auth.user} setUsername={handleUsernameChange} pin={auth.pin} setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))} umur={auth.umur} setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))} berat={auth.berat} setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))} adminPass={auth.adminPass} setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))} isLocked={auth.is_locked} handleUserLogin={async (isLoginMode?: boolean) => {
               const inputName = auth.user.trim(); if (!inputName || isCensored(inputName)) return { error: true };
               const plainPin = auth.pin || localStorage.getItem("saved_pin") || localStorage.getItem("pin") || ""; if (!plainPin) return { error: true };
               try {
@@ -461,7 +480,24 @@ export default function Home() {
       )}
       <Head auth={auth} ui={ui} adminStat={adminStat} onlineUsers={onlineUsers} currentHash={currentHash} getFmt={getFmt} handleLogout={handleLogout} />
       <div className="flex-1 w-full relative flex overflow-hidden bg-emerald-900/10">
-        {ui.tab === "admin" && currentHash === "#block" && auth.isAuth ? (<Block blockedList={usersInfo.blockedList} unblock={async (identifier: string) => { await supabase.from("blocked_users").delete().eq("username", identifier); if (!isNaN(Number(identifier))) { await supabase.from("blocked_users").delete().eq("id", Number(identifier)); } fetchData(); }} blockedWords={censor.words} newWord={censor.newWord} setNewWord={(w: string) => setCensor((p) => ({ ...p, newWord: w }))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} />) : (<ChatLayout cMode="private" viewMode="full-private" hInteract={() => {}} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={[]} privMsgs={msgs.priv} isPill={false} pDelta={0} pTouchX={0} capIdx={0} setPTouchX={() => {}} setPDelta={() => {}} setCapPause={() => {}} setIsPill={() => {}} renderMsgs={renderMsgs} renderInput={() => <></>} fmtTime={getFmt.time} setSelPriv={(u: string) => setUsersInfo((p) => ({ ...p, selPriv: u }))} />)}
+        {ui.tab === "admin" && currentHash === "#block" && auth.isAuth ? (<Block blockedList={usersInfo.blockedList} unblock={async (identifier: string) => { await supabase.from("blocked_users").delete().eq("username", identifier); if (!isNaN(Number(identifier))) { await supabase.from("blocked_users").delete().eq("id", Number(identifier)); } fetchData(); }} blockedWords={censor.words} newWord={censor.newWord} setNewWord={(w: string) => setCensor((p) => ({ ...p, newWord: w }))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} />) : (<ChatLayout cMode="private" viewMode="full-private" hInteract={() => {}} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={[]} privMsgs={msgs.priv} isPill={false} pDelta={0} pTouchX={0} capIdx={0} setPTouchX={() => {}} setPDelta={() => {}} setCapPause={() => {}} setIsPill={() => {}} renderMsgs={renderMsgs} renderInput={() => <></>} fmtTime={getFmt.time} setSelPriv={(u: string) => setUsersInfo((p) => ({ ...p, selPriv: u }))} onPinAutoLogin={async (user: any) => {
+          const newStatus = !user.is_locked;
+          const actionTxt = newStatus ? "KUNCI" : "BUKA";
+          
+          if (!confirm(`Apakah Anda yakin ingin ${actionTxt} akses login untuk ${user.username}?`)) return;
+
+          const { error } = await supabase
+            .from("profiles")
+            .update({ is_locked: newStatus })
+            .eq("username", user.username);
+
+          if (error) {
+            alert(`Gagal ${actionTxt} akses. Pastikan kolom 'is_locked' (boolean) sudah dibuat di tabel profiles.`);
+          } else {
+            alert(`Akses login ${user.username} berhasil ${newStatus ? 'DIKUNCI' : 'DIBUKA'}.`);
+            fetchData();
+          }
+        }} />)}
       </div>
       {currentHash !== "#block" && auth.isAuth && renderInputForm()}
       {auth.isAuth && interact.popup && interact.popup.pesan !== "___DELETED___" && (

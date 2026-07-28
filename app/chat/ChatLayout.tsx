@@ -123,7 +123,8 @@ export default function ChatLayout({
   renderMsgs,
   renderInput, 
   fmtTime, 
-  setSelPriv 
+  setSelPriv,
+  onPinAutoLogin // <-- PROPS DITAMBAHKAN DI SINI
 }: any) {
   return (
     <>
@@ -152,7 +153,12 @@ export default function ChatLayout({
           
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {aTab === "admin" && cMode === "private" && !selPrivUser ? (
-              <Admin privateUsers={pUsers} setSelectedPrivateUser={setSelPriv} formatMessageTime={fmtTime} />
+              <Admin 
+                privateUsers={pUsers} 
+                setSelectedPrivateUser={setSelPriv} 
+                formatMessageTime={fmtTime} 
+                onPinAutoLogin={onPinAutoLogin} // <-- DITERUSKAN KE ADMIN DI SINI
+              />
             ) : (
               renderMsgs(privMsgs, "private")
             )}
