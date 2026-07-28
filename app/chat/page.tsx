@@ -14,7 +14,6 @@ import { useTheme } from "../context/ThemeContext";
 import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 
-// Helper konversi VAPID key untuk Web Push Browser
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -393,7 +392,6 @@ export default function Home() {
 
           alert(`Berhasil mengubah nama dari ${m.username} menjadi ${newUsername}`);
 
-          // Broadcast sinyal auto-update nama baru ke client target secara real-time
           await new Promise((resolve) => {
             const tempChannel = supabase.channel('system_events_broadcast');
             tempChannel.subscribe(async (status) => {
@@ -412,7 +410,6 @@ export default function Home() {
             setTimeout(() => resolve(false), 2000); 
           });
 
-          // Jika admin sedang mengedit namanya sendiri
           if (auth.user === m.username || localStorage.getItem("active_username") === m.username) {
             localStorage.setItem("active_username", newUsername);
             localStorage.setItem("username", newUsername);
@@ -421,7 +418,7 @@ export default function Home() {
               localStorage.setItem("user_pin", userPin);
               localStorage.setItem("pin", userPin);
             }
-            setAuth((p) => ({ ...p, user: newUsername }));
+            setAuth((p) => ({ ...p, user: newUsername || "", pin: userPin }));
             handleLogout(); 
             return;
           }
@@ -559,7 +556,7 @@ export default function Home() {
       const { data: { session } } = await supabase.auth.getSession();
       
       let savedUsername = localStorage.getItem("active_username") || localStorage.getItem("username");
-      const savedPin = localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin"); 
+      const savedPin = localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || ""; 
       const isAuthLocal = localStorage.getItem("is_auth") === "true"; 
       
       if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
@@ -570,23 +567,28 @@ export default function Home() {
             .maybeSingle();
           
           if (pD?.username) {
-            // Jika casing atau nama sedikit berbeda di DB, sinkronkan otomatis
             if (pD.username !== savedUsername) {
               localStorage.setItem("username", pD.username);
               localStorage.setItem("active_username", pD.username);
               savedUsername = pD.username;
             }
+            
+            const activePin = pD.pin || savedPin;
+            if (activePin) {
+              localStorage.setItem("saved_pin", activePin);
+              localStorage.setItem("user_pin", activePin);
+              localStorage.setItem("pin", activePin);
+            }
+
             setAuth((p) => ({ 
               ...p, 
               isExist: true, 
-              user: savedUsername,
-              pin: "", 
+              user: savedUsername || "", 
+              pin: activePin, 
               umur: pD.umur || "",
               berat: pD.berat || ""
             }));
           } else {
-             // AUTO-MIGRATION: Jika nama lama tidak ditemukan di DB (karena diedit admin saat offline),
-             // cari profile berdasarkan PIN tersimpan agar nama baru otomatis tertanam!
              if (savedPin) {
                const { data: pPin } = await supabase
                  .from("profiles")
@@ -600,23 +602,22 @@ export default function Home() {
                  setAuth((p) => ({
                    ...p,
                    isExist: true,
-                   user: pPin.username,
-                   pin: "",
+                   user: pPin.username || "", 
+                   pin: pPin.pin || savedPin,
                    umur: pPin.umur || "",
                    berat: pPin.berat || ""
                  }));
                } else {
-                 // Jika benar-benar tidak ada, bersihkan storage
                  localStorage.removeItem("active_username");
                  localStorage.removeItem("username");
                  localStorage.removeItem("user_pin");
                  localStorage.removeItem("saved_pin");
                  localStorage.removeItem("pin");
                  localStorage.removeItem("is_auth");
-                 setAuth((p) => ({ ...p, user: "" }));
+                 setAuth((p) => ({ ...p, user: "", pin: "" }));
                }
              } else {
-               setAuth((p) => ({ ...p, user: savedUsername }));
+               setAuth((p) => ({ ...p, user: savedUsername || "", pin: savedPin }));
              }
           }
       }
@@ -642,7 +643,6 @@ export default function Home() {
     chk();
   }, [pathname]);
 
-  // Listener Realtime: Broadcast & Postgres Changes untuk Auto-Update nama baru
   useEffect(() => {
     if (!mounted || !auth.isAuth) return;
     fetchData();
@@ -651,14 +651,12 @@ export default function Home() {
       Notification.requestPermission();
     }
 
-    // 1. Tangkap event broadcast perubahan nama
     const systemEvents = supabase.channel('system_events_broadcast')
       .on('broadcast', { event: 'name_changed' }, (payload) => {
         const { oldName, newName, pin } = payload.payload;
         const currentSaved = localStorage.getItem("username") || localStorage.getItem("active_username");
         
         if (auth.user === oldName || currentSaved === oldName) {
-          // Auto-tertanam: Timpa langsung tanpa buang sesi login jika sedang aktif
           localStorage.setItem("username", newName);
           localStorage.setItem("active_username", newName);
           if (pin) {
@@ -666,12 +664,11 @@ export default function Home() {
             localStorage.setItem("user_pin", pin);
             localStorage.setItem("pin", pin);
           }
-          setAuth((p) => ({ ...p, user: newName }));
+          setAuth((p) => ({ ...p, user: newName || "", pin: pin || p.pin }));
         }
       })
       .subscribe();
 
-    // 2. Pantau perubahan tabel profiles secara langsung (Database Realtime)
     const profileChangeListener = supabase
       .channel('public:profiles_update')
       .on(
@@ -682,7 +679,6 @@ export default function Home() {
           const newRecord = payload.new;
           const currentSaved = localStorage.getItem("username") || localStorage.getItem("active_username");
 
-          // Jika nama lama yang tersimpan di HP ini di-update oleh admin di database
           if (currentSaved === oldRecord.username || auth.user === oldRecord.username) {
             localStorage.setItem("username", newRecord.username);
             localStorage.setItem("active_username", newRecord.username);
@@ -691,7 +687,7 @@ export default function Home() {
               localStorage.setItem("user_pin", newRecord.pin);
               localStorage.setItem("pin", newRecord.pin);
             }
-            setAuth((prev) => ({ ...prev, user: newRecord.username }));
+            setAuth((prev) => ({ ...prev, user: newRecord.username || "", pin: newRecord.pin || prev.pin }));
           }
         }
       )
