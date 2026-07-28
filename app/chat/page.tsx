@@ -107,28 +107,36 @@ export default function Home() {
     if (!auth.isAuth) return;
     try {
       const [{ data: bD }, { data: bW }, { data: prD }] = await Promise.all([
-        supabase.from("blocked_users").select("*"), supabase.from("blocked_words").select("word"),
-        supabase.from("messages").select("*").or(ui.tab === "user" && auth.user ? `username.eq.${auth.user}` : usersInfo.selPriv ? `username.eq.${usersInfo.selPriv}` : "id.gt.0").order("created_at", { ascending: false }).limit(100),
+        supabase.from("blocked_users").select("*"), 
+        supabase.from("blocked_words").select("word"),
+        // KEMBALIKAN LOGIKA private_with AGAR PESAN ADMIN TERBACA DI RUANG OBROLAN USER
+        supabase.from("messages").select("*").or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},private_with.eq.${auth.user}` : usersInfo.selPriv ? `username.eq.${usersInfo.selPriv},private_with.eq.${usersInfo.selPriv}` : "id.gt.0").order("created_at", { ascending: false }).limit(100),
       ]);
       if (bW) setCensor((p) => ({ ...p, words: bW.map((w) => w.word) }));
       if (auth.user && bD?.some((b) => b.username === auth.user)) return window.location.replace("https://ipix.my.id/chat");
+      
       if (auth.isAuth) {
-        const { count: privC } = await supabase.from("messages").select("*", { count: "exact", head: true }).or(ui.tab === "user" && auth.user ? `username.eq.${auth.user}` : `id.gt.0`);
+        const { count: privC } = await supabase.from("messages").select("*", { count: "exact", head: true }).or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},private_with.eq.${auth.user}` : `id.gt.0`);
         setCounts({ ...counts, priv: privC || 0 });
       }
+      
       const vPriv = (prD || []).reverse().filter((m) => !bD?.map((b) => b.username).includes(m.username));
       setMsgs({ all: vPriv, pub: [], priv: vPriv });
+      
       const lAdmin = vPriv.filter((m) => m.username === "Admin●ipix.my.id").pop();
       if (lAdmin) {
         const adminTime = new Date(lAdmin.created_at).getTime();
         setAdminStat({ online: Date.now() - adminTime < 300000, offlineTime: getFmt.ago(new Date(adminTime)), lastActive: adminTime });
       }
+      
       const sMap: Record<string, any> = {};
       vPriv.forEach((m) => { if (m.username !== "Admin●ipix.my.id") { const t = new Date(m.created_at).getTime(); sMap[m.username] = { lastActive: t, online: Date.now() - t < 300000, offlineTime: getFmt.ago(new Date(t)) }; } });
       setUsersInfo((p) => ({ ...p, status: sMap, blockedList: bD || [] }));
       
       if (ui.tab === "admin" && !usersInfo.selPriv) {
-        const { data: aP } = await supabase.from("messages").select("username, created_at, pesan").order("created_at", { ascending: false }).limit(500);
+        // Ambil private_with untuk memudahkan perhitungan statistik Admin (Pill Merah)
+        const { data: aP } = await supabase.from("messages").select("username, private_with, created_at, pesan").order("created_at", { ascending: false }).limit(500);
+        
         if (aP) {
           const uMap = new Map(); 
           const c: Record<string, number> = {};
@@ -136,22 +144,17 @@ export default function Home() {
           const adminMsgTotal: Record<string, number> = {};
           
           const uniqueUsernames = Array.from(new Set(aP.map((m: any) => m.username).filter((u: string) => u !== "Admin●ipix.my.id")));
-          // Tarik data profil beserta UMUR dan BERAT
+          
           const { data: profilesData } = await supabase.from("profiles").select("username, pin, umur, berat").in("username", uniqueUsernames);
           const profileMap = new Map(profilesData?.map((p: any) => [p.username.toLowerCase(), { pin: p.pin, umur: p.umur, berat: p.berat }]) || []);
 
-          // Hitung statistik (Total pesan user, Pesan Baru, Total balasan admin)
           aP.forEach((m) => { 
             if (m.username !== "Admin●ipix.my.id") { 
               c[m.username] = (c[m.username] || 0) + 1; // Pesan Baru
               userMsgTotal[m.username] = (userMsgTotal[m.username] || 0) + 1; // Total User
-            } else {
-              // Hitung balasan admin yang memention username
-              uniqueUsernames.forEach(un => {
-                if (m.pesan && m.pesan.includes(`@${un.split('●')[0]}`)) {
-                  adminMsgTotal[un] = (adminMsgTotal[un] || 0) + 1;
-                }
-              });
+            } else if (m.private_with) {
+              // Jika yang kirim Admin, tambahkan ke counter admin Msg Total
+              adminMsgTotal[m.private_with] = (adminMsgTotal[m.private_with] || 0) + 1;
             }
           });
 
@@ -398,7 +401,17 @@ export default function Home() {
     }
     const recipientUsername = ui.tab === "user" ? "Admin●ipix.my.id" : usersInfo.selPriv;
     
-    const { error: insertError } = await supabase.from("messages").insert([{ username: auth.user, pesan: txt, image_url: input.image, is_approved: auth.user === "Admin●ipix.my.id", user_browser: navigator.userAgent }]);
+    // KEMBALIKAN private_with DAN is_private SAAT INSERT DATA
+    const { error: insertError } = await supabase.from("messages").insert([{ 
+      username: auth.user, 
+      pesan: txt, 
+      image_url: input.image, 
+      is_approved: auth.user === "Admin●ipix.my.id", 
+      user_browser: navigator.userAgent,
+      is_private: true,
+      private_with: recipientUsername
+    }]);
+    
     if (!insertError) { try { await fetch("/api/send-push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientUsername: recipientUsername, senderUsername: auth.user, title: `Pesan baru dari ${auth.user.split("●")[0]}`, body: txt || (input.image ? "📷 Mengirim Gambar" : "Pesan baru") }) }); } catch (err) {} }
     setInput({ text: "", sending: false, blink: false, image: null, uploadingImage: false }); setInteract((p) => ({ ...p, replyTo: null })); setUi((p) => ({ ...p, inputFocus: false }));
     const t = document.getElementById("chat-input"); if (t) { t.style.height = "auto"; t.blur(); }
@@ -418,7 +431,6 @@ export default function Home() {
         return (
           <div key={m.id} className={`w-full flex mb-3 px-2 sm:px-4 ${isMine ? "justify-end" : "justify-start"}`}>
             <div className={`relative flex flex-col chat-bubble-wrapper min-w-[35%] ${maxWidthClass} ${isMine ? "items-end" : "items-start"}`}>
-              {/* TOMBOL NAMA UNGU DAN PRIVATE IJO TIDAK DITAMPILKAN LAGI DARI SINI KARENA SUDAH DIHAPUS DARI PROPS */}
               <MessageItem index={idx} m={m} colType={colType} isMinimized={true} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} activeMenuId={interact.activeMenu} setActiveMenuId={(id: any) => setInteract((p) => ({ ...p, activeMenu: id }))} swipingId={interact.swipeId} setSwipingId={(id: any) => setInteract((p) => ({ ...p, swipeId: id }))} handleTag={(u: string) => setInput((p) => ({ ...p, text: `${p.text} @${u.split("●")[0]} ` }))} handleReply={(m: any) => { setInteract((p) => ({ ...p, replyTo: m })); setInput((p) => ({ ...p, blink: true })); setTimeout(() => setInput((p) => ({ ...p, blink: false })), 800); }} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} blockUser={dbActions.blkUser} setPopupMsg={(m: any) => setInteract((p) => ({ ...p, popup: m }))} handleLongPress={(m: any) => setInteract((p) => ({ ...p, popup: m }))} approveImage={dbActions.approveImg} applyCensor={applyCensor} scrollToMessage={(t: string) => { const cleanText = t.endsWith("...") ? t.slice(0, -3) : t; const x = msgs.all.find((m) => m.pesan.includes(cleanText)); if (x) scrollMsg(x.id); }} formatMessageTime={getFmt.time} authUser={auth.user} />
             </div>
           </div>
