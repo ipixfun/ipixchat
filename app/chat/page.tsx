@@ -194,16 +194,14 @@ export default function Home() {
     localStorage.removeItem("is_auth");
     localStorage.removeItem("active_tab");
     
-    // Data username & pin dibiarkan tetap ada (tidak diremove) agar form terisi & terkunci
-    // localStorage.removeItem("saved_pin"); 
-    // localStorage.removeItem("username");
-    // localStorage.removeItem("user_pin");
-    // localStorage.removeItem("pin");
-    // localStorage.removeItem("active_username");
-    
     sessionStorage.clear();
-    setAuth((p) => ({ ...p, isAuth: false, pin: "" })); 
-    window.location.replace("/");
+    
+    // Tarik nama terbaru yang baru saja di-set (jika diubah admin)
+    const latestUser = localStorage.getItem("active_username") || localStorage.getItem("username") || auth.user;
+    
+    // Update state 'user' dengan nama yang baru agar Login.tsx tidak nge-wipe datanya
+    setAuth((p) => ({ ...p, isAuth: false, user: latestUser, pin: "" })); 
+    window.location.reload(); // Hard reload browser agar membaca data baru secara fresh
   };
 
   const fetchData = useCallback(async () => {
@@ -429,6 +427,7 @@ export default function Home() {
               localStorage.setItem("user_pin", userPin);
               localStorage.setItem("pin", userPin);
             }
+            setAuth((p) => ({ ...p, user: newUsername }));
             handleLogout(); 
             return;
           }
@@ -626,6 +625,7 @@ export default function Home() {
         const currentSaved = localStorage.getItem("username") || localStorage.getItem("active_username");
         
         if (auth.user === oldName || currentSaved === oldName) {
+          // 1. Simpan nama baru ke LocalStorage
           localStorage.setItem("username", newName);
           localStorage.setItem("active_username", newName);
           if (pin) {
@@ -633,7 +633,12 @@ export default function Home() {
             localStorage.setItem("user_pin", pin);
             localStorage.setItem("pin", pin);
           }
-          handleLogout(); // Logout paksa user agar data terkunci
+          
+          // 2. Sinkronkan state React supaya tidak terjadi salah paham (mismatch) di Login.tsx
+          setAuth((p) => ({ ...p, user: newName }));
+          
+          // 3. Logout dan lempar ke layar form terkunci
+          handleLogout(); 
         }
       })
       .subscribe();
