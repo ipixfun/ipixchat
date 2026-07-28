@@ -1308,7 +1308,7 @@ export default function Home() {
         </div>
       )}
 
-      <div className="relative z-[999] w-full shrink-0 bg-transparent"> s
+      <div className="relative z-[999] w-full shrink-0 bg-transparent">
         <BottomNav />
       </div>
     </div>
