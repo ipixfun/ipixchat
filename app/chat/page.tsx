@@ -147,7 +147,7 @@ export default function Home() {
                 count: c[m.username] || 0, 
                 pin: userProfile?.pin || "",
                 is_locked: userProfile?.is_locked || false,
-                last_message: m.pesan // Mengambil pesan terakhir
+                last_message: m.pesan 
               }); 
             } 
           });

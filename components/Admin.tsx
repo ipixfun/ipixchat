@@ -22,7 +22,7 @@ export default function Admin({
                 {user.username || 'User Tanpa Nama'}
               </div>
               
-              {/* Menampilkan Pesan Terakhir User */}
+              {/* Menampilkan pesan terakhir user */}
               {user.username && (
                 <div className="text-xs text-gray-500 font-medium mt-0.5 truncate max-w-[200px]">
                   {user.last_message === "___DELETED___" 
