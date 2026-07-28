@@ -386,17 +386,23 @@ export default function Home() {
 
           alert(`Berhasil mengubah nama dari ${m.username} menjadi ${newUsername}`);
 
-          // Paksa logout dan update otomatis input login dengan nama baru
+          // Jika user yang sedang diedit adalah user yang sedang aktif di perangkat ini
           if (auth.user === m.username || localStorage.getItem("active_username") === m.username) {
             localStorage.removeItem("is_auth");
-            localStorage.setItem("active_username", newUsername);
+            localStorage.removeItem("active_username");
+            localStorage.removeItem("saved_pin");
+            sessionStorage.clear();
             
-            setAuth((p) => ({
-              ...p,
+            setAuth({
               isAuth: false,
+              isExist: false,
               user: newUsername,
-              pin: ""
-            }));
+              adminEmail: "",
+              adminPass: "",
+              pin: "",
+              umur: "",
+              berat: "",
+            });
           }
 
           fetchData(); 

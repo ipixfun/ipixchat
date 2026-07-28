@@ -244,10 +244,22 @@ export default function Login({
 
   const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
+  // Perbaikan sinkronisasi localStorage dengan props username terbaru dari page.tsx
   useEffect(() => {
     try {
-      const savedUser = localStorage.getItem('username');
-      const savedPin = localStorage.getItem('user_pin') || localStorage.getItem('pin');
+      const savedUser = localStorage.getItem('username') || localStorage.getItem('active_username');
+      const savedPin = localStorage.getItem('user_pin') || localStorage.getItem('pin') || localStorage.getItem('saved_pin');
+
+      // Jika props username dikirim dari parent (hasil edit nama baru), pastikan abaikan savedDevice lama
+      if (username && savedUser && username !== savedUser) {
+        setIsSavedDevice(false);
+        localStorage.removeItem('username');
+        localStorage.removeItem('user_pin');
+        localStorage.removeItem('pin');
+        localStorage.removeItem('active_username');
+        localStorage.removeItem('saved_pin');
+        return;
+      }
 
       if (savedUser && savedPin) {
         if (!username) setUsername(savedUser);
@@ -258,8 +270,7 @@ export default function Login({
         setIsSavedDevice(true);
       }
     } catch (e) {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [username, isExistingUser, hasTyped, setPin, setUsername]);
 
   useEffect(() => {
     if (isSavedDevice) return;
@@ -319,17 +330,12 @@ export default function Login({
   
   const bearEyeX = focusedField ? Math.sin(activeTypingLength * 0.9) : 0;
   
-  // Jika kolom PIN (atau mode savedDevice) sedang hidden (!showPin), beruang tutup mata
   const isBearCovering = isSavedDevice
     ? !showPin 
     : (focusedField === 'pin' || focusedField === 'adminPass') && !showPin;
 
-  // Jika field aktif dan beruang sedang tidak tutup mata, berarti user sedang interaksi mengetik
   const isTyping = !isSavedDevice && focusedField !== null && !isBearCovering;
-
-  // Mata berubah jadi love SAAT fokus pada input Username atau Email
   const isLove = isTyping && (focusedField === 'username' || focusedField === 'adminEmail');
-
 
   // --- WRAPPER LOGIN USER ---
   const handleUserLoginWrapper = async () => {
@@ -370,6 +376,8 @@ export default function Login({
         localStorage.setItem('username', username);
         localStorage.setItem('user_pin', pin);
         localStorage.setItem('pin', pin);
+        localStorage.setItem('active_username', username);
+        localStorage.setItem('saved_pin', pin);
         setIsSavedDevice(true);
       } catch (e) {}
 
@@ -560,7 +568,6 @@ export default function Login({
                     borderColor: "var(--card-border)",
                   }}
                 >
-                  {/* --- MASKOT BERUANG REGISTER --- */}
                   {!isSavedDevice && !isLoginMode && (
                     <div className="absolute -top-16 sm:-top-20 z-30 pointer-events-none drop-shadow-xl">
                       <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={120} />
@@ -685,7 +692,6 @@ export default function Login({
                     borderColor: "var(--card-border)",
                   }}
                 >
-                  {/* --- MASKOT BERUANG LOGIN --- */}
                   {isLoginMode && (
                     <div className="absolute -top-16 sm:-top-20 z-30 pointer-events-none drop-shadow-xl">
                       <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={120} />
@@ -774,7 +780,6 @@ export default function Login({
                  borderColor: "var(--card-border)",
                }}
              >
-              {/* --- MASKOT BERUANG ADMIN --- */}
               <div className="absolute -top-16 sm:-top-20 z-30 pointer-events-none drop-shadow-xl">
                 <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={120} />
               </div>
