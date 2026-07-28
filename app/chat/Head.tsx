@@ -61,22 +61,23 @@ export default function Head({ auth, ui, adminStat, onlineUsers, currentHash, ge
           </div>
         </div>
 
-        {auth.isAuth && ui.tab === "admin" && (
+        {auth.isAuth && (
           <div className="relative z-10 flex items-center overflow-x-auto gap-2.5 px-4 py-2.5 border-t text-xs whitespace-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] transition-colors duration-500 shadow-inner" style={{ backgroundColor: "color-mix(in srgb, var(--card-bg) 60%, transparent)", borderColor: "var(--card-border)", backdropFilter: "blur(12px)" }}>
             <span className="font-bold flex items-center mr-1" style={{ color: "var(--foreground-heading)" }}>
               <span className={`w-2 h-2 rounded-full mr-2 shadow-sm ${adminStat.online ? "bg-green-500 shadow-[0_0_6px_#22c55e] animate-pulse" : "bg-gray-400"}`} />
               Online ({onlineUsers.length + (adminStat.online ? 1 : 0)})
             </span>
 
-            {adminStat.online && <span className="bg-red-500/10 text-red-500 border border-red-500/30 px-3 py-0.5 rounded-full text-[10px] font-bold shadow-sm backdrop-blur-md">Admin</span>}
+            {/* PERBAIKAN: Admin selalu tampil, warnanya menyesuaikan status */}
+            {adminStat.online ? (
+              <span className="bg-red-500/10 text-red-500 border border-red-500/30 px-3 py-0.5 rounded-full text-[10px] font-bold shadow-sm backdrop-blur-md">Admin</span>
+            ) : (
+              <span className="bg-gray-500/10 text-gray-400 border border-gray-500/30 px-3 py-0.5 rounded-full text-[10px] font-medium shadow-sm backdrop-blur-md">Admin (Offline)</span>
+            )}
 
             {onlineUsers.map((u) => (
               <span key={u} className="px-3 py-0.5 rounded-full text-[10px] font-medium border shadow-sm transition-all hover:scale-105 cursor-default" style={{ backgroundColor: "color-mix(in srgb, var(--background) 50%, transparent)", color: "var(--foreground)", borderColor: "var(--card-border)" }}>{u.split("●")[0]}</span>
             ))}
-
-            {onlineUsers.length === 0 && !adminStat.online && (
-              <span className="italic text-[10px] opacity-60 font-medium" style={{ color: "var(--foreground)" }}>Admin / User Offline</span>
-            )}
           </div>
         )}
       </div>
