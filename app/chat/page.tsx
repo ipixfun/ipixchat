@@ -360,16 +360,35 @@ export default function Home() {
       }
     },
     editNm: async (id: number) => {
-      const m = msgs.all.find((m) => m.id === id);
+      const m = msgs.all.find((x) => x.id === id);
       if (!m) return;
-      const nn = prompt("Nama:", m.username);
-      if (nn && isCensored(nn)) return alert("Terlarang!");
-      if (nn) {
-        await Promise.all([
-            supabase.from("profiles").update({ username: nn }).eq("username", m.username), 
-            supabase.from("messages").update({ username: nn }).eq("username", m.username)
-        ]);
-        fetchData();
+      
+      const nn = prompt("Ubah Nama:", m.username);
+      if (nn && isCensored(nn)) return alert("Nama mengandung kata terlarang!");
+      
+      const newUsername = nn?.trim();
+      
+      if (newUsername && newUsername !== m.username) {
+        try {
+          const { error } = await supabase.from("profiles").update({ username: newUsername }).eq("username", m.username);
+          
+          if (error) {
+             console.error("Gagal update profil:", error);
+             return alert("Gagal ubah nama. Pastikan username baru belum dipakai atau cek relasi Foreign Key (ON UPDATE CASCADE) di Supabase.");
+          }
+
+          await Promise.all([
+              supabase.from("push_subscriptions").update({ username: newUsername }).eq("username", m.username),
+              supabase.from("messages").update({ username: newUsername }).eq("username", m.username),
+              supabase.from("messages").update({ private_with: newUsername }).eq("private_with", m.username),
+              supabase.from("blocked_users").update({ username: newUsername }).eq("username", m.username)
+          ]);
+
+          alert(`Berhasil mengubah nama dari ${m.username} menjadi ${newUsername}`);
+          fetchData(); 
+        } catch (err) {
+          console.error("Error mengupdate nama:", err);
+        }
       }
     },
     delMsg: async (m: any, isSwipe = false) => {
