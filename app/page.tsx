@@ -11,7 +11,7 @@ export default function HomePage() {
   const [isApk, setIsApk] = useState(false); // State untuk deteksi APK/WebView
   
   const videoUrl = "https://res.cloudinary.com/bjamo8ld/video/upload/v1785016972/pixvideo_z1kfhn.mp4";
-  const apkDownloadUrl = "https://github.com/ipixfun/ipix.apk/raw/refs/heads/main/ipixchat.apk";
+  const apkDownloadUrl = "https://github.com/ipixfun/ipixchat.apk/raw/refs/heads/main/ipixchat.apk";
 
   useEffect(() => {
     // Fungsi untuk mendeteksi apakah diakses dari dalam APK / WebView / Standalone
@@ -316,7 +316,7 @@ export default function HomePage() {
                 <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                   <path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/>
                 </svg>
-                Download APK
+                <b>Download APK</b> ( size 8.10 mb )
               </motion.button>
             </div>
           </motion.div>
