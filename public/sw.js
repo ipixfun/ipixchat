@@ -1,60 +1,61 @@
 // public/sw.js
-self.addEventListener("push", async function (event) {
+
+self.addEventListener("push", function (event) {
   if (!event.data) return;
 
-  try {
-    const data = event.data.json();
-    const sender = data.senderUsername || "Seseorang";
-    // Gunakan tag untuk mengelompokkan notifikasi dari pengirim yang sama
-    const tag = `chat-${sender}`; 
+  event.waitUntil((async () => {
+    try {
+      const data = event.data.json();
+      const sender = data.senderUsername || "Seseorang";
+      const tag = `chat-${sender}`; 
 
-    // Ambil notifikasi yang masih menggantung dengan tag yang sama
-    const existingNotifications = await self.registration.getNotifications({ tag });
-    
-    let messages = [data.body || "Pesan baru masuk!"];
-    
-    // Jika ada notifikasi sebelumnya, gabungkan jumlah pesannya
-    if (existingNotifications.length > 0) {
-      const oldMessages = existingNotifications[0].data?.messages || [];
-      messages = [...oldMessages, ...messages];
-      // Tutup notifikasi lama agar diganti dengan yang baru
-      existingNotifications[0].close(); 
+      // Ambil notifikasi yang masih menggantung dengan tag yang sama
+      const existingNotifications = await self.registration.getNotifications({ tag });
+      
+      let messages = [];
+      
+      // Jika ada notifikasi sebelumnya, ambil histori pesannya dan tutup yang lama
+      if (existingNotifications.length > 0) {
+        const oldMessages = existingNotifications[0].data?.messages || [];
+        messages = [...oldMessages];
+        existingNotifications[0].close(); 
+      }
+
+      // Masukkan pesan yang baru datang ke dalam array
+      messages.push(data.body || "Pesan baru masuk!");
+
+      const title = sender; 
+      const bodyText = messages.slice(-4).join('\n');
+
+      const options = {
+        body: bodyText,
+        icon: data.icon || "/icon.png",
+        badge: "/badge.png",
+        vibrate: [200, 100, 200],
+        tag: tag,
+        renotify: true,
+        data: {
+          url: data.url || "/",
+          messages: messages, // Simpan histori pesan
+        },
+        actions: [
+          {
+            action: "reply",
+            title: "Balas",
+          }
+        ]
+      };
+
+      return self.registration.showNotification(title, options);
+    } catch (err) {
+      console.error("Error handling push event:", err);
     }
-
-    // Tentukan teks notifikasi mirip WhatsApp
-    let bodyText = messages.length > 1 
-      ? `${messages.length} pesan baru:\n${messages.slice(-3).join('\n')}${messages.length > 3 ? '\n...' : ''}` 
-      : messages[0];
-
-    const options = {
-      body: bodyText,
-      icon: data.icon || "/icon.png",
-      badge: "/icon.png",
-      vibrate: [200, 100, 200],
-      tag: tag,
-      renotify: true, // Membunyikan/getar ulang meskipun di-group
-      data: {
-        url: data.url || "/",
-        messages: messages, // Simpan histori pesan di memori notifikasi
-      },
-      actions: [
-        {
-          action: "reply",
-          title: "Balas",
-        }
-      ]
-    };
-
-    const title = messages.length > 1 ? `Pesan dari ${sender}` : (data.title || "ipixchat");
-    event.waitUntil(self.registration.showNotification(title, options));
-  } catch (err) {
-    console.error("Error handling push event:", err);
-  }
+  })());
 });
 
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
-  const action = event.action; // Mendeteksi jika tombol "Balas" diklik
+  const action = event.action;
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
@@ -69,7 +70,7 @@ self.addEventListener("notificationclick", function (event) {
         }
       }
       
-      // Jika aplikasi sedang tertutup total, buka window baru dan bawa parameter action
+      // Jika aplikasi sedang tertutup total
       if (clients.openWindow) {
         const targetUrl = action === "reply" ? "/?action=reply" : "/";
         return clients.openWindow(targetUrl);
