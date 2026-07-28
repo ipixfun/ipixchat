@@ -296,7 +296,7 @@ export default function HomePage() {
                   📱 Android App
                 </div>
                 <h2 className="text-xl sm:text-2xl font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>
-                  Download <span style={{ color: "var(--accent)" }}>ipixchat</span>
+                  Download <span style={{ color: "var(--accent)" }}>ipixchat</span> (size 8,10 mb)
                 </h2>
                 <p className="text-xs sm:text-sm opacity-85 leading-relaxed" style={{ color: "var(--foreground)" }}>
                   Nikmati pengalaman chat & jelajah ekosistem ipix yang lebih cepat, ringan, dan responsif langsung di smartphone Android kamu.
@@ -316,7 +316,7 @@ export default function HomePage() {
                 <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                   <path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/>
                 </svg>
-                <b>Download APK</b> ( size 8.10 mb )
+                Download APK
               </motion.button>
             </div>
           </motion.div>
