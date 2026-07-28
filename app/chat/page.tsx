@@ -385,6 +385,20 @@ export default function Home() {
           ]);
 
           alert(`Berhasil mengubah nama dari ${m.username} menjadi ${newUsername}`);
+
+          // Paksa logout dan update otomatis input login dengan nama baru
+          if (auth.user === m.username || localStorage.getItem("active_username") === m.username) {
+            localStorage.removeItem("is_auth");
+            localStorage.setItem("active_username", newUsername);
+            
+            setAuth((p) => ({
+              ...p,
+              isAuth: false,
+              user: newUsername,
+              pin: ""
+            }));
+          }
+
           fetchData(); 
         } catch (err) {
           console.error("Error mengupdate nama:", err);
