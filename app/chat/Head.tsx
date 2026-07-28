@@ -58,30 +58,24 @@ export default function Head({ auth, ui, adminStat, onlineUsers, currentHash, ge
                 {auth.isAuth && <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e] animate-pulse" />}
               </div>
             </div>
-
-            {ui.tab !== "admin" && (
-              <div className={`text-center flex-1 flex flex-col items-end ${auth.isAuth ? "mr-16" : ""}`}>
-                <a href="https://ipix.my.id" target="_blank" rel="noopener noreferrer" className="font-extrabold text-sm relative group overflow-hidden px-1" style={{ color: "var(--accent)" }}>
-                  <span className="relative z-10 block transition-transform duration-300 group-hover:-translate-y-[120%]">ipix.my.id</span>
-                  <span className="absolute inset-0 z-10 flex items-center justify-center transition-transform duration-300 translate-y-[120%] group-hover:translate-y-0 opacity-80">ipix.my.id</span>
-                  <span className="absolute bottom-0 left-0 w-full h-[2px] bg-current scale-x-0 origin-right transition-transform duration-300 group-hover:scale-x-100 group-hover:origin-left rounded-full" />
-                </a>
-              </div>
-            )}
           </div>
         </div>
 
         {auth.isAuth && ui.tab === "admin" && (
           <div className="relative z-10 flex items-center overflow-x-auto gap-2.5 px-4 py-2.5 border-t text-xs whitespace-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] transition-colors duration-500 shadow-inner" style={{ backgroundColor: "color-mix(in srgb, var(--card-bg) 60%, transparent)", borderColor: "var(--card-border)", backdropFilter: "blur(12px)" }}>
             <span className="font-bold flex items-center mr-1" style={{ color: "var(--foreground-heading)" }}>
-              <span className="w-2 h-2 rounded-full bg-green-500 mr-2 shadow-[0_0_6px_#22c55e] animate-pulse" /> Online ({onlineUsers.length + (adminStat.online ? 1 : 0)})
+              <span className={`w-2 h-2 rounded-full mr-2 shadow-sm ${adminStat.online ? "bg-green-500 shadow-[0_0_6px_#22c55e] animate-pulse" : "bg-gray-400"}`} />
+              Online ({onlineUsers.length + (adminStat.online ? 1 : 0)})
             </span>
+
             {adminStat.online && <span className="bg-red-500/10 text-red-500 border border-red-500/30 px-3 py-0.5 rounded-full text-[10px] font-bold shadow-sm backdrop-blur-md">Admin</span>}
+
             {onlineUsers.map((u) => (
               <span key={u} className="px-3 py-0.5 rounded-full text-[10px] font-medium border shadow-sm transition-all hover:scale-105 cursor-default" style={{ backgroundColor: "color-mix(in srgb, var(--background) 50%, transparent)", color: "var(--foreground)", borderColor: "var(--card-border)" }}>{u.split("●")[0]}</span>
             ))}
+
             {onlineUsers.length === 0 && !adminStat.online && (
-              <span className="italic text-[10px] opacity-60 font-medium" style={{ color: "var(--foreground)" }}>Sepi...</span>
+              <span className="italic text-[10px] opacity-60 font-medium" style={{ color: "var(--foreground)" }}>Admin / User Offline</span>
             )}
           </div>
         )}

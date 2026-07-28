@@ -109,7 +109,6 @@ export default function Home() {
       const [{ data: bD }, { data: bW }, { data: prD }] = await Promise.all([
         supabase.from("blocked_users").select("*"), 
         supabase.from("blocked_words").select("word"),
-        // KEMBALIKAN LOGIKA private_with AGAR PESAN ADMIN TERBACA DI RUANG OBROLAN USER
         supabase.from("messages").select("*").or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},private_with.eq.${auth.user}` : usersInfo.selPriv ? `username.eq.${usersInfo.selPriv},private_with.eq.${usersInfo.selPriv}` : "id.gt.0").order("created_at", { ascending: false }).limit(100),
       ]);
       if (bW) setCensor((p) => ({ ...p, words: bW.map((w) => w.word) }));
@@ -134,7 +133,6 @@ export default function Home() {
       setUsersInfo((p) => ({ ...p, status: sMap, blockedList: bD || [] }));
       
       if (ui.tab === "admin" && !usersInfo.selPriv) {
-        // Ambil private_with untuk memudahkan perhitungan statistik Admin (Pill Merah)
         const { data: aP } = await supabase.from("messages").select("username, private_with, created_at, pesan").order("created_at", { ascending: false }).limit(500);
         
         if (aP) {
@@ -150,10 +148,9 @@ export default function Home() {
 
           aP.forEach((m) => { 
             if (m.username !== "Admin●ipix.my.id") { 
-              c[m.username] = (c[m.username] || 0) + 1; // Pesan Baru
-              userMsgTotal[m.username] = (userMsgTotal[m.username] || 0) + 1; // Total User
+              c[m.username] = (c[m.username] || 0) + 1; 
+              userMsgTotal[m.username] = (userMsgTotal[m.username] || 0) + 1; 
             } else if (m.private_with) {
-              // Jika yang kirim Admin, tambahkan ke counter admin Msg Total
               adminMsgTotal[m.private_with] = (adminMsgTotal[m.private_with] || 0) + 1;
             }
           });
@@ -164,7 +161,7 @@ export default function Home() {
               uMap.set(m.username, { 
                 ...m, 
                 last_active: m.created_at, 
-                count: c[m.username] || 0, 
+                count: ui.tab === "admin" ? 0 : (c[m.username] || 0), 
                 pin: userProfile?.pin || "",
                 umur: userProfile?.umur || "",
                 berat: userProfile?.berat || "",
@@ -401,7 +398,6 @@ export default function Home() {
     }
     const recipientUsername = ui.tab === "user" ? "Admin●ipix.my.id" : usersInfo.selPriv;
     
-    // KEMBALIKAN private_with DAN is_private SAAT INSERT DATA
     const { error: insertError } = await supabase.from("messages").insert([{ 
       username: auth.user, 
       pesan: txt, 
@@ -438,8 +434,40 @@ export default function Home() {
       })
     );
     return (
-      <div className="w-full flex flex-col py-2 overflow-x-hidden">
-        {pinnedMsg && (<div onClick={() => scrollMsg(pinnedMsg.id)} className="mx-3 mb-4 p-2.5 rounded-lg cursor-pointer shadow-md transition-all active:scale-95 flex items-center gap-3 border-l-4 z-10 bg-emerald-800/60 border-emerald-400 hover:bg-emerald-800/80"><div className="text-xl drop-shadow-md">📌</div><div className="flex flex-col flex-1 overflow-hidden"><span className="text-[10px] font-bold tracking-wide flex items-center gap-1.5 text-emerald-300">PESAN SEMATAN<span className="opacity-50 text-[9px] font-normal">oleh Admin</span></span><span className="text-white text-xs truncate mt-0.5 opacity-90">{pinnedMsg.pesan}</span></div></div>)}
+      <div className="w-full flex flex-col py-2 overflow-x-hidden relative">
+        {/* BILAH STATUS ONLINE/OFFLINE DI SISI USER DI ATAS PESAN SEMATAN */}
+        <div className="sticky top-0 z-30 flex items-center overflow-x-auto gap-2.5 px-4 py-2 mb-2 border-b text-xs whitespace-nowrap backdrop-blur-md shadow-sm" style={{ backgroundColor: "color-mix(in srgb, var(--card-bg) 70%, transparent)", borderColor: "var(--card-border)" }}>
+          <span className="font-bold flex items-center mr-1" style={{ color: "var(--foreground-heading)" }}>
+            <span className={`w-2 h-2 rounded-full mr-2 shadow-sm ${adminStat.online ? "bg-green-500 shadow-[0_0_6px_#22c55e] animate-pulse" : "bg-gray-400"}`} />
+            Online ({onlineUsers.length + (adminStat.online ? 1 : 0)})
+          </span>
+
+          {adminStat.online && <span className="bg-red-500/10 text-red-500 border border-red-500/30 px-3 py-0.5 rounded-full text-[10px] font-bold shadow-sm">Admin</span>}
+
+          {onlineUsers.map((u) => (
+            <span key={u} className="px-3 py-0.5 rounded-full text-[10px] font-medium border shadow-sm" style={{ backgroundColor: "color-mix(in srgb, var(--background) 50%, transparent)", color: "var(--foreground)", borderColor: "var(--card-border)" }}>{u.split("●")[0]}</span>
+          ))}
+
+          {onlineUsers.length === 0 && !adminStat.online && (
+            <span className="italic text-[10px] opacity-60 font-medium" style={{ color: "var(--foreground)" }}>Admin / User Offline</span>
+          )}
+        </div>
+
+        {/* PIN TEKS NGAMBANG STICKY SAAT DI SCROLL */}
+        {pinnedMsg && (
+          <div 
+            onClick={() => scrollMsg(pinnedMsg.id)} 
+            className="sticky top-11 mx-3 mb-4 p-2.5 rounded-lg cursor-pointer shadow-lg transition-all active:scale-95 flex items-center gap-3 border-l-4 z-30 bg-emerald-800/90 border-emerald-400 hover:bg-emerald-800 backdrop-blur-md"
+          >
+            <div className="text-xl drop-shadow-md">📌</div>
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <span className="text-[10px] font-bold tracking-wide flex items-center gap-1.5 text-emerald-300">
+                PESAN SEMATAN<span className="opacity-50 text-[9px] font-normal">oleh Admin</span>
+              </span>
+              <span className="text-white text-xs truncate mt-0.5 opacity-90">{pinnedMsg.pesan}</span>
+            </div>
+          </div>
+        )}
         {messageContent}
         <div id={`bottom-anchor-private`} className="h-1 shrink-0 mt-2" />
       </div>

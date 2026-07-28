@@ -23,7 +23,7 @@ export function MessageItem({
     const isDeletedByAdmin = m.deleted_by_admin === true;
     return (
       <div id={`msg-${m.id}`} className="relative w-full flex justify-start mb-2 z-10 px-2 group">
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 border-dashed rounded-xl p-2.5 flex flex-col w-full max-w-[240px] shadow-sm relative">
+        <div className="bg-white/10 backdrop-blur-md border rounded-xl p-2.5 flex flex-col w-full max-w-[240px] shadow-sm relative" style={{ borderColor: "var(--card-border)" }}>
           {activeTab === "admin" && <div className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border border-white shadow-sm z-20 cursor-help" title="Dihapus (Dilihat oleh Admin)">X</div>}
           <div className="flex items-center gap-2">
             <span className="bg-gray-500/20 text-gray-400 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">🚫 Dihapus</span>
@@ -38,9 +38,6 @@ export function MessageItem({
     );
   }
 
-  const isPrivateAndNotAdmin = m.is_private && !isMsgAdmin;
-  const borderThicknessClass = isMsgAdmin ? "border-r-[3px] border-b-[3px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5" : "border-b-[3px] border-r-[3px] border-t-[1px] border-l-[1px] border-t-black/5 border-l-black/5";
-  const borderColorClass = isMsgAdmin ? "border-r-red-800 border-b-red-800" : isPrivateAndNotAdmin ? "border-b-emerald-500 border-r-emerald-500" : isMsgMine ? "border-b-blue-500 border-r-blue-500" : "border-b-gray-400 border-r-gray-400";
   const bgBubbleClass = m.is_private ? "bg-emerald-50/95" : "bg-blue-50/95";
   const needsApproval = m.image_url && m.is_approved === false && !isMsgAdmin;
   const showBlurred = needsApproval && activeTab !== "admin";
@@ -63,7 +60,7 @@ export function MessageItem({
       const tagColor = user.toLowerCase() === "admin" ? "text-red-600" : (authUser && user.toLowerCase() === authUser.split("●")[0].toLowerCase()) ? "text-blue-600" : "text-green-600";
       return (
         <>
-          <div className={`text-[9px] text-gray-500 italic bg-white/70 ${isMin ? "p-1.5" : "p-2"} rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 transition-colors ${colType === "private" ? "border-emerald-500" : "border-blue-500"}`} onClick={(e) => { e.stopPropagation(); scrollToMessage(quotedText); }}>
+          <div className={`text-[9px] text-gray-500 italic bg-white/70 ${isMin ? "p-1.5" : "p-2"} rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 transition-colors`} style={{ borderColor: "var(--accent)" }} onClick={(e) => { e.stopPropagation(); scrollToMessage(quotedText); }}>
             <span className={`font-bold ${tagColor}`}>@{user}</span>: "{applyCensor(quotedText)}"
           </div>
           <div className={`${textSize} text-gray-800 break-words`}>{renderTextWithTags(applyCensor(replyText))}</div>
@@ -88,7 +85,7 @@ export function MessageItem({
       
       <div
         id={`msg-bubble-${m.id}`}
-        className={`relative z-10 ${bgBubbleClass} transition-colors duration-300 ${isMinimized ? "p-1.5 rounded-md" : "p-3 rounded-xl"} ${borderThicknessClass} shadow-sm w-full select-none ${borderColorClass}`}
+        className={`relative z-10 ${bgBubbleClass} transition-colors duration-300 ${isMinimized ? "p-1.5 rounded-md" : "p-3 rounded-xl"} border-[2px] shadow-sm w-full select-none`}
         onMouseDown={(e) => { if (e.button === 0) longPressTimer.current = setTimeout(() => { handleLongPress(m); if (navigator.vibrate) navigator.vibrate(50); }, 350); }}
         onMouseMove={clearTimer}
         onMouseUp={clearTimer}
@@ -112,7 +109,11 @@ export function MessageItem({
           }
           setSwipingId(null); setSwipeDelta(0); setIsHorizontalSwipe(false);
         }}
-        style={{ transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : "translateX(0px)", transition: swipingId === m.id ? "none" : "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)" }}
+        style={{ 
+          transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : "translateX(0px)", 
+          transition: swipingId === m.id ? "none" : "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)", 
+          borderColor: isMsgAdmin ? "var(--accent)" : isMsgMine ? "var(--accent)" : "var(--card-border)" 
+        }}
       >
         <div className={`flex justify-between items-start ${isMinimized ? "mb-0.5" : "mb-1"}`}>
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -181,11 +182,8 @@ export function MessageItem({
                   {activeMenuId === m.id && (
                     <>
                       <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} />
-                      
-                      {/* MENU TITIK TIGA - TOMBOL NAMA & PRIVATE DIHAPUS */}
                       <div className="absolute right-0 bottom-full mb-2 bg-gray/95 backdrop-blur-md shadow-xl border border-gray-200 rounded-full z-[100] p-1.5 flex flex-row items-center gap-1 min-w-max origin-bottom-right" onClick={(e) => e.stopPropagation()}>
                         <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-3 py-1.5 text-[8px] font-black text-white bg-blue-500 hover:bg-blue-600 rounded-full shadow-sm transition-all active:scale-95">Edit</button>
-                        
                         {!isMsgAdmin && (
                           <button type="button" onClick={() => { blockUser(m.username); setActiveMenuId(null); }} className="px-3 py-1.5 text-[8px] font-black text-white bg-red-600 hover:bg-red-700 rounded-full shadow-sm transition-all active:scale-95">Blokir</button>
                         )}

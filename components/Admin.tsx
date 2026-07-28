@@ -11,14 +11,15 @@ export default function Admin({
     <div className="space-y-3 p-3">
       {privateUsers.map((user: any, index: number) => {
         const identifier = user.username || `anonymous-${index}`;
+        const hasUnread = user.count > 0;
 
         return (
           <div 
             key={identifier} 
             onClick={() => setSelectedPrivateUser(user.username)} 
-            className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-emerald-300 cursor-pointer transition-all flex flex-col group gap-2"
+            className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col group gap-2 border"
+            style={{ borderColor: "var(--card-border)" }}
           >
-            {/* BARIS ATAS: Info User & Waktu */}
             <div className="flex justify-between items-start w-full">
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
@@ -26,7 +27,6 @@ export default function Admin({
                     {user.username || 'User Tanpa Nama'}
                   </span>
                   
-                  {/* Badge Umur & Berat */}
                   {(user.umur || user.berat) && (
                     <div className="flex gap-1.5 mt-0.5">
                       {user.umur && (
@@ -57,10 +57,7 @@ export default function Admin({
               </div>
             </div>
 
-            {/* BARIS BAWAH: Tombol Aksi & Statistik Pesan */}
-            <div className="flex justify-between items-end mt-2 pt-2 border-t border-gray-50 w-full gap-2">
-              
-              {/* Kiri: Pill Action */}
+            <div className="flex justify-between items-end mt-2 pt-2 border-t border-gray-100 w-full gap-2">
               <div className="flex gap-1.5">
                 <button
                   onClick={(e) => { e.stopPropagation(); onBlockUser && onBlockUser(user.username); }}
@@ -76,22 +73,24 @@ export default function Admin({
                 </button>
               </div>
 
-              {/* Kanan: Pill Stats */}
-              <div className="flex gap-1.5">
-                {/* Pill Pesan Baru (Hijau) */}
-                {user.count > 0 && (
+              <div className="flex gap-1.5 items-center">
+                {hasUnread ? (
                   <span className="bg-emerald-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap">
                     {user.count} Baru
                   </span>
+                ) : (
+                  <span className="bg-gray-400 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap">
+                    0
+                  </span>
                 )}
-                {/* Pill Total Pesan User (Biru) */}
+                
                 <span 
                   className="bg-blue-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap" 
                   title="Total pesan dikirim oleh user"
                 >
                   👤 {user.totalUserMsgs || 0}
                 </span>
-                {/* Pill Total Balasan Admin (Merah) */}
+                
                 <span 
                   className="bg-red-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap" 
                   title="Total balasan admin ke user"
@@ -99,7 +98,6 @@ export default function Admin({
                   ⭐ {user.totalAdminMsgs || 0}
                 </span>
               </div>
-              
             </div>
           </div>
         );
