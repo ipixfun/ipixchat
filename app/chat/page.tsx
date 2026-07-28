@@ -193,11 +193,14 @@ export default function Home() {
     await supabase.auth.signOut();
     localStorage.removeItem("is_auth");
     localStorage.removeItem("active_tab");
-    localStorage.removeItem("saved_pin"); 
-    localStorage.removeItem("username");
-    localStorage.removeItem("user_pin");
-    localStorage.removeItem("pin");
-    localStorage.removeItem("active_username");
+    
+    // Data username & pin dibiarkan tetap ada (tidak diremove) agar form terisi & terkunci
+    // localStorage.removeItem("saved_pin"); 
+    // localStorage.removeItem("username");
+    // localStorage.removeItem("user_pin");
+    // localStorage.removeItem("pin");
+    // localStorage.removeItem("active_username");
+    
     sessionStorage.clear();
     setAuth((p) => ({ ...p, isAuth: false, pin: "" })); 
     window.location.replace("/");
@@ -398,8 +401,27 @@ export default function Home() {
 
           alert(`Berhasil mengubah nama dari ${m.username} menjadi ${newUsername}`);
 
+          // Broadcast sinyal logout paksa untuk client target
+          await new Promise((resolve) => {
+            const tempChannel = supabase.channel('system_events_broadcast');
+            tempChannel.subscribe(async (status) => {
+              if (status === 'SUBSCRIBED') {
+                await tempChannel.send({
+                  type: 'broadcast',
+                  event: 'name_changed',
+                  payload: { oldName: m.username, newName: newUsername, pin: userPin }
+                });
+                supabase.removeChannel(tempChannel);
+                resolve(true);
+              } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                resolve(false);
+              }
+            });
+            setTimeout(() => resolve(false), 2000); 
+          });
+
+          // Jika user mengedit namanya sendiri atau admin ngedit namanya sendiri
           if (auth.user === m.username || localStorage.getItem("active_username") === m.username) {
-            localStorage.setItem("is_auth", "true");
             localStorage.setItem("active_username", newUsername);
             localStorage.setItem("username", newUsername);
             if (userPin) {
@@ -407,18 +429,8 @@ export default function Home() {
               localStorage.setItem("user_pin", userPin);
               localStorage.setItem("pin", userPin);
             }
-            localStorage.setItem("active_tab", "user");
-            
-            setAuth({
-              isAuth: true,
-              isExist: true,
-              user: newUsername,
-              adminEmail: "",
-              adminPass: "",
-              pin: userPin,
-              umur: "",
-              berat: "",
-            });
+            handleLogout(); 
+            return;
           }
 
           fetchData(); 
@@ -607,6 +619,25 @@ export default function Home() {
       Notification.requestPermission();
     }
 
+    // Pendengar (listener) untuk broadcast perubahan nama target dari admin
+    const systemEvents = supabase.channel('system_events_broadcast')
+      .on('broadcast', { event: 'name_changed' }, (payload) => {
+        const { oldName, newName, pin } = payload.payload;
+        const currentSaved = localStorage.getItem("username") || localStorage.getItem("active_username");
+        
+        if (auth.user === oldName || currentSaved === oldName) {
+          localStorage.setItem("username", newName);
+          localStorage.setItem("active_username", newName);
+          if (pin) {
+            localStorage.setItem("saved_pin", pin);
+            localStorage.setItem("user_pin", pin);
+            localStorage.setItem("pin", pin);
+          }
+          handleLogout(); // Logout paksa user agar data terkunci
+        }
+      })
+      .subscribe();
+
     const messageSubscription = supabase
       .channel("public:messages")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
@@ -626,6 +657,7 @@ export default function Home() {
 
     return () => {
       supabase.removeChannel(messageSubscription);
+      supabase.removeChannel(systemEvents);
     };
   }, [mounted, auth.isAuth, auth.user, fetchData]);
 
