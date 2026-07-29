@@ -58,7 +58,7 @@ const ColorInput = ({
   if (horizontal) {
     return (
       <div className="flex items-center justify-between bg-black/5 dark:bg-white/5 p-2 rounded-lg border border-white/5 w-full shadow-sm gap-2">
-        <span className="text-[10px] font-bold leading-tight opacity-90 truncate shrink-0 w-12" style={{ color: "var(--foreground)" }}>
+        <span className="text-[10px] font-bold leading-tight opacity-90 truncate shrink-0 w-16" style={{ color: "var(--foreground)" }}>
           {label}
         </span>
         <div className="flex items-center gap-2 shrink-0">
@@ -129,6 +129,11 @@ export default function TemaPage() {
   
   const [isWaveDisabled, setIsWaveDisabled] = useState<boolean>(false);
   const [isCustomWaveEnabled, setIsCustomWaveEnabled] = useState<boolean>(false);
+
+  // Collapse / Minimize States for each section
+  const [isThemeCollapsed, setIsThemeCollapsed] = useState<boolean>(false);
+  const [isWaveCollapsed, setIsWaveCollapsed] = useState<boolean>(false);
+  const [isChatCollapsed, setIsChatCollapsed] = useState<boolean>(false);
 
   const [isApplied, setIsApplied] = useState<boolean>(false);
 
@@ -268,76 +273,105 @@ export default function TemaPage() {
 
           <div className={`p-3 sm:p-4 flex flex-col gap-4 ${!isLoggedIn && !loadingAuth ? "opacity-30 pointer-events-none blur-[2px] select-none" : ""}`}>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-              
-              <div className="pr-0 sm:pr-2 sm:border-r transition-colors duration-300 flex flex-col" style={{ borderColor: "var(--card-border)" }}>
-                <div className="flex flex-col mb-3 border-b border-white/5 pb-2 gap-1">
-                  <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">WARNA TEMA</h4>
-                  <div className="self-start">
+            {/* BAGIAN 1: WARNA TEMA */}
+            <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 sm:p-3">
+              <div 
+                className="flex items-center justify-between cursor-pointer select-none pb-2 border-b border-white/5"
+                onClick={() => setIsThemeCollapsed(!isThemeCollapsed)}
+              >
+                <div className="flex items-center justify-between w-full pr-2">
+                  <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">
+                    WARNA TEMA
+                  </h4>
+                  <div onClick={(e) => e.stopPropagation()}>
                     <CompactToggle label={isCustomUiEnabled ? "Aktif" : "Bawaan"} checked={isCustomUiEnabled} onChange={(e) => setIsCustomUiEnabled(e.target.checked)} disabled={!isLoggedIn} />
                   </div>
                 </div>
-                
-                <div className={`flex-1 transition-all duration-300 ${!isCustomUiEnabled ? "opacity-30 grayscale pointer-events-none" : ""}`}>
+                <span className="text-xs text-neutral-400 font-mono">{isThemeCollapsed ? "▼" : "▲"}</span>
+              </div>
+
+              {!isThemeCollapsed && (
+                <div className={`pt-3 transition-all duration-300 ${!isCustomUiEnabled ? "opacity-30 grayscale pointer-events-none" : ""}`}>
                   <div className="flex flex-col gap-2">
                     <ColorInput label="Latar" value={customColors.bg} onChange={(v) => handleCustomColorChange("bg", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} horizontal />
                     <ColorInput label="Aksen" value={customColors.accent} onChange={(v) => handleCustomColorChange("accent", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} horizontal />
                     <ColorInput label="Teks Utama" value={customColors.text} onChange={(v) => handleCustomColorChange("text", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} horizontal />
                   </div>
                 </div>
-              </div>
+              )}
+            </div>
 
-              <div className="pl-0 sm:pl-2 flex flex-col">
-                <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2 gap-1 flex-wrap">
-                  <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">WAVE</h4>
-                  <div className="flex items-center gap-2">
+            {/* BAGIAN 2: WAVE */}
+            <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 sm:p-3">
+              <div 
+                className="flex items-center justify-between cursor-pointer select-none pb-2 border-b border-white/5"
+                onClick={() => setIsWaveCollapsed(!isWaveCollapsed)}
+              >
+                <div className="flex items-center justify-between w-full pr-2 flex-wrap gap-1">
+                  <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">
+                    WAVE
+                  </h4>
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                     <CompactToggle label={!isWaveDisabled ? "Tampil" : "Sembunyi"} checked={!isWaveDisabled} onChange={handleWaveToggle} disabled={!isLoggedIn} />
                     <CompactToggle label={isCustomWaveEnabled ? "Aktif" : "Bawaan"} checked={isCustomWaveEnabled} onChange={handleCustomWaveToggle} disabled={!isLoggedIn || isWaveDisabled} />
                   </div>
                 </div>
+                <span className="text-xs text-neutral-400 font-mono">{isWaveCollapsed ? "▼" : "▲"}</span>
+              </div>
 
-                <div className={`flex-1 transition-all duration-300 ${(isWaveDisabled || !isCustomWaveEnabled) ? "opacity-30 grayscale pointer-events-none" : ""}`}>
+              {!isWaveCollapsed && (
+                <div className={`pt-3 transition-all duration-300 ${(isWaveDisabled || !isCustomWaveEnabled) ? "opacity-30 grayscale pointer-events-none" : ""}`}>
                   <div className="flex flex-col gap-2">
                     <ColorInput label="Belakang" value={customColors.wave1} onChange={(v) => handleCustomColorChange("wave1", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
                     <ColorInput label="Tengah" value={customColors.wave2} onChange={(v) => handleCustomColorChange("wave2", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
                     <ColorInput label="Depan" value={customColors.wave3} onChange={(v) => handleCustomColorChange("wave3", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
                   </div>
                 </div>
-              </div>
-
+              )}
             </div>
 
-            <div className="h-px w-full transition-colors duration-300 opacity-50 my-1" style={{ backgroundColor: "var(--card-border)" }} />
-
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">WARNA GELEMBUNG CHAT</h4>
-                <CompactToggle label={isCustomChatEnabled ? "Aktif" : "Bawaan"} checked={isCustomChatEnabled} onChange={(e) => setIsCustomChatEnabled(e.target.checked)} disabled={!isLoggedIn} />
-              </div>
-              
-              <div className={`transition-all duration-300 grid grid-cols-1 sm:grid-cols-2 gap-3 ${!isCustomChatEnabled ? "opacity-30 grayscale pointer-events-none" : ""}`}>
-                
-                <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 shadow-inner flex flex-col gap-2.5">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
-                    <div className="text-[10px] font-extrabold tracking-widest text-emerald-400 uppercase">User</div>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <ColorInput label="Nama" value={userPillColor} onChange={setUserPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
-                    <ColorInput label="Pesan" value={userBubbleBg} onChange={setUserBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
+            {/* BAGIAN 3: WARNA GELEMBUNG CHAT */}
+            <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 sm:p-3">
+              <div 
+                className="flex items-center justify-between cursor-pointer select-none pb-2 border-b border-white/5"
+                onClick={() => setIsChatCollapsed(!isChatCollapsed)}
+              >
+                <div className="flex items-center justify-between w-full pr-2">
+                  <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">
+                    WARNA GELEMBUNG CHAT
+                  </h4>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <CompactToggle label={isCustomChatEnabled ? "Aktif" : "Bawaan"} checked={isCustomChatEnabled} onChange={(e) => setIsCustomChatEnabled(e.target.checked)} disabled={!isLoggedIn} />
                   </div>
                 </div>
-                
-                <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 shadow-inner flex flex-col gap-2.5">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
-                    <div className="text-[10px] font-extrabold tracking-widest text-rose-400 uppercase">Admin</div>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <ColorInput label="Nama" value={adminPillColor} onChange={setAdminPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
-                    <ColorInput label="Pesan" value={adminBubbleBg} onChange={setAdminBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
-                  </div>
-                </div>
-
+                <span className="text-xs text-neutral-400 font-mono">{isChatCollapsed ? "▼" : "▲"}</span>
               </div>
+
+              {!isChatCollapsed && (
+                <div className={`pt-3 transition-all duration-300 grid grid-cols-1 sm:grid-cols-2 gap-3 ${!isCustomChatEnabled ? "opacity-30 grayscale pointer-events-none" : ""}`}>
+                  
+                  <div className="bg-black/10 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 shadow-inner flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
+                      <div className="text-[10px] font-extrabold tracking-widest text-emerald-400 uppercase">User</div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <ColorInput label="Nama" value={userPillColor} onChange={setUserPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
+                      <ColorInput label="Pesan" value={userBubbleBg} onChange={setUserBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
+                    </div>
+                  </div>
+                  
+                  <div className="bg-black/10 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 shadow-inner flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
+                      <div className="text-[10px] font-extrabold tracking-widest text-rose-400 uppercase">Admin</div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <ColorInput label="Nama" value={adminPillColor} onChange={setAdminPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
+                      <ColorInput label="Pesan" value={adminBubbleBg} onChange={setAdminBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
+                    </div>
+                  </div>
+
+                </div>
+              )}
             </div>
 
             <div className="pt-2 mt-2 border-t border-white/5">
@@ -350,7 +384,7 @@ export default function TemaPage() {
                     : "bg-[var(--accent)] text-[var(--background)] hover:opacity-90 shadow-md"
                 }`}
               >
-                {isApplied ? "✓ Pengaturan Diterapkan" : "Terapkan Kustomisasi"}
+                {isApplied ? "✓ Tema Diterapkan" : "Terapkan Tema"}
               </button>
             </div>
 
