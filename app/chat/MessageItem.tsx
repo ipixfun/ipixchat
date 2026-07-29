@@ -84,11 +84,12 @@ export function MessageItem({
               <span className="text-[10px] font-bold">Hapus</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1 font-bold text-sm opacity-90 drop-shadow-sm" style={{ color: "var(--accent)" }}>
-              <span>Balas</span>
+            // PERUBAHAN DI SINI: Mengubah layout Balas menjadi vertikal (flex-col) seperti Hapus agar seimbang & tidak nabrak
+            <div className="flex flex-col items-center gap-0.5 opacity-90 drop-shadow-sm" style={{ color: "var(--accent)" }}>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
               </svg>
+              <span className="text-[10px] font-bold">Balas</span>
             </div>
           )}
         </div>
