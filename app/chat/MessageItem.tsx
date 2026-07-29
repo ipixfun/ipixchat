@@ -17,7 +17,9 @@ export function MessageItem({
 
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
   const isMsgMine = m.username === authUser;
-  const isRightAligned = isMsgAdmin || isMsgMine;
+  
+  // Admin ke kiri, User ke kanan sesuai permintaan
+  const isRightAligned = !isMsgAdmin;
 
   const [pillColor, setPillColor] = useState(() => {
     if (typeof window !== "undefined") {
@@ -77,8 +79,8 @@ export function MessageItem({
   if (m.pesan === "___DELETED___") {
     const isDeletedByAdmin = m.deleted_by_admin === true;
     return (
-      <div id={`msg-${m.id}`} className={`relative w-full flex ${isRightAligned ? "justify-end pr-3" : "justify-start pl-3"} mb-2 z-10 group`}>
-        <div className="bg-white/15 backdrop-blur-md border rounded-xl p-2.5 flex flex-col w-full max-w-[280px] shadow-sm relative" style={{ borderColor: "var(--card-border)", backgroundColor: "var(--card-bg)" }}>
+      <div id={`msg-${m.id}`} className="relative w-full mb-2 z-10 group">
+        <div className="bg-white/15 backdrop-blur-md border rounded-xl p-2.5 flex flex-col w-full shadow-sm relative" style={{ borderColor: "var(--card-border)", backgroundColor: "var(--card-bg)" }}>
           {activeTab === "admin" && <div className="absolute -top-2 -right-2 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border border-white shadow-sm z-20 cursor-help" style={{ backgroundColor: "var(--accent)" }} title="Dihapus (Dilihat oleh Admin)">X</div>}
           <div className="flex items-center gap-2">
             <span className="bg-gray-500/20 text-gray-400 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">🚫 Dihapus</span>
@@ -117,7 +119,7 @@ export function MessageItem({
           <div 
             className={`text-[10px] italic p-2 rounded cursor-pointer hover:opacity-100 border-l-4 mb-1.5 transition-colors break-words break-all shadow-inner`} 
             style={{ 
-              backgroundColor: "rgba(0, 0, 0, 0.25)", 
+              backgroundColor: "var(--card-bg)", 
               borderColor: "var(--accent)",
               color: "var(--foreground)" 
             }} 
@@ -136,8 +138,7 @@ export function MessageItem({
   const activeBgColor = bubbleBg === "transparent" ? "transparent" : (bubbleBg || "var(--card-bg)");
 
   return (
-    /* DITAMBAHKAN FLEX & ALIGNMENT AGAR TIDAK MELAR KE SELEBAR LAYAR */
-    <div id={`msg-${m.id}`} className={`relative w-full flex ${isRightAligned ? "justify-end pr-3" : "justify-start pl-3"} mb-2`}>
+    <div id={`msg-${m.id}`} className="relative w-full mb-2">
       {swipingId === m.id && swipeDelta !== 0 && (
         <div className={`absolute inset-0 flex items-center px-5 transition-colors duration-200 bg-transparent ${isMinimized ? "rounded-md" : "rounded-xl"} ${swipeDelta > 0 ? "justify-start" : "justify-end"}`}>
           {swipeDelta > 0 ? (
@@ -160,8 +161,8 @@ export function MessageItem({
       
       <div
         id={`msg-bubble-${m.id}`}
-        /* DITAMBAHKAN max-w (maksimal lebar 85%) AGAR MENYERUPAI BUBBLE WHATSAPP */
-        className={`relative z-10 transition-all duration-300 w-full max-w-[85%] sm:max-w-[70%] ${
+        // Ukuran dikembalikan full w-full seperti semula, hanya sudut dan ekornya yang diatur
+        className={`relative z-10 transition-all duration-300 w-full ${
           isMinimized 
             ? (isRightAligned ? "p-1.5 rounded-tl-md rounded-b-md rounded-tr-none" : "p-1.5 rounded-tr-md rounded-b-md rounded-tl-none")
             : (isRightAligned ? "p-3 rounded-tl-xl rounded-b-xl rounded-tr-none" : "p-3 rounded-tr-xl rounded-b-xl rounded-tl-none")
