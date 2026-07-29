@@ -172,7 +172,6 @@ export default function TemaPage() {
     setCustomColors({ ...customColors, [key]: value });
   };
 
-  // Handler toggle "Tanpa Wave" agar langsung tersimpan & memperbarui tampilan secara real-time
   const handleWaveToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVal = e.target.checked;
     setIsWaveDisabled(newVal);
@@ -219,6 +218,7 @@ export default function TemaPage() {
 
       <div className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-6 sm:space-y-8">
         
+        {/* KUSTOMISASI LANJUTAN */}
         <div 
           className="relative rounded-2xl border transition-all duration-300 overflow-hidden shadow-sm"
           style={{ 
@@ -262,7 +262,6 @@ export default function TemaPage() {
               <div className="flex items-center justify-between mb-3 sm:mb-4 px-1">
                 <h4 className="text-[11px] font-semibold opacity-80 uppercase tracking-wider">Animasi Wave</h4>
                 
-                {/* Toggle Tanpa Wave yang langsung aktif */}
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <span className={`text-[9px] font-medium transition-colors ${isWaveDisabled ? "text-rose-400" : "text-neutral-400 group-hover:text-white"}`}>
                     Tanpa Wave
@@ -353,11 +352,12 @@ export default function TemaPage() {
           )}
         </div>
 
+        {/* PRESET TEMA (UPDATED TO BOX STYLE & DYNAMIC TOGGLE) */}
         <div>
           <h3 className="font-semibold text-sm mb-3 px-1" style={{ color: "var(--foreground-heading)" }}>
             Preset Tema
           </h3>
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
             {themes.map((t: ThemeItem) => {
               const isActive = activeThemeId === t.id;
 
@@ -365,30 +365,39 @@ export default function TemaPage() {
                 <div
                   key={t.id}
                   onClick={() => setTheme(t.id as any)}
-                  className={`p-2.5 rounded-xl border transition-all duration-300 cursor-pointer flex items-center justify-between gap-2 ${
-                    isActive ? "shadow-md bg-white/5" : "hover:bg-white/5"
+                  className={`p-3 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col gap-3 group ${
+                    isActive ? "shadow-lg bg-white/5" : "hover:bg-white/5 hover:border-white/20"
                   }`}
                   style={{
-                    backgroundColor: isActive ? "transparent" : "var(--card-bg)",
+                    backgroundColor: "var(--card-bg)",
                     borderColor: isActive ? "var(--accent)" : "var(--card-border)",
                   }}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${t.preview} shadow-inner border border-white/10 shrink-0`} />
-                    <div className="min-w-0">
-                      <h3 className="font-medium text-[11px] sm:text-xs truncate" style={{ color: "var(--foreground-heading)" }}>
-                        {t.name}
-                      </h3>
+                  {/* Blok Kotak Warna Preview */}
+                  <div className={`w-full h-16 sm:h-20 rounded-xl bg-gradient-to-br ${t.preview} shadow-inner border border-white/10 transition-transform duration-300 group-hover:scale-[1.02]`} />
+                  
+                  {/* Info dan Toggle */}
+                  <div className="flex items-center justify-between gap-2 mt-auto">
+                    <h3 
+                      className="font-medium text-[11px] sm:text-xs truncate transition-colors duration-300" 
+                      style={{ color: isActive ? "var(--accent)" : "var(--foreground-heading)" }}
+                    >
+                      {t.name}
+                    </h3>
+                    
+                    {/* Toggle Switch Ala iOS Dinamis */}
+                    <div 
+                      className="relative inline-flex h-4 w-7 sm:h-5 sm:w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-300 ease-in-out"
+                      style={{
+                        backgroundColor: isActive ? "var(--accent)" : "rgba(255, 255, 255, 0.15)"
+                      }}
+                    >
+                      <span
+                        className={`inline-block h-3 w-3 sm:h-4 sm:w-4 transform rounded-full bg-white shadow ring-0 transition duration-300 ease-in-out ${
+                          isActive ? "translate-x-3.5 sm:translate-x-4" : "translate-x-0.5"
+                        }`}
+                      />
                     </div>
-                  </div>
-
-                  <div
-                    className="w-3 h-3 rounded-full border flex items-center justify-center transition-all duration-300 shrink-0"
-                    style={{ borderColor: isActive ? "var(--accent)" : "var(--card-border)" }}
-                  >
-                    {isActive && (
-                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--accent)" }} />
-                    )}
                   </div>
                 </div>
               );
