@@ -130,7 +130,7 @@ export default function TemaPage() {
   const [isWaveDisabled, setIsWaveDisabled] = useState<boolean>(false);
   const [isCustomWaveEnabled, setIsCustomWaveEnabled] = useState<boolean>(false);
 
-  // Collapse / Minimize States (Default true / minimized if locked)
+  // Collapse / Minimize States (Default true / minimized)
   const [isThemeCollapsed, setIsThemeCollapsed] = useState<boolean>(true);
   const [isWaveCollapsed, setIsWaveCollapsed] = useState<boolean>(true);
   const [isChatCollapsed, setIsChatCollapsed] = useState<boolean>(true);
@@ -169,15 +169,10 @@ export default function TemaPage() {
         setIsLoggedIn(foundLogin);
         setIsAdmin(foundAdmin);
 
-        // Jika terkunci, pastikan semua bagian ter-minimize
         if (!foundLogin) {
           setIsThemeCollapsed(true);
           setIsWaveCollapsed(true);
           setIsChatCollapsed(true);
-        } else {
-          setIsThemeCollapsed(false);
-          setIsWaveCollapsed(false);
-          setIsChatCollapsed(false);
         }
       } catch (err) {
         console.error("Auth check failed:", err);
@@ -312,36 +307,7 @@ export default function TemaPage() {
               )}
             </div>
 
-            {/* BAGIAN 2: WAVE */}
-            <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 sm:p-3">
-              <div 
-                className="flex items-center justify-between cursor-pointer select-none pb-2 border-b border-white/5"
-                onClick={() => setIsWaveCollapsed(!isWaveCollapsed)}
-              >
-                <div className="flex items-center justify-between w-full pr-3 flex-wrap gap-1">
-                  <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">
-                    WAVE
-                  </h4>
-                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                    <CompactToggle label={!isWaveDisabled ? "Tampil" : "Sembunyi"} checked={!isWaveDisabled} onChange={handleWaveToggle} disabled={!isLoggedIn} />
-                    <CompactToggle label={isCustomWaveEnabled ? "Aktif" : "Bawaan"} checked={isCustomWaveEnabled} onChange={handleCustomWaveToggle} disabled={!isLoggedIn || isWaveDisabled} />
-                  </div>
-                </div>
-                <span className="text-xs text-neutral-400 font-mono">{isWaveCollapsed ? "▼" : "▲"}</span>
-              </div>
-
-              {!isWaveCollapsed && (
-                <div className={`pt-3 transition-all duration-300 ${(isWaveDisabled || !isCustomWaveEnabled) ? "opacity-30 grayscale pointer-events-none" : ""}`}>
-                  <div className="flex flex-col gap-2">
-                    <ColorInput label="Belakang" value={customColors.wave1} onChange={(v) => handleCustomColorChange("wave1", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
-                    <ColorInput label="Tengah" value={customColors.wave2} onChange={(v) => handleCustomColorChange("wave2", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
-                    <ColorInput label="Depan" value={customColors.wave3} onChange={(v) => handleCustomColorChange("wave3", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* BAGIAN 3: WARNA GELEMBUNG CHAT */}
+            {/* BAGIAN 2: GELEMBUNG CHAT (Dipindah ke atas Wave) */}
             <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 sm:p-3">
               <div 
                 className="flex items-center justify-between cursor-pointer select-none pb-2 border-b border-white/5"
@@ -349,7 +315,7 @@ export default function TemaPage() {
               >
                 <div className="flex items-center justify-between w-full pr-3">
                   <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">
-                    WARNA GELEMBUNG CHAT
+                    GELEMBUNG CHAT
                   </h4>
                   <div onClick={(e) => e.stopPropagation()}>
                     <CompactToggle label={isCustomChatEnabled ? "Aktif" : "Bawaan"} checked={isCustomChatEnabled} onChange={(e) => setIsCustomChatEnabled(e.target.checked)} disabled={!isLoggedIn} />
@@ -381,6 +347,35 @@ export default function TemaPage() {
                     </div>
                   </div>
 
+                </div>
+              )}
+            </div>
+
+            {/* BAGIAN 3: WAVE */}
+            <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 sm:p-3">
+              <div 
+                className="flex items-center justify-between cursor-pointer select-none pb-2 border-b border-white/5"
+                onClick={() => setIsWaveCollapsed(!isWaveCollapsed)}
+              >
+                <div className="flex items-center justify-between w-full pr-3 flex-wrap gap-1">
+                  <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">
+                    WAVE
+                  </h4>
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <CompactToggle label={!isWaveDisabled ? "Tampilkan Wave" : "Sembunyikan Wave"} checked={!isWaveDisabled} onChange={handleWaveToggle} disabled={!isLoggedIn} />
+                    <CompactToggle label={isCustomWaveEnabled ? "Aktif" : "Bawaan"} checked={isCustomWaveEnabled} onChange={handleCustomWaveToggle} disabled={!isLoggedIn || isWaveDisabled} />
+                  </div>
+                </div>
+                <span className="text-xs text-neutral-400 font-mono">{isWaveCollapsed ? "▼" : "▲"}</span>
+              </div>
+
+              {!isWaveCollapsed && (
+                <div className={`pt-3 transition-all duration-300 ${(isWaveDisabled || !isCustomWaveEnabled) ? "opacity-30 grayscale pointer-events-none" : ""}`}>
+                  <div className="flex flex-col gap-2">
+                    <ColorInput label="Belakang" value={customColors.wave1} onChange={(v) => handleCustomColorChange("wave1", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
+                    <ColorInput label="Tengah" value={customColors.wave2} onChange={(v) => handleCustomColorChange("wave2", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
+                    <ColorInput label="Depan" value={customColors.wave3} onChange={(v) => handleCustomColorChange("wave3", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
+                  </div>
                 </div>
               )}
             </div>
@@ -430,7 +425,12 @@ export default function TemaPage() {
               return (
                 <div
                   key={t.id}
-                  onClick={() => setTheme(t.id as any)}
+                  onClick={() => {
+                    setTheme(t.id as any);
+                    setIsThemeCollapsed(true);
+                    setIsChatCollapsed(true);
+                    setIsWaveCollapsed(true);
+                  }}
                   className={`p-2.5 rounded-lg border transition-all duration-300 cursor-pointer flex items-center justify-between gap-2 ${
                     isActive ? "shadow-sm bg-white/5" : "hover:bg-white/5 hover:border-white/20"
                   }`}
