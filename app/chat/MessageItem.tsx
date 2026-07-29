@@ -15,9 +15,10 @@ export function MessageItem({
 
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
 
-  // Ambil warna global berdasarkan Admin atau User dari localStorage
   const [pillColor, setPillColor] = useState(() => {
     if (typeof window !== "undefined") {
+      const isCustomChatEnabled = localStorage.getItem("global_enable_custom_chat") === "true";
+      if (!isCustomChatEnabled) return "";
       return isMsgAdmin 
         ? (localStorage.getItem("global_admin_pill_color") || "")
         : (localStorage.getItem("global_user_pill_color") || "");
@@ -27,6 +28,8 @@ export function MessageItem({
 
   const [bubbleBg, setBubbleBg] = useState(() => {
     if (typeof window !== "undefined") {
+      const isCustomChatEnabled = localStorage.getItem("global_enable_custom_chat") === "true";
+      if (!isCustomChatEnabled) return "";
       return isMsgAdmin 
         ? (localStorage.getItem("global_admin_bubble_bg") || "")
         : (localStorage.getItem("global_user_bubble_bg") || "");
@@ -37,8 +40,14 @@ export function MessageItem({
   useEffect(() => {
     const handleStorageChange = () => {
       if (typeof window !== "undefined") {
-        setPillColor(isMsgAdmin ? (localStorage.getItem("global_admin_pill_color") || "") : (localStorage.getItem("global_user_pill_color") || ""));
-        setBubbleBg(isMsgAdmin ? (localStorage.getItem("global_admin_bubble_bg") || "") : (localStorage.getItem("global_user_bubble_bg") || ""));
+        const isCustomChatEnabled = localStorage.getItem("global_enable_custom_chat") === "true";
+        if (!isCustomChatEnabled) {
+          setPillColor("");
+          setBubbleBg("");
+        } else {
+          setPillColor(isMsgAdmin ? (localStorage.getItem("global_admin_pill_color") || "") : (localStorage.getItem("global_user_pill_color") || ""));
+          setBubbleBg(isMsgAdmin ? (localStorage.getItem("global_admin_bubble_bg") || "") : (localStorage.getItem("global_user_bubble_bg") || ""));
+        }
       }
     };
     window.addEventListener("storage", handleStorageChange);
@@ -155,8 +164,8 @@ export function MessageItem({
         style={{ 
           transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : "translateX(0px)", 
           transition: swipingId === m.id ? "none" : "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)", 
-          backgroundColor: bubbleBg || "var(--card-bg)",
-          borderColor: pillColor || (isMsgAdmin ? "var(--accent)" : isMsgMine ? "var(--accent)" : "var(--card-border)")
+          backgroundColor: bubbleBg === "transparent" ? "transparent" : (bubbleBg || "var(--card-bg)"),
+          borderColor: pillColor === "transparent" ? "transparent" : (pillColor || (isMsgAdmin ? "var(--accent)" : isMsgMine ? "var(--accent)" : "var(--card-border)"))
         }}
       >
         <div className={`flex justify-between items-center ${isMinimized ? "mb-0.5" : "mb-1"}`}>
@@ -164,7 +173,7 @@ export function MessageItem({
             <b 
               onClick={(e) => { e.stopPropagation(); handleTag(m.username); }} 
               className={`px-2.5 py-1 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMinimized ? "text-[8px] px-2 py-0.5" : "text-[10px]"}`}
-              style={{ backgroundColor: pillColor || "var(--accent)", color: "var(--background)" }}
+              style={{ backgroundColor: pillColor === "transparent" ? "transparent" : (pillColor || "var(--accent)"), color: "var(--background)" }}
             >
               {m.username}
             </b>

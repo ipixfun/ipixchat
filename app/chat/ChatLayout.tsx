@@ -27,7 +27,14 @@ const THEME_WAVES: Record<string, { layer1: string; layer2: string; layer3: stri
 
 const FluidBottom = () => {
   const { theme, customColors } = useTheme();
-  const activeWave = theme === "custom" ? { layer1: hexToRgb(customColors.wave1), layer2: hexToRgb(customColors.wave2), layer3: hexToRgb(customColors.wave3), glow: `drop-shadow(0 0 15px ${customColors.wave2}66)` } : (THEME_WAVES[theme] || THEME_WAVES["dark"]);
+  
+  const isCustomWaveEnabled = typeof window !== "undefined" && localStorage.getItem("global_enable_custom_wave") === "true";
+  
+  // Wave warna sekarang mandiri, hanya mengecek apakah custom wave aktif (`isCustomWaveEnabled`)
+  const activeWave = isCustomWaveEnabled
+    ? { layer1: hexToRgb(customColors.wave1), layer2: hexToRgb(customColors.wave2), layer3: hexToRgb(customColors.wave3), glow: `drop-shadow(0 0 15px ${customColors.wave2}66)` } 
+    : (THEME_WAVES[theme] || THEME_WAVES["dark"]);
+    
   const bgSize = "50% 100%";
   
   return (
@@ -40,23 +47,17 @@ const FluidBottom = () => {
 };
 
 export default function ChatLayout({ cMode, hScroll, aTab, selPrivUser, pUsers, privMsgs, renderMsgs, fmtTime, setSelPriv, onBlockUser, onDeleteAllMsgs }: any) {
-  // State untuk mengontrol visibilitas wave
   const [isWaveDisabled, setIsWaveDisabled] = useState<boolean>(false);
 
   useEffect(() => {
-    // Fungsi untuk mengecek pengaturan wave saat ini dari localStorage
     const checkWaveSetting = () => {
       const disabled = localStorage.getItem("global_disable_wave") === "true";
       setIsWaveDisabled(disabled);
     };
 
-    // Jalankan pengecekan pertama kali saat mount
     checkWaveSetting();
-
-    // Dengarkan event "globalColorChanged" (yang dipicu dari TemaPage saat tombol "Terapkan" ditekan)
     window.addEventListener("globalColorChanged", checkWaveSetting);
 
-    // Cleanup listener
     return () => {
       window.removeEventListener("globalColorChanged", checkWaveSetting);
     };
@@ -75,7 +76,6 @@ export default function ChatLayout({ cMode, hScroll, aTab, selPrivUser, pUsers, 
       <div className="flex w-full h-full relative transition-all duration-500 ease-in-out">
         <div className="h-full flex flex-col w-full relative bg-transparent overflow-hidden">
           
-          {/* Wave hanya di-render jika isWaveDisabled = false */}
           {!isWaveDisabled && <FluidBottom />}
           
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
