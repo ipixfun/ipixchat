@@ -182,7 +182,11 @@ export default function TemaPage() {
   };
 
   const handleWaveToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVal = e.target.checked;
+    // Karena toggle mewakili "Dengan Wave" (menyala), jika di-cek berarti wave aktif (tidak disable).
+    // Jadi jika e.target.checked = true (wave nyala), isWaveDisabled = false.
+    const isWaveEnabled = e.target.checked;
+    const newVal = !isWaveEnabled; 
+    
     setIsWaveDisabled(newVal);
     localStorage.setItem("global_disable_wave", newVal.toString());
     window.dispatchEvent(new Event("globalColorChanged"));
@@ -277,7 +281,6 @@ export default function TemaPage() {
               <div className="flex items-center justify-between mb-3 px-1">
                 <h4 className="text-[11px] font-semibold opacity-80 uppercase tracking-wider">Warna UI</h4>
                 
-                {/* Toggle Kustomisasi Warna UI Kotak */}
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <span className={`text-[9px] font-medium transition-colors ${isCustomUiEnabled ? "text-[var(--accent)]" : "text-neutral-400 group-hover:text-white"}`}>
                     {isCustomUiEnabled ? "Aktif" : "Bawaan Tema"}
@@ -300,34 +303,6 @@ export default function TemaPage() {
               </div>
             </div>
 
-            {/* --- SEKSI ANIMASI WAVE --- */}
-            <div>
-              <div className="flex items-center justify-between mb-3 sm:mb-4 px-1">
-                <h4 className="text-[11px] font-semibold opacity-80 uppercase tracking-wider">Animasi Wave</h4>
-                
-                {/* Toggle Tanpa Wave Kotak */}
-                <label className="flex items-center gap-2 cursor-pointer group">
-                  <span className={`text-[9px] font-medium transition-colors ${isWaveDisabled ? "text-rose-400" : "text-neutral-400 group-hover:text-white"}`}>
-                    Tanpa Wave
-                  </span>
-                  <div className="relative flex items-center">
-                    <input type="checkbox" checked={isWaveDisabled} onChange={handleWaveToggle} disabled={!isLoggedIn} className="sr-only peer" />
-                    <div className="w-8 h-4 bg-white/10 peer-focus:outline-none rounded-md peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-400 peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-sm after:h-3 after:w-3 after:transition-all peer-checked:bg-rose-500/80 disabled:opacity-50 border border-white/10"></div>
-                  </div>
-                </label>
-              </div>
-
-              <div className={`transition-all duration-300 ${(isWaveDisabled || !isCustomUiEnabled) ? "opacity-30 grayscale pointer-events-none" : ""}`}>
-                <div className={isAdmin ? "grid grid-cols-2 gap-3" : "grid grid-cols-3 gap-1.5"}>
-                  <ColorInput label="Wave Belakang" value={customColors.wave1} onChange={(v) => handleCustomColorChange("wave1", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} />
-                  <ColorInput label="Wave Tengah" value={customColors.wave2} onChange={(v) => handleCustomColorChange("wave2", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} />
-                  <div className={isAdmin ? "col-span-2 sm:col-span-1" : "col-span-1"}>
-                    <ColorInput label="Wave Depan" value={customColors.wave3} onChange={(v) => handleCustomColorChange("wave3", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} />
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <div className="h-px w-full bg-white/5" />
 
             {/* --- SEKSI WARNA PESAN OBROLAN --- */}
@@ -335,7 +310,6 @@ export default function TemaPage() {
               <div className="flex items-center justify-between mb-4 px-1">
                 <h4 className="text-[11px] font-semibold opacity-80 uppercase tracking-wider text-center sm:text-left">Warna Pesan Obrolan</h4>
                 
-                {/* Toggle Kustomisasi Warna Pesan Obrolan Kotak */}
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <span className={`text-[9px] font-medium transition-colors ${isCustomChatEnabled ? "text-[var(--accent)]" : "text-neutral-400 group-hover:text-white"}`}>
                     {isCustomChatEnabled ? "Aktif" : "Bawaan Tema"}
@@ -363,6 +337,37 @@ export default function TemaPage() {
                       <ColorInput label="Label Nama" value={adminPillColor} onChange={setAdminPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent showHex={isAdmin} />
                       <ColorInput label="Kotak Pesan" value={adminBubbleBg} onChange={setAdminBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent showHex={isAdmin} />
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px w-full bg-white/5" />
+
+            {/* --- SEKSI ANIMASI WAVE --- */}
+            <div>
+              <div className="flex items-center justify-between mb-3 sm:mb-4 px-1">
+                <h4 className="text-[11px] font-semibold opacity-80 uppercase tracking-wider">Animasi Wave</h4>
+                
+                {/* Toggle Dinamis: Dengan Wave / Tanpa Wave */}
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <span className={`text-[9px] font-medium transition-colors ${!isWaveDisabled ? "text-[var(--accent)]" : "text-neutral-400 group-hover:text-white"}`}>
+                    {!isWaveDisabled ? "Dengan Wave" : "Tanpa Wave"}
+                  </span>
+                  <div className="relative flex items-center">
+                    {/* Checkbox bernilai TRUE jika wave aktif (!isWaveDisabled) */}
+                    <input type="checkbox" checked={!isWaveDisabled} onChange={handleWaveToggle} disabled={!isLoggedIn} className="sr-only peer" />
+                    <div className="w-8 h-4 bg-white/10 peer-focus:outline-none rounded-md peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-400 peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-sm after:h-3 after:w-3 after:transition-all peer-checked:bg-[var(--accent)] disabled:opacity-50 border border-white/10"></div>
+                  </div>
+                </label>
+              </div>
+
+              <div className={`transition-all duration-300 ${(isWaveDisabled || !isCustomUiEnabled) ? "opacity-30 grayscale pointer-events-none" : ""}`}>
+                <div className={isAdmin ? "grid grid-cols-2 gap-3" : "grid grid-cols-3 gap-1.5"}>
+                  <ColorInput label="Wave Belakang" value={customColors.wave1} onChange={(v) => handleCustomColorChange("wave1", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} />
+                  <ColorInput label="Wave Tengah" value={customColors.wave2} onChange={(v) => handleCustomColorChange("wave2", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} />
+                  <div className={isAdmin ? "col-span-2 sm:col-span-1" : "col-span-1"}>
+                    <ColorInput label="Wave Depan" value={customColors.wave3} onChange={(v) => handleCustomColorChange("wave3", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} />
                   </div>
                 </div>
               </div>
