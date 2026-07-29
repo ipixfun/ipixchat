@@ -117,7 +117,6 @@ export function MessageItem({
       >
         <div className={`flex justify-between items-start ${isMinimized ? "mb-0.5" : "mb-1"}`}>
           <div className="flex items-center gap-1.5 flex-wrap">
-            {/* PILL NAMA DINAMIS: Admin khusus warna kontras/aksen, user menggunakan var(--accent) atau warna tema */}
             <b 
               onClick={(e) => { e.stopPropagation(); handleTag(m.username); }} 
               className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMinimized ? "text-[8px]" : "text-[10px]"}`}
@@ -189,7 +188,10 @@ export function MessageItem({
                   {activeMenuId === m.id && (
                     <>
                       <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} />
-                      <div className="absolute right-0 bottom-full mb-2 backdrop-blur-md shadow-xl border rounded-full z-[100] p-1.5 flex flex-row items-center gap-1 min-w-max origin-bottom-right" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
+                      
+                      {/* PERUBAHAN DI SINI: Menambahkan class bg-white dan menghapus backgroundColor dari inline style */}
+                      <div className="absolute right-0 bottom-full mb-2 bg-white backdrop-blur-md shadow-xl border rounded-full z-[100] p-1.5 flex flex-row items-center gap-1 min-w-max origin-bottom-right" style={{ borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
+                        
                         <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-3 py-1.5 text-[8px] font-black text-white bg-blue-500 hover:bg-blue-600 rounded-full shadow-sm transition-all active:scale-95">Edit</button>
                         {!isMsgAdmin && (
                           <button type="button" onClick={() => { blockUser(m.username); setActiveMenuId(null); }} className="px-3 py-1.5 text-[8px] font-black text-white bg-red-600 hover:bg-red-700 rounded-full shadow-sm transition-all active:scale-95">Blokir</button>
