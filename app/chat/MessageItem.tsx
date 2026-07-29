@@ -60,16 +60,13 @@ export function MessageItem({
       const tagColor = user.toLowerCase() === "admin" ? "text-red-600" : (authUser && user.toLowerCase() === authUser.split("●")[0].toLowerCase()) ? "text-blue-600" : "text-green-600";
       return (
         <>
-          {/* PERUBAHAN: Penambahan break-all pada box balasan (quoted) */}
           <div className={`text-[9px] opacity-70 italic bg-white/70 ${isMin ? "p-1.5" : "p-2"} rounded cursor-pointer hover:opacity-100 border-l-2 mb-1 transition-colors break-words break-all`} style={{ borderColor: "var(--accent)" }} onClick={(e) => { e.stopPropagation(); scrollToMessage(quotedText); }}>
             <span className={`font-bold ${tagColor}`}>@{user}</span>: "{applyCensor(quotedText)}"
           </div>
-          {/* PERUBAHAN: Penambahan break-all pada text */}
           <div className={`${textSize} break-words break-all`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(replyText))}</div>
         </>
       );
     }
-    {/* PERUBAHAN: Penambahan break-all pada text utama */}
     return <div className={`${textSize} break-words break-all`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(text))}</div>;
   };
 
@@ -77,10 +74,22 @@ export function MessageItem({
 
   return (
     <div id={`msg-${m.id}`} className="relative w-full">
+      {/* PERUBAHAN DI SINI: Background Swipe menjadi bg-transparent */}
       {swipingId === m.id && swipeDelta !== 0 && (
-        <div className={`absolute inset-0 flex items-center px-5 transition-colors duration-200 ${isMinimized ? "rounded-md" : "rounded-xl"} ${swipeDelta > 0 ? "bg-red-500 justify-start" : colType === "private" ? "bg-emerald-500 justify-end" : "bg-blue-500 justify-end"}`}>
-          {swipeDelta > 0 ? <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> : (
-            <div className="flex items-center gap-1 text-white font-bold text-sm opacity-90"><span>Balas</span><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg></div>
+        <div className={`absolute inset-0 flex items-center px-5 transition-colors duration-200 bg-transparent ${isMinimized ? "rounded-md" : "rounded-xl"} ${swipeDelta > 0 ? "justify-start" : "justify-end"}`}>
+          {swipeDelta > 0 ? (
+            // PERUBAHAN DI SINI: Ikon Hapus menjadi merah (text-red-600)
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600 opacity-90 drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          ) : (
+            // PERUBAHAN DI SINI: Teks & Ikon Balas mengikuti warna dinamis var(--accent)
+            <div className="flex items-center gap-1 font-bold text-sm opacity-90 drop-shadow-sm" style={{ color: "var(--accent)" }}>
+              <span>Balas</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
+            </div>
           )}
         </div>
       )}
@@ -155,7 +164,6 @@ export function MessageItem({
 
             return (
               <div className="min-w-0 flex-1">
-                {/* PERUBAHAN: Penambahan break-all pada div utama pesan */}
                 <div className={`break-words break-all whitespace-pre-wrap ${isLongText ? (isPage2Private ? "line-clamp-4" : "line-clamp-2") : ""}`} style={isLongText ? { display: '-webkit-box', WebkitLineClamp: isPage2Private ? 4 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}>
                   {renderContent(m.pesan, isMinimized)}
                 </div>
