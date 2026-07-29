@@ -60,14 +60,17 @@ export function MessageItem({
       const tagColor = user.toLowerCase() === "admin" ? "text-red-600" : (authUser && user.toLowerCase() === authUser.split("●")[0].toLowerCase()) ? "text-blue-600" : "text-green-600";
       return (
         <>
-          <div className={`text-[9px] opacity-70 italic bg-white/70 ${isMin ? "p-1.5" : "p-2"} rounded cursor-pointer hover:opacity-100 border-l-2 mb-1 transition-colors`} style={{ borderColor: "var(--accent)" }} onClick={(e) => { e.stopPropagation(); scrollToMessage(quotedText); }}>
+          {/* PERUBAHAN: Penambahan break-all pada box balasan (quoted) */}
+          <div className={`text-[9px] opacity-70 italic bg-white/70 ${isMin ? "p-1.5" : "p-2"} rounded cursor-pointer hover:opacity-100 border-l-2 mb-1 transition-colors break-words break-all`} style={{ borderColor: "var(--accent)" }} onClick={(e) => { e.stopPropagation(); scrollToMessage(quotedText); }}>
             <span className={`font-bold ${tagColor}`}>@{user}</span>: "{applyCensor(quotedText)}"
           </div>
-          <div className={`${textSize} break-words`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(replyText))}</div>
+          {/* PERUBAHAN: Penambahan break-all pada text */}
+          <div className={`${textSize} break-words break-all`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(replyText))}</div>
         </>
       );
     }
-    return <div className={`${textSize} break-words`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(text))}</div>;
+    {/* PERUBAHAN: Penambahan break-all pada text utama */}
+    return <div className={`${textSize} break-words break-all`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(text))}</div>;
   };
 
   const isOtherOnline = userStatus?.[m.username]?.online;
@@ -152,7 +155,8 @@ export function MessageItem({
 
             return (
               <div className="min-w-0 flex-1">
-                <div className={`break-words whitespace-pre-wrap ${isLongText ? (isPage2Private ? "line-clamp-4" : "line-clamp-2") : ""}`} style={isLongText ? { display: '-webkit-box', WebkitLineClamp: isPage2Private ? 4 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}>
+                {/* PERUBAHAN: Penambahan break-all pada div utama pesan */}
+                <div className={`break-words break-all whitespace-pre-wrap ${isLongText ? (isPage2Private ? "line-clamp-4" : "line-clamp-2") : ""}`} style={isLongText ? { display: '-webkit-box', WebkitLineClamp: isPage2Private ? 4 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}>
                   {renderContent(m.pesan, isMinimized)}
                 </div>
                 {isLongText && <button onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} className="text-[10px] font-black mt-1 px-2 py-0.5 rounded shadow-sm transition-colors block" style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}>Selengkapnya...</button>}
@@ -189,7 +193,6 @@ export function MessageItem({
                     <>
                       <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} />
                       
-                      {/* PERUBAHAN DI SINI: Menambahkan class bg-white dan menghapus backgroundColor dari inline style */}
                       <div className="absolute right-0 bottom-full mb-2 bg-white backdrop-blur-md shadow-xl border rounded-full z-[100] p-1.5 flex flex-row items-center gap-1 min-w-max origin-bottom-right" style={{ borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
                         
                         <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-3 py-1.5 text-[8px] font-black text-white bg-blue-500 hover:bg-blue-600 rounded-full shadow-sm transition-all active:scale-95">Edit</button>
