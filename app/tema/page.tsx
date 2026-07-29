@@ -332,8 +332,8 @@ export default function TemaPage() {
                       <div className="text-[10px] font-extrabold tracking-widest text-emerald-400 uppercase">User</div>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <ColorInput label="Nama" value={userPillColor} onChange={setUserPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
-                      <ColorInput label="Pesan" value={userBubbleBg} onChange={setUserBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
+                      <ColorInput label="Nama & Outline Box" value={userPillColor} onChange={setUserPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
+                      <ColorInput label="Background Box" value={userBubbleBg} onChange={setUserBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
                     </div>
                   </div>
                   
