@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Admin from "../../components/Admin";
 import { useTheme } from "../context/ThemeContext";
 
@@ -29,6 +29,7 @@ const FluidBottom = () => {
   const { theme, customColors } = useTheme();
   const activeWave = theme === "custom" ? { layer1: hexToRgb(customColors.wave1), layer2: hexToRgb(customColors.wave2), layer3: hexToRgb(customColors.wave3), glow: `drop-shadow(0 0 15px ${customColors.wave2}66)` } : (THEME_WAVES[theme] || THEME_WAVES["dark"]);
   const bgSize = "50% 100%";
+  
   return (
     <div className="absolute bottom-0 left-0 w-full h-[30%] overflow-hidden pointer-events-none origin-bottom animate-blob-bounce-bottom" style={{ zIndex: 1, filter: activeWave.glow }}>
       <div className="absolute bottom-0 left-0 w-[200%] h-full animate-wave" style={{ animationDuration: "14s", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,60 C300,100 300,20 600,60 C900,100 900,20 1200,60 L1200,120 Z' fill='rgba(${activeWave.layer1},0.35)'/%3E%3C/svg%3E")`, backgroundRepeat: "repeat-x", backgroundSize: bgSize }} />
@@ -39,6 +40,28 @@ const FluidBottom = () => {
 };
 
 export default function ChatLayout({ cMode, hScroll, aTab, selPrivUser, pUsers, privMsgs, renderMsgs, fmtTime, setSelPriv, onBlockUser, onDeleteAllMsgs }: any) {
+  // State untuk mengontrol visibilitas wave
+  const [isWaveDisabled, setIsWaveDisabled] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Fungsi untuk mengecek pengaturan wave saat ini dari localStorage
+    const checkWaveSetting = () => {
+      const disabled = localStorage.getItem("global_disable_wave") === "true";
+      setIsWaveDisabled(disabled);
+    };
+
+    // Jalankan pengecekan pertama kali saat mount
+    checkWaveSetting();
+
+    // Dengarkan event "globalColorChanged" (yang dipicu dari TemaPage saat tombol "Terapkan" ditekan)
+    window.addEventListener("globalColorChanged", checkWaveSetting);
+
+    // Cleanup listener
+    return () => {
+      window.removeEventListener("globalColorChanged", checkWaveSetting);
+    };
+  }, []);
+
   return (
     <>
       <style>{`
@@ -51,8 +74,10 @@ export default function ChatLayout({ cMode, hScroll, aTab, selPrivUser, pUsers, 
       `}</style>
       <div className="flex w-full h-full relative transition-all duration-500 ease-in-out">
         <div className="h-full flex flex-col w-full relative bg-transparent overflow-hidden">
-          {/* FluidTop dihapus */}
-          <FluidBottom />
+          
+          {/* Wave hanya di-render jika isWaveDisabled = false */}
+          {!isWaveDisabled && <FluidBottom />}
+          
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {aTab === "admin" && cMode === "private" && !selPrivUser ? (
               <Admin 
