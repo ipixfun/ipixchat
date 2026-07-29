@@ -13,7 +13,6 @@ export function MessageItem({
   const [touchInitialY, setTouchInitialY] = useState(0);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // State lokal untuk efek blink/menyala ketika pesan di-scroll/diklik dari kutipan
   const [isHighlighted, setIsHighlighted] = useState(false);
 
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
@@ -67,22 +66,19 @@ export function MessageItem({
   const shortBrowser = m.user_browser ? m.user_browser.split("(")[0].trim() + (m.user_browser.includes("(") ? ` (${m.user_browser.split("(")[1].split(")")[0]})` : "") : "Unknown Browser";
   const isEdited = m.is_edited === true || m.edited_by != null || (typeof window !== "undefined" ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || "0") > 0 : false);
 
-  // Fungsi kustom untuk menangani klik kutipan balasan + efek kedip menyala
   const handleQuoteClick = (quotedText: string) => {
     scrollToMessage(quotedText);
-    
-    // Trigger efek blink menyala
     setIsHighlighted(true);
     setTimeout(() => {
       setIsHighlighted(false);
-    }, 1500); // Berkedip selama 1.5 detik
+    }, 1500);
   };
 
   if (m.pesan === "___DELETED___") {
     const isDeletedByAdmin = m.deleted_by_admin === true;
     return (
       <div id={`msg-${m.id}`} className={`relative w-full flex ${isRightAligned ? "justify-end pr-3" : "justify-start pl-3"} mb-2 z-10 group`}>
-        <div className="bg-white/15 backdrop-blur-md border rounded-xl p-2.5 flex flex-col w-full max-w-[240px] shadow-sm relative" style={{ borderColor: "var(--card-border)", backgroundColor: "var(--card-bg)" }}>
+        <div className="bg-white/15 backdrop-blur-md border rounded-xl p-2.5 flex flex-col w-full max-w-[280px] shadow-sm relative" style={{ borderColor: "var(--card-border)", backgroundColor: "var(--card-bg)" }}>
           {activeTab === "admin" && <div className="absolute -top-2 -right-2 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border border-white shadow-sm z-20 cursor-help" style={{ backgroundColor: "var(--accent)" }} title="Dihapus (Dilihat oleh Admin)">X</div>}
           <div className="flex items-center gap-2">
             <span className="bg-gray-500/20 text-gray-400 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">🚫 Dihapus</span>
@@ -118,7 +114,6 @@ export function MessageItem({
       const tagColor = user.toLowerCase() === "admin" ? "text-red-600" : (authUser && user.toLowerCase() === authUser.split("●")[0].toLowerCase()) ? "text-blue-600" : "text-green-600";
       return (
         <>
-          {/* KOTAK KUTASAN: Mengikuti warna tema (background transparan kontras + border aksen) */}
           <div 
             className={`text-[10px] italic p-2 rounded cursor-pointer hover:opacity-100 border-l-4 mb-1.5 transition-colors break-words break-all shadow-inner`} 
             style={{ 
@@ -141,7 +136,8 @@ export function MessageItem({
   const activeBgColor = bubbleBg === "transparent" ? "transparent" : (bubbleBg || "var(--card-bg)");
 
   return (
-    <div id={`msg-${m.id}`} className={`relative w-full ${isRightAligned ? "pr-3" : "pl-3"} mb-2`}>
+    /* DITAMBAHKAN FLEX & ALIGNMENT AGAR TIDAK MELAR KE SELEBAR LAYAR */
+    <div id={`msg-${m.id}`} className={`relative w-full flex ${isRightAligned ? "justify-end pr-3" : "justify-start pl-3"} mb-2`}>
       {swipingId === m.id && swipeDelta !== 0 && (
         <div className={`absolute inset-0 flex items-center px-5 transition-colors duration-200 bg-transparent ${isMinimized ? "rounded-md" : "rounded-xl"} ${swipeDelta > 0 ? "justify-start" : "justify-end"}`}>
           {swipeDelta > 0 ? (
@@ -164,12 +160,12 @@ export function MessageItem({
       
       <div
         id={`msg-bubble-${m.id}`}
-        // Efek kedip menyala (highlight/pulse) menggunakan warna aksen tema ketika di-klik dari kutipan
-        className={`relative z-10 transition-all duration-300 ${
+        /* DITAMBAHKAN max-w (maksimal lebar 85%) AGAR MENYERUPAI BUBBLE WHATSAPP */
+        className={`relative z-10 transition-all duration-300 w-full max-w-[85%] sm:max-w-[70%] ${
           isMinimized 
             ? (isRightAligned ? "p-1.5 rounded-tl-md rounded-b-md rounded-tr-none" : "p-1.5 rounded-tr-md rounded-b-md rounded-tl-none")
             : (isRightAligned ? "p-3 rounded-tl-xl rounded-b-xl rounded-tr-none" : "p-3 rounded-tr-xl rounded-b-xl rounded-tl-none")
-        } border-[2px] shadow-sm w-full select-none ${isHighlighted ? "ring-4 ring-offset-2 animate-pulse scale-[1.02]" : ""}`}
+        } border-[2px] shadow-sm select-none ${isHighlighted ? "ring-4 ring-offset-2 animate-pulse scale-[1.02]" : ""}`}
         onMouseDown={(e) => { if (e.button === 0) longPressTimer.current = setTimeout(() => { handleLongPress(m); if (navigator.vibrate) navigator.vibrate(50); }, 350); }}
         onMouseMove={clearTimer}
         onMouseUp={clearTimer}
