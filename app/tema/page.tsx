@@ -28,13 +28,13 @@ const CompactToggle = ({
 }: { 
   label: string; checked: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; disabled: boolean; activeColor?: string; activeText?: string;
 }) => (
-  <label className="flex items-center gap-1.5 cursor-pointer group">
-    <span className={`text-[9px] font-bold transition-colors ${checked ? activeText : "text-neutral-400 group-hover:text-white"}`}>
+  <label className="flex items-center gap-1 cursor-pointer group">
+    <span className={`text-[8.5px] font-bold transition-colors ${checked ? activeText : "text-neutral-400 group-hover:text-white"}`}>
       {label}
     </span>
     <div className="relative flex items-center">
       <input type="checkbox" checked={checked} onChange={onChange} disabled={disabled} className="sr-only peer" />
-      <div className={`w-6 h-3 bg-black/20 dark:bg-white/10 rounded-[4px] peer-focus:outline-none peer peer-checked:after:translate-x-[12px] after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-neutral-400 peer-checked:after:bg-white after:rounded-sm after:h-2.5 after:w-2.5 after:transition-all ${checked ? activeColor : ''} disabled:opacity-50 border border-white/10 shadow-inner`}></div>
+      <div className={`w-5 h-2.5 bg-black/20 dark:bg-white/10 rounded-[4px] peer-focus:outline-none peer peer-checked:after:translate-x-[10px] after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-neutral-400 peer-checked:after:bg-white after:rounded-sm after:h-2 after:w-2 after:transition-all ${checked ? activeColor : ''} disabled:opacity-50 border border-white/10 shadow-inner`}></div>
     </div>
   </label>
 );
@@ -57,18 +57,18 @@ const ColorInput = ({
 
   if (horizontal) {
     return (
-      <div className="flex items-center justify-between bg-black/5 dark:bg-white/5 p-2 sm:p-2.5 rounded-lg border border-white/5 w-full shadow-sm gap-2">
-        <span className="text-[10px] font-bold leading-tight opacity-90 truncate" style={{ color: "var(--foreground)" }}>
+      <div className="flex items-center justify-between bg-black/5 dark:bg-white/5 p-2 rounded-lg border border-white/5 w-full shadow-sm gap-2">
+        <span className="text-[10px] font-bold leading-tight opacity-90 truncate shrink-0 w-12" style={{ color: "var(--foreground)" }}>
           {label}
         </span>
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {showHex && (
             <input 
               type="text" 
               value={isTransparent ? "trans" : value} 
               onChange={(e) => onChange(e.target.value)} 
               disabled={disabled || isTransparent}
-              className="w-14 text-center text-[9px] font-mono bg-black/10 dark:bg-white/10 border border-white/5 rounded-[4px] px-1 py-1 focus:outline-none focus:border-[var(--accent)]"
+              className="w-12 text-center text-[9px] font-mono bg-black/10 dark:bg-white/10 border border-white/5 rounded-[4px] px-1 py-1 focus:outline-none focus:border-[var(--accent)]"
             />
           )}
           <div className={`relative w-7 h-7 rounded-md overflow-hidden border border-white/10 shadow-inner transition-transform ${disabled || isTransparent ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}>
@@ -83,12 +83,12 @@ const ColorInput = ({
           </div>
 
           {allowTransparent && (
-            <label className="flex items-center gap-1.5 cursor-pointer group pl-2 border-l border-white/10" title="Atur Transparan">
+            <label className="flex items-center gap-1 cursor-pointer group pl-1.5 border-l border-white/10" title="Atur Transparan">
               <div className="relative flex items-center shrink-0">
                 <input type="checkbox" checked={isTransparent} onChange={(e) => handleTransparentToggle(e.target.checked)} disabled={disabled} className="sr-only peer" />
-                <div className="w-6 h-3 bg-black/20 dark:bg-white/10 rounded-[4px] peer-checked:bg-[var(--accent)] transition-colors after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-neutral-400 peer-checked:after:bg-white after:rounded-sm after:h-2.5 after:w-2.5 after:transition-all peer-checked:after:translate-x-[12px] disabled:opacity-50 border border-white/5 shadow-inner"></div>
+                <div className="w-5 h-2.5 bg-black/20 dark:bg-white/10 rounded-[4px] peer-checked:bg-[var(--accent)] transition-colors after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-neutral-400 peer-checked:after:bg-white after:rounded-sm after:h-2 after:w-2 after:transition-all peer-checked:after:translate-x-[10px] disabled:opacity-50 border border-white/5 shadow-inner"></div>
               </div>
-              <span className={`text-[8.5px] font-bold tracking-wide transition-colors ${isTransparent ? 'text-[var(--accent)]' : 'text-neutral-500 group-hover:text-[var(--foreground)]'}`}>
+              <span className={`text-[8px] font-bold tracking-wide transition-colors ${isTransparent ? 'text-[var(--accent)]' : 'text-neutral-500 group-hover:text-[var(--foreground)]'}`}>
                 Transparan
               </span>
             </label>
@@ -268,16 +268,18 @@ export default function TemaPage() {
 
           <div className={`p-3 sm:p-4 flex flex-col gap-4 ${!isLoggedIn && !loadingAuth ? "opacity-30 pointer-events-none blur-[2px] select-none" : ""}`}>
             
-            <div className="flex w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
               
-              <div className="w-1/2 pr-3 sm:pr-4 border-r transition-colors duration-300 flex flex-col" style={{ borderColor: "var(--card-border)" }}>
-                <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
+              <div className="pr-0 sm:pr-2 sm:border-r transition-colors duration-300 flex flex-col" style={{ borderColor: "var(--card-border)" }}>
+                <div className="flex flex-col mb-3 border-b border-white/5 pb-2 gap-1">
                   <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">WARNA TEMA</h4>
-                  <CompactToggle label={isCustomUiEnabled ? "Aktif" : "Bawaan"} checked={isCustomUiEnabled} onChange={(e) => setIsCustomUiEnabled(e.target.checked)} disabled={!isLoggedIn} />
+                  <div className="self-start">
+                    <CompactToggle label={isCustomUiEnabled ? "Aktif" : "Bawaan"} checked={isCustomUiEnabled} onChange={(e) => setIsCustomUiEnabled(e.target.checked)} disabled={!isLoggedIn} />
+                  </div>
                 </div>
                 
                 <div className={`flex-1 transition-all duration-300 ${!isCustomUiEnabled ? "opacity-30 grayscale pointer-events-none" : ""}`}>
-                  <div className="flex flex-col gap-2.5">
+                  <div className="flex flex-col gap-2">
                     <ColorInput label="Latar" value={customColors.bg} onChange={(v) => handleCustomColorChange("bg", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} horizontal />
                     <ColorInput label="Aksen" value={customColors.accent} onChange={(v) => handleCustomColorChange("accent", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} horizontal />
                     <ColorInput label="Teks Utama" value={customColors.text} onChange={(v) => handleCustomColorChange("text", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} horizontal />
@@ -285,8 +287,8 @@ export default function TemaPage() {
                 </div>
               </div>
 
-              <div className="w-1/2 pl-3 sm:pl-4 flex flex-col">
-                <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
+              <div className="pl-0 sm:pl-2 flex flex-col">
+                <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2 gap-1 flex-wrap">
                   <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">WAVE</h4>
                   <div className="flex items-center gap-2">
                     <CompactToggle label={!isWaveDisabled ? "Tampil" : "Sembunyi"} checked={!isWaveDisabled} onChange={handleWaveToggle} disabled={!isLoggedIn} />
@@ -295,7 +297,7 @@ export default function TemaPage() {
                 </div>
 
                 <div className={`flex-1 transition-all duration-300 ${(isWaveDisabled || !isCustomWaveEnabled) ? "opacity-30 grayscale pointer-events-none" : ""}`}>
-                  <div className="flex flex-col gap-2.5">
+                  <div className="flex flex-col gap-2">
                     <ColorInput label="Belakang" value={customColors.wave1} onChange={(v) => handleCustomColorChange("wave1", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
                     <ColorInput label="Tengah" value={customColors.wave2} onChange={(v) => handleCustomColorChange("wave2", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
                     <ColorInput label="Depan" value={customColors.wave3} onChange={(v) => handleCustomColorChange("wave3", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
@@ -309,13 +311,13 @@ export default function TemaPage() {
 
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">WARNA OBROLAN</h4>
+                <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">WARNA GELEMBUNG CHAT</h4>
                 <CompactToggle label={isCustomChatEnabled ? "Aktif" : "Bawaan"} checked={isCustomChatEnabled} onChange={(e) => setIsCustomChatEnabled(e.target.checked)} disabled={!isLoggedIn} />
               </div>
               
-              <div className={`transition-all duration-300 grid grid-cols-2 gap-3 sm:gap-4 ${!isCustomChatEnabled ? "opacity-30 grayscale pointer-events-none" : ""}`}>
+              <div className={`transition-all duration-300 grid grid-cols-1 sm:grid-cols-2 gap-3 ${!isCustomChatEnabled ? "opacity-30 grayscale pointer-events-none" : ""}`}>
                 
-                <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 sm:p-3 shadow-inner flex flex-col gap-2.5">
+                <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 shadow-inner flex flex-col gap-2.5">
                   <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
                     <div className="text-[10px] font-extrabold tracking-widest text-emerald-400 uppercase">User</div>
                   </div>
@@ -325,7 +327,7 @@ export default function TemaPage() {
                   </div>
                 </div>
                 
-                <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 sm:p-3 shadow-inner flex flex-col gap-2.5">
+                <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 shadow-inner flex flex-col gap-2.5">
                   <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
                     <div className="text-[10px] font-extrabold tracking-widest text-rose-400 uppercase">Admin</div>
                   </div>
