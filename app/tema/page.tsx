@@ -40,9 +40,9 @@ const CompactToggle = ({
 );
 
 const ColorInput = ({ 
-  label, value, onChange, disabled, allowTransparent, showHex, horizontal = false, hideTransparentText = false
+  label, value, onChange, disabled, allowTransparent, showHex, horizontal = false
 }: { 
-  label: string, value: string, onChange: (v: string) => void, disabled: boolean, allowTransparent?: boolean, showHex?: boolean, horizontal?: boolean, hideTransparentText?: boolean
+  label: string, value: string, onChange: (v: string) => void, disabled: boolean, allowTransparent?: boolean, showHex?: boolean, horizontal?: boolean
 }) => {
   const isTransparent = value === "transparent" || value === "";
   const hexColor = (isTransparent || !value) ? "#000000" : value.slice(0, 7);
@@ -83,16 +83,14 @@ const ColorInput = ({
           </div>
 
           {allowTransparent && (
-            <label className={`flex items-center gap-1.5 cursor-pointer group ${hideTransparentText ? 'pl-2 border-l border-white/10' : ''}`} title="Set Transparan">
+            <label className="flex items-center gap-1.5 cursor-pointer group pl-2 border-l border-white/10" title="Atur Transparan">
               <div className="relative flex items-center shrink-0">
                 <input type="checkbox" checked={isTransparent} onChange={(e) => handleTransparentToggle(e.target.checked)} disabled={disabled} className="sr-only peer" />
                 <div className="w-6 h-3 bg-black/20 dark:bg-white/10 rounded-[4px] peer-checked:bg-[var(--accent)] transition-colors after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-neutral-400 peer-checked:after:bg-white after:rounded-sm after:h-2.5 after:w-2.5 after:transition-all peer-checked:after:translate-x-[12px] disabled:opacity-50 border border-white/5 shadow-inner"></div>
               </div>
-              {!hideTransparentText && (
-                <span className={`text-[8.5px] font-bold tracking-wide transition-colors ${isTransparent ? 'text-[var(--accent)]' : 'text-neutral-500 group-hover:text-[var(--foreground)]'}`}>
-                  Transparan
-                </span>
-              )}
+              <span className={`text-[8.5px] font-bold tracking-wide transition-colors ${isTransparent ? 'text-[var(--accent)]' : 'text-neutral-500 group-hover:text-[var(--foreground)]'}`}>
+                Transparan
+              </span>
             </label>
           )}
         </div>
@@ -235,9 +233,6 @@ export default function TemaPage() {
     );
   }
 
-  const isUserTransparent = userPillColor === "transparent" || userPillColor === "" || userBubbleBg === "transparent" || userBubbleBg === "";
-  const isAdminTransparent = adminPillColor === "transparent" || adminPillColor === "" || adminBubbleBg === "transparent" || adminBubbleBg === "";
-
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px] transition-colors duration-300 bg-[var(--background)] text-[var(--foreground)]">
       
@@ -277,7 +272,7 @@ export default function TemaPage() {
               
               <div className="w-1/2 pr-3 sm:pr-4 border-r transition-colors duration-300 flex flex-col" style={{ borderColor: "var(--card-border)" }}>
                 <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
-                  <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">Warna UI</h4>
+                  <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">WARNA TEMA</h4>
                   <CompactToggle label={isCustomUiEnabled ? "Aktif" : "Bawaan"} checked={isCustomUiEnabled} onChange={(e) => setIsCustomUiEnabled(e.target.checked)} disabled={!isLoggedIn} />
                 </div>
                 
@@ -292,7 +287,7 @@ export default function TemaPage() {
 
               <div className="w-1/2 pl-3 sm:pl-4 flex flex-col">
                 <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
-                  <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">Animasi Wave</h4>
+                  <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">WAVE</h4>
                   <div className="flex items-center gap-2">
                     <CompactToggle label={!isWaveDisabled ? "Tampil" : "Sembunyi"} checked={!isWaveDisabled} onChange={handleWaveToggle} disabled={!isLoggedIn} />
                     <CompactToggle label={isCustomWaveEnabled ? "Aktif" : "Bawaan"} checked={isCustomWaveEnabled} onChange={handleCustomWaveToggle} disabled={!isLoggedIn || isWaveDisabled} />
@@ -314,31 +309,29 @@ export default function TemaPage() {
 
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">Warna Obrolan</h4>
+                <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">WARNA OBROLAN</h4>
                 <CompactToggle label={isCustomChatEnabled ? "Aktif" : "Bawaan"} checked={isCustomChatEnabled} onChange={(e) => setIsCustomChatEnabled(e.target.checked)} disabled={!isLoggedIn} />
               </div>
               
               <div className={`transition-all duration-300 grid grid-cols-2 gap-3 sm:gap-4 ${!isCustomChatEnabled ? "opacity-30 grayscale pointer-events-none" : ""}`}>
                 
-                <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2 sm:p-3 shadow-inner">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5 mb-2.5">
+                <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 sm:p-3 shadow-inner flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
                     <div className="text-[10px] font-extrabold tracking-widest text-emerald-400 uppercase">User</div>
-                    <div className={`text-[8px] font-bold uppercase tracking-widest transition-colors ${isUserTransparent ? 'text-[var(--accent)]' : 'text-neutral-500'}`}>Transparan</div>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <ColorInput label="Nama" value={userPillColor} onChange={setUserPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal hideTransparentText />
-                    <ColorInput label="Pesan" value={userBubbleBg} onChange={setUserBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal hideTransparentText />
+                    <ColorInput label="Nama" value={userPillColor} onChange={setUserPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
+                    <ColorInput label="Pesan" value={userBubbleBg} onChange={setUserBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
                   </div>
                 </div>
                 
-                <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2 sm:p-3 shadow-inner">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5 mb-2.5">
+                <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 sm:p-3 shadow-inner flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
                     <div className="text-[10px] font-extrabold tracking-widest text-rose-400 uppercase">Admin</div>
-                    <div className={`text-[8px] font-bold uppercase tracking-widest transition-colors ${isAdminTransparent ? 'text-[var(--accent)]' : 'text-neutral-500'}`}>Transparan</div>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <ColorInput label="Nama" value={adminPillColor} onChange={setAdminPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal hideTransparentText />
-                    <ColorInput label="Pesan" value={adminBubbleBg} onChange={setAdminBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal hideTransparentText />
+                    <ColorInput label="Nama" value={adminPillColor} onChange={setAdminPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
+                    <ColorInput label="Pesan" value={adminBubbleBg} onChange={setAdminBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
                   </div>
                 </div>
 
