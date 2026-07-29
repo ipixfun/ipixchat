@@ -74,16 +74,16 @@ export function MessageItem({
 
   return (
     <div id={`msg-${m.id}`} className="relative w-full">
-      {/* PERUBAHAN DI SINI: Background Swipe menjadi bg-transparent */}
       {swipingId === m.id && swipeDelta !== 0 && (
         <div className={`absolute inset-0 flex items-center px-5 transition-colors duration-200 bg-transparent ${isMinimized ? "rounded-md" : "rounded-xl"} ${swipeDelta > 0 ? "justify-start" : "justify-end"}`}>
           {swipeDelta > 0 ? (
-            // PERUBAHAN DI SINI: Ikon Hapus menjadi merah (text-red-600)
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600 opacity-90 drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <div className="flex flex-col items-center gap-0.5 text-red-600 opacity-90 drop-shadow-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span className="text-[10px] font-bold">Hapus</span>
+            </div>
           ) : (
-            // PERUBAHAN DI SINI: Teks & Ikon Balas mengikuti warna dinamis var(--accent)
             <div className="flex items-center gap-1 font-bold text-sm opacity-90 drop-shadow-sm" style={{ color: "var(--accent)" }}>
               <span>Balas</span>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
