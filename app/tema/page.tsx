@@ -12,7 +12,7 @@ interface ThemeItem {
   preview: string;
 }
 
-// Pindahkan themes ke luar fungsi komponen (Module Scope)
+// Themes di luar fungsi komponen (Module Scope)
 const themes: ThemeItem[] = [
   { id: "dark", name: "Monochrome Dark", icon: "🖤", preview: "from-neutral-800 to-black" },
   { id: "navy-electric", name: "Navy Electric", icon: "⚡", preview: "from-blue-900 to-slate-900" },
@@ -27,32 +27,30 @@ const themes: ThemeItem[] = [
 ];
 
 export default function TemaPage() {
-  const { theme, setTheme, customColors, setCustomColors, mounted } = useTheme();
+  const { theme, setTheme, customColors, setCustomColors } = useTheme();
   
+  // State untuk memastikan render sisi client sudah aktif (mencegah hydration error)
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+
   // Status Login User/Admin
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [loadingAuth, setLoadingAuth] = useState<boolean>(true);
 
   // State untuk pengaturan Pill & Box Chat (User & Admin terpisah)
-  const [userPillColor, setUserPillColor] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("global_user_pill_color") || "#10b981";
-    return "#10b981";
-  });
-  const [userBubbleBg, setUserBubbleBg] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("global_user_bubble_bg") || "";
-    return "";
-  });
-  const [adminPillColor, setAdminPillColor] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("global_admin_pill_color") || "#ef4444";
-    return "#ef4444";
-  });
-  const [adminBubbleBg, setAdminBubbleBg] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("global_admin_bubble_bg") || "";
-    return "";
-  });
+  const [userPillColor, setUserPillColor] = useState<string>("#10b981");
+  const [userBubbleBg, setUserBubbleBg] = useState<string>("");
+  const [adminPillColor, setAdminPillColor] = useState<string>("#ef4444");
+  const [adminBubbleBg, setAdminBubbleBg] = useState<string>("");
 
-  // Cek Status Login dengan Deteksi Otomatis Lebih Luas
+  // Jalankan setelah komponen mount di client
   useEffect(() => {
+    setIsMounted(true);
+
+    setUserPillColor(localStorage.getItem("global_user_pill_color") || "#10b981");
+    setUserBubbleBg(localStorage.getItem("global_user_bubble_bg") || "");
+    setAdminPillColor(localStorage.getItem("global_admin_pill_color") || "#ef4444");
+    setAdminBubbleBg(localStorage.getItem("global_admin_bubble_bg") || "");
+
     const checkAuth = () => {
       try {
         const commonKeys = [
@@ -103,7 +101,19 @@ export default function TemaPage() {
     checkAuth();
   }, []);
 
-  const activeThemeId = mounted ? theme : "dark";
+  const activeThemeId = isMounted ? theme : "dark";
+
+  // Render aman saat SSR / sebelum mount agar HTML server dan client identik
+  if (!isMounted) {
+    return (
+      <div 
+        className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px]"
+        style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}
+      >
+        <div className="p-4 text-xs">Memuat pengaturan tema...</div>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -328,16 +338,28 @@ export default function TemaPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[11px]" style={{ color: "var(--foreground)" }}>Warna Kotak Chat (Box)</span>
-                <input 
-                  type="color" 
-                  value={userBubbleBg}
-                  onChange={(e) => {
-                    setUserBubbleBg(e.target.value);
-                    localStorage.setItem("global_user_bubble_bg", e.target.value);
-                    window.dispatchEvent(new Event("globalColorChanged"));
-                  }}
-                  className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
-                />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setUserBubbleBg("");
+                      localStorage.setItem("global_user_bubble_bg", "");
+                      window.dispatchEvent(new Event("globalColorChanged"));
+                    }}
+                    className="px-2 py-1 text-[10px] font-bold rounded-lg border border-white/15 bg-white/10 hover:bg-white/20 transition-all active:scale-95 text-neutral-200"
+                  >
+                    Transparan
+                  </button>
+                  <input 
+                    type="color" 
+                    value={userBubbleBg || "#000000"}
+                    onChange={(e) => {
+                      setUserBubbleBg(e.target.value);
+                      localStorage.setItem("global_user_bubble_bg", e.target.value);
+                      window.dispatchEvent(new Event("globalColorChanged"));
+                    }}
+                    className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
+                  />
+                </div>
               </div>
             </div>
 
@@ -359,16 +381,28 @@ export default function TemaPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[11px]" style={{ color: "var(--foreground)" }}>Warna Kotak Chat (Box)</span>
-                <input 
-                  type="color" 
-                  value={adminBubbleBg}
-                  onChange={(e) => {
-                    setAdminBubbleBg(e.target.value);
-                    localStorage.setItem("global_admin_bubble_bg", e.target.value);
-                    window.dispatchEvent(new Event("globalColorChanged"));
-                  }}
-                  className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
-                />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setAdminBubbleBg("");
+                      localStorage.setItem("global_admin_bubble_bg", "");
+                      window.dispatchEvent(new Event("globalColorChanged"));
+                    }}
+                    className="px-2 py-1 text-[10px] font-bold rounded-lg border border-white/15 bg-white/10 hover:bg-white/20 transition-all active:scale-95 text-neutral-200"
+                  >
+                    Transparan
+                  </button>
+                  <input 
+                    type="color" 
+                    value={adminBubbleBg || "#000000"}
+                    onChange={(e) => {
+                      setAdminBubbleBg(e.target.value);
+                      localStorage.setItem("global_admin_bubble_bg", e.target.value);
+                      window.dispatchEvent(new Event("globalColorChanged"));
+                    }}
+                    className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
+                  />
+                </div>
               </div>
             </div>
           </div>
