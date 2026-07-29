@@ -13,10 +13,11 @@ export function MessageItem({
   const [touchInitialY, setTouchInitialY] = useState(0);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
+  // State lokal untuk efek blink/menyala ketika pesan di-scroll/diklik dari kutipan
+  const [isHighlighted, setIsHighlighted] = useState(false);
+
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
   const isMsgMine = m.username === authUser;
-  
-  // Menentukan apakah posisi bubble di kanan (admin / pesan sendiri) atau di kiri (user lain)
   const isRightAligned = isMsgAdmin || isMsgMine;
 
   const [pillColor, setPillColor] = useState(() => {
@@ -66,6 +67,17 @@ export function MessageItem({
   const shortBrowser = m.user_browser ? m.user_browser.split("(")[0].trim() + (m.user_browser.includes("(") ? ` (${m.user_browser.split("(")[1].split(")")[0]})` : "") : "Unknown Browser";
   const isEdited = m.is_edited === true || m.edited_by != null || (typeof window !== "undefined" ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || "0") > 0 : false);
 
+  // Fungsi kustom untuk menangani klik kutipan balasan + efek kedip menyala
+  const handleQuoteClick = (quotedText: string) => {
+    scrollToMessage(quotedText);
+    
+    // Trigger efek blink menyala
+    setIsHighlighted(true);
+    setTimeout(() => {
+      setIsHighlighted(false);
+    }, 1500); // Berkedip selama 1.5 detik
+  };
+
   if (m.pesan === "___DELETED___") {
     const isDeletedByAdmin = m.deleted_by_admin === true;
     return (
@@ -106,7 +118,16 @@ export function MessageItem({
       const tagColor = user.toLowerCase() === "admin" ? "text-red-600" : (authUser && user.toLowerCase() === authUser.split("●")[0].toLowerCase()) ? "text-blue-600" : "text-green-600";
       return (
         <>
-          <div className={`text-[9px] opacity-70 italic bg-white/70 ${isMin ? "p-1.5" : "p-2"} rounded cursor-pointer hover:opacity-100 border-l-2 mb-1 transition-colors break-words break-all`} style={{ borderColor: "var(--accent)" }} onClick={(e) => { e.stopPropagation(); scrollToMessage(quotedText); }}>
+          {/* KOTAK KUTASAN: Mengikuti warna tema (background transparan kontras + border aksen) */}
+          <div 
+            className={`text-[10px] italic p-2 rounded cursor-pointer hover:opacity-100 border-l-4 mb-1.5 transition-colors break-words break-all shadow-inner`} 
+            style={{ 
+              backgroundColor: "rgba(0, 0, 0, 0.25)", 
+              borderColor: "var(--accent)",
+              color: "var(--foreground)" 
+            }} 
+            onClick={(e) => { e.stopPropagation(); handleQuoteClick(quotedText); }}
+          >
             <span className={`font-bold ${tagColor}`}>@{user}</span>: "{applyCensor(quotedText)}"
           </div>
           <div className={`${textSize} break-words break-all`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(replyText))}</div>
@@ -116,7 +137,6 @@ export function MessageItem({
     return <div className={`${textSize} break-words break-all`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(text))}</div>;
   };
 
-  // Dinamis Border & Background Color untuk Bubble & Ekornya
   const activeBorderColor = pillColor === "transparent" ? "transparent" : (pillColor || (isMsgAdmin ? "var(--accent)" : isMsgMine ? "var(--accent)" : "var(--card-border)"));
   const activeBgColor = bubbleBg === "transparent" ? "transparent" : (bubbleBg || "var(--card-bg)");
 
@@ -144,12 +164,12 @@ export function MessageItem({
       
       <div
         id={`msg-bubble-${m.id}`}
-        // Styling sudut runcing: Jika di kiri, sudut kiri atas lancip (rounded-tl-none). Jika di kanan, sudut kanan atas lancip (rounded-tr-none).
-        className={`relative z-10 transition-colors duration-300 ${
+        // Efek kedip menyala (highlight/pulse) menggunakan warna aksen tema ketika di-klik dari kutipan
+        className={`relative z-10 transition-all duration-300 ${
           isMinimized 
             ? (isRightAligned ? "p-1.5 rounded-tl-md rounded-b-md rounded-tr-none" : "p-1.5 rounded-tr-md rounded-b-md rounded-tl-none")
             : (isRightAligned ? "p-3 rounded-tl-xl rounded-b-xl rounded-tr-none" : "p-3 rounded-tr-xl rounded-b-xl rounded-tl-none")
-        } border-[2px] shadow-sm w-full select-none`}
+        } border-[2px] shadow-sm w-full select-none ${isHighlighted ? "ring-4 ring-offset-2 animate-pulse scale-[1.02]" : ""}`}
         onMouseDown={(e) => { if (e.button === 0) longPressTimer.current = setTimeout(() => { handleLongPress(m); if (navigator.vibrate) navigator.vibrate(50); }, 350); }}
         onMouseMove={clearTimer}
         onMouseUp={clearTimer}
@@ -177,16 +197,16 @@ export function MessageItem({
           transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : "translateX(0px)", 
           transition: swipingId === m.id ? "none" : "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)", 
           backgroundColor: activeBgColor,
-          borderColor: activeBorderColor
+          borderColor: isHighlighted ? "var(--accent)" : activeBorderColor,
+          boxShadow: isHighlighted ? "0 0 20px var(--accent)" : undefined
         }}
       >
-        {/* === EKOR BUBBLE MERUNCING WHATSAPP (KIRI / KANAN OTOMATIS) === */}
+        {/* EKOR BUBBLE */}
         {isRightAligned ? (
           <>
-            {/* Ekor Kanan (Admin / Pesan Sendiri) */}
             <div 
               className="absolute top-[-2px] -right-[10px] w-0 h-0 border-t-[0px] border-t-transparent border-l-[10px] border-b-[14px] border-b-transparent"
-              style={{ borderLeftColor: activeBorderColor }}
+              style={{ borderLeftColor: isHighlighted ? "var(--accent)" : activeBorderColor }}
             />
             <div 
               className="absolute top-[0px] -right-[7px] w-0 h-0 z-10 border-t-[0px] border-t-transparent border-l-[10px] border-b-[12px] border-b-transparent"
@@ -195,10 +215,9 @@ export function MessageItem({
           </>
         ) : (
           <>
-            {/* Ekor Kiri (User Lain) */}
             <div 
               className="absolute top-[-2px] -left-[10px] w-0 h-0 border-t-[0px] border-t-transparent border-r-[10px] border-b-[14px] border-b-transparent"
-              style={{ borderRightColor: activeBorderColor }}
+              style={{ borderRightColor: isHighlighted ? "var(--accent)" : activeBorderColor }}
             />
             <div 
               className="absolute top-[0px] -left-[7px] w-0 h-0 z-10 border-t-[0px] border-t-transparent border-r-[10px] border-b-[12px] border-b-transparent"
@@ -206,7 +225,6 @@ export function MessageItem({
             />
           </>
         )}
-        {/* === SELESAI EKOR BUBBLE === */}
 
         <div className={`flex justify-between items-center ${isMinimized ? "mb-0.5" : "mb-1"}`}>
           <div className="flex items-center gap-1.5 flex-wrap relative z-20">
