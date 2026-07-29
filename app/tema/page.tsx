@@ -130,10 +130,10 @@ export default function TemaPage() {
   const [isWaveDisabled, setIsWaveDisabled] = useState<boolean>(false);
   const [isCustomWaveEnabled, setIsCustomWaveEnabled] = useState<boolean>(false);
 
-  // Collapse / Minimize States for each section
-  const [isThemeCollapsed, setIsThemeCollapsed] = useState<boolean>(false);
-  const [isWaveCollapsed, setIsWaveCollapsed] = useState<boolean>(false);
-  const [isChatCollapsed, setIsChatCollapsed] = useState<boolean>(false);
+  // Collapse / Minimize States (Default true / minimized if locked)
+  const [isThemeCollapsed, setIsThemeCollapsed] = useState<boolean>(true);
+  const [isWaveCollapsed, setIsWaveCollapsed] = useState<boolean>(true);
+  const [isChatCollapsed, setIsChatCollapsed] = useState<boolean>(true);
 
   const [isApplied, setIsApplied] = useState<boolean>(false);
 
@@ -168,6 +168,17 @@ export default function TemaPage() {
 
         setIsLoggedIn(foundLogin);
         setIsAdmin(foundAdmin);
+
+        // Jika terkunci, pastikan semua bagian ter-minimize
+        if (!foundLogin) {
+          setIsThemeCollapsed(true);
+          setIsWaveCollapsed(true);
+          setIsChatCollapsed(true);
+        } else {
+          setIsThemeCollapsed(false);
+          setIsWaveCollapsed(false);
+          setIsChatCollapsed(false);
+        }
       } catch (err) {
         console.error("Auth check failed:", err);
       } finally {
@@ -279,7 +290,7 @@ export default function TemaPage() {
                 className="flex items-center justify-between cursor-pointer select-none pb-2 border-b border-white/5"
                 onClick={() => setIsThemeCollapsed(!isThemeCollapsed)}
               >
-                <div className="flex items-center justify-between w-full pr-2">
+                <div className="flex items-center justify-between w-full pr-3">
                   <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">
                     WARNA TEMA
                   </h4>
@@ -307,7 +318,7 @@ export default function TemaPage() {
                 className="flex items-center justify-between cursor-pointer select-none pb-2 border-b border-white/5"
                 onClick={() => setIsWaveCollapsed(!isWaveCollapsed)}
               >
-                <div className="flex items-center justify-between w-full pr-2 flex-wrap gap-1">
+                <div className="flex items-center justify-between w-full pr-3 flex-wrap gap-1">
                   <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">
                     WAVE
                   </h4>
@@ -336,7 +347,7 @@ export default function TemaPage() {
                 className="flex items-center justify-between cursor-pointer select-none pb-2 border-b border-white/5"
                 onClick={() => setIsChatCollapsed(!isChatCollapsed)}
               >
-                <div className="flex items-center justify-between w-full pr-2">
+                <div className="flex items-center justify-between w-full pr-3">
                   <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">
                     WARNA GELEMBUNG CHAT
                   </h4>
