@@ -58,7 +58,7 @@ const ColorInput = ({
   if (horizontal) {
     return (
       <div className="flex items-center justify-between bg-black/5 dark:bg-white/5 p-2 rounded-lg border border-white/5 w-full shadow-sm gap-2">
-        <span className="text-[10px] font-bold leading-tight opacity-90 truncate shrink-0 w-16" style={{ color: "var(--foreground)" }}>
+        <span className="text-[10px] font-bold leading-tight opacity-90 truncate shrink-0 w-28" style={{ color: "var(--foreground)" }}>
           {label}
         </span>
         <div className="flex items-center gap-2 shrink-0">
@@ -307,7 +307,7 @@ export default function TemaPage() {
               )}
             </div>
 
-            {/* BAGIAN 2: GELEMBUNG CHAT (Dipindah ke atas Wave) */}
+            {/* BAGIAN 2: GELEMBUNG CHAT */}
             <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-xl p-2.5 sm:p-3">
               <div 
                 className="flex items-center justify-between cursor-pointer select-none pb-2 border-b border-white/5"
@@ -342,8 +342,8 @@ export default function TemaPage() {
                       <div className="text-[10px] font-extrabold tracking-widest text-rose-400 uppercase">Admin</div>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <ColorInput label="Nama" value={adminPillColor} onChange={setAdminPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
-                      <ColorInput label="Pesan" value={adminBubbleBg} onChange={setAdminBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
+                      <ColorInput label="Nama & Outline Box" value={adminPillColor} onChange={setAdminPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
+                      <ColorInput label="Background Box" value={adminBubbleBg} onChange={setAdminBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent horizontal />
                     </div>
                   </div>
 
