@@ -14,6 +14,10 @@ export function MessageItem({
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
+  const isMsgMine = m.username === authUser;
+  
+  // Menentukan apakah posisi bubble di kanan (admin / pesan sendiri) atau di kiri (user lain)
+  const isRightAligned = isMsgAdmin || isMsgMine;
 
   const [pillColor, setPillColor] = useState(() => {
     if (typeof window !== "undefined") {
@@ -60,13 +64,12 @@ export function MessageItem({
 
   const clearTimer = () => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } };
   const shortBrowser = m.user_browser ? m.user_browser.split("(")[0].trim() + (m.user_browser.includes("(") ? ` (${m.user_browser.split("(")[1].split(")")[0]})` : "") : "Unknown Browser";
-  const isMsgMine = m.username === authUser;
   const isEdited = m.is_edited === true || m.edited_by != null || (typeof window !== "undefined" ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || "0") > 0 : false);
 
   if (m.pesan === "___DELETED___") {
     const isDeletedByAdmin = m.deleted_by_admin === true;
     return (
-      <div id={`msg-${m.id}`} className="relative w-full flex justify-start mb-2 z-10 px-2 group">
+      <div id={`msg-${m.id}`} className={`relative w-full flex ${isRightAligned ? "justify-end pr-3" : "justify-start pl-3"} mb-2 z-10 group`}>
         <div className="bg-white/15 backdrop-blur-md border rounded-xl p-2.5 flex flex-col w-full max-w-[240px] shadow-sm relative" style={{ borderColor: "var(--card-border)", backgroundColor: "var(--card-bg)" }}>
           {activeTab === "admin" && <div className="absolute -top-2 -right-2 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border border-white shadow-sm z-20 cursor-help" style={{ backgroundColor: "var(--accent)" }} title="Dihapus (Dilihat oleh Admin)">X</div>}
           <div className="flex items-center gap-2">
@@ -113,8 +116,12 @@ export function MessageItem({
     return <div className={`${textSize} break-words break-all`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(text))}</div>;
   };
 
+  // Dinamis Border & Background Color untuk Bubble & Ekornya
+  const activeBorderColor = pillColor === "transparent" ? "transparent" : (pillColor || (isMsgAdmin ? "var(--accent)" : isMsgMine ? "var(--accent)" : "var(--card-border)"));
+  const activeBgColor = bubbleBg === "transparent" ? "transparent" : (bubbleBg || "var(--card-bg)");
+
   return (
-    <div id={`msg-${m.id}`} className="relative w-full">
+    <div id={`msg-${m.id}`} className={`relative w-full ${isRightAligned ? "pr-3" : "pl-3"} mb-2`}>
       {swipingId === m.id && swipeDelta !== 0 && (
         <div className={`absolute inset-0 flex items-center px-5 transition-colors duration-200 bg-transparent ${isMinimized ? "rounded-md" : "rounded-xl"} ${swipeDelta > 0 ? "justify-start" : "justify-end"}`}>
           {swipeDelta > 0 ? (
@@ -137,7 +144,12 @@ export function MessageItem({
       
       <div
         id={`msg-bubble-${m.id}`}
-        className={`relative z-10 transition-colors duration-300 ${isMinimized ? "p-1.5 rounded-md" : "p-3 rounded-xl"} border-[2px] shadow-sm w-full select-none`}
+        // Styling sudut runcing: Jika di kiri, sudut kiri atas lancip (rounded-tl-none). Jika di kanan, sudut kanan atas lancip (rounded-tr-none).
+        className={`relative z-10 transition-colors duration-300 ${
+          isMinimized 
+            ? (isRightAligned ? "p-1.5 rounded-tl-md rounded-b-md rounded-tr-none" : "p-1.5 rounded-tr-md rounded-b-md rounded-tl-none")
+            : (isRightAligned ? "p-3 rounded-tl-xl rounded-b-xl rounded-tr-none" : "p-3 rounded-tr-xl rounded-b-xl rounded-tl-none")
+        } border-[2px] shadow-sm w-full select-none`}
         onMouseDown={(e) => { if (e.button === 0) longPressTimer.current = setTimeout(() => { handleLongPress(m); if (navigator.vibrate) navigator.vibrate(50); }, 350); }}
         onMouseMove={clearTimer}
         onMouseUp={clearTimer}
@@ -164,12 +176,40 @@ export function MessageItem({
         style={{ 
           transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : "translateX(0px)", 
           transition: swipingId === m.id ? "none" : "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)", 
-          backgroundColor: bubbleBg === "transparent" ? "transparent" : (bubbleBg || "var(--card-bg)"),
-          borderColor: pillColor === "transparent" ? "transparent" : (pillColor || (isMsgAdmin ? "var(--accent)" : isMsgMine ? "var(--accent)" : "var(--card-border)"))
+          backgroundColor: activeBgColor,
+          borderColor: activeBorderColor
         }}
       >
+        {/* === EKOR BUBBLE MERUNCING WHATSAPP (KIRI / KANAN OTOMATIS) === */}
+        {isRightAligned ? (
+          <>
+            {/* Ekor Kanan (Admin / Pesan Sendiri) */}
+            <div 
+              className="absolute top-[-2px] -right-[10px] w-0 h-0 border-t-[0px] border-t-transparent border-l-[10px] border-b-[14px] border-b-transparent"
+              style={{ borderLeftColor: activeBorderColor }}
+            />
+            <div 
+              className="absolute top-[0px] -right-[7px] w-0 h-0 z-10 border-t-[0px] border-t-transparent border-l-[10px] border-b-[12px] border-b-transparent"
+              style={{ borderLeftColor: activeBgColor }}
+            />
+          </>
+        ) : (
+          <>
+            {/* Ekor Kiri (User Lain) */}
+            <div 
+              className="absolute top-[-2px] -left-[10px] w-0 h-0 border-t-[0px] border-t-transparent border-r-[10px] border-b-[14px] border-b-transparent"
+              style={{ borderRightColor: activeBorderColor }}
+            />
+            <div 
+              className="absolute top-[0px] -left-[7px] w-0 h-0 z-10 border-t-[0px] border-t-transparent border-r-[10px] border-b-[12px] border-b-transparent"
+              style={{ borderRightColor: activeBgColor }}
+            />
+          </>
+        )}
+        {/* === SELESAI EKOR BUBBLE === */}
+
         <div className={`flex justify-between items-center ${isMinimized ? "mb-0.5" : "mb-1"}`}>
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap relative z-20">
             <b 
               onClick={(e) => { e.stopPropagation(); handleTag(m.username); }} 
               className={`px-2.5 py-1 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMinimized ? "text-[8px] px-2 py-0.5" : "text-[10px]"}`}
@@ -179,7 +219,7 @@ export function MessageItem({
             </b>
           </div>
           
-          <div className="flex items-center shrink-0">
+          <div className="flex items-center shrink-0 relative z-20">
             {isMsgAdmin ? (
               <span className={`px-2.5 py-1 rounded-full bg-black/20 text-[9px] ${isAdminOnline ? "text-green-400 font-bold" : "opacity-60"}`}>{isAdminOnline ? "Online" : adminOfflineTime}</span>
             ) : (
@@ -188,7 +228,7 @@ export function MessageItem({
           </div>
         </div>
 
-        <div className="flex items-start gap-3 mt-1.5 mb-1">
+        <div className="flex items-start gap-3 mt-1.5 mb-1 relative z-20">
           {m.image_url && (
             <div className="relative cursor-zoom-in group shrink-0 w-max">
               <img src={m.image_url} alt="attachment" onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? "w-16 h-16" : "w-24 h-24 sm:w-28 sm:h-28"} ${showBlurred ? "blur-md" : ""}`} loading="lazy" />
@@ -204,7 +244,7 @@ export function MessageItem({
             const isLongText = paragraphs.length > maxLines || m.pesan.length > maxChars;
 
             return (
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 relative z-20">
                 <div className={`break-words break-all whitespace-pre-wrap ${isLongText ? (isPage2Private ? "line-clamp-4" : "line-clamp-2") : ""}`} style={isLongText ? { display: '-webkit-box', WebkitLineClamp: isPage2Private ? 4 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}>
                   {renderContent(m.pesan, isMinimized)}
                 </div>
@@ -214,7 +254,7 @@ export function MessageItem({
           })()}
         </div>
 
-        <div className={`${isMinimized ? "mt-1 pt-1" : "mt-2 pt-2"} border-t border-black/10 flex justify-between items-center gap-3`}>
+        <div className={`${isMinimized ? "mt-1 pt-1" : "mt-2 pt-2"} border-t border-black/10 flex justify-between items-center gap-3 relative z-20`}>
           <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end items-start text-left">
             {isEdited && (
               <div className="flex items-center flex-wrap gap-1 mt-0.5">
