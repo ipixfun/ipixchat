@@ -23,15 +23,15 @@ export function MessageItem({
     const isDeletedByAdmin = m.deleted_by_admin === true;
     return (
       <div id={`msg-${m.id}`} className="relative w-full flex justify-start mb-2 z-10 px-2 group">
-        <div className="bg-white/10 backdrop-blur-md border rounded-xl p-2.5 flex flex-col w-full max-w-[240px] shadow-sm relative" style={{ borderColor: "var(--card-border)" }}>
-          {activeTab === "admin" && <div className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border border-white shadow-sm z-20 cursor-help" title="Dihapus (Dilihat oleh Admin)">X</div>}
+        <div className="bg-white/15 backdrop-blur-md border rounded-xl p-2.5 flex flex-col w-full max-w-[240px] shadow-sm relative" style={{ borderColor: "var(--card-border)", backgroundColor: "var(--card-bg)" }}>
+          {activeTab === "admin" && <div className="absolute -top-2 -right-2 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border border-white shadow-sm z-20 cursor-help" style={{ backgroundColor: "var(--accent)" }} title="Dihapus (Dilihat oleh Admin)">X</div>}
           <div className="flex items-center gap-2">
             <span className="bg-gray-500/20 text-gray-400 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">🚫 Dihapus</span>
-            <span className={`text-[10px] font-bold ${isDeletedByAdmin ? "text-red-600" : "text-blue-600"}`}>oleh {isDeletedByAdmin ? "Admin" : m.username}</span>
+            <span className="text-[10px] font-bold" style={{ color: isDeletedByAdmin ? "var(--accent)" : "var(--foreground)" }}>oleh {isDeletedByAdmin ? "Admin" : m.username}</span>
           </div>
-          <div className="text-[8px] text-gray-500 mt-1 flex items-center gap-1 font-mono"><span>{formatMessageTime(m.created_at)}</span></div>
+          <div className="text-[8px] opacity-60 mt-1 flex items-center gap-1 font-mono"><span>{formatMessageTime(m.created_at)}</span></div>
           {activeTab === "admin" && (
-            <button onClick={(e) => { e.stopPropagation(); deleteMsg(m, false); }} className="absolute right-2 top-2 text-[14px] bg-red-100/80 hover:bg-red-200 text-red-600 w-7 h-7 flex items-center justify-center rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all transform active:scale-95" title="Hapus Permanen dari Database">🗑️</button>
+            <button onClick={(e) => { e.stopPropagation(); deleteMsg(m, false); }} className="absolute right-2 top-2 text-[14px] hover:opacity-80 w-7 h-7 flex items-center justify-center rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all transform active:scale-95" style={{ backgroundColor: "var(--accent)", color: "var(--background)" }} title="Hapus Permanen dari Database">🗑️</button>
           )}
         </div>
       </div>
@@ -60,18 +60,17 @@ export function MessageItem({
       const tagColor = user.toLowerCase() === "admin" ? "text-red-600" : (authUser && user.toLowerCase() === authUser.split("●")[0].toLowerCase()) ? "text-blue-600" : "text-green-600";
       return (
         <>
-          <div className={`text-[9px] text-gray-500 italic bg-white/70 ${isMin ? "p-1.5" : "p-2"} rounded cursor-pointer hover:bg-gray-200 border-l-2 mb-1 transition-colors`} style={{ borderColor: "var(--accent)" }} onClick={(e) => { e.stopPropagation(); scrollToMessage(quotedText); }}>
+          <div className={`text-[9px] opacity-70 italic bg-white/70 ${isMin ? "p-1.5" : "p-2"} rounded cursor-pointer hover:opacity-100 border-l-2 mb-1 transition-colors`} style={{ borderColor: "var(--accent)" }} onClick={(e) => { e.stopPropagation(); scrollToMessage(quotedText); }}>
             <span className={`font-bold ${tagColor}`}>@{user}</span>: "{applyCensor(quotedText)}"
           </div>
-          <div className={`${textSize} text-gray-800 break-words`}>{renderTextWithTags(applyCensor(replyText))}</div>
+          <div className={`${textSize} break-words`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(replyText))}</div>
         </>
       );
     }
-    return <div className={`${textSize} text-gray-800 break-words`}>{renderTextWithTags(applyCensor(text))}</div>;
+    return <div className={`${textSize} break-words`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(text))}</div>;
   };
 
   const isOtherOnline = userStatus?.[m.username]?.online;
-  const pillColor = isMsgAdmin ? "bg-red-600" : isMsgMine ? "bg-blue-600" : isOtherOnline ? "bg-green-600" : "bg-gray-700";
 
   return (
     <div id={`msg-${m.id}`} className="relative w-full">
@@ -85,7 +84,7 @@ export function MessageItem({
       
       <div
         id={`msg-bubble-${m.id}`}
-        className={`relative z-10 ${bgBubbleClass} transition-colors duration-300 ${isMinimized ? "p-1.5 rounded-md" : "p-3 rounded-xl"} border-[2px] shadow-sm w-full select-none`}
+        className={`relative z-10 transition-colors duration-300 ${isMinimized ? "p-1.5 rounded-md" : "p-3 rounded-xl"} border-[2px] shadow-sm w-full select-none`}
         onMouseDown={(e) => { if (e.button === 0) longPressTimer.current = setTimeout(() => { handleLongPress(m); if (navigator.vibrate) navigator.vibrate(50); }, 350); }}
         onMouseMove={clearTimer}
         onMouseUp={clearTimer}
@@ -112,19 +111,27 @@ export function MessageItem({
         style={{ 
           transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : "translateX(0px)", 
           transition: swipingId === m.id ? "none" : "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)", 
+          backgroundColor: "var(--card-bg)",
           borderColor: isMsgAdmin ? "var(--accent)" : isMsgMine ? "var(--accent)" : "var(--card-border)" 
         }}
       >
         <div className={`flex justify-between items-start ${isMinimized ? "mb-0.5" : "mb-1"}`}>
           <div className="flex items-center gap-1.5 flex-wrap">
-            <b onClick={(e) => { e.stopPropagation(); handleTag(m.username); }} className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${pillColor} ${isMinimized ? "text-[8px]" : "text-[10px]"}`}>{m.username}</b>
-            {m.is_private && !isMinimized && <span className={`text-[10px] ${isMsgAdmin ? "text-red-500" : "text-emerald-600"}`}>🔒 Private</span>}
+            {/* PILL NAMA DINAMIS: Admin khusus warna kontras/aksen, user menggunakan var(--accent) atau warna tema */}
+            <b 
+              onClick={(e) => { e.stopPropagation(); handleTag(m.username); }} 
+              className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMinimized ? "text-[8px]" : "text-[10px]"}`}
+              style={{ backgroundColor: isMsgAdmin ? "#dc2626" : "var(--accent)", color: "var(--background)" }}
+            >
+              {m.username}
+            </b>
+            {m.is_private && !isMinimized && <span className={`text-[10px]`} style={{ color: isMsgAdmin ? "#dc2626" : "var(--accent)" }}>🔒 Private</span>}
           </div>
           <div className="text-right shrink-0">
             {isMsgAdmin ? (
-              <span className={`px-1.5 py-0.5 rounded bg-white/60 text-[8px] ${isAdminOnline ? "text-green-600 font-bold" : "text-gray-500"}`}>{isAdminOnline ? "Online" : adminOfflineTime}</span>
+              <span className={`px-1.5 py-0.5 rounded bg-black/20 text-[8px] ${isAdminOnline ? "text-green-400 font-bold" : "opacity-60"}`}>{isAdminOnline ? "Online" : adminOfflineTime}</span>
             ) : (
-              userStatus[m.username] && <span className={`px-1.5 py-0.5 rounded bg-white/60 text-[8px] ${userStatus[m.username].online ? "text-green-600 font-bold" : "text-gray-500"}`}>{userStatus[m.username].online ? "Online" : userStatus[m.username].offlineTime}</span>
+              userStatus[m.username] && <span className={`px-1.5 py-0.5 rounded bg-black/20 text-[8px] ${userStatus[m.username].online ? "text-green-400 font-bold" : "opacity-60"}`}>{userStatus[m.username].online ? "Online" : userStatus[m.username].offlineTime}</span>
             )}
           </div>
         </div>
@@ -134,7 +141,7 @@ export function MessageItem({
             <div className="relative cursor-zoom-in group shrink-0 w-max">
               <img src={m.image_url} alt="attachment" onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? "w-16 h-16" : "w-24 h-24 sm:w-28 sm:h-28"} ${showBlurred ? "blur-md" : ""}`} loading="lazy" />
               {showBlurred && <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg pointer-events-none"><span className="text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-1 bg-black/60 rounded text-center leading-tight">Menunggu<br />Persetujuan</span></div>}
-              {needsApproval && activeTab === "admin" && <button onClick={(e) => { e.stopPropagation(); approveImage(m.id); }} className="absolute -top-2 -right-2 bg-green-500 hover:bg-green-600 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-md active:scale-95 transition-all">Setujui</button>}
+              {needsApproval && activeTab === "admin" && <button onClick={(e) => { e.stopPropagation(); approveImage(m.id); }} className="absolute -top-2 -right-2 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-md active:scale-95 transition-all" style={{ backgroundColor: "var(--accent)" }}>Setujui</button>}
             </div>
           )}
           
@@ -149,7 +156,7 @@ export function MessageItem({
                 <div className={`break-words whitespace-pre-wrap ${isLongText ? (isPage2Private ? "line-clamp-4" : "line-clamp-2") : ""}`} style={isLongText ? { display: '-webkit-box', WebkitLineClamp: isPage2Private ? 4 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}>
                   {renderContent(m.pesan, isMinimized)}
                 </div>
-                {isLongText && <button onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} className="text-blue-600 hover:text-blue-800 text-[10px] font-black mt-1 bg-white/50 px-2 py-0.5 rounded shadow-sm transition-colors block">Selengkapnya...</button>}
+                {isLongText && <button onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} className="text-[10px] font-black mt-1 px-2 py-0.5 rounded shadow-sm transition-colors block" style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}>Selengkapnya...</button>}
               </div>
             );
           })()}
@@ -159,30 +166,30 @@ export function MessageItem({
           <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end items-start text-left">
             {isEdited && (
               <div className="flex items-center flex-wrap gap-1 mt-0.5">
-                <span className="text-yellow-600 font-black text-[9px] lowercase bg-yellow-100/70 px-1 rounded shadow-sm">(edited)</span>
-                {m.edited_by && <span className={`text-[9px] font-bold ${m.edited_by === "Admin●ipix.my.id" ? "text-red-600" : "text-blue-600"}`}>oleh {m.edited_by === "Admin●ipix.my.id" ? "Admin" : m.edited_by.split("●")[0]}</span>}
+                <span className="text-yellow-500 font-black text-[9px] lowercase bg-yellow-500/10 px-1 rounded shadow-sm">(edited)</span>
+                {m.edited_by && <span className="text-[9px] font-bold" style={{ color: m.edited_by === "Admin●ipix.my.id" ? "#dc2626" : "var(--accent)" }}>oleh {m.edited_by === "Admin●ipix.my.id" ? "Admin" : m.edited_by.split("●")[0]}</span>}
               </div>
             )}
-            {m.is_private && isMinimized && <span className={`text-[8px] font-bold ${isMsgAdmin ? "text-red-500" : "text-emerald-600"}`}>🔒 Private</span>}
+            {m.is_private && isMinimized && <span className={`text-[8px] font-bold`} style={{ color: isMsgAdmin ? "#dc2626" : "var(--accent)" }}>🔒 Private</span>}
             {activeTab === "admin" && (
-              <div className="flex flex-col gap-1 text-[8px] text-gray-400 font-sans w-full">
-                <span className="text-orange-600 truncate font-medium max-w-[200px]" title={m.user_browser || ""}>🌐 {shortBrowser}</span>
+              <div className="flex flex-col gap-1 text-[8px] opacity-60 font-sans w-full">
+                <span className="truncate font-medium max-w-[200px]" title={m.user_browser || ""}>🌐 {shortBrowser}</span>
               </div>
             )}
           </div>
           
           <div className="flex flex-col items-end gap-1 shrink-0 pb-0.5">
-            <span className="text-[8px] text-gray-400 font-bold bg-white/50 px-1 rounded">{formatMessageTime(m.created_at)}</span>
+            <span className="text-[8px] opacity-60 font-bold px-1 rounded">{formatMessageTime(m.created_at)}</span>
             <div className="flex items-center gap-2 text-[10px]">
-              {!isMinimized && <button type="button" onClick={(e) => { e.stopPropagation(); handleReply(m); }} className={`font-bold underline mr-1 transition-colors ${colType === "private" ? "text-emerald-600 hover:text-emerald-700" : "text-blue-600 hover:text-blue-700"}`}>Balas</button>}
+              {!isMinimized && <button type="button" onClick={(e) => { e.stopPropagation(); handleReply(m); }} className={`font-bold underline mr-1 transition-colors`} style={{ color: "var(--accent)" }}>Balas</button>}
               
               {activeTab === "admin" && (
                 <div className="relative flex items-center">
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId !== m.id ? m.id : null); }} className="text-gray-500 hover:text-gray-800 text-base font-bold px-2 py-1 rounded hover:bg-white/50 transition-colors">⋮</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId !== m.id ? m.id : null); }} className="text-base font-bold px-2 py-1 rounded transition-colors" style={{ color: "var(--foreground)" }}>⋮</button>
                   {activeMenuId === m.id && (
                     <>
                       <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} />
-                      <div className="absolute right-0 bottom-full mb-2 bg-gray/95 backdrop-blur-md shadow-xl border border-gray-200 rounded-full z-[100] p-1.5 flex flex-row items-center gap-1 min-w-max origin-bottom-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="absolute right-0 bottom-full mb-2 backdrop-blur-md shadow-xl border rounded-full z-[100] p-1.5 flex flex-row items-center gap-1 min-w-max origin-bottom-right" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
                         <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-3 py-1.5 text-[8px] font-black text-white bg-blue-500 hover:bg-blue-600 rounded-full shadow-sm transition-all active:scale-95">Edit</button>
                         {!isMsgAdmin && (
                           <button type="button" onClick={() => { blockUser(m.username); setActiveMenuId(null); }} className="px-3 py-1.5 text-[8px] font-black text-white bg-red-600 hover:bg-red-700 rounded-full shadow-sm transition-all active:scale-95">Blokir</button>

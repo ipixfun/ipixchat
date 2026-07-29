@@ -25,17 +25,6 @@ const THEME_WAVES: Record<string, { layer1: string; layer2: string; layer3: stri
   "cyber-neon": { layer1: "127, 86, 255", layer2: "128, 255, 86", layer3: "43, 45, 49", glow: "drop-shadow(0 0 15px rgba(127,86,255,0.5))" }
 };
 
-const FluidTop = () => {
-  const { theme, customColors } = useTheme();
-  const activeWave = theme === "custom" ? { layer1: hexToRgb(customColors.wave1), layer2: hexToRgb(customColors.wave2), layer3: hexToRgb(customColors.wave3), glow: `drop-shadow(0 0 15px ${customColors.wave2}66)` } : (THEME_WAVES[theme] || THEME_WAVES["dark"]);
-  return (
-    <div className="absolute top-0 left-0 w-full h-[8%] overflow-hidden pointer-events-none origin-top animate-blob-bounce-top" style={{ zIndex: 1, filter: activeWave.glow }}>
-      <div className="absolute bottom-0 left-0 w-[200%] h-full animate-wave" style={{ animationDuration: "12s", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0 L0,60 C150,20 350,120 600,60 C850,0 1050,100 1200,60 L1200,0 Z' fill='rgba(${activeWave.layer1},0.4)'/%3E%3C/svg%3E")`, backgroundRepeat: "repeat-x", backgroundSize: "50% 100%" }} />
-      <div className="absolute bottom-0 left-0 w-[200%] h-full animate-wave-reverse" style={{ animationDuration: "15s", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0 L0,40 C200,100 400,0 600,40 C800,80 1000,-20 1200,40 L1200,0 Z' fill='rgba(${activeWave.layer2},0.7)'/%3E%3C/svg%3E")`, backgroundRepeat: "repeat-x", backgroundSize: "50% 100%" }} />
-    </div>
-  );
-};
-
 const FluidBottom = () => {
   const { theme, customColors } = useTheme();
   const activeWave = theme === "custom" ? { layer1: hexToRgb(customColors.wave1), layer2: hexToRgb(customColors.wave2), layer3: hexToRgb(customColors.wave3), glow: `drop-shadow(0 0 15px ${customColors.wave2}66)` } : (THEME_WAVES[theme] || THEME_WAVES["dark"]);
@@ -57,14 +46,12 @@ export default function ChatLayout({ cMode, hScroll, aTab, selPrivUser, pUsers, 
         @keyframes wave-reverse { from { transform: translateX(-50%); } to { transform: translateX(0); } }
         .animate-wave { animation: wave linear infinite; }
         .animate-wave-reverse { animation: wave-reverse linear infinite; }
-        @keyframes blob-bounce-top { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.3); } }
         @keyframes blob-bounce-bottom { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.15); } }
-        .animate-blob-bounce-top { animation: blob-bounce-top 6s ease-in-out infinite; }
         .animate-blob-bounce-bottom { animation: blob-bounce-bottom 8s ease-in-out infinite; }
       `}</style>
       <div className="flex w-full h-full relative transition-all duration-500 ease-in-out">
         <div className="h-full flex flex-col w-full relative bg-transparent overflow-hidden">
-          <FluidTop />
+          {/* FluidTop dihapus */}
           <FluidBottom />
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {aTab === "admin" && cMode === "private" && !selPrivUser ? (
