@@ -23,88 +23,76 @@ const themes: ThemeItem[] = [
   { id: "cyber-neon", name: "Cyber Neon", preview: "from-zinc-800 to-zinc-950" },
 ];
 
-// Komponen Palet Warna Dinamis
-const ColorInput = ({ 
-  label, 
-  value, 
-  onChange, 
-  disabled,
-  allowTransparent,
-  showHex 
+// Komponen Toggle Ringkas Berbentuk Kotak
+const CompactToggle = ({ 
+  label, checked, onChange, disabled, activeColor = "bg-[var(--accent)]", activeText = "text-[var(--accent)]" 
 }: { 
-  label: string, 
-  value: string, 
-  onChange: (v: string) => void, 
-  disabled: boolean,
-  allowTransparent?: boolean,
-  showHex?: boolean
+  label: string; checked: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; disabled: boolean; activeColor?: string; activeText?: string;
+}) => (
+  <label className="flex items-center gap-1.5 cursor-pointer group">
+    <span className={`text-[9px] font-medium transition-colors ${checked ? activeText : "text-neutral-400 group-hover:text-white"}`}>
+      {label}
+    </span>
+    <div className="relative flex items-center">
+      <input type="checkbox" checked={checked} onChange={onChange} disabled={disabled} className="sr-only peer" />
+      <div className={`w-6 h-3 bg-black/20 dark:bg-white/10 rounded-[4px] peer-focus:outline-none peer peer-checked:after:translate-x-[12px] after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-neutral-400 peer-checked:after:bg-white after:rounded-sm after:h-2.5 after:w-2.5 after:transition-all ${checked ? activeColor : ''} disabled:opacity-50 border border-white/10 shadow-inner`}></div>
+    </div>
+  </label>
+);
+
+// Komponen Palet Warna yang Diringkas & Menggunakan Toggle Transparan
+const ColorInput = ({ 
+  label, value, onChange, disabled, allowTransparent, showHex 
+}: { 
+  label: string, value: string, onChange: (v: string) => void, disabled: boolean, allowTransparent?: boolean, showHex?: boolean 
 }) => {
   const isTransparent = value === "transparent" || value === "";
   const hexColor = (isTransparent || !value) ? "#000000" : value.slice(0, 7);
 
-  if (showHex) {
-    return (
-      <div className="flex flex-col gap-1.5 w-full">
-        <div className="flex items-center justify-between px-0.5">
-          <span className="text-[10px] font-medium opacity-80" style={{ color: "var(--foreground)" }}>
-            {label}
-          </span>
-          {allowTransparent && (
-            <button onClick={() => onChange("transparent")} disabled={disabled} className="text-[9px] font-medium px-1.5 py-0.5 rounded-md bg-white/5 hover:bg-white/15 transition-colors text-neutral-400 disabled:opacity-50 disabled:cursor-not-allowed">
-              Transparan
-            </button>
-          )}
-        </div>
-        <div className="relative flex items-center gap-2 p-1.5 rounded-lg bg-black/10 border border-white/5 transition-all focus-within:border-white/30 hover:bg-black/20 shadow-sm">
-          <div className="relative w-7 h-7 rounded-md overflow-hidden shrink-0 shadow-inner border border-white/10">
-            {isTransparent && <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-30" />}
-            <input type="color" value={hexColor} onChange={(e) => onChange(e.target.value)} disabled={disabled} className={`absolute -inset-2 w-12 h-12 cursor-pointer border-0 bg-transparent ${isTransparent ? 'opacity-0' : 'opacity-100'} disabled:cursor-not-allowed`} />
-          </div>
-          <input type="text" value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} placeholder="Hex / trans" className="w-full min-w-0 text-[11px] font-mono bg-transparent border-none text-white focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed tracking-wide placeholder-neutral-500" />
-        </div>
-      </div>
-    );
-  }
+  const handleTransparentToggle = (checked: boolean) => {
+    if (checked) {
+      onChange("transparent");
+    } else {
+      onChange(hexColor === "#000000" ? "#ffffff" : hexColor);
+    }
+  };
 
   return (
-    <div className="flex flex-col items-center justify-between gap-1.5 w-full h-full">
-      <span 
-        className="text-[9px] leading-[1.2] text-center font-medium opacity-80 break-words w-full px-0.5 flex items-end justify-center min-h-[22px]" 
-        style={{ color: "var(--foreground)" }}
-      >
+    <div className="flex flex-col items-center justify-between bg-black/5 dark:bg-white/5 p-1.5 rounded-md border border-white/5 gap-1.5 w-full h-full">
+      <span className="text-[9px] font-medium text-center leading-tight truncate w-full" style={{ color: "var(--foreground)" }}>
         {label}
       </span>
       
-      <div 
-        className={`relative w-8 h-8 rounded-lg overflow-hidden shadow-inner border border-white/10 transition-all shrink-0 ${
-          disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-110 hover:border-white/30 active:scale-95"
-        }`}
-      >
-        {isTransparent && (
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-30 pointer-events-none" />
-        )}
+      <div className={`relative w-7 h-7 rounded-md overflow-hidden border border-white/10 shadow-inner shrink-0 transition-transform ${disabled ? "opacity-50" : "hover:scale-105"}`}>
+        {isTransparent && <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-30 pointer-events-none" />}
         <input 
           type="color" 
           value={hexColor}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-          className={`absolute -inset-4 w-[200%] h-[200%] border-0 bg-transparent ${
-            isTransparent ? 'opacity-0' : 'opacity-100'
-          } ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
+          onChange={(e) => { if(!isTransparent) onChange(e.target.value) }}
+          disabled={disabled || isTransparent}
+          className={`absolute -inset-2 w-12 h-12 border-0 bg-transparent ${isTransparent ? 'opacity-0' : 'opacity-100'} ${disabled || isTransparent ? "cursor-not-allowed" : "cursor-pointer"}`}
         />
       </div>
-      
-      <div className="h-[18px] flex items-start justify-center w-full">
-        {allowTransparent && (
-          <button
-            onClick={() => onChange("transparent")}
-            disabled={disabled}
-            className="text-[7.5px] font-medium px-1.5 py-0.5 rounded-md bg-white/5 hover:bg-white/15 transition-colors text-neutral-400 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Transparan
-          </button>
-        )}
-      </div>
+
+      {showHex && (
+        <input 
+          type="text" 
+          value={isTransparent ? "trans" : value} 
+          onChange={(e) => onChange(e.target.value)} 
+          disabled={disabled || isTransparent}
+          className="w-full text-center text-[9px] font-mono bg-black/10 dark:bg-white/10 border border-white/5 rounded-[4px] px-1 py-0.5 focus:outline-none focus:border-[var(--accent)]"
+        />
+      )}
+
+      {allowTransparent && (
+        <label className="flex items-center gap-1 cursor-pointer mt-auto pt-0.5 group">
+          <div className="relative flex items-center">
+            <input type="checkbox" checked={isTransparent} onChange={(e) => handleTransparentToggle(e.target.checked)} disabled={disabled} className="sr-only peer" />
+            <div className="w-5 h-2.5 bg-black/20 dark:bg-white/10 rounded-[3px] peer-checked:bg-[var(--accent)] peer-focus:outline-none transition-colors after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-neutral-400 peer-checked:after:bg-white after:rounded-sm after:h-2 after:w-2 after:transition-all peer-checked:after:translate-x-[10px] disabled:opacity-50 border border-white/5"></div>
+          </div>
+          <span className="text-[8px] font-medium opacity-70 group-hover:opacity-100 transition-opacity">Trans</span>
+        </label>
+      )}
     </div>
   );
 };
@@ -120,6 +108,7 @@ export default function TemaPage() {
   // Status Toggle
   const [isCustomUiEnabled, setIsCustomUiEnabled] = useState<boolean>(false);
   const [isCustomChatEnabled, setIsCustomChatEnabled] = useState<boolean>(false);
+  const [isCustomWaveEnabled, setIsCustomWaveEnabled] = useState<boolean>(false); // Toggle pemicu warna wave independen
 
   const [userPillColor, setUserPillColor] = useState<string>("#10b981");
   const [userBubbleBg, setUserBubbleBg] = useState<string>("");
@@ -135,6 +124,7 @@ export default function TemaPage() {
     // Load initial states
     setIsCustomUiEnabled(localStorage.getItem("global_enable_custom_ui") === "true");
     setIsCustomChatEnabled(localStorage.getItem("global_enable_custom_chat") === "true");
+    setIsCustomWaveEnabled(localStorage.getItem("global_enable_custom_wave") === "true");
     
     setUserPillColor(localStorage.getItem("global_user_pill_color") || "#10b981");
     setUserBubbleBg(localStorage.getItem("global_user_bubble_bg") || "");
@@ -182,8 +172,6 @@ export default function TemaPage() {
   };
 
   const handleWaveToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Karena toggle mewakili "Dengan Wave" (menyala), jika di-cek berarti wave aktif (tidak disable).
-    // Jadi jika e.target.checked = true (wave nyala), isWaveDisabled = false.
     const isWaveEnabled = e.target.checked;
     const newVal = !isWaveEnabled; 
     
@@ -195,9 +183,9 @@ export default function TemaPage() {
   const handleApplyCustom = () => {
     localStorage.setItem("global_enable_custom_ui", isCustomUiEnabled.toString());
     localStorage.setItem("global_enable_custom_chat", isCustomChatEnabled.toString());
+    localStorage.setItem("global_enable_custom_wave", isCustomWaveEnabled.toString());
     localStorage.setItem("global_disable_wave", isWaveDisabled.toString());
 
-    // Simpan atau Reset warna Pesan Obrolan berdasarkan Toggle
     if (isCustomChatEnabled) {
       localStorage.setItem("global_user_pill_color", userPillColor);
       localStorage.setItem("global_user_bubble_bg", userBubbleBg);
@@ -210,7 +198,6 @@ export default function TemaPage() {
       localStorage.removeItem("global_admin_bubble_bg");
     }
     
-    // Terapkan Warna UI Custom jika diaktifkan, jika tidak kembalikan ke standar/dark
     if (isCustomUiEnabled) {
       setTheme("custom");
     } else if (theme === "custom") {
@@ -234,174 +221,141 @@ export default function TemaPage() {
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px] transition-colors duration-300 bg-[var(--background)] text-[var(--foreground)]">
       
-      <div className="sticky top-0 z-20 p-4 sm:p-5 backdrop-blur-xl border-b transition-colors duration-300 bg-[color-mix(in_srgb,var(--background)_80%,transparent)] border-[var(--card-border)]">
+      <div className="sticky top-0 z-20 p-3 sm:p-4 backdrop-blur-xl border-b transition-colors duration-300 bg-[color-mix(in_srgb,var(--background)_80%,transparent)] border-[var(--card-border)]">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold tracking-tight" style={{ color: "var(--accent)" }}>
+          <h1 className="text-base sm:text-lg font-semibold tracking-tight" style={{ color: "var(--accent)" }}>
             Pengaturan Tema
           </h1>
-          {isAdmin && <span className="text-[9px] px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold">MODE ADMIN</span>}
+          {isAdmin && <span className="text-[9px] px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold">ADMIN</span>}
         </div>
-        <p className="text-[11px] sm:text-xs mt-1 opacity-80" style={{ color: "var(--foreground)" }}>
-          Personalisasi antarmuka dan warna obrolan sesuai preferensi Anda.
-        </p>
       </div>
 
-      <div className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-6 sm:space-y-8">
+      <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-5">
         
+        {/* KUSTOMISASI LANJUTAN */}
         <div 
           className="relative rounded-xl border transition-all duration-300 overflow-hidden shadow-sm"
-          style={{ 
-            backgroundColor: "var(--card-bg)", 
-            borderColor: activeThemeId === "custom" ? "var(--accent)" : "var(--card-border)"
-          }}
+          style={{ backgroundColor: "var(--card-bg)", borderColor: activeThemeId === "custom" ? "var(--accent)" : "var(--card-border)" }}
         >
-          <div className="p-4 sm:p-5 border-b border-white/5 flex flex-wrap items-center justify-between gap-3">
+          <div className="p-3 sm:p-4 border-b border-white/5 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-xs sm:text-sm" style={{ color: "var(--foreground-heading)" }}>
                 Kustomisasi Lanjutan
               </h3>
               {!loadingAuth && (
-                <span className={`text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-md font-medium tracking-wide ${
+                <span className={`text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-[4px] font-medium tracking-wide ${
                   isLoggedIn ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-neutral-500/10 text-neutral-400 border border-neutral-500/20"
                 }`}>
                   {isLoggedIn ? "Terbuka" : "Terkunci"}
                 </span>
               )}
             </div>
-            
-            <div className="text-[10px] font-medium opacity-70">
-              {activeThemeId === "custom" ? "✨ Sedang Digunakan" : "Pilih warna, lalu terapkan"}
+            <div className="text-[9px] font-medium opacity-70">
+              {activeThemeId === "custom" ? "✨ Diterapkan" : "Pilih & Terapkan"}
             </div>
           </div>
 
-          <div className={`p-4 sm:p-5 space-y-6 ${!isLoggedIn && !loadingAuth ? "opacity-30 pointer-events-none blur-[2px] select-none" : ""}`}>
+          <div className={`p-3 sm:p-4 flex flex-col gap-4 ${!isLoggedIn && !loadingAuth ? "opacity-30 pointer-events-none blur-[2px] select-none" : ""}`}>
             
-            {/* --- SEKSI WARNA UI --- */}
+            {/* WARNA UI */}
             <div>
-              <div className="flex items-center justify-between mb-3 px-1">
-                <h4 className="text-[11px] font-semibold opacity-80 uppercase tracking-wider">Warna UI</h4>
-                
-                <label className="flex items-center gap-2 cursor-pointer group">
-                  <span className={`text-[9px] font-medium transition-colors ${isCustomUiEnabled ? "text-[var(--accent)]" : "text-neutral-400 group-hover:text-white"}`}>
-                    {isCustomUiEnabled ? "Aktif" : "Bawaan Tema"}
-                  </span>
-                  <div className="relative flex items-center">
-                    <input type="checkbox" checked={isCustomUiEnabled} onChange={(e) => setIsCustomUiEnabled(e.target.checked)} disabled={!isLoggedIn} className="sr-only peer" />
-                    <div className="w-8 h-4 bg-white/10 peer-focus:outline-none rounded-md peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-400 peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-sm after:h-3 after:w-3 after:transition-all peer-checked:bg-[var(--accent)] disabled:opacity-50 border border-white/10"></div>
-                  </div>
-                </label>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-[10px] font-bold opacity-80 uppercase tracking-wider">Warna UI</h4>
+                <CompactToggle label={isCustomUiEnabled ? "Aktif" : "Bawaan"} checked={isCustomUiEnabled} onChange={(e) => setIsCustomUiEnabled(e.target.checked)} disabled={!isLoggedIn} />
               </div>
-
               <div className={`transition-all duration-300 ${!isCustomUiEnabled ? "opacity-30 grayscale pointer-events-none" : ""}`}>
-                <div className={isAdmin ? "grid grid-cols-2 gap-3" : "grid grid-cols-3 gap-1.5"}>
-                  <ColorInput label="Latar Belakang" value={customColors.bg} onChange={(v) => handleCustomColorChange("bg", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} />
-                  <ColorInput label="Warna Aksen" value={customColors.accent} onChange={(v) => handleCustomColorChange("accent", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} />
+                <div className={isAdmin ? "grid grid-cols-2 gap-2" : "grid grid-cols-3 gap-2"}>
+                  <ColorInput label="Latar" value={customColors.bg} onChange={(v) => handleCustomColorChange("bg", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} />
+                  <ColorInput label="Aksen" value={customColors.accent} onChange={(v) => handleCustomColorChange("accent", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} />
                   <div className={isAdmin ? "col-span-2 sm:col-span-1" : "col-span-1"}>
-                    <ColorInput label="Warna Teks" value={customColors.text} onChange={(v) => handleCustomColorChange("text", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} />
+                    <ColorInput label="Teks" value={customColors.text} onChange={(v) => handleCustomColorChange("text", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="h-px w-full bg-white/5" />
+            {/* GARIS PEMISAH DINAMIS */}
+            <div className="h-px w-full transition-colors duration-300 opacity-50" style={{ backgroundColor: "var(--card-border)" }} />
 
-            {/* --- SEKSI WARNA PESAN OBROLAN --- */}
+            {/* WARNA OBROLAN */}
             <div>
-              <div className="flex items-center justify-between mb-4 px-1">
-                <h4 className="text-[11px] font-semibold opacity-80 uppercase tracking-wider text-center sm:text-left">Warna Pesan Obrolan</h4>
-                
-                <label className="flex items-center gap-2 cursor-pointer group">
-                  <span className={`text-[9px] font-medium transition-colors ${isCustomChatEnabled ? "text-[var(--accent)]" : "text-neutral-400 group-hover:text-white"}`}>
-                    {isCustomChatEnabled ? "Aktif" : "Bawaan Tema"}
-                  </span>
-                  <div className="relative flex items-center">
-                    <input type="checkbox" checked={isCustomChatEnabled} onChange={(e) => setIsCustomChatEnabled(e.target.checked)} disabled={!isLoggedIn} className="sr-only peer" />
-                    <div className="w-8 h-4 bg-white/10 peer-focus:outline-none rounded-md peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-400 peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-sm after:h-3 after:w-3 after:transition-all peer-checked:bg-[var(--accent)] disabled:opacity-50 border border-white/10"></div>
-                  </div>
-                </label>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-[10px] font-bold opacity-80 uppercase tracking-wider">Warna Obrolan</h4>
+                <CompactToggle label={isCustomChatEnabled ? "Aktif" : "Bawaan"} checked={isCustomChatEnabled} onChange={(e) => setIsCustomChatEnabled(e.target.checked)} disabled={!isLoggedIn} />
               </div>
-
-              <div className={`transition-all duration-300 ${!isCustomChatEnabled ? "opacity-30 grayscale pointer-events-none" : ""}`}>
-                <div className="grid grid-cols-2 gap-x-2 gap-y-4">
-                  <div>
-                    <div className="text-[10px] font-semibold tracking-wider text-emerald-400 uppercase border-b border-white/5 pb-1.5 mb-3 text-center sm:text-left">Pesan User</div>
-                    <div className={isAdmin ? "space-y-3" : "flex justify-evenly gap-1"}>
-                      <ColorInput label="Label Nama" value={userPillColor} onChange={setUserPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent showHex={isAdmin} />
-                      <ColorInput label="Kotak Pesan" value={userBubbleBg} onChange={setUserBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent showHex={isAdmin} />
-                    </div>
+              <div className={`transition-all duration-300 grid grid-cols-2 gap-2 sm:gap-3 ${!isCustomChatEnabled ? "opacity-30 grayscale pointer-events-none" : ""}`}>
+                <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-lg p-2">
+                  <div className="text-[9px] font-bold tracking-wider text-emerald-400 uppercase border-b border-white/5 pb-1 mb-2 text-center">User</div>
+                  <div className="flex gap-1.5 justify-evenly">
+                    <ColorInput label="Nama" value={userPillColor} onChange={setUserPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent showHex={false} />
+                    <ColorInput label="Pesan" value={userBubbleBg} onChange={setUserBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent showHex={false} />
                   </div>
-
-                  <div>
-                    <div className="text-[10px] font-semibold tracking-wider text-rose-400 uppercase border-b border-white/5 pb-1.5 mb-3 text-center sm:text-left">Pesan Admin</div>
-                    <div className={isAdmin ? "space-y-3" : "flex justify-evenly gap-1"}>
-                      <ColorInput label="Label Nama" value={adminPillColor} onChange={setAdminPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent showHex={isAdmin} />
-                      <ColorInput label="Kotak Pesan" value={adminBubbleBg} onChange={setAdminBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent showHex={isAdmin} />
-                    </div>
+                </div>
+                <div className="bg-black/5 dark:bg-white/5 border border-white/5 rounded-lg p-2">
+                  <div className="text-[9px] font-bold tracking-wider text-rose-400 uppercase border-b border-white/5 pb-1 mb-2 text-center">Admin</div>
+                  <div className="flex gap-1.5 justify-evenly">
+                    <ColorInput label="Nama" value={adminPillColor} onChange={setAdminPillColor} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent showHex={false} />
+                    <ColorInput label="Pesan" value={adminBubbleBg} onChange={setAdminBubbleBg} disabled={!isLoggedIn || !isCustomChatEnabled} allowTransparent showHex={false} />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="h-px w-full bg-white/5" />
+            {/* GARIS PEMISAH DINAMIS */}
+            <div className="h-px w-full transition-colors duration-300 opacity-50" style={{ backgroundColor: "var(--card-border)" }} />
 
-            {/* --- SEKSI ANIMASI WAVE --- */}
+            {/* ANIMASI WAVE (MANDIRI) */}
             <div>
-              <div className="flex items-center justify-between mb-3 sm:mb-4 px-1">
-                <h4 className="text-[11px] font-semibold opacity-80 uppercase tracking-wider">Animasi Wave</h4>
-                
-                {/* Toggle Dinamis: Dengan Wave / Tanpa Wave */}
-                <label className="flex items-center gap-2 cursor-pointer group">
-                  <span className={`text-[9px] font-medium transition-colors ${!isWaveDisabled ? "text-[var(--accent)]" : "text-neutral-400 group-hover:text-white"}`}>
-                    {!isWaveDisabled ? "Dengan Wave" : "Tanpa Wave"}
-                  </span>
-                  <div className="relative flex items-center">
-                    {/* Checkbox bernilai TRUE jika wave aktif (!isWaveDisabled) */}
-                    <input type="checkbox" checked={!isWaveDisabled} onChange={handleWaveToggle} disabled={!isLoggedIn} className="sr-only peer" />
-                    <div className="w-8 h-4 bg-white/10 peer-focus:outline-none rounded-md peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-400 peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-sm after:h-3 after:w-3 after:transition-all peer-checked:bg-[var(--accent)] disabled:opacity-50 border border-white/10"></div>
-                  </div>
-                </label>
+              <div className="flex items-center justify-between mb-2 gap-2">
+                <h4 className="text-[10px] font-bold opacity-80 uppercase tracking-wider">Animasi Wave</h4>
+                <div className="flex items-center gap-3">
+                  <CompactToggle label={isCustomWaveEnabled ? "Aktif" : "Bawaan"} checked={isCustomWaveEnabled} onChange={(e) => setIsCustomWaveEnabled(e.target.checked)} disabled={!isLoggedIn} />
+                  <CompactToggle label={!isWaveDisabled ? "Tampil" : "Sembunyi"} checked={!isWaveDisabled} onChange={handleWaveToggle} disabled={!isLoggedIn} activeColor="bg-sky-500" activeText="text-sky-400" />
+                </div>
               </div>
 
-              <div className={`transition-all duration-300 ${(isWaveDisabled || !isCustomUiEnabled) ? "opacity-30 grayscale pointer-events-none" : ""}`}>
-                <div className={isAdmin ? "grid grid-cols-2 gap-3" : "grid grid-cols-3 gap-1.5"}>
-                  <ColorInput label="Wave Belakang" value={customColors.wave1} onChange={(v) => handleCustomColorChange("wave1", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} />
-                  <ColorInput label="Wave Tengah" value={customColors.wave2} onChange={(v) => handleCustomColorChange("wave2", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} />
+              <div className={`transition-all duration-300 ${(!isCustomWaveEnabled || isWaveDisabled) ? "opacity-30 grayscale pointer-events-none" : ""}`}>
+                <div className={isAdmin ? "grid grid-cols-2 gap-2" : "grid grid-cols-3 gap-2"}>
+                  <ColorInput label="Belakang" value={customColors.wave1} onChange={(v) => handleCustomColorChange("wave1", v)} disabled={!isLoggedIn || !isCustomWaveEnabled} showHex={isAdmin} />
+                  <ColorInput label="Tengah" value={customColors.wave2} onChange={(v) => handleCustomColorChange("wave2", v)} disabled={!isLoggedIn || !isCustomWaveEnabled} showHex={isAdmin} />
                   <div className={isAdmin ? "col-span-2 sm:col-span-1" : "col-span-1"}>
-                    <ColorInput label="Wave Depan" value={customColors.wave3} onChange={(v) => handleCustomColorChange("wave3", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} />
+                    <ColorInput label="Depan" value={customColors.wave3} onChange={(v) => handleCustomColorChange("wave3", v)} disabled={!isLoggedIn || !isCustomWaveEnabled} showHex={isAdmin} />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-white/5">
+            {/* TOMBOL SIMPAN */}
+            <div className="pt-1 mt-1 border-t border-white/5">
               <button
                 disabled={!isLoggedIn}
                 onClick={handleApplyCustom}
-                className={`w-full py-3 rounded-lg font-bold text-[11px] sm:text-xs transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                className={`w-full py-2.5 rounded-lg font-bold text-[11px] sm:text-xs transition-all active:scale-95 flex items-center justify-center gap-2 ${
                   isApplied
                     ? "bg-emerald-500 text-black border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]"
                     : "bg-[var(--accent)] text-[var(--background)] hover:opacity-90 shadow-md"
                 }`}
               >
-                {isApplied ? "✓ Kustomisasi Diterapkan" : "Terapkan Kustomisasi"}
+                {isApplied ? "✓ Diterapkan" : "Terapkan Kustomisasi"}
               </button>
             </div>
 
           </div>
 
+          {/* OVERLAY AKSES TERKUNCI */}
           {!isLoggedIn && !loadingAuth && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 bg-black/40 backdrop-blur-[1px]">
-              <div className="text-center p-5 rounded-xl bg-[#111] border border-white/10 shadow-2xl max-w-[280px] w-full">
-                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center mx-auto mb-3 border border-white/10">
-                  <span className="block w-3.5 h-3.5 rounded-sm border-2 border-neutral-400" />
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
+              <div className="text-center p-4 rounded-xl bg-[#111] border border-white/10 shadow-2xl max-w-[260px] w-full">
+                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center mx-auto mb-2 border border-white/10">
+                  <span className="block w-3 h-3 rounded-sm border-2 border-neutral-400" />
                 </div>
-                <h4 className="text-xs font-semibold text-white mb-2">Akses Dibatasi</h4>
-                <p className="text-[10px] text-neutral-400 mb-4 leading-relaxed">
-                  Fitur racik warna lanjutan dan kustomisasi kotak obrolan eksklusif untuk member terdaftar.
+                <h4 className="text-[11px] font-semibold text-white mb-1.5">Akses Dibatasi</h4>
+                <p className="text-[9px] text-neutral-400 mb-3 leading-relaxed">
+                  Fitur racik warna lanjutan eksklusif untuk member terdaftar.
                 </p>
                 <Link
                   href="/"
-                  className="inline-flex w-full items-center justify-center px-4 py-2 text-[11px] font-semibold rounded-lg text-black bg-white hover:bg-neutral-200 transition-all active:scale-95"
+                  className="inline-flex w-full items-center justify-center px-4 py-2 text-[10px] font-semibold rounded-lg text-black bg-white hover:bg-neutral-200 transition-all active:scale-95"
                 >
                   Masuk Sekarang
                 </Link>
@@ -410,11 +364,12 @@ export default function TemaPage() {
           )}
         </div>
 
+        {/* PRESET TEMA */}
         <div>
-          <h3 className="font-semibold text-sm mb-3 px-1" style={{ color: "var(--foreground-heading)" }}>
-            Preset Tema
+          <h3 className="font-semibold text-xs mb-2.5 px-1" style={{ color: "var(--foreground-heading)" }}>
+            Preset Tema Cepat
           </h3>
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             {themes.map((t: ThemeItem) => {
               const isActive = activeThemeId === t.id;
 
@@ -422,29 +377,29 @@ export default function TemaPage() {
                 <div
                   key={t.id}
                   onClick={() => setTheme(t.id as any)}
-                  className={`p-2.5 rounded-lg border transition-all duration-300 cursor-pointer flex items-center justify-between gap-2 ${
-                    isActive ? "shadow-md bg-white/5" : "hover:bg-white/5"
+                  className={`p-2 rounded-lg border transition-all duration-300 cursor-pointer flex items-center justify-between gap-2 ${
+                    isActive ? "shadow-sm bg-white/5" : "hover:bg-white/5"
                   }`}
                   style={{
                     backgroundColor: isActive ? "transparent" : "var(--card-bg)",
                     borderColor: isActive ? "var(--accent)" : "var(--card-border)",
                   }}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${t.preview} shadow-inner border border-white/10 shrink-0`} />
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className={`w-6 h-6 rounded-md bg-gradient-to-br ${t.preview} shadow-inner border border-white/10 shrink-0`} />
                     <div className="min-w-0">
-                      <h3 className="font-medium text-[11px] sm:text-xs truncate" style={{ color: "var(--foreground-heading)" }}>
+                      <h3 className="font-medium text-[10px] sm:text-[11px] truncate" style={{ color: "var(--foreground-heading)" }}>
                         {t.name}
                       </h3>
                     </div>
                   </div>
 
                   <div
-                    className="w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-all duration-300 shrink-0"
+                    className="w-3 h-3 rounded-[3px] border flex items-center justify-center transition-all duration-300 shrink-0"
                     style={{ borderColor: isActive ? "var(--accent)" : "var(--card-border)" }}
                   >
                     {isActive && (
-                      <div className="w-2 h-2 rounded-[2px]" style={{ backgroundColor: "var(--accent)" }} />
+                      <div className="w-1.5 h-1.5 rounded-[1px]" style={{ backgroundColor: "var(--accent)" }} />
                     )}
                   </div>
                 </div>
