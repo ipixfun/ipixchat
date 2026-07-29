@@ -23,7 +23,7 @@ const themes: ThemeItem[] = [
   { id: "cyber-neon", name: "Cyber Neon", preview: "from-zinc-800 to-zinc-950" },
 ];
 
-// Komponen Palet Warna (Dinamis: Bulat untuk User, Kotak + Hex untuk Admin)
+// Komponen Palet Warna Dinamis
 const ColorInput = ({ 
   label, 
   value, 
@@ -42,7 +42,7 @@ const ColorInput = ({
   const isTransparent = value === "transparent" || value === "";
   const hexColor = (isTransparent || !value) ? "#000000" : value.slice(0, 7);
 
-  // === TAMPILAN KHUSUS ADMIN (Teks Hex) ===
+  // === TAMPILAN KHUSUS ADMIN (Kotak & Teks Hex) ===
   if (showHex) {
     return (
       <div className="flex flex-col gap-1.5 w-full">
@@ -52,7 +52,7 @@ const ColorInput = ({
           </span>
           {allowTransparent && (
             <button onClick={() => onChange("transparent")} disabled={disabled} className="text-[9px] font-medium px-1.5 py-0.5 rounded-md bg-white/5 hover:bg-white/10 transition-colors text-neutral-400 disabled:opacity-50 disabled:cursor-not-allowed">
-              Kosongkan
+              Transparan
             </button>
           )}
         </div>
@@ -67,16 +67,20 @@ const ColorInput = ({
     );
   }
 
-  // === TAMPILAN KHUSUS USER (Bulat, Simple, Compact) ===
+  // === TAMPILAN KHUSUS USER (Bulat Kecil, Teks Fleksibel Atas Bawah) ===
   return (
-    <div className="flex flex-col items-center gap-1.5 w-full">
-      <span className="text-[9px] leading-tight text-center font-medium opacity-80" style={{ color: "var(--foreground)" }}>
+    <div className="flex flex-col items-center justify-between gap-1.5 w-full h-full">
+      {/* Label: Dibungkus (wrap) agar rapi, tinggi min 22px agar semua bulatan warna sejajar */}
+      <span 
+        className="text-[9px] leading-[1.2] text-center font-medium opacity-80 break-words w-full px-0.5 flex items-end justify-center min-h-[22px]" 
+        style={{ color: "var(--foreground)" }}
+      >
         {label}
       </span>
       
-      {/* Bentuk Lingkaran */}
+      {/* Bentuk Lingkaran yang Diperkecil */}
       <div 
-        className={`relative w-10 h-10 rounded-full overflow-hidden shadow-inner border border-white/10 transition-all shrink-0 ${
+        className={`relative w-8 h-8 rounded-full overflow-hidden shadow-inner border border-white/10 transition-all shrink-0 ${
           disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-110 hover:border-white/30 active:scale-95"
         }`}
       >
@@ -88,22 +92,24 @@ const ColorInput = ({
           value={hexColor}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
-          className={`absolute -inset-4 w-[150%] h-[150%] border-0 bg-transparent ${
+          className={`absolute -inset-4 w-[200%] h-[200%] border-0 bg-transparent ${
             isTransparent ? 'opacity-0' : 'opacity-100'
           } ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
         />
       </div>
       
-      {/* Tombol Kosongkan dipindah ke bawah untuk bentuk bulat */}
-      {allowTransparent && (
-        <button
-          onClick={() => onChange("transparent")}
-          disabled={disabled}
-          className="text-[8px] font-medium px-2 py-0.5 mt-0.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors text-neutral-400 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Kosong
-        </button>
-      )}
+      {/* Area Tombol: Diberi tinggi fix agar layout kolom stabil */}
+      <div className="h-[18px] flex items-start justify-center w-full">
+        {allowTransparent && (
+          <button
+            onClick={() => onChange("transparent")}
+            disabled={disabled}
+            className="text-[7.5px] font-medium px-1.5 py-0.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors text-neutral-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Transparan
+          </button>
+        )}
+      </div>
     </div>
   );
 };
@@ -247,7 +253,7 @@ export default function TemaPage() {
           {/* Isi Pengaturan */}
           <div className={`p-4 sm:p-5 space-y-6 ${!isLoggedIn && !loadingAuth ? "opacity-30 pointer-events-none blur-[2px] select-none" : ""}`}>
             
-            {/* 1. UI Colors - (Grid Dinamis: 2 kolom untuk admin, 3 kolom sejajar untuk user) */}
+            {/* 1. UI Colors */}
             <div>
               <h4 className="text-[11px] font-semibold mb-3 opacity-80 uppercase tracking-wider text-center sm:text-left">Warna UI</h4>
               <div className={isAdmin ? "grid grid-cols-2 gap-3" : "grid grid-cols-3 gap-1.5"}>
@@ -259,7 +265,7 @@ export default function TemaPage() {
               </div>
             </div>
 
-            {/* 2. Wave Colors - (Grid Dinamis: 2 kolom untuk admin, 3 kolom sejajar untuk user) */}
+            {/* 2. Wave Colors */}
             <div>
               <h4 className="text-[11px] font-semibold mb-3 opacity-80 uppercase tracking-wider text-center sm:text-left">Animasi Wave</h4>
               <div className={isAdmin ? "grid grid-cols-2 gap-3" : "grid grid-cols-3 gap-1.5"}>
@@ -276,12 +282,12 @@ export default function TemaPage() {
             {/* 3. Chat Bubble Colors */}
             <div>
               <h4 className="text-[11px] font-semibold mb-4 opacity-80 uppercase tracking-wider text-center sm:text-left">Warna Pesan Obrolan</h4>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-4">
+              <div className="grid grid-cols-2 gap-x-2 gap-y-4">
                 
                 {/* Obrolan User */}
                 <div>
                   <div className="text-[10px] font-semibold tracking-wider text-emerald-400 uppercase border-b border-white/5 pb-1.5 mb-3 text-center sm:text-left">Pesan User</div>
-                  <div className={isAdmin ? "space-y-3" : "flex justify-evenly gap-2"}>
+                  <div className={isAdmin ? "space-y-3" : "flex justify-evenly gap-1"}>
                     <ColorInput label="Label Nama" value={userPillColor} onChange={(v) => updateChatSetting(setUserPillColor, "global_user_pill_color", v)} disabled={!isLoggedIn} allowTransparent showHex={isAdmin} />
                     <ColorInput label="Kotak Pesan" value={userBubbleBg} onChange={(v) => updateChatSetting(setUserBubbleBg, "global_user_bubble_bg", v)} disabled={!isLoggedIn} allowTransparent showHex={isAdmin} />
                   </div>
@@ -290,7 +296,7 @@ export default function TemaPage() {
                 {/* Obrolan Admin */}
                 <div>
                   <div className="text-[10px] font-semibold tracking-wider text-rose-400 uppercase border-b border-white/5 pb-1.5 mb-3 text-center sm:text-left">Pesan Admin</div>
-                  <div className={isAdmin ? "space-y-3" : "flex justify-evenly gap-2"}>
+                  <div className={isAdmin ? "space-y-3" : "flex justify-evenly gap-1"}>
                     <ColorInput label="Label Nama" value={adminPillColor} onChange={(v) => updateChatSetting(setAdminPillColor, "global_admin_pill_color", v)} disabled={!isLoggedIn} allowTransparent showHex={isAdmin} />
                     <ColorInput label="Kotak Pesan" value={adminBubbleBg} onChange={(v) => updateChatSetting(setAdminBubbleBg, "global_admin_bubble_bg", v)} disabled={!isLoggedIn} allowTransparent showHex={isAdmin} />
                   </div>
