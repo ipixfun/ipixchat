@@ -23,26 +23,28 @@ const themes: ThemeItem[] = [
   { id: "cyber-neon", name: "Cyber Neon", preview: "from-zinc-800 to-zinc-950" },
 ];
 
-// Komponen Palet Warna yang Jauh Lebih Modern & Compact (Cocok untuk 2 Kolom Mobile)
+// Komponen Palet Warna (Dinamis: Simple untuk User, Ada Text Input Hex untuk Admin)
 const ColorInput = ({ 
   label, 
   value, 
   onChange, 
   disabled,
-  allowTransparent 
+  allowTransparent,
+  showHex 
 }: { 
   label: string, 
   value: string, 
   onChange: (v: string) => void, 
   disabled: boolean,
-  allowTransparent?: boolean 
+  allowTransparent?: boolean,
+  showHex?: boolean
 }) => {
   const isTransparent = value === "transparent" || value === "";
   const hexColor = (isTransparent || !value) ? "#000000" : value.slice(0, 7);
 
   return (
     <div className="flex flex-col gap-1.5 w-full">
-      <div className="flex items-center justify-between px-1">
+      <div className="flex items-center justify-between px-0.5">
         <span className="text-[10px] font-medium opacity-80" style={{ color: "var(--foreground)" }}>
           {label}
         </span>
@@ -57,33 +59,51 @@ const ColorInput = ({
         )}
       </div>
       
-      {/* Input Box Modern */}
-      <div className="relative flex items-center gap-2 p-1.5 rounded-xl bg-black/10 border border-white/5 transition-all focus-within:border-white/30 hover:bg-black/20 shadow-sm">
-        
-        {/* Swatch / Lingkaran Warna */}
-        <div className="relative w-7 h-7 rounded-lg overflow-hidden shrink-0 shadow-inner border border-white/10">
+      {showHex ? (
+        /* UI KHUSUS ADMIN: Menampilkan Box Warna + Kolom Teks Kode Hex */
+        <div className="relative flex items-center gap-2 p-1.5 rounded-xl bg-black/10 border border-white/5 transition-all focus-within:border-white/30 hover:bg-black/20 shadow-sm">
+          <div className="relative w-7 h-7 rounded-lg overflow-hidden shrink-0 shadow-inner border border-white/10">
+            {isTransparent && (
+              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-30" />
+            )}
+            <input 
+              type="color" 
+              value={hexColor}
+              onChange={(e) => onChange(e.target.value)}
+              disabled={disabled}
+              className={`absolute -inset-2 w-12 h-12 cursor-pointer border-0 bg-transparent ${isTransparent ? 'opacity-0' : 'opacity-100'} disabled:cursor-not-allowed`}
+            />
+          </div>
+          <input 
+            type="text" 
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={disabled}
+            placeholder="Hex / trans"
+            className="w-full min-w-0 text-[11px] font-mono bg-transparent border-none text-white focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed tracking-wide placeholder-neutral-500"
+          />
+        </div>
+      ) : (
+        /* UI KHUSUS USER (Simple): Menampilkan Bar Warna Penuh Tanpa Teks */
+        <div 
+          className={`relative w-full h-8 rounded-xl overflow-hidden shadow-inner border border-white/10 transition-all ${
+            disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02] hover:border-white/30 active:scale-95"
+          }`}
+        >
           {isTransparent && (
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-30" />
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-30 pointer-events-none" />
           )}
           <input 
             type="color" 
             value={hexColor}
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled}
-            className={`absolute -inset-2 w-12 h-12 cursor-pointer border-0 bg-transparent ${isTransparent ? 'opacity-0' : 'opacity-100'} disabled:cursor-not-allowed`}
+            className={`absolute -inset-4 w-[150%] h-[150%] border-0 bg-transparent ${
+              isTransparent ? 'opacity-0' : 'opacity-100'
+            } ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
           />
         </div>
-
-        {/* Input Teks Inline */}
-        <input 
-          type="text" 
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-          placeholder="Hex / trans"
-          className="w-full min-w-0 text-[11px] font-mono bg-transparent border-none text-white focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed tracking-wide placeholder-neutral-500"
-        />
-      </div>
+      )}
     </div>
   );
 };
@@ -91,9 +111,13 @@ const ColorInput = ({
 export default function TemaPage() {
   const { theme, setTheme, customColors, setCustomColors } = useTheme();
   const [isMounted, setIsMounted] = useState<boolean>(false);
+  
+  // State Autentikasi
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loadingAuth, setLoadingAuth] = useState<boolean>(true);
 
+  // State Warna Custom Chat
   const [userPillColor, setUserPillColor] = useState<string>("#10b981");
   const [userBubbleBg, setUserBubbleBg] = useState<string>("");
   const [adminPillColor, setAdminPillColor] = useState<string>("#ef4444");
@@ -108,37 +132,40 @@ export default function TemaPage() {
 
     const checkAuth = () => {
       try {
-        const commonKeys = ["user", "username", "admin", "session", "token", "auth", "sb-access-token", "supabase.auth.token"];
+        const commonKeys = ["user", "username", "admin", "session", "token", "auth", "role", "sb-access-token", "supabase.auth.token"];
         let foundLogin = false;
+        let foundAdmin = false;
 
+        // Mengecek Login & Status Admin
         for (const key of commonKeys) {
           const val = localStorage.getItem(key);
           if (val && val !== "null" && val !== "undefined" && val !== "{}") {
-            foundLogin = true;
-            break;
-          }
-        }
-
-        if (!foundLogin) {
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && (key.startsWith("sb-") || key.includes("auth") || key.includes("user") || key.includes("session"))) {
-              const val = localStorage.getItem(key);
-              if (val && val !== "null" && val !== "undefined" && val !== "{}") {
-                foundLogin = true;
-                break;
-              }
+            // Jika ada token / user data, berarti login
+            if (key !== "role" && key !== "admin") {
+              foundLogin = true;
+            }
+            
+            // Deteksi jika role = admin
+            if (key === "admin" && val === "true") foundAdmin = true;
+            if (key === "role" && val === "admin") foundAdmin = true;
+            if (val.includes('"role":"admin"') || val.includes('"is_admin":true') || val.includes('"isAdmin":true')) {
+              foundAdmin = true;
             }
           }
         }
 
+        // Cek Cookie sebagai fallback
         if (!foundLogin && typeof document !== "undefined" && document.cookie) {
           if (document.cookie.match(/(sb-|token|user|session)/)) {
             foundLogin = true;
           }
+          if (document.cookie.includes("role=admin") || document.cookie.includes("admin=true")) {
+            foundAdmin = true;
+          }
         }
 
         setIsLoggedIn(foundLogin);
+        setIsAdmin(foundAdmin); // Set status admin
       } catch (err) {
         console.error("Auth check failed:", err);
       } finally {
@@ -175,9 +202,13 @@ export default function TemaPage() {
       
       {/* Header */}
       <div className="sticky top-0 z-20 p-4 sm:p-5 backdrop-blur-xl border-b transition-colors duration-300 bg-[color-mix(in_srgb,var(--background)_80%,transparent)] border-[var(--card-border)]">
-        <h1 className="text-lg font-semibold tracking-tight" style={{ color: "var(--accent)" }}>
-          Pengaturan Tema
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-semibold tracking-tight" style={{ color: "var(--accent)" }}>
+            Pengaturan Tema
+          </h1>
+          {/* Indikator Mode (Opsional - Bisa Dihapus) */}
+          {isAdmin && <span className="text-[9px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold">MODE ADMIN</span>}
+        </div>
         <p className="text-[11px] sm:text-xs mt-1 opacity-80" style={{ color: "var(--foreground)" }}>
           Personalisasi antarmuka dan warna obrolan sesuai preferensi Anda.
         </p>
@@ -186,7 +217,7 @@ export default function TemaPage() {
       {/* Content */}
       <div className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-6 sm:space-y-8">
         
-        {/* ADVANCED SECTION: Custom Themes & Chat Bubbles (Locked for Guests) */}
+        {/* ADVANCED SECTION: Custom Themes & Chat Bubbles */}
         <div 
           className="relative rounded-2xl border transition-all duration-300 overflow-hidden shadow-sm"
           style={{ 
@@ -194,7 +225,7 @@ export default function TemaPage() {
             borderColor: activeThemeId === "custom" ? "var(--accent)" : "var(--card-border)"
           }}
         >
-          {/* Kustomisasi Lanjutan Header */}
+          {/* Header Kustomisasi */}
           <div className="p-4 sm:p-5 border-b border-white/5 flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -227,53 +258,50 @@ export default function TemaPage() {
             </button>
           </div>
 
-          {/* Pengaturan Content */}
+          {/* Isi Pengaturan */}
           <div className={`p-4 sm:p-5 space-y-6 ${!isLoggedIn && !loadingAuth ? "opacity-30 pointer-events-none blur-[2px] select-none" : ""}`}>
             
-            {/* 1. UI & Wave Colors - GRID 2 KOLOM */}
+            {/* 1. UI Colors */}
             <div>
               <h4 className="text-[11px] font-semibold mb-2.5 opacity-80 uppercase tracking-wider">Warna UI</h4>
               <div className="grid grid-cols-2 gap-3">
-                <ColorInput label="Latar Belakang" value={customColors.bg} onChange={(v) => handleCustomColorChange("bg", v)} disabled={!isLoggedIn} />
-                <ColorInput label="Warna Aksen" value={customColors.accent} onChange={(v) => handleCustomColorChange("accent", v)} disabled={!isLoggedIn} />
+                <ColorInput label="Latar Belakang" value={customColors.bg} onChange={(v) => handleCustomColorChange("bg", v)} disabled={!isLoggedIn} showHex={isAdmin} />
+                <ColorInput label="Warna Aksen" value={customColors.accent} onChange={(v) => handleCustomColorChange("accent", v)} disabled={!isLoggedIn} showHex={isAdmin} />
                 <div className="col-span-2 sm:col-span-1">
-                  <ColorInput label="Warna Teks" value={customColors.text} onChange={(v) => handleCustomColorChange("text", v)} disabled={!isLoggedIn} />
+                  <ColorInput label="Warna Teks" value={customColors.text} onChange={(v) => handleCustomColorChange("text", v)} disabled={!isLoggedIn} showHex={isAdmin} />
                 </div>
               </div>
             </div>
 
+            {/* 2. Wave Colors */}
             <div>
               <h4 className="text-[11px] font-semibold mb-2.5 opacity-80 uppercase tracking-wider">Animasi Wave</h4>
               <div className="grid grid-cols-2 gap-3">
-                <ColorInput label="Wave Belakang" value={customColors.wave1} onChange={(v) => handleCustomColorChange("wave1", v)} disabled={!isLoggedIn} allowTransparent />
-                <ColorInput label="Wave Tengah" value={customColors.wave2} onChange={(v) => handleCustomColorChange("wave2", v)} disabled={!isLoggedIn} allowTransparent />
+                <ColorInput label="Wave Belakang" value={customColors.wave1} onChange={(v) => handleCustomColorChange("wave1", v)} disabled={!isLoggedIn} allowTransparent showHex={isAdmin} />
+                <ColorInput label="Wave Tengah" value={customColors.wave2} onChange={(v) => handleCustomColorChange("wave2", v)} disabled={!isLoggedIn} allowTransparent showHex={isAdmin} />
                 <div className="col-span-2 sm:col-span-1">
-                  <ColorInput label="Wave Depan" value={customColors.wave3} onChange={(v) => handleCustomColorChange("wave3", v)} disabled={!isLoggedIn} allowTransparent />
+                  <ColorInput label="Wave Depan" value={customColors.wave3} onChange={(v) => handleCustomColorChange("wave3", v)} disabled={!isLoggedIn} allowTransparent showHex={isAdmin} />
                 </div>
               </div>
             </div>
 
             <div className="h-px w-full bg-white/5" />
 
-            {/* 2. Chat Bubble Colors - GRID 2 KOLOM KIRI KANAN (User vs Admin) */}
+            {/* 3. Chat Bubble Colors */}
             <div>
               <h4 className="text-[11px] font-semibold mb-3 opacity-80 uppercase tracking-wider">Warna Pesan Obrolan</h4>
               <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-                
-                {/* Kolom Kiri: User */}
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   <div className="text-[10px] font-semibold tracking-wider text-emerald-400 uppercase border-b border-white/5 pb-1 mb-2">Pesan User</div>
-                  <ColorInput label="Label Nama" value={userPillColor} onChange={(v) => updateChatSetting(setUserPillColor, "global_user_pill_color", v)} disabled={!isLoggedIn} allowTransparent />
-                  <ColorInput label="Kotak Pesan" value={userBubbleBg} onChange={(v) => updateChatSetting(setUserBubbleBg, "global_user_bubble_bg", v)} disabled={!isLoggedIn} allowTransparent />
+                  <ColorInput label="Label Nama" value={userPillColor} onChange={(v) => updateChatSetting(setUserPillColor, "global_user_pill_color", v)} disabled={!isLoggedIn} allowTransparent showHex={isAdmin} />
+                  <ColorInput label="Kotak Pesan" value={userBubbleBg} onChange={(v) => updateChatSetting(setUserBubbleBg, "global_user_bubble_bg", v)} disabled={!isLoggedIn} allowTransparent showHex={isAdmin} />
                 </div>
 
-                {/* Kolom Kanan: Admin */}
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   <div className="text-[10px] font-semibold tracking-wider text-rose-400 uppercase border-b border-white/5 pb-1 mb-2">Pesan Admin</div>
-                  <ColorInput label="Label Nama" value={adminPillColor} onChange={(v) => updateChatSetting(setAdminPillColor, "global_admin_pill_color", v)} disabled={!isLoggedIn} allowTransparent />
-                  <ColorInput label="Kotak Pesan" value={adminBubbleBg} onChange={(v) => updateChatSetting(setAdminBubbleBg, "global_admin_bubble_bg", v)} disabled={!isLoggedIn} allowTransparent />
+                  <ColorInput label="Label Nama" value={adminPillColor} onChange={(v) => updateChatSetting(setAdminPillColor, "global_admin_pill_color", v)} disabled={!isLoggedIn} allowTransparent showHex={isAdmin} />
+                  <ColorInput label="Kotak Pesan" value={adminBubbleBg} onChange={(v) => updateChatSetting(setAdminBubbleBg, "global_admin_bubble_bg", v)} disabled={!isLoggedIn} allowTransparent showHex={isAdmin} />
                 </div>
-
               </div>
             </div>
           </div>
@@ -300,7 +328,7 @@ export default function TemaPage() {
           )}
         </div>
 
-        {/* PRESET THEMES SECTION - GRID 2 KOLOM (Mobile) */}
+        {/* PRESET THEMES SECTION */}
         <div>
           <h3 className="font-semibold text-sm mb-3 px-1" style={{ color: "var(--foreground-heading)" }}>
             Preset Tema
