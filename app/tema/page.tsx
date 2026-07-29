@@ -4,6 +4,28 @@ import Link from "next/link";
 import BottomNav from "../../components/bottomnav";
 import { useTheme } from "../context/ThemeContext";
 
+// Definisi tipe data untuk preset tema
+interface ThemeItem {
+  id: string;
+  name: string;
+  icon: string;
+  preview: string;
+}
+
+// Pindahkan themes ke luar fungsi komponen (Module Scope)
+const themes: ThemeItem[] = [
+  { id: "dark", name: "Monochrome Dark", icon: "🖤", preview: "from-neutral-800 to-black" },
+  { id: "navy-electric", name: "Navy Electric", icon: "⚡", preview: "from-blue-900 to-slate-900" },
+  { id: "emerald-cream", name: "Emerald Cream", icon: "🍵", preview: "from-emerald-200 to-amber-100" },
+  { id: "teal-coral", name: "Teal Coral", icon: "🏖️", preview: "from-orange-100 to-teal-200" },
+  { id: "sea-citrus", name: "Sea Citrus", icon: "🍋", preview: "from-cyan-200 to-teal-100" },
+  { id: "raisin-sunset", name: "Raisin Sunset", icon: "🌇", preview: "from-neutral-700 to-neutral-900" },
+  { id: "gunmetal-platinum", name: "Gunmetal Platinum", icon: "🦾", preview: "from-slate-600 to-slate-800" },
+  { id: "charcoal-ecru", name: "Charcoal Ecru", icon: "☕", preview: "from-stone-700 to-stone-900" },
+  { id: "charcoal-sage", name: "Charcoal Sage", icon: "🌿", preview: "from-zinc-700 to-zinc-900" },
+  { id: "cyber-neon", name: "Cyber Neon", icon: "👾", preview: "from-zinc-800 to-zinc-950" },
+];
+
 export default function TemaPage() {
   const { theme, setTheme, customColors, setCustomColors, mounted } = useTheme();
   
@@ -11,25 +33,33 @@ export default function TemaPage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [loadingAuth, setLoadingAuth] = useState<boolean>(true);
 
+  // State untuk pengaturan Pill & Box Chat (User & Admin terpisah)
+  const [userPillColor, setUserPillColor] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("global_user_pill_color") || "#10b981";
+    return "#10b981";
+  });
+  const [userBubbleBg, setUserBubbleBg] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("global_user_bubble_bg") || "";
+    return "";
+  });
+  const [adminPillColor, setAdminPillColor] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("global_admin_pill_color") || "#ef4444";
+    return "#ef4444";
+  });
+  const [adminBubbleBg, setAdminBubbleBg] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("global_admin_bubble_bg") || "";
+    return "";
+  });
+
   // Cek Status Login dengan Deteksi Otomatis Lebih Luas
   useEffect(() => {
     const checkAuth = () => {
       try {
-        // 1. Daftar key umum yang sering dipakai untuk simpan login
         const commonKeys = [
-          "user",
-          "username",
-          "admin",
-          "session",
-          "token",
-          "auth",
-          "sb-access-token",
-          "supabase.auth.token"
+          "user", "username", "admin", "session", "token", "auth", "sb-access-token", "supabase.auth.token"
         ];
-
         let foundLogin = false;
 
-        // Cek key umum
         for (const key of commonKeys) {
           const val = localStorage.getItem(key);
           if (val && val !== "null" && val !== "undefined" && val !== "{}") {
@@ -38,8 +68,6 @@ export default function TemaPage() {
           }
         }
 
-        // 2. Jika belum ketemu, pindai seluruh isi localStorage
-        // (Mencari key dari Supabase 'sb-*-auth-token' atau key lain yang mengandung user/auth)
         if (!foundLogin) {
           for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -53,7 +81,6 @@ export default function TemaPage() {
           }
         }
 
-        // 3. Cek Cookie jika login disimpan di Cookie
         if (!foundLogin && typeof document !== "undefined" && document.cookie) {
           if (
             document.cookie.includes("sb-") || 
@@ -75,19 +102,6 @@ export default function TemaPage() {
 
     checkAuth();
   }, []);
-
-  const themes = [
-    { id: "dark", name: "Monochrome Dark", icon: "🖤", preview: "from-neutral-800 to-black" },
-    { id: "navy-electric", name: "Navy Electric", icon: "⚡", preview: "from-blue-900 to-slate-900" },
-    { id: "emerald-cream", name: "Emerald Cream", icon: "🍵", preview: "from-emerald-200 to-amber-100" },
-    { id: "teal-coral", name: "Teal Coral", icon: "🏖️", preview: "from-orange-100 to-teal-200" },
-    { id: "sea-citrus", name: "Sea Citrus", icon: "🍋", preview: "from-cyan-200 to-teal-100" },
-    { id: "raisin-sunset", name: "Raisin Sunset", icon: "🌇", preview: "from-neutral-700 to-neutral-900" },
-    { id: "gunmetal-platinum", name: "Gunmetal Platinum", icon: "🦾", preview: "from-slate-600 to-slate-800" },
-    { id: "charcoal-ecru", name: "Charcoal Ecru", icon: "☕", preview: "from-stone-700 to-stone-900" },
-    { id: "charcoal-sage", name: "Charcoal Sage", icon: "🌿", preview: "from-zinc-700 to-zinc-900" },
-    { id: "cyber-neon", name: "Cyber Neon", icon: "👾", preview: "from-zinc-800 to-zinc-950" },
-  ];
 
   const activeThemeId = mounted ? theme : "dark";
 
@@ -124,7 +138,6 @@ export default function TemaPage() {
             boxShadow: activeThemeId === "custom" ? "0 0 15px var(--accent-glow)" : "none"
           }}
         >
-          {/* Header Custom Theme */}
           <div className="flex items-center justify-between mb-4">
             <div>
               <div className="flex items-center gap-2">
@@ -163,9 +176,7 @@ export default function TemaPage() {
             </button>
           </div>
 
-          {/* COLOR PICKERS AREA */}
           <div className={!isLoggedIn && !loadingAuth ? "opacity-40 pointer-events-none select-none blur-[1px]" : ""}>
-            {/* Warna UI Dasar */}
             <div className="mb-3">
               <span className="text-[11px] font-bold block mb-2" style={{ color: "var(--foreground-heading)" }}>
                 1. Warna Dasar UI
@@ -215,7 +226,6 @@ export default function TemaPage() {
               </div>
             </div>
 
-            {/* Warna Gelombang / Wave */}
             <div>
               <span className="text-[11px] font-bold block mb-2" style={{ color: "var(--foreground-heading)" }}>
                 2. Warna Animasi Gelombang (Wave)
@@ -266,7 +276,6 @@ export default function TemaPage() {
             </div>
           </div>
 
-          {/* OVERLAY BANNER LOGIN JIKA BELUM LOGIN */}
           {!isLoggedIn && !loadingAuth && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 bg-black/60 backdrop-blur-[2px] transition-all">
               <div className="text-center p-4 rounded-2xl bg-neutral-900/90 border border-white/10 shadow-2xl max-w-xs">
@@ -286,13 +295,92 @@ export default function TemaPage() {
           )}
         </div>
 
+        {/* SECTION 3: PENGATURAN WARNA PILL & KOTAK CHAT (USER & ADMIN) */}
+        <div 
+          className="p-4 sm:p-5 rounded-2xl border transition-all duration-300"
+          style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" }}
+        >
+          <div className="mb-4">
+            <h3 className="font-bold text-sm" style={{ color: "var(--foreground-heading)" }}>
+              💬 3. Pengaturan Warna Pill & Kotak Chat
+            </h3>
+            <p className="text-[10px] opacity-80 mt-0.5" style={{ color: "var(--foreground)" }}>
+              Atur warna pill nama dan latar belakang kotak chat secara terpisah untuk User dan Admin.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Kontrol User */}
+            <div className="p-3 rounded-xl bg-black/20 border border-white/10 space-y-3">
+              <span className="text-xs font-bold block" style={{ color: "var(--accent)" }}>👤 User</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px]" style={{ color: "var(--foreground)" }}>Warna Pill Nama</span>
+                <input 
+                  type="color" 
+                  value={userPillColor}
+                  onChange={(e) => {
+                    setUserPillColor(e.target.value);
+                    localStorage.setItem("global_user_pill_color", e.target.value);
+                    window.dispatchEvent(new Event("globalColorChanged"));
+                  }}
+                  className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px]" style={{ color: "var(--foreground)" }}>Warna Kotak Chat (Box)</span>
+                <input 
+                  type="color" 
+                  value={userBubbleBg}
+                  onChange={(e) => {
+                    setUserBubbleBg(e.target.value);
+                    localStorage.setItem("global_user_bubble_bg", e.target.value);
+                    window.dispatchEvent(new Event("globalColorChanged"));
+                  }}
+                  className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Kontrol Admin */}
+            <div className="p-3 rounded-xl bg-black/20 border border-white/10 space-y-3">
+              <span className="text-xs font-bold block" style={{ color: "var(--accent)" }}>🛡️ Admin</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px]" style={{ color: "var(--foreground)" }}>Warna Pill Nama</span>
+                <input 
+                  type="color" 
+                  value={adminPillColor}
+                  onChange={(e) => {
+                    setAdminPillColor(e.target.value);
+                    localStorage.setItem("global_admin_pill_color", e.target.value);
+                    window.dispatchEvent(new Event("globalColorChanged"));
+                  }}
+                  className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px]" style={{ color: "var(--foreground)" }}>Warna Kotak Chat (Box)</span>
+                <input 
+                  type="color" 
+                  value={adminBubbleBg}
+                  onChange={(e) => {
+                    setAdminBubbleBg(e.target.value);
+                    localStorage.setItem("global_admin_bubble_bg", e.target.value);
+                    window.dispatchEvent(new Event("globalColorChanged"));
+                  }}
+                  className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* SECTION 2: GRID PRESET THEMES */}
         <div>
           <h3 className="font-bold text-xs mb-3 px-1" style={{ color: "var(--foreground)" }}>
             Preset Tema Gratis:
           </h3>
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
-            {themes.map((t) => {
+            {themes.map((t: ThemeItem) => {
               const isActive = activeThemeId === t.id;
 
               return (

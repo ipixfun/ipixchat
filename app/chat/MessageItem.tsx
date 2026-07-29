@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 
 export function MessageItem({
   m, colType, isMinimized, activeTab, isAdminOnline, adminOfflineTime, userStatus,
@@ -13,9 +13,44 @@ export function MessageItem({
   const [touchInitialY, setTouchInitialY] = useState(0);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
+  const isMsgAdmin = m.username === "Admin●ipix.my.id";
+
+  // Ambil warna global berdasarkan Admin atau User dari localStorage
+  const [pillColor, setPillColor] = useState(() => {
+    if (typeof window !== "undefined") {
+      return isMsgAdmin 
+        ? (localStorage.getItem("global_admin_pill_color") || "")
+        : (localStorage.getItem("global_user_pill_color") || "");
+    }
+    return "";
+  });
+
+  const [bubbleBg, setBubbleBg] = useState(() => {
+    if (typeof window !== "undefined") {
+      return isMsgAdmin 
+        ? (localStorage.getItem("global_admin_bubble_bg") || "")
+        : (localStorage.getItem("global_user_bubble_bg") || "");
+    }
+    return "";
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (typeof window !== "undefined") {
+        setPillColor(isMsgAdmin ? (localStorage.getItem("global_admin_pill_color") || "") : (localStorage.getItem("global_user_pill_color") || ""));
+        setBubbleBg(isMsgAdmin ? (localStorage.getItem("global_admin_bubble_bg") || "") : (localStorage.getItem("global_user_bubble_bg") || ""));
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("globalColorChanged", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("globalColorChanged", handleStorageChange);
+    };
+  }, [isMsgAdmin]);
+
   const clearTimer = () => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } };
   const shortBrowser = m.user_browser ? m.user_browser.split("(")[0].trim() + (m.user_browser.includes("(") ? ` (${m.user_browser.split("(")[1].split(")")[0]})` : "") : "Unknown Browser";
-  const isMsgAdmin = m.username === "Admin●ipix.my.id";
   const isMsgMine = m.username === authUser;
   const isEdited = m.is_edited === true || m.edited_by != null || (typeof window !== "undefined" ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || "0") > 0 : false);
 
@@ -38,7 +73,6 @@ export function MessageItem({
     );
   }
 
-  const bgBubbleClass = m.is_private ? "bg-emerald-50/95" : "bg-blue-50/95";
   const needsApproval = m.image_url && m.is_approved === false && !isMsgAdmin;
   const showBlurred = needsApproval && activeTab !== "admin";
 
@@ -70,8 +104,6 @@ export function MessageItem({
     return <div className={`${textSize} break-words break-all`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(text))}</div>;
   };
 
-  const isOtherOnline = userStatus?.[m.username]?.online;
-
   return (
     <div id={`msg-${m.id}`} className="relative w-full">
       {swipingId === m.id && swipeDelta !== 0 && (
@@ -84,7 +116,6 @@ export function MessageItem({
               <span className="text-[10px] font-bold">Hapus</span>
             </div>
           ) : (
-            // PERUBAHAN DI SINI: Mengubah layout Balas menjadi vertikal (flex-col) seperti Hapus agar seimbang & tidak nabrak
             <div className="flex flex-col items-center gap-0.5 opacity-90 drop-shadow-sm" style={{ color: "var(--accent)" }}>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
@@ -124,26 +155,26 @@ export function MessageItem({
         style={{ 
           transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : "translateX(0px)", 
           transition: swipingId === m.id ? "none" : "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)", 
-          backgroundColor: "var(--card-bg)",
-          borderColor: isMsgAdmin ? "var(--accent)" : isMsgMine ? "var(--accent)" : "var(--card-border)" 
+          backgroundColor: bubbleBg || "var(--card-bg)",
+          borderColor: pillColor || (isMsgAdmin ? "var(--accent)" : isMsgMine ? "var(--accent)" : "var(--card-border)")
         }}
       >
-        <div className={`flex justify-between items-start ${isMinimized ? "mb-0.5" : "mb-1"}`}>
+        <div className={`flex justify-between items-center ${isMinimized ? "mb-0.5" : "mb-1"}`}>
           <div className="flex items-center gap-1.5 flex-wrap">
             <b 
               onClick={(e) => { e.stopPropagation(); handleTag(m.username); }} 
-              className={`px-2 py-0.5 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMinimized ? "text-[8px]" : "text-[10px]"}`}
-              style={{ backgroundColor: isMsgAdmin ? "#dc2626" : "var(--accent)", color: "var(--background)" }}
+              className={`px-2.5 py-1 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMinimized ? "text-[8px] px-2 py-0.5" : "text-[10px]"}`}
+              style={{ backgroundColor: pillColor || "var(--accent)", color: "var(--background)" }}
             >
               {m.username}
             </b>
-            {m.is_private && !isMinimized && <span className={`text-[10px]`} style={{ color: isMsgAdmin ? "#dc2626" : "var(--accent)" }}>🔒 Private</span>}
           </div>
-          <div className="text-right shrink-0">
+          
+          <div className="flex items-center shrink-0">
             {isMsgAdmin ? (
-              <span className={`px-1.5 py-0.5 rounded bg-black/20 text-[8px] ${isAdminOnline ? "text-green-400 font-bold" : "opacity-60"}`}>{isAdminOnline ? "Online" : adminOfflineTime}</span>
+              <span className={`px-2.5 py-1 rounded-full bg-black/20 text-[9px] ${isAdminOnline ? "text-green-400 font-bold" : "opacity-60"}`}>{isAdminOnline ? "Online" : adminOfflineTime}</span>
             ) : (
-              userStatus[m.username] && <span className={`px-1.5 py-0.5 rounded bg-black/20 text-[8px] ${userStatus[m.username].online ? "text-green-400 font-bold" : "opacity-60"}`}>{userStatus[m.username].online ? "Online" : userStatus[m.username].offlineTime}</span>
+              userStatus[m.username] && <span className={`px-2.5 py-1 rounded-full bg-black/20 text-[9px] ${userStatus[m.username].online ? "text-green-400 font-bold" : "opacity-60"}`}>{userStatus[m.username].online ? "Online" : userStatus[m.username].offlineTime}</span>
             )}
           </div>
         </div>
@@ -174,7 +205,7 @@ export function MessageItem({
           })()}
         </div>
 
-        <div className={`${isMinimized ? "mt-1 pt-1" : "mt-2 pt-2"} border-t border-black/10 flex justify-between gap-3 ${activeTab === "admin" ? "items-end" : "items-center"}`}>
+        <div className={`${isMinimized ? "mt-1 pt-1" : "mt-2 pt-2"} border-t border-black/10 flex justify-between items-center gap-3`}>
           <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end items-start text-left">
             {isEdited && (
               <div className="flex items-center flex-wrap gap-1 mt-0.5">
@@ -182,7 +213,6 @@ export function MessageItem({
                 {m.edited_by && <span className="text-[9px] font-bold" style={{ color: m.edited_by === "Admin●ipix.my.id" ? "#dc2626" : "var(--accent)" }}>oleh {m.edited_by === "Admin●ipix.my.id" ? "Admin" : m.edited_by.split("●")[0]}</span>}
               </div>
             )}
-            {m.is_private && isMinimized && <span className={`text-[8px] font-bold`} style={{ color: isMsgAdmin ? "#dc2626" : "var(--accent)" }}>🔒 Private</span>}
             {activeTab === "admin" && (
               <div className="flex flex-col gap-1 text-[8px] opacity-60 font-sans w-full">
                 <span className="truncate font-medium max-w-[200px]" title={m.user_browser || ""}>🌐 {shortBrowser}</span>
