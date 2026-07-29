@@ -13,12 +13,10 @@ export function MessageItem({
   const [touchInitialY, setTouchInitialY] = useState(0);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const [isHighlighted, setIsHighlighted] = useState(false);
-
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
   const isMsgMine = m.username === authUser;
   
-  // Admin ke kiri, User ke kanan sesuai permintaan
+  // Admin ke kiri, User ke kanan
   const isRightAligned = !isMsgAdmin;
 
   const [pillColor, setPillColor] = useState(() => {
@@ -68,12 +66,27 @@ export function MessageItem({
   const shortBrowser = m.user_browser ? m.user_browser.split("(")[0].trim() + (m.user_browser.includes("(") ? ` (${m.user_browser.split("(")[1].split(")")[0]})` : "") : "Unknown Browser";
   const isEdited = m.is_edited === true || m.edited_by != null || (typeof window !== "undefined" ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || "0") > 0 : false);
 
+  // FUNGSI QUOTE CLICK: Menambahkan efek bergoyang smooth + menyala pada pesan tujuan
   const handleQuoteClick = (quotedText: string) => {
     scrollToMessage(quotedText);
-    setIsHighlighted(true);
+    
     setTimeout(() => {
-      setIsHighlighted(false);
-    }, 1500);
+      const messageElements = document.querySelectorAll('[id^="msg-bubble-"]');
+      for (const el of messageElements) {
+        if (el.textContent?.includes(quotedText)) {
+          const htmlEl = el as HTMLElement;
+          
+          htmlEl.classList.add("ring-4", "ring-[var(--accent)]", "scale-[1.03]", "animate-smooth-shake", "transition-all", "duration-300");
+          htmlEl.style.boxShadow = "0 0 25px var(--accent)";
+          
+          setTimeout(() => {
+            htmlEl.classList.remove("ring-4", "ring-[var(--accent)]", "scale-[1.03]", "animate-smooth-shake");
+            htmlEl.style.boxShadow = "";
+          }, 2000);
+          break;
+        }
+      }
+    }, 120);
   };
 
   if (m.pesan === "___DELETED___") {
@@ -139,6 +152,18 @@ export function MessageItem({
 
   return (
     <div id={`msg-${m.id}`} className="relative w-full mb-2">
+      {/* CSS KEYFRAMES UNTUK EFEK BERGOYANG SMOOTH */}
+      <style>{`
+        @keyframes smoothShake {
+          0%, 100% { transform: translateX(0); }
+          20%, 60% { transform: translateX(-6px); }
+          40%, 80% { transform: translateX(6px); }
+        }
+        .animate-smooth-shake {
+          animation: smoothShake 0.4s ease-in-out infinite;
+        }
+      `}</style>
+
       {swipingId === m.id && swipeDelta !== 0 && (
         <div className={`absolute inset-0 flex items-center px-5 transition-colors duration-200 bg-transparent ${isMinimized ? "rounded-md" : "rounded-xl"} ${swipeDelta > 0 ? "justify-start" : "justify-end"}`}>
           {swipeDelta > 0 ? (
@@ -161,12 +186,11 @@ export function MessageItem({
       
       <div
         id={`msg-bubble-${m.id}`}
-        // Ukuran dikembalikan full w-full seperti semula, hanya sudut dan ekornya yang diatur
         className={`relative z-10 transition-all duration-300 w-full ${
           isMinimized 
             ? (isRightAligned ? "p-1.5 rounded-tl-md rounded-b-md rounded-tr-none" : "p-1.5 rounded-tr-md rounded-b-md rounded-tl-none")
             : (isRightAligned ? "p-3 rounded-tl-xl rounded-b-xl rounded-tr-none" : "p-3 rounded-tr-xl rounded-b-xl rounded-tl-none")
-        } border-[2px] shadow-sm select-none ${isHighlighted ? "ring-4 ring-offset-2 animate-pulse scale-[1.02]" : ""}`}
+        } border-[2px] shadow-sm select-none`}
         onMouseDown={(e) => { if (e.button === 0) longPressTimer.current = setTimeout(() => { handleLongPress(m); if (navigator.vibrate) navigator.vibrate(50); }, 350); }}
         onMouseMove={clearTimer}
         onMouseUp={clearTimer}
@@ -194,8 +218,7 @@ export function MessageItem({
           transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : "translateX(0px)", 
           transition: swipingId === m.id ? "none" : "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)", 
           backgroundColor: activeBgColor,
-          borderColor: isHighlighted ? "var(--accent)" : activeBorderColor,
-          boxShadow: isHighlighted ? "0 0 20px var(--accent)" : undefined
+          borderColor: activeBorderColor
         }}
       >
         {/* EKOR BUBBLE */}
@@ -203,7 +226,7 @@ export function MessageItem({
           <>
             <div 
               className="absolute top-[-2px] -right-[10px] w-0 h-0 border-t-[0px] border-t-transparent border-l-[10px] border-b-[14px] border-b-transparent"
-              style={{ borderLeftColor: isHighlighted ? "var(--accent)" : activeBorderColor }}
+              style={{ borderLeftColor: activeBorderColor }}
             />
             <div 
               className="absolute top-[0px] -right-[7px] w-0 h-0 z-10 border-t-[0px] border-t-transparent border-l-[10px] border-b-[12px] border-b-transparent"
@@ -214,7 +237,7 @@ export function MessageItem({
           <>
             <div 
               className="absolute top-[-2px] -left-[10px] w-0 h-0 border-t-[0px] border-t-transparent border-r-[10px] border-b-[14px] border-b-transparent"
-              style={{ borderRightColor: isHighlighted ? "var(--accent)" : activeBorderColor }}
+              style={{ borderRightColor: activeBorderColor }}
             />
             <div 
               className="absolute top-[0px] -left-[7px] w-0 h-0 z-10 border-t-[0px] border-t-transparent border-r-[10px] border-b-[12px] border-b-transparent"
