@@ -1,4 +1,4 @@
-apply plugin: 'com.android.application'
+Apply plugin: 'com.android.application'
 
 android {
     namespace "com.ipix.chat"
@@ -17,8 +17,29 @@ android {
         }
     }
 
+    // ========================================================
+    // KONFIGURASI SIGNING (V1, V2, V3)
+    // ========================================================
+    signingConfigs {
+        release {
+            // Jika Anda ingin mengisikan path keystore secara otomatis saat build:
+            // storeFile file("keystore_kamu.jks")
+            // storePassword "password_keystore"
+            // keyAlias "alias_kamu"
+            // keyPassword "password_alias"
+
+            // Paksa aktifkan skema tanda tangan V1, V2, dan V3
+            v1SigningEnabled true
+            v2SigningEnabled true
+            v3SigningEnabled true
+        }
+    }
+
     buildTypes {
         release {
+            // Menghubungkan skema V1, V2, V3 ke tipe build Release
+            signingConfig signingConfigs.release
+            
             minifyEnabled false
             // Ini kode yang sudah diperbaiki (ditambah -optimize)
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
