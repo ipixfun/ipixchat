@@ -391,19 +391,19 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 1. Animasi Mascot GIF (Dinamic, Tanpa Border) */}
+        {/* 1. Animasi Mascot GIF (Dinamic, Responsif Lebar Penuh, Tanpa Border) */}
         {!isEditMode && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="w-full flex justify-center items-center py-2 pointer-events-none"
+            className="w-full flex justify-center items-center py-1 sm:py-2 pointer-events-none"
           >
             <img
               src={appInfo.gifUrl}
               alt="Mascot GIF"
-              className="w-32 h-32 sm:w-40 sm:h-40 object-contain drop-shadow-[0_15px_15px_rgba(0,0,0,0.4)]"
-              style={{ filter: "drop-shadow(0 15px 20px color-mix(in srgb, var(--accent) 35%, transparent))" }}
+              className="w-full h-auto max-h-[220px] sm:max-h-[280px] object-contain"
+              style={{ filter: "drop-shadow(0 15px 25px color-mix(in srgb, var(--accent) 35%, transparent))" }}
             />
           </motion.div>
         )}
@@ -551,7 +551,7 @@ export default function HomePage() {
           </motion.div>
         )}
 
-        {/* 5. Video Player Section (PINDAH KE BAWAH SINI) */}
+        {/* 5. Video Player Section */}
         <motion.div className="relative w-full rounded-2xl p-2 sm:p-3 mt-4" style={{ backgroundColor: "var(--card-bg)", border: "1px solid var(--card-border)", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.2)" }}>
           <button onClick={() => !isEditMode && setShowVideo(!showVideo)} className={`w-full flex items-center justify-between px-2.5 py-1.5 mb-1.5 rounded-xl outline-none ${isEditMode ? 'cursor-default' : 'active:scale-[0.99] hover:bg-white/5'}`} style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 8%, transparent)' }}>
             <div className="flex items-center gap-2">
