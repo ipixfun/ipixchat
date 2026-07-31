@@ -1,71 +1,85 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
 
-// =========================================================
-// 1. KOMPONEN PESAN SEMATAN (MINIMALIS & PROFESIONAL)
-// =========================================================
 export function PinnedMessage({ 
-  pinnedMsg, 
+  adminPinnedMsg,
+  userPinnedMsg,
   uiTab, 
   onEditPinned, 
   onScrollToMsg 
 }: { 
-  pinnedMsg?: any; 
+  adminPinnedMsg?: any; 
+  userPinnedMsg?: any; 
   uiTab?: string; 
   onEditPinned?: (msg: any) => void; 
   onScrollToMsg?: (id: number) => void; 
 }) {
+  if (!adminPinnedMsg && !userPinnedMsg) return null;
+
   return (
     <div className="w-full px-3 py-1.5 z-10 shrink-0 border-b transition-all duration-300" style={{ backgroundColor: "var(--background)", borderColor: "var(--card-border)" }}>
-      <div 
-        onClick={() => pinnedMsg && onScrollToMsg?.(pinnedMsg.id)} 
-        className="w-full p-2.5 rounded-lg cursor-pointer transition-all active:scale-[0.99] flex items-center gap-2.5 border-l-2 backdrop-blur-md relative"
-        style={{ backgroundColor: "var(--card-bg, rgba(255,255,255,0.03))", borderColor: "var(--accent)" }}
-      >
-        {/* Ikon Vektor Pin Minimalis (SVG) */}
-        <div className="shrink-0 opacity-80" style={{ color: "var(--accent)" }}>
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 17v5" />
-            <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
-          </svg>
-        </div>
-
-        <div className="flex flex-col flex-1 overflow-hidden pr-7">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] font-bold uppercase tracking-wider opacity-70" style={{ color: "var(--foreground)" }}>
-              Pesan Sematan
-            </span>
-            <span className="px-1.5 py-0.2 text-[8px] font-semibold rounded bg-red-500/15 text-red-400 border border-red-500/20">
+      <div className="grid grid-cols-2 gap-2 w-full">
+        {/* KOLOM KIRI: SEMATAN ADMIN */}
+        <div 
+          onClick={() => adminPinnedMsg && onScrollToMsg?.(adminPinnedMsg.id)} 
+          className={`p-2 rounded-xl transition-all border backdrop-blur-md relative shadow-sm flex items-center gap-2 ${adminPinnedMsg ? "cursor-pointer active:scale-[0.98]" : "opacity-40"}`}
+          style={{ backgroundColor: "var(--card-bg, rgba(255,255,255,0.03))", borderColor: "var(--card-border)" }}
+        >
+          <div className="shrink-0 opacity-90" style={{ color: "var(--accent)" }}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 17v5" />
+              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+            </svg>
+          </div>
+          <div className="flex flex-col flex-1 overflow-hidden pr-3">
+            <span className="text-[8px] font-bold uppercase tracking-wider" style={{ color: "var(--accent)" }}>
               Admin
             </span>
+            <p className="text-[11px] truncate font-medium leading-tight opacity-90" style={{ color: "var(--foreground)" }}>
+              {adminPinnedMsg ? adminPinnedMsg.pesan : "Belum ada sematan"}
+            </p>
           </div>
-          <p className="text-xs truncate mt-0.5 font-medium leading-tight opacity-90" style={{ color: "var(--foreground)" }}>
-            {pinnedMsg ? pinnedMsg.pesan : "halo semua"}
-          </p>
+          {uiTab === "admin" && onEditPinned && adminPinnedMsg && (
+            <button 
+              type="button" 
+              onClick={(e) => { e.stopPropagation(); onEditPinned(adminPinnedMsg); }} 
+              className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-amber-400 rounded hover:bg-white/5"
+              title="Edit Sematan Admin"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+            </button>
+          )}
         </div>
-        
-        {/* Tombol Edit Admin dengan Ikon Pensil SVG */}
-        {uiTab === "admin" && onEditPinned && (
-          <button 
-            type="button" 
-            onClick={(e) => { e.stopPropagation(); onEditPinned(pinnedMsg); }} 
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-amber-400 rounded-md hover:bg-white/5 transition-all active:scale-95"
-            title="Edit Pesan Sematan"
-          >
+
+        {/* KOLOM KANAN: SEMATAN USER */}
+        <div 
+          onClick={() => userPinnedMsg && onScrollToMsg?.(userPinnedMsg.id)} 
+          className={`p-2 rounded-xl transition-all border backdrop-blur-md relative shadow-sm flex items-center gap-2 ${userPinnedMsg ? "cursor-pointer active:scale-[0.98]" : "opacity-40"}`}
+          style={{ backgroundColor: "var(--card-bg, rgba(255,255,255,0.03))", borderColor: "var(--card-border)" }}
+        >
+          <div className="shrink-0 opacity-90" style={{ color: "var(--accent)" }}>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 20h9" />
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              <path d="M12 17v5" />
+              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
             </svg>
-          </button>
-        )}
+          </div>
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <span className="text-[8px] font-bold uppercase tracking-wider truncate" style={{ color: "var(--accent)" }}>
+              {userPinnedMsg ? userPinnedMsg.username.split("●")[0] : "User"}
+            </span>
+            <p className="text-[11px] truncate font-medium leading-tight opacity-90" style={{ color: "var(--foreground)" }}>
+              {userPinnedMsg ? userPinnedMsg.pesan : "Belum ada sematan"}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-// =========================================================
-// 2. KOMPONEN MESSAGE ITEM
-// =========================================================
 export function MessageItem({
   m, colType, isMinimized, activeTab, isAdminOnline, adminOfflineTime, userStatus,
   activeMenuId, setActiveMenuId, swipingId, setSwipingId, handleTag, handleReply,
@@ -84,24 +98,19 @@ export function MessageItem({
     const match = str.match(/(\d+)\s*jam/i);
     if (match) {
       const hours = parseInt(match[1], 10);
-      if (hours >= 24) {
-        return `${Math.floor(hours / 24)} hari lalu`;
-      }
+      if (hours >= 24) return `${Math.floor(hours / 24)} hari lalu`;
       return str;
     }
     const parsedDate = Date.parse(str);
     if (!isNaN(parsedDate)) {
       const diffInHours = Math.floor((Date.now() - parsedDate) / (1000 * 60 * 60));
-      if (diffInHours >= 24) {
-        return `${Math.floor(diffInHours / 24)} hari lalu`;
-      }
+      if (diffInHours >= 24) return `${Math.floor(diffInHours / 24)} hari lalu`;
     }
     return str;
   };
 
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
   const isMsgMine = authUser ? (m.username === authUser) : !isMsgAdmin;
-  
   const isRightAligned = isMsgMine;
 
   const [pillColor, setPillColor] = useState(() => {
@@ -174,7 +183,7 @@ export function MessageItem({
     const isDeletedByAdmin = m.deleted_by_admin === true;
     return (
       <div id={`msg-${m.id}`} className="relative w-full mb-2 z-10 group">
-        <div className="bg-white/15 backdrop-blur-md border rounded-xl p-2.5 flex flex-col w-full shadow-sm relative" style={{ borderColor: "var(--card-border)", backgroundColor: "var(--card-bg)" }}>
+        <div className="bg-white/10 backdrop-blur-md border rounded-xl p-2.5 flex flex-col w-full shadow-sm relative" style={{ borderColor: "var(--card-border)", backgroundColor: "var(--card-bg)" }}>
           {activeTab === "admin" && <div className="absolute -top-2 -right-2 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border border-white shadow-sm z-20 cursor-help" style={{ backgroundColor: "var(--accent)" }} title="Dihapus (Dilihat oleh Admin)">X</div>}
           <div className="flex items-center gap-2">
             <span className="bg-gray-500/20 text-gray-400 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">🚫 Dihapus</span>
@@ -195,8 +204,8 @@ export function MessageItem({
   const renderTextWithTags = (t: string) => t.split(/(@\w+)/g).map((part, i) => {
     if (part.startsWith("@")) {
       const uname = part.substring(1).toLowerCase();
-      const color = uname === "admin" ? "text-red-600" : (authUser && uname === authUser.split("●")[0].toLowerCase()) ? "text-blue-600" : "text-green-600";
-      return <span key={i} className={`font-bold ${color} cursor-pointer hover:underline`} onClick={(e) => { e.stopPropagation(); handleTag(part.substring(1)); }}>{part}</span>;
+      const color = uname === "admin" ? "text-red-500 font-bold" : (authUser && uname === authUser.split("●")[0].toLowerCase()) ? "text-blue-400 font-bold" : "text-emerald-400 font-bold";
+      return <span key={i} className={`${color} cursor-pointer hover:underline`} onClick={(e) => { e.stopPropagation(); handleTag(part.substring(1)); }}>{part}</span>;
     }
     return <span key={i}>{part}</span>;
   });
@@ -204,31 +213,31 @@ export function MessageItem({
   const renderContent = (text: string, isMin: boolean) => {
     if (!text) return null;
     const match = text.match(/^@(\w+)\s\("(.*?)"\)\s?(.*)$/);
-    const textSize = isMin ? "text-[11px] leading-tight" : "text-sm leading-relaxed";
+    const textSize = isMin ? "text-xs sm:text-sm leading-relaxed" : "text-sm leading-relaxed";
     if (match) {
       const [_, user, quotedText, replyText] = match;
-      const tagColor = user.toLowerCase() === "admin" ? "text-red-600" : (authUser && user.toLowerCase() === authUser.split("●")[0].toLowerCase()) ? "text-blue-600" : "text-green-600";
+      const tagColor = user.toLowerCase() === "admin" ? "text-red-400 font-bold" : (authUser && user.toLowerCase() === authUser.split("●")[0].toLowerCase()) ? "text-blue-400 font-bold" : "text-emerald-400 font-bold";
       return (
         <>
           <div 
-            className={`text-[10px] italic p-2 rounded cursor-pointer hover:opacity-100 border-l-4 mb-1.5 transition-colors break-words break-all shadow-inner`} 
-            style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--accent)", color: "var(--foreground)" }} 
+            className="text-[10px] italic p-2 rounded-lg cursor-pointer hover:opacity-100 border-l-2 mb-1.5 transition-colors break-words overflow-hidden shadow-inner" 
+            style={{ backgroundColor: "rgba(0,0,0,0.15)", borderColor: "var(--accent)", color: "var(--foreground)" }} 
             onClick={(e) => { e.stopPropagation(); handleQuoteClick(quotedText); }}
           >
-            <span className={`font-bold ${tagColor}`}>@{user}</span>: "{applyCensor(quotedText)}"
+            <span className={tagColor}>@{user}</span>: "{applyCensor(quotedText)}"
           </div>
-          <div className={`${textSize} break-words break-all`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(replyText))}</div>
+          <div className={`${textSize} break-words overflow-wrap-anywhere`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(replyText))}</div>
         </>
       );
     }
-    return <div className={`${textSize} break-words break-all`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(text))}</div>;
+    return <div className={`${textSize} break-words overflow-wrap-anywhere`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(text))}</div>;
   };
 
   const activeBorderColor = pillColor === "transparent" ? "transparent" : (pillColor || (isMsgAdmin ? "var(--accent)" : isMsgMine ? "var(--accent)" : "var(--card-border)"));
   const activeBgColor = bubbleBg === "transparent" ? "transparent" : (bubbleBg || "var(--card-bg)");
 
   return (
-    <div id={`msg-${m.id}`} className={`relative w-full mb-2 flex ${isRightAligned ? "justify-end" : "justify-start"}`}>
+    <div id={`msg-${m.id}`} className={`relative w-full mb-3 flex ${isRightAligned ? "justify-end" : "justify-start"}`}>
       <style>{`
         @keyframes smoothShake {
           0%, 100% { transform: translateX(0); }
@@ -236,19 +245,20 @@ export function MessageItem({
           40%, 80% { transform: translateX(6px); }
         }
         .animate-smooth-shake { animation: smoothShake 0.4s ease-in-out infinite; }
+        .overflow-wrap-anywhere { overflow-wrap: anywhere; word-break: break-word; }
       `}</style>
 
       {swipingId === m.id && swipeDelta !== 0 && (
-        <div className={`absolute inset-0 flex items-center px-5 transition-colors duration-200 bg-transparent ${isMinimized ? "rounded-md" : "rounded-xl"} ${swipeDelta > 0 ? "justify-start" : "justify-end"}`}>
+        <div className={`absolute inset-0 flex items-center px-4 transition-colors duration-200 bg-transparent rounded-xl ${swipeDelta > 0 ? "justify-start" : "justify-end"}`}>
           {swipeDelta > 0 ? (
-            <div className="flex flex-col items-center gap-0.5 text-red-600 opacity-90 drop-shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-              <span className="text-[10px] font-bold">Hapus</span>
+            <div className="flex flex-col items-center gap-0.5 text-red-500 opacity-90 drop-shadow-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              <span className="text-[9px] font-bold uppercase tracking-wider">Hapus</span>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-0.5 opacity-90 drop-shadow-sm" style={{ color: "var(--accent)" }}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
-              <span className="text-[10px] font-bold">Balas</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+              <span className="text-[9px] font-bold uppercase tracking-wider">Balas</span>
             </div>
           )}
         </div>
@@ -256,11 +266,7 @@ export function MessageItem({
       
       <div
         id={`msg-bubble-${m.id}`}
-        className={`relative z-10 transition-all duration-300 max-w-[85%] sm:max-w-[75%] ${
-          isMinimized 
-            ? (isRightAligned ? "p-1.5 rounded-tl-md rounded-b-md rounded-tr-none" : "p-1.5 rounded-tr-md rounded-b-md rounded-tl-none")
-            : (isRightAligned ? "p-3 rounded-tl-xl rounded-b-xl rounded-tr-none" : "p-3 rounded-tr-xl rounded-b-xl rounded-tl-none")
-        } border-[2px] shadow-sm select-none`}
+        className="relative z-10 transition-all duration-200 max-w-[85%] sm:max-w-[75%] p-3 border-[1.5px] shadow-sm select-none rounded-2xl"
         onMouseDown={(e) => { if (e.button === 0) longPressTimer.current = setTimeout(() => { handleLongPress(m); if (navigator.vibrate) navigator.vibrate(50); }, 350); }}
         onMouseMove={clearTimer}
         onMouseUp={clearTimer}
@@ -286,55 +292,65 @@ export function MessageItem({
         }}
         style={{ 
           transform: swipingId === m.id ? `translateX(${swipeDelta}px)` : "translateX(0px)", 
-          transition: swipingId === m.id ? "none" : "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)", 
+          transition: swipingId === m.id ? "none" : "transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)", 
           backgroundColor: activeBgColor,
           borderColor: activeBorderColor
         }}
       >
-        {/* EKOR BUBBLE */}
+        {/* ICON PIN KERTAS / PUSHPIN DI POJOK ATAS GELEMBUNG */}
+        {m.is_pinned && (
+          <div className="absolute -top-3 right-3 z-20 pointer-events-none filter drop-shadow-md" title="Pesan Disematkan">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 -rotate-45" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--background)" strokeWidth="1">
+              <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/>
+            </svg>
+          </div>
+        )}
+
+        {/* EKOR BUBBLE DI SAMPING TENGAH */}
         {isRightAligned ? (
           <>
             <div 
-              className="absolute top-[-2px] -right-[10px] w-0 h-0 border-t-[0px] border-t-transparent border-l-[10px] border-b-[14px] border-b-transparent"
+              className="absolute top-1/2 -translate-y-1/2 -right-[7px] w-0 h-0 border-t-[6px] border-t-transparent border-l-[7px] border-b-[6px] border-b-transparent"
               style={{ borderLeftColor: activeBorderColor }}
             />
             <div 
-              className="absolute top-[0px] -right-[7px] w-0 h-0 z-10 border-t-[0px] border-t-transparent border-l-[10px] border-b-[12px] border-b-transparent"
+              className="absolute top-1/2 -translate-y-1/2 -right-[5px] w-0 h-0 z-10 border-t-[5px] border-t-transparent border-l-[5px] border-b-[5px] border-b-transparent"
               style={{ borderLeftColor: activeBgColor }}
             />
           </>
         ) : (
           <>
             <div 
-              className="absolute top-[-2px] -left-[10px] w-0 h-0 border-t-[0px] border-t-transparent border-r-[10px] border-b-[14px] border-b-transparent"
+              className="absolute top-1/2 -translate-y-1/2 -left-[7px] w-0 h-0 border-t-[6px] border-t-transparent border-r-[7px] border-b-[6px] border-b-transparent"
               style={{ borderRightColor: activeBorderColor }}
             />
             <div 
-              className="absolute top-[0px] -left-[7px] w-0 h-0 z-10 border-t-[0px] border-t-transparent border-r-[10px] border-b-[12px] border-b-transparent"
+              className="absolute top-1/2 -translate-y-1/2 -left-[5px] w-0 h-0 z-10 border-t-[5px] border-t-transparent border-r-[5px] border-b-[5px] border-b-transparent"
               style={{ borderRightColor: activeBgColor }}
             />
           </>
         )}
 
-        <div className={`flex justify-between items-center ${isMinimized ? "mb-0.5" : "mb-1"}`}>
-          <div className="flex items-center gap-1.5 flex-wrap relative z-20">
-            <b 
+        {/* HEADER BUBBLE */}
+        <div className="flex justify-between items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+            <span 
               onClick={(e) => { e.stopPropagation(); handleTag(m.username); }} 
-              className={`px-2.5 py-1 rounded-full text-white cursor-pointer shadow-sm active:scale-95 transition-transform ${isMinimized ? "text-[8px] px-2 py-0.5" : "text-[10px]"}`}
-              style={{ backgroundColor: pillColor === "transparent" ? "transparent" : (pillColor || "var(--accent)"), color: "var(--background)" }}
+              className="px-2 py-0.5 rounded-full text-[10px] font-black truncate cursor-pointer shadow-sm active:scale-95 transition-transform"
+              style={{ backgroundColor: pillColor === "transparent" ? "rgba(255,255,255,0.1)" : (pillColor || "var(--accent)"), color: "var(--background, #ffffff)" }}
             >
               {m.username}
-            </b>
+            </span>
           </div>
           
-          <div className="flex items-center shrink-0 relative z-20 ml-2">
+          <div className="flex items-center shrink-0">
             {isMsgAdmin ? (
-              <span className={`px-2.5 py-1 rounded-full bg-black/20 text-[9px] ${isAdminOnline ? "text-green-400 font-bold" : "opacity-60"}`}>
+              <span className={`px-2 py-0.5 rounded-full bg-black/20 text-[8px] font-bold ${isAdminOnline ? "text-emerald-400" : "opacity-60"}`}>
                 {isAdminOnline ? "Online" : formatOfflineTime(adminOfflineTime)}
               </span>
             ) : (
               userStatus[m.username] && (
-                <span className={`px-2.5 py-1 rounded-full bg-black/20 text-[9px] ${userStatus[m.username].online ? "text-green-400 font-bold" : "opacity-60"}`}>
+                <span className={`px-2 py-0.5 rounded-full bg-black/20 text-[8px] font-bold ${userStatus[m.username].online ? "text-emerald-400" : "opacity-60"}`}>
                   {userStatus[m.username].online ? "Online" : formatOfflineTime(userStatus[m.username].offlineTime)}
                 </span>
               )
@@ -342,12 +358,13 @@ export function MessageItem({
           </div>
         </div>
 
-        <div className="flex items-start gap-3 mt-1.5 mb-1 relative z-20">
+        {/* ISI PESAN / GAMBAR */}
+        <div className="flex items-start gap-2.5 my-1">
           {m.image_url && (
             <div className="relative cursor-zoom-in group shrink-0 w-max">
-              <img src={m.image_url} alt="attachment" onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? "w-16 h-16" : "w-24 h-24 sm:w-28 sm:h-28"} ${showBlurred ? "blur-md" : ""}`} loading="lazy" />
-              {showBlurred && <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg pointer-events-none"><span className="text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-1 bg-black/60 rounded text-center leading-tight">Menunggu<br />Persetujuan</span></div>}
-              {needsApproval && activeTab === "admin" && <button onClick={(e) => { e.stopPropagation(); approveImage(m.id); }} className="absolute -top-2 -right-2 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-md active:scale-95 transition-all" style={{ backgroundColor: "var(--accent)" }}>Setujui</button>}
+              <img src={m.image_url} alt="attachment" onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? "w-20 h-20" : "w-28 h-28"} ${showBlurred ? "blur-md" : ""}`} loading="lazy" />
+              {showBlurred && <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg pointer-events-none"><span className="text-white text-[8px] font-bold px-1.5 py-1 bg-black/60 rounded text-center leading-tight">Menunggu<br />Persetujuan</span></div>}
+              {needsApproval && activeTab === "admin" && <button onClick={(e) => { e.stopPropagation(); approveImage(m.id); }} className="absolute -top-2 -right-2 text-white text-[8px] font-bold px-2 py-0.5 rounded-full shadow-md active:scale-95 transition-all" style={{ backgroundColor: "var(--accent)" }}>Setujui</button>}
             </div>
           )}
           
@@ -358,53 +375,50 @@ export function MessageItem({
             const isLongText = paragraphs.length > maxLines || m.pesan.length > maxChars;
 
             return (
-              <div className="min-w-0 flex-1 relative z-20">
-                <div className={`break-words break-all whitespace-pre-wrap ${isLongText ? (isPage2Private ? "line-clamp-4" : "line-clamp-2") : ""}`} style={isLongText ? { display: '-webkit-box', WebkitLineClamp: isPage2Private ? 4 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}>
+              <div className="min-w-0 flex-1">
+                <div className={`break-words overflow-wrap-anywhere ${isLongText ? (isPage2Private ? "line-clamp-4" : "line-clamp-2") : ""}`} style={isLongText ? { display: '-webkit-box', WebkitLineClamp: isPage2Private ? 4 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}>
                   {renderContent(m.pesan, isMinimized)}
                 </div>
-                {isLongText && <button onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} className="text-[10px] font-black mt-1 px-2 py-0.5 rounded shadow-sm transition-colors block" style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}>Selengkapnya...</button>}
+                {isLongText && <button onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} className="text-[9px] font-bold mt-1 px-2 py-0.5 rounded shadow-sm transition-colors block" style={{ backgroundColor: "rgba(0,0,0,0.2)", color: "var(--foreground)" }}>Selengkapnya...</button>}
               </div>
             );
           })()}
         </div>
 
-        <div className={`${isMinimized ? "mt-1 pt-1" : "mt-2 pt-2"} border-t border-black/10 flex justify-between items-center gap-3 relative z-20`}>
-          <div className="flex-1 overflow-hidden flex flex-col gap-1 justify-end items-start text-left">
+        {/* FOOTER BUBBLE */}
+        <div className="mt-1.5 pt-1.5 border-t border-black/10 flex justify-between items-center gap-2">
+          <div className="flex-1 overflow-hidden flex flex-col gap-0.5 text-left">
             {isEdited && (
-              <div className="flex items-center flex-wrap gap-1 mt-0.5">
-                <span className="text-yellow-500 font-black text-[9px] lowercase bg-yellow-500/10 px-1 rounded shadow-sm">(edited)</span>
-                {m.edited_by && <span className="text-[9px] font-bold" style={{ color: m.edited_by === "Admin●ipix.my.id" ? "#dc2626" : "var(--accent)" }}>oleh {m.edited_by === "Admin●ipix.my.id" ? "Admin" : m.edited_by.split("●")[0]}</span>}
+              <div className="flex items-center gap-1">
+                <span className="text-amber-400 font-bold text-[8px] lowercase">(edited)</span>
+                {m.edited_by && <span className="text-[8px] opacity-75 truncate" style={{ color: "var(--foreground)" }}>oleh {m.edited_by === "Admin●ipix.my.id" ? "Admin" : m.edited_by.split("●")[0]}</span>}
               </div>
             )}
             {activeTab === "admin" && (
-              <div className="flex flex-col gap-1 text-[8px] opacity-60 font-sans w-full">
-                <span className="truncate font-medium max-w-[200px]" title={m.user_browser || ""}>🌐 {shortBrowser}</span>
-              </div>
+              <span className="truncate font-mono text-[8px] opacity-50" title={m.user_browser || ""}>🌐 {shortBrowser}</span>
             )}
           </div>
           
-          <div className="flex flex-col items-end gap-1 shrink-0 pb-0.5">
-            <span className="text-[8px] opacity-60 font-bold px-1 rounded">{formatMessageTime(m.created_at)}</span>
-            <div className="flex items-center gap-2 text-[10px]">
-              {!isMinimized && <button type="button" onClick={(e) => { e.stopPropagation(); handleReply(m); }} className={`font-bold underline mr-1 transition-colors`} style={{ color: "var(--accent)" }}>Balas</button>}
-              
-              {activeTab === "admin" && (
-                <div className="relative flex items-center">
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId !== m.id ? m.id : null); }} className="text-base font-bold px-2 py-1 rounded transition-colors" style={{ color: "var(--foreground)" }}>⋮</button>
-                  {activeMenuId === m.id && (
-                    <>
-                      <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} />
-                      <div className="absolute right-0 bottom-full mb-2 bg-white backdrop-blur-md shadow-xl border rounded-full z-[100] p-1.5 flex flex-row items-center gap-1 min-w-max origin-bottom-right" style={{ borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
-                        <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-3 py-1.5 text-[8px] font-black text-white bg-blue-500 hover:bg-blue-600 rounded-full shadow-sm transition-all active:scale-95">Edit</button>
-                        {!isMsgAdmin && (
-                          <button type="button" onClick={() => { blockUser(m.username); setActiveMenuId(null); }} className="px-3 py-1.5 text-[8px] font-black text-white bg-red-600 hover:bg-red-700 rounded-full shadow-sm transition-all active:scale-95">Blokir</button>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[8px] font-bold opacity-60 font-mono">{formatMessageTime(m.created_at)}</span>
+            {!isMinimized && <button type="button" onClick={(e) => { e.stopPropagation(); handleReply(m); }} className="text-[9px] font-bold underline" style={{ color: "var(--accent)" }}>Balas</button>}
+            
+            {activeTab === "admin" && (
+              <div className="relative flex items-center">
+                <button type="button" onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId !== m.id ? m.id : null); }} className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ color: "var(--foreground)" }}>⋮</button>
+                {activeMenuId === m.id && (
+                  <>
+                    <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} />
+                    <div className="absolute right-0 bottom-full mb-2 bg-slate-900 border border-slate-700 shadow-xl rounded-full z-[100] p-1 flex items-center gap-1 min-w-max" onClick={(e) => e.stopPropagation()}>
+                      <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-2.5 py-1 text-[8px] font-bold text-white bg-blue-600 rounded-full">Edit</button>
+                      {!isMsgAdmin && (
+                        <button type="button" onClick={() => { blockUser(m.username); setActiveMenuId(null); }} className="px-2.5 py-1 text-[8px] font-bold text-white bg-red-600 rounded-full">Blokir</button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

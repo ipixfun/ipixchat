@@ -264,7 +264,34 @@ export default function Home() {
     rmWrd: async (w: string) => { const { error } = await supabase.from("blocked_words").delete().eq("word", w); if (error) alert("Gagal menghapus kata terlarang."); fetchData(); },
     approveImg: async (id: number) => { await supabase.from("messages").update({ is_approved: true }).eq("id", id); fetchData(); },
     
-    // EDIT PESAN SEMATAN
+    togglePin: async (msg: any) => {
+      try {
+        const nextState = !msg.is_pinned;
+        const isMsgFromAdmin = msg.username === "Admin●ipix.my.id";
+        
+        if (nextState) {
+          const messagesToUnpin = msgs.priv.filter(m => 
+            m.is_pinned && 
+            (isMsgFromAdmin ? m.username === "Admin●ipix.my.id" : m.username !== "Admin●ipix.my.id")
+          );
+          
+          for (const mUnpin of messagesToUnpin) {
+            await supabase.from("messages").update({ is_pinned: false }).eq("id", mUnpin.id);
+          }
+        }
+        
+        const { error } = await supabase
+          .from("messages")
+          .update({ is_pinned: nextState })
+          .eq("id", msg.id);
+
+        if (error) throw error;
+        fetchData();
+      } catch (err) {
+        alert("Gagal memperbarui status sematan.");
+      }
+    },
+
     editPinned: async (currentPinned: any) => {
       if (auth.user !== "Admin●ipix.my.id") return alert("Hanya admin yang dapat mengedit pesan sematan.");
       const defaultText = "halo semua";
@@ -439,18 +466,17 @@ export default function Home() {
   const onlineUsers = Object.entries(usersInfo.status).filter(([_, data]) => data.online).map(([username]) => username);
   
   const currentMsgs = msgs.priv; 
-  const pinnedMsg = currentMsgs.find((m) => m.is_pinned && m.pesan !== "___DELETED___");
-
-  // Banner Pin selalu tampil asalkan dalam sesi obrolan yang aktif
+  const adminPinnedMsg = currentMsgs.find((m) => m.is_pinned && m.pesan !== "___DELETED___" && m.username === "Admin●ipix.my.id");
+  const userPinnedMsg = currentMsgs.find((m) => m.is_pinned && m.pesan !== "___DELETED___" && m.username !== "Admin●ipix.my.id");
   const shouldShowPinned = auth.isAuth && currentHash !== "#block" && (ui.tab === "user" || (ui.tab === "admin" && usersInfo.selPriv !== null));
 
   const renderMsgs = (arr: any[], colType: any) => {
     if (!auth.isAuth) return null;
-    const messageContent = arr.length === 0 ? (<div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div>) : (
+    const messageContent = arr.length === 0 ? (<div className="text-center opacity-60 italic mt-10 text-[10px]">Belum ada pesan.</div>) : (
       arr.map((m, idx) => {
         const isMine = m.username === auth.user; const maxWidthClass = "max-w-[85%] md:max-w-[75%]";
         return (
-          <div key={m.id} className={`w-full flex mb-3 px-2 sm:px-4 ${isMine ? "justify-end" : "justify-start"}`}>
+          <div key={m.id} className={`w-full flex mb-2 px-2 sm:px-4 ${isMine ? "justify-end" : "justify-start"}`}>
             <div className={`relative flex flex-col chat-bubble-wrapper min-w-[35%] ${maxWidthClass} ${isMine ? "items-end" : "items-start"}`}>
               <MessageItem index={idx} m={m} colType={colType} isMinimized={true} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} activeMenuId={interact.activeMenu} setActiveMenuId={(id: any) => setInteract((p) => ({ ...p, activeMenu: id }))} swipingId={interact.swipeId} setSwipingId={(id: any) => setInteract((p) => ({ ...p, swipeId: id }))} handleTag={(u: string) => setInput((p) => ({ ...p, text: `${p.text} @${u.split("●")[0]} ` }))} handleReply={(m: any) => { setInteract((p) => ({ ...p, replyTo: m })); setInput((p) => ({ ...p, blink: true })); setTimeout(() => setInput((p) => ({ ...p, blink: false })), 800); }} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} blockUser={dbActions.blkUser} setPopupMsg={(m: any) => setInteract((p) => ({ ...p, popup: m }))} handleLongPress={(m: any) => setInteract((p) => ({ ...p, popup: m }))} approveImage={dbActions.approveImg} applyCensor={applyCensor} scrollToMessage={(t: string) => { const cleanText = t.endsWith("...") ? t.slice(0, -3) : t; const x = msgs.all.find((m) => m.pesan.includes(cleanText)); if (x) scrollMsg(x.id); }} formatMessageTime={getFmt.time} authUser={auth.user} />
             </div>
@@ -490,7 +516,7 @@ export default function Home() {
                 let finalEmail = "user@ipix.fun"; if (existUser?.email) { finalEmail = existUser.email; } else { const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true }); const nextId = (count || 0) + 1; finalEmail = `user${nextId}@ipix.fun`; }
                 const { error: upsertError } = await supabase.from("profiles").upsert({ email: finalEmail, username: finalUsername, user_browser: navigator.userAgent, pin: plainPin, umur: auth.umur, berat: auth.berat }, { onConflict: "username" });
                 if (upsertError) return { error: true };
-                localStorage.setItem("active_username", finalUsername); localStorage.setItem("username", finalUsername); localStorage.setItem("saved_pin", plainPin); localStorage.setItem("user_pin", plainPin); localStorage.setItem("pin", plainPin); localStorage.setItem("is_auth", "true"); localStorage.setItem("active_tab", "user");
+                localStorage.setItem("active_username", finalUsername); localStorage.setItem("username", finalUsername); localStorage.setItem("saved_pin", plainPin); localStorage.setItem("user_pin", finalUsername); localStorage.setItem("pin", plainPin); localStorage.setItem("is_auth", "true"); localStorage.setItem("active_tab", "user");
                 setTimeout(() => { setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: "" })); }, 3000); return true;
               } catch (e) { return { error: true }; }
             }} handleAdminLogin={async () => {
@@ -501,6 +527,7 @@ export default function Home() {
         </div>
       )}
       
+      {/* HEADER UTAMA: MENAMPILKAN ONLINE UNTUK ADMIN, ATAU PIN SEMATAN DUA KOLOM UNTUK USER */}
       <Head 
         auth={auth} 
         ui={ui} 
@@ -511,12 +538,17 @@ export default function Home() {
         handleLogout={handleLogout} 
         onBlockMgr={() => window.open(`${window.location.pathname}#block`, "_blank")}
         onTrashMgr={dbActions.emptyTrash}
+        adminPinnedMsg={adminPinnedMsg}
+        userPinnedMsg={userPinnedMsg}
+        onEditPinned={dbActions.editPinned}
+        onScrollToMsg={scrollMsg}
       />
 
-      {/* KOMPONEN PESAN SEMATAN DARI MESSAGEITEM.TSX */}
-      {shouldShowPinned && (
+      {/* DUA KOLOM PESAN SEMATAN DILUAR HEAD KHUSUS KETIKA LOGIN SEBAGAI ADMIN */}
+      {ui.tab === "admin" && shouldShowPinned && (adminPinnedMsg || userPinnedMsg) && (
         <PinnedMessage 
-          pinnedMsg={pinnedMsg} 
+          adminPinnedMsg={adminPinnedMsg}
+          userPinnedMsg={userPinnedMsg} 
           uiTab={ui.tab} 
           onEditPinned={dbActions.editPinned} 
           onScrollToMsg={scrollMsg} 
@@ -556,11 +588,16 @@ export default function Home() {
       
       {currentHash !== "#block" && auth.isAuth && renderInputForm()}
       
+      {/* MODAL POPUP ACTION PESAN */}
       {auth.isAuth && interact.popup && interact.popup.pesan !== "___DELETED___" && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
           <div className="w-full max-w-lg rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col border-t-4" style={{ backgroundColor: "var(--background)", borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={() => setInteract((p) => ({ ...p, popup: null }))} className="absolute top-3 right-3 rounded-full w-8 h-8 flex items-center justify-center font-bold active:scale-95 border" style={{ backgroundColor: "var(--background)", color: "var(--foreground)", borderColor: "var(--card-border)" }}>×</button>
-            <div className="flex items-center gap-2 border-b pb-3 mb-3" style={{ borderColor: "var(--card-border)" }}><span className={`px-2 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === "Admin●ipix.my.id" ? "bg-red-600" : interact.popup.username === auth.user ? "bg-blue-600" : "bg-gray-700"}`}>{interact.popup.username}</span><span className="text-[10px] opacity-70" style={{ color: "var(--foreground)" }}>{getFmt.time(interact.popup.created_at)}</span></div>
+            <div className="flex items-center gap-2 border-b pb-3 mb-3" style={{ borderColor: "var(--card-border)" }}>
+              <span className={`px-2.5 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === "Admin●ipix.my.id" ? "bg-red-600" : interact.popup.username === auth.user ? "bg-blue-600" : "bg-gray-700"}`}>{interact.popup.username}</span>
+              <span className="text-[10px] opacity-70" style={{ color: "var(--foreground)" }}>{getFmt.time(interact.popup.created_at)}</span>
+            </div>
+            
             <div className="overflow-y-auto pr-2 pb-2 text-sm flex flex-col break-words break-all whitespace-pre-wrap" style={{ color: "var(--foreground)" }}>
               {interact.popup.image_url && (
                 <div className="relative mb-3 w-full">
@@ -571,12 +608,125 @@ export default function Home() {
               {interact.popup.pesan && applyCensor(interact.popup.pesan)}
             </div>
             
+            {/* ACTION PILLS DI POPUP */}
             <div className="flex flex-wrap items-center justify-end gap-2 mt-4 pt-3 border-t" style={{ borderColor: "var(--card-border)" }}>
-              {((interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id") || ui.tab === "admin") && (<button type="button" onClick={(e) => { e.stopPropagation(); const popupMsg = interact.popup; setInteract((p) => ({ ...p, popup: null })); dbActions.delMsg(popupMsg, false); }} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1">🗑️ Hapus</button>)}
-              {interact.popup.image_url && !(interact.popup.is_approved === false && ui.tab !== "admin" && interact.popup.username !== "Admin●ipix.my.id") && (<button type="button" onClick={async (e) => { e.stopPropagation(); try { const response = await fetch(interact.popup.image_url); const blob = await response.blob(); const url = window.URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `ipix_image_${interact.popup.id}.jpg`; document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url); } catch (err) { window.open(interact.popup.image_url, "_blank"); } }} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1">📥 Unduh</button>)}
-              <button type="button" onClick={(e) => { e.stopPropagation(); copyTxt(interact.popup.pesan, "Pesan"); }} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all">📋 Salin</button>
-              {(ui.tab === "admin" || (interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id")) && (<button type="button" onClick={(e) => { e.stopPropagation(); const popupMsg = interact.popup; setInteract((p) => ({ ...p, popup: null })); if (ui.tab === "admin") { dbActions.editMsg(popupMsg.id); } else { dbActions.editLmt(popupMsg); } }} className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all">✏️ Edit</button>)}
-              <button type="button" onClick={(e) => { e.stopPropagation(); setInteract((p) => ({ ...p, replyTo: interact.popup, popup: null })); setInput((p) => ({ ...p, blink: true })); setTimeout(() => setInput((p) => ({ ...p, blink: false })), 800); }} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all">💬 Balas</button>
+              <button 
+                type="button" 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  const pMsg = interact.popup; 
+                  setInteract((p) => ({ ...p, popup: null })); 
+                  dbActions.togglePin(pMsg); 
+                }} 
+                className="px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 17v5" />
+                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+                </svg>
+                {interact.popup.is_pinned ? "Lepas Sematan" : "Sematkan"}
+              </button>
+
+              <button 
+                type="button" 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  setInteract((p) => ({ ...p, replyTo: interact.popup, popup: null })); 
+                  setInput((p) => ({ ...p, blink: true })); 
+                  setTimeout(() => setInput((p) => ({ ...p, blink: false })), 800); 
+                }} 
+                className="px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-400 border border-indigo-500/30 text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6m-6-6l6-6" />
+                </svg>
+                Balas
+              </button>
+
+              <button 
+                type="button" 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  copyTxt(interact.popup.pesan, "Pesan"); 
+                }} 
+                className="px-3 py-1.5 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                Salin
+              </button>
+
+              {(ui.tab === "admin" || (interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id")) && (
+                <button 
+                  type="button" 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    const popupMsg = interact.popup; 
+                    setInteract((p) => ({ ...p, popup: null })); 
+                    if (ui.tab === "admin") dbActions.editMsg(popupMsg.id); 
+                    else dbActions.editLmt(popupMsg); 
+                  }} 
+                  className="px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                  </svg>
+                  Edit
+                </button>
+              )}
+
+              {interact.popup.image_url && !(interact.popup.is_approved === false && ui.tab !== "admin" && interact.popup.username !== "Admin●ipix.my.id") && (
+                <button 
+                  type="button" 
+                  onClick={async (e) => { 
+                    e.stopPropagation(); 
+                    try { 
+                      const response = await fetch(interact.popup.image_url); 
+                      const blob = await response.blob(); 
+                      const url = window.URL.createObjectURL(blob); 
+                      const a = document.createElement("a"); 
+                      a.href = url; 
+                      a.download = `ipix_image_${interact.popup.id}.jpg`; 
+                      document.body.appendChild(a); 
+                      a.click(); 
+                      a.remove(); 
+                      window.URL.revokeObjectURL(url); 
+                    } catch (err) { 
+                      window.open(interact.popup.image_url, "_blank"); 
+                    } 
+                  }} 
+                  className="px-3 py-1.5 bg-teal-500/15 hover:bg-teal-500/25 text-teal-400 border border-teal-500/30 text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Unduh
+                </button>
+              )}
+
+              {((interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id") || ui.tab === "admin") && (
+                <button 
+                  type="button" 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    const popupMsg = interact.popup; 
+                    setInteract((p) => ({ ...p, popup: null })); 
+                    dbActions.delMsg(popupMsg, false); 
+                  }} 
+                  className="px-3 py-1.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                  Hapus
+                </button>
+              )}
             </div>
           </div>
         </div>
