@@ -28,6 +28,32 @@ const THEME_WAVES: Record<string, { layer1: string; layer2: string; layer3: stri
 const FluidBottom = () => {
   const { theme, customColors } = useTheme();
   
+  const [waveConfig, setWaveConfig] = useState({
+    l1Show: true,
+    l2Show: true,
+    l3Show: true,
+    l1Dir: "left",
+    l2Dir: "left",
+    l3Dir: "right"
+  });
+
+  useEffect(() => {
+    const loadWaveConfig = () => {
+      setWaveConfig({
+        l1Show: localStorage.getItem("global_wave_l1_show") !== "false",
+        l2Show: localStorage.getItem("global_wave_l2_show") !== "false",
+        l3Show: localStorage.getItem("global_wave_l3_show") !== "false",
+        l1Dir: localStorage.getItem("global_wave_l1_dir") || "left",
+        l2Dir: localStorage.getItem("global_wave_l2_dir") || "left",
+        l3Dir: localStorage.getItem("global_wave_l3_dir") || "right",
+      });
+    };
+
+    loadWaveConfig();
+    window.addEventListener("globalColorChanged", loadWaveConfig);
+    return () => window.removeEventListener("globalColorChanged", loadWaveConfig);
+  }, []);
+
   const isCustomWaveEnabled = typeof window !== "undefined" && localStorage.getItem("global_enable_custom_wave") === "true";
   
   const activeWave = isCustomWaveEnabled
@@ -38,9 +64,29 @@ const FluidBottom = () => {
   
   return (
     <div className="absolute bottom-0 left-0 w-full h-[30%] overflow-hidden pointer-events-none origin-bottom animate-blob-bounce-bottom" style={{ zIndex: 1, filter: activeWave.glow }}>
-      <div className="absolute bottom-0 left-0 w-[200%] h-full animate-wave" style={{ animationDuration: "14s", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,60 C300,100 300,20 600,60 C900,100 900,20 1200,60 L1200,120 Z' fill='rgba(${activeWave.layer1},0.35)'/%3E%3C/svg%3E")`, backgroundRepeat: "repeat-x", backgroundSize: bgSize }} />
-      <div className="absolute bottom-0 left-0 w-[200%] h-full animate-wave" style={{ animationDuration: "20s", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,70 C300,30 300,110 600,70 C900,30 900,110 1200,70 L1200,120 Z' fill='rgba(${activeWave.layer2},0.25)'/%3E%3C/svg%3E")`, backgroundRepeat: "repeat-x", backgroundSize: bgSize }} />
-      <div className="absolute bottom-0 left-0 w-[200%] h-full animate-wave-reverse" style={{ animationDuration: "18s", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,80 C300,120 300,40 600,80 C900,120 900,40 1200,80 L1200,120 Z' fill='rgba(${activeWave.layer3},0.65)'/%3E%3C/svg%3E")`, backgroundRepeat: "repeat-x", backgroundSize: bgSize }} />
+      {/* Layer 1 - Belakang */}
+      {waveConfig.l1Show && (
+        <div 
+          className={`absolute bottom-0 left-0 w-[200%] h-full ${waveConfig.l1Dir === "left" ? "animate-wave" : "animate-wave-reverse"}`} 
+          style={{ animationDuration: "14s", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,60 C300,100 300,20 600,60 C900,100 900,20 1200,60 L1200,120 Z' fill='rgba(${activeWave.layer1},0.35)'/%3E%3C/svg%3E")`, backgroundRepeat: "repeat-x", backgroundSize: bgSize }} 
+        />
+      )}
+
+      {/* Layer 2 - Tengah */}
+      {waveConfig.l2Show && (
+        <div 
+          className={`absolute bottom-0 left-0 w-[200%] h-full ${waveConfig.l2Dir === "left" ? "animate-wave" : "animate-wave-reverse"}`} 
+          style={{ animationDuration: "20s", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,70 C300,30 300,110 600,70 C900,30 900,110 1200,70 L1200,120 Z' fill='rgba(${activeWave.layer2},0.25)'/%3E%3C/svg%3E")`, backgroundRepeat: "repeat-x", backgroundSize: bgSize }} 
+        />
+      )}
+
+      {/* Layer 3 - Depan */}
+      {waveConfig.l3Show && (
+        <div 
+          className={`absolute bottom-0 left-0 w-[200%] h-full ${waveConfig.l3Dir === "left" ? "animate-wave" : "animate-wave-reverse"}`} 
+          style={{ animationDuration: "18s", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,120 L0,80 C300,120 300,40 600,80 C900,120 900,40 1200,80 L1200,120 Z' fill='rgba(${activeWave.layer3},0.65)'/%3E%3C/svg%3E")`, backgroundRepeat: "repeat-x", backgroundSize: bgSize }} 
+        />
+      )}
     </div>
   );
 };
