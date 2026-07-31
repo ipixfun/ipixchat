@@ -13,6 +13,34 @@ export function MessageItem({
   const [touchInitialY, setTouchInitialY] = useState(0);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
+  // --- FUNGSI FORMAT WAKTU (Mencegah "26 jam lalu" -> Ubah ke "Hari") ---
+  const formatRelativeTime = (timestamp: string) => {
+    if (!timestamp) return "";
+    const msgDate = new Date(timestamp);
+    const now = new Date();
+    const diffInMs = now.getTime() - msgDate.getTime();
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+
+    if (diffInHours >= 24) {
+      const diffInDays = Math.floor(diffInHours / 24);
+      return `${diffInDays} hari lalu`;
+    }
+
+    // Jika di bawah 24 jam, gunakan format default bawaan (atau fallback jam)
+    if (typeof formatMessageTime === "function") {
+      return formatMessageTime(timestamp);
+    }
+
+    if (diffInHours >= 1) {
+      return `${diffInHours} jam lalu`;
+    }
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    if (diffInMinutes >= 1) {
+      return `${diffInMinutes} menit lalu`;
+    }
+    return "Baru saja";
+  };
+
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
   const isMsgMine = m.username === authUser;
   
@@ -99,7 +127,7 @@ export function MessageItem({
             <span className="bg-gray-500/20 text-gray-400 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">🚫 Dihapus</span>
             <span className="text-[10px] font-bold" style={{ color: isDeletedByAdmin ? "var(--accent)" : "var(--foreground)" }}>oleh {isDeletedByAdmin ? "Admin" : m.username}</span>
           </div>
-          <div className="text-[8px] opacity-60 mt-1 flex items-center gap-1 font-mono"><span>{formatMessageTime(m.created_at)}</span></div>
+          <div className="text-[8px] opacity-60 mt-1 flex items-center gap-1 font-mono"><span>{formatRelativeTime(m.created_at)}</span></div>
           {activeTab === "admin" && (
             <button onClick={(e) => { e.stopPropagation(); deleteMsg(m, false); }} className="absolute right-2 top-2 text-[14px] hover:opacity-80 w-7 h-7 flex items-center justify-center rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all transform active:scale-95" style={{ backgroundColor: "var(--accent)", color: "var(--background)" }} title="Hapus Permanen dari Database">🗑️</button>
           )}
@@ -308,7 +336,7 @@ export function MessageItem({
           </div>
           
           <div className="flex flex-col items-end gap-1 shrink-0 pb-0.5">
-            <span className="text-[8px] opacity-60 font-bold px-1 rounded">{formatMessageTime(m.created_at)}</span>
+            <span className="text-[8px] opacity-60 font-bold px-1 rounded">{formatRelativeTime(m.created_at)}</span>
             <div className="flex items-center gap-2 text-[10px]">
               {!isMinimized && <button type="button" onClick={(e) => { e.stopPropagation(); handleReply(m); }} className={`font-bold underline mr-1 transition-colors`} style={{ color: "var(--accent)" }}>Balas</button>}
               
