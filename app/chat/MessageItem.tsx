@@ -235,6 +235,7 @@ export function MessageItem({
 
   const activeBorderColor = pillColor === "transparent" ? "transparent" : (pillColor || (isMsgAdmin ? "var(--accent)" : isMsgMine ? "var(--accent)" : "var(--card-border)"));
   const activeBgColor = bubbleBg === "transparent" ? "transparent" : (bubbleBg || "var(--card-bg)");
+  const displayCleanUsername = m.username ? m.username.split("●")[0] : "User";
 
   return (
     <div id={`msg-${m.id}`} className={`relative w-full mb-3 flex ${isRightAligned ? "justify-end" : "justify-start"}`}>
@@ -266,7 +267,7 @@ export function MessageItem({
       
       <div
         id={`msg-bubble-${m.id}`}
-        className="relative z-10 transition-all duration-200 max-w-[85%] sm:max-w-[75%] p-3 border-[1.5px] shadow-sm select-none rounded-2xl"
+        className="relative z-10 transition-all duration-200 max-w-[85%] sm:max-w-[75%] min-w-[140px] p-3 border-[1.5px] shadow-sm select-none rounded-2xl"
         onMouseDown={(e) => { if (e.button === 0) longPressTimer.current = setTimeout(() => { handleLongPress(m); if (navigator.vibrate) navigator.vibrate(50); }, 350); }}
         onMouseMove={clearTimer}
         onMouseUp={clearTimer}
@@ -299,14 +300,14 @@ export function MessageItem({
       >
         {/* ICON PIN KERTAS / PUSHPIN DI POJOK ATAS GELEMBUNG */}
         {m.is_pinned && (
-          <div className="absolute -top-3 right-3 z-20 pointer-events-none filter drop-shadow-md" title="Pesan Disematkan">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 -rotate-45" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--background)" strokeWidth="1">
+          <div className="absolute -top-2.5 right-2 z-20 pointer-events-none filter drop-shadow-md" title="Pesan Disematkan">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 -rotate-45" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--background)" strokeWidth="1">
               <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/>
             </svg>
           </div>
         )}
 
-        {/* EKOR BUBBLE DI SAMPING TENGAH */}
+        {/* EKOR BUBBLE */}
         {isRightAligned ? (
           <>
             <div 
@@ -331,15 +332,15 @@ export function MessageItem({
           </>
         )}
 
-        {/* HEADER BUBBLE */}
-        <div className="flex justify-between items-center gap-2 mb-1.5">
-          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+        {/* HEADER BUBBLE - DENGAN SHRINK-0 AGAR USERNAME DENGAN NAMA PENDEK TIDAK TRUNCATE KETIK/SQUEEZE */}
+        <div className="flex justify-between items-center gap-2 mb-1.5 w-full">
+          <div className="flex items-center gap-1.5 shrink-0">
             <span 
               onClick={(e) => { e.stopPropagation(); handleTag(m.username); }} 
-              className="px-2 py-0.5 rounded-full text-[10px] font-black truncate cursor-pointer shadow-sm active:scale-95 transition-transform"
+              className="px-2.5 py-0.5 rounded-full text-[10px] font-black shrink-0 cursor-pointer shadow-sm active:scale-95 transition-transform"
               style={{ backgroundColor: pillColor === "transparent" ? "rgba(255,255,255,0.1)" : (pillColor || "var(--accent)"), color: "var(--background, #ffffff)" }}
             >
-              {m.username}
+              {displayCleanUsername}
             </span>
           </div>
           

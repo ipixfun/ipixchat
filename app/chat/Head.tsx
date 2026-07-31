@@ -39,14 +39,7 @@ export default function Head({
   const userPinName = userPinnedMsg ? userPinnedMsg.username.split("●")[0] : displayUserName;
 
   return (
-    <header className="w-full shrink-0 p-3 sm:p-4 border-b transition-colors duration-300 z-30 relative overflow-hidden" style={{ backgroundColor: "var(--background)", borderColor: "var(--card-border)" }}>
-      {/* ANIMASI / VEKTOR GELOMBANG (WAVE EFFECT) BERDASAARKAN TEMA */}
-      <div className="absolute inset-0 pointer-events-none opacity-15 overflow-hidden z-0">
-        <svg className="w-full h-full object-cover" viewBox="0 0 500 150" preserveAspectRatio="none">
-          <path d="M0.00,49.98 C150.00,150.00 349.20,-49.98 500.00,49.98 L500.00,0.00 L0.00,0.00 Z" style={{ fill: "var(--accent, #eab308)" }}></path>
-        </svg>
-      </div>
-
+    <header className="w-full shrink-0 p-3 sm:p-4 border-b transition-colors duration-300 z-30 relative" style={{ backgroundColor: "var(--background)", borderColor: "var(--card-border)" }}>
       <div className="relative z-10">
         {/* BARIS ATAS: SALAM & TOMBOL AKSI */}
         <div className="flex items-center justify-between mb-2">
@@ -116,7 +109,7 @@ export default function Head({
           </div>
         )}
 
-        {/* HEADER USER: SEMATAN DUA KOLOM MENGIKUTI TEMA & TANPA TEKS PIN */}
+        {/* HEADER USER: SEMATAN DUA KOLOM + STATUS ADMIN DINAMIS */}
         {!isMsgAdmin && (
           <div className="grid grid-cols-2 gap-2 w-full mt-2">
             {/* KOLOM KIRI: SEMATAN ADMIN */}
@@ -135,9 +128,14 @@ export default function Head({
                 </svg>
               </div>
               <div className="flex flex-col flex-1 overflow-hidden">
-                <span className="text-[9px] font-bold uppercase tracking-wider truncate" style={{ color: "var(--accent)" }}>
-                  Admin
-                </span>
+                <div className="flex items-center gap-1 max-w-full overflow-hidden">
+                  <span className="text-[9px] font-bold uppercase tracking-wider shrink-0" style={{ color: "var(--accent)" }}>
+                    Admin
+                  </span>
+                  <span className={`text-[8px] font-bold truncate ${adminStat.online ? "text-emerald-400" : "opacity-60"}`} style={{ color: adminStat.online ? undefined : "var(--foreground)" }}>
+                    ({adminStat.online ? "Online" : adminStat.offlineTime ? `Offline ${adminStat.offlineTime}` : "Offline"})
+                  </span>
+                </div>
                 <p className="text-[11px] truncate font-medium leading-tight opacity-90" style={{ color: "var(--foreground)" }}>
                   {adminPinnedMsg ? adminPinnedMsg.pesan : "Belum ada sematan"}
                 </p>
