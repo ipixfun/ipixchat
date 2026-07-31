@@ -7,7 +7,7 @@ import Block from "../../components/Block";
 import ChatLayout from "./ChatLayout";
 import ChatInput from "./ChatInput";
 import Head from "./Head";
-import { MessageItem } from "./MessageItem";
+import { MessageItem, PinnedMessage } from "./MessageItem";
 import Loading from "../loading";
 import BottomNav from "../../components/bottomnav";
 import { Capacitor } from "@capacitor/core";
@@ -441,6 +441,9 @@ export default function Home() {
   const currentMsgs = msgs.priv; 
   const pinnedMsg = currentMsgs.find((m) => m.is_pinned && m.pesan !== "___DELETED___");
 
+  // Banner Pin selalu tampil asalkan dalam sesi obrolan yang aktif
+  const shouldShowPinned = auth.isAuth && currentHash !== "#block" && (ui.tab === "user" || (ui.tab === "admin" && usersInfo.selPriv !== null));
+
   const renderMsgs = (arr: any[], colType: any) => {
     if (!auth.isAuth) return null;
     const messageContent = arr.length === 0 ? (<div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div>) : (
@@ -498,7 +501,6 @@ export default function Home() {
         </div>
       )}
       
-      {/* HEADER DENGAN PILIHAN PESAN SEMATAN DINAMIS TERINTEGRASI */}
       <Head 
         auth={auth} 
         ui={ui} 
@@ -509,10 +511,17 @@ export default function Home() {
         handleLogout={handleLogout} 
         onBlockMgr={() => window.open(`${window.location.pathname}#block`, "_blank")}
         onTrashMgr={dbActions.emptyTrash}
-        pinnedMsg={pinnedMsg}
-        onEditPinned={dbActions.editPinned}
-        onScrollToMsg={scrollMsg}
       />
+
+      {/* KOMPONEN PESAN SEMATAN DARI MESSAGEITEM.TSX */}
+      {shouldShowPinned && (
+        <PinnedMessage 
+          pinnedMsg={pinnedMsg} 
+          uiTab={ui.tab} 
+          onEditPinned={dbActions.editPinned} 
+          onScrollToMsg={scrollMsg} 
+        />
+      )}
 
       {/* AREA KOTAK CHAT UTAMA */}
       <div className="flex-1 w-full relative flex overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
