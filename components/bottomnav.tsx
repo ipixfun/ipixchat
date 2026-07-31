@@ -42,9 +42,6 @@ export default function BottomNav() {
     },
   ];
 
-  const activeIndex = links.findIndex((link) => link.href === pathname);
-  const safeActiveIndex = activeIndex === -1 ? 0 : activeIndex;
-
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-2xl transition-colors duration-300 pb-[env(safe-area-inset-bottom)]"
@@ -53,29 +50,11 @@ export default function BottomNav() {
         borderColor: "color-mix(in srgb, var(--accent) 20%, var(--card-border, transparent))",
       }}
     >
-      <div className="max-w-2xl mx-auto h-14 sm:h-[62px] relative flex items-center px-1 sm:px-1.5">
-        {/* Sliding Indicator Box */}
-        <div
-          className="absolute top-1 bottom-1 sm:top-1.5 sm:bottom-1.5 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] p-0.5 pointer-events-none"
-          style={{
-            width: "25%",
-            transform: `translateX(${safeActiveIndex * 100}%)`,
-          }}
-        >
-          <div
-            className="w-full h-full rounded-xl sm:rounded-2xl border transition-all"
-            style={{
-              backgroundColor: "color-mix(in srgb, var(--accent) 18%, transparent)",
-              borderColor: "color-mix(in srgb, var(--accent) 45%, transparent)",
-              boxShadow: "0 4px 20px color-mix(in srgb, var(--accent) 25%, transparent)",
-            }}
-          />
-        </div>
-
+      <div className="max-w-2xl mx-auto h-14 sm:h-[62px] flex items-center px-1 sm:px-1.5">
         {/* Navigation Items */}
         <div className="w-full grid grid-cols-4 relative z-10">
-          {links.map((link, index) => {
-            const isActive = safeActiveIndex === index;
+          {links.map((link) => {
+            const isActive = pathname === link.href;
 
             return (
               <Link
@@ -86,8 +65,8 @@ export default function BottomNav() {
                 <div
                   className={`transition-all duration-300 flex items-center justify-center shrink-0 ${
                     isActive
-                      ? "-translate-y-0.5 scale-105 sm:scale-110"
-                      : "opacity-50 group-hover:opacity-80"
+                      ? "scale-125 -translate-y-0.5"
+                      : "opacity-50 group-hover:opacity-80 scale-100"
                   }`}
                   style={{
                     color: isActive ? "var(--accent)" : "var(--foreground)",
@@ -109,7 +88,7 @@ export default function BottomNav() {
 
                 <span
                   className={`text-[9px] sm:text-[10px] font-bold tracking-wide transition-all duration-300 mt-0.5 truncate max-w-full px-1 ${
-                    isActive ? "opacity-100 scale-105" : "opacity-50 group-hover:opacity-80"
+                    isActive ? "opacity-100" : "opacity-50 group-hover:opacity-80"
                   }`}
                   style={{
                     color: isActive ? "var(--accent)" : "var(--foreground)",
