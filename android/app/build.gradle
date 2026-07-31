@@ -31,8 +31,7 @@ android {
             // Paksa aktifkan skema tanda tangan V1, V2, dan V3
             v1SigningEnabled true
             v2SigningEnabled true
-            v3SigningEnabled true
-        }
+                  }
     }
 
     buildTypes {
