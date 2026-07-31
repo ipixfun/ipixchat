@@ -472,22 +472,52 @@ export default function Home() {
 
   const renderMsgs = (arr: any[], colType: any) => {
     if (!auth.isAuth) return null;
-    const messageContent = arr.length === 0 ? (<div className="text-center opacity-60 italic mt-10 text-[10px]">Belum ada pesan.</div>) : (
+    const messageContent = arr.length === 0 ? (
+      <div className="text-center opacity-60 italic mt-10 text-[10px]">Belum ada pesan.</div>
+    ) : (
       arr.map((m, idx) => {
-        const isMine = m.username === auth.user; const maxWidthClass = "max-w-[85%] md:max-w-[75%]";
+        const isMine = m.username === auth.user; 
+        const maxWidthClass = "max-w-[85%] md:max-w-[75%]";
         return (
-          <div key={m.id} className={`w-full flex mb-2 px-2 sm:px-4 ${isMine ? "justify-end" : "justify-start"}`}>
+          <div key={m.id} className={`w-full flex px-2 sm:px-4 ${isMine ? "justify-end" : "justify-start"}`}>
             <div className={`relative flex flex-col chat-bubble-wrapper min-w-[35%] ${maxWidthClass} ${isMine ? "items-end" : "items-start"}`}>
-              <MessageItem index={idx} m={m} colType={colType} isMinimized={true} activeTab={ui.tab} isAdminOnline={adminStat.online} adminOfflineTime={adminStat.offlineTime} userStatus={usersInfo.status} activeMenuId={interact.activeMenu} setActiveMenuId={(id: any) => setInteract((p) => ({ ...p, activeMenu: id }))} swipingId={interact.swipeId} setSwipingId={(id: any) => setInteract((p) => ({ ...p, swipeId: id }))} handleTag={(u: string) => setInput((p) => ({ ...p, text: `${p.text} @${u.split("●")[0]} ` }))} handleReply={(m: any) => { setInteract((p) => ({ ...p, replyTo: m })); setInput((p) => ({ ...p, blink: true })); setTimeout(() => setInput((p) => ({ ...p, blink: false })), 800); }} deleteMsg={dbActions.delMsg} copyToClipboard={copyTxt} handleEditLimit={dbActions.editLmt} editMsg={dbActions.editMsg} blockUser={dbActions.blkUser} setPopupMsg={(m: any) => setInteract((p) => ({ ...p, popup: m }))} handleLongPress={(m: any) => setInteract((p) => ({ ...p, popup: m }))} approveImage={dbActions.approveImg} applyCensor={applyCensor} scrollToMessage={(t: string) => { const cleanText = t.endsWith("...") ? t.slice(0, -3) : t; const x = msgs.all.find((m) => m.pesan.includes(cleanText)); if (x) scrollMsg(x.id); }} formatMessageTime={getFmt.time} authUser={auth.user} />
+              <MessageItem 
+                index={idx} 
+                m={m} 
+                colType={colType} 
+                isMinimized={true} 
+                activeTab={ui.tab} 
+                isAdminOnline={adminStat.online} 
+                adminOfflineTime={adminStat.offlineTime} 
+                userStatus={usersInfo.status} 
+                activeMenuId={interact.activeMenu} 
+                setActiveMenuId={(id: any) => setInteract((p) => ({ ...p, activeMenu: id }))} 
+                swipingId={interact.swipeId} 
+                setSwipingId={(id: any) => setInteract((p) => ({ ...p, swipeId: id }))} 
+                handleTag={(u: string) => setInput((p) => ({ ...p, text: `${p.text} @${u.split("●")[0]} ` }))} 
+                handleReply={(m: any) => { setInteract((p) => ({ ...p, replyTo: m })); setInput((p) => ({ ...p, blink: true })); setTimeout(() => setInput((p) => ({ ...p, blink: false })), 800); }} 
+                deleteMsg={dbActions.delMsg} 
+                copyToClipboard={copyTxt} 
+                handleEditLimit={dbActions.editLmt} 
+                editMsg={dbActions.editMsg} 
+                blockUser={dbActions.blkUser} 
+                setPopupMsg={(m: any) => setInteract((p) => ({ ...p, popup: m }))} 
+                handleLongPress={(m: any) => setInteract((p) => ({ ...p, popup: m }))} 
+                approveImage={dbActions.approveImg} 
+                applyCensor={applyCensor} 
+                scrollToMessage={(t: string) => { const cleanText = t.endsWith("...") ? t.slice(0, -3) : t; const x = msgs.all.find((m) => m.pesan.includes(cleanText)); if (x) scrollMsg(x.id); }} 
+                formatMessageTime={getFmt.time} 
+                authUser={auth.user} 
+              />
             </div>
           </div>
         );
       })
     );
     return (
-      <div className="w-full flex flex-col py-2 relative">
+      <div className="w-full flex flex-col pt-2 pb-0 relative">
         {messageContent}
-        <div id={`bottom-anchor-private`} className="h-1 shrink-0 mt-2" />
+        <div id={`bottom-anchor-private`} className="h-0 shrink-0" />
       </div>
     );
   };
@@ -527,7 +557,7 @@ export default function Home() {
         </div>
       )}
       
-      {/* HEADER UTAMA: MENAMPILKAN ONLINE UNTUK ADMIN, ATAU PIN SEMATAN DUA KOLOM UNTUK USER */}
+      {/* HEADER UTAMA */}
       <Head 
         auth={auth} 
         ui={ui} 
