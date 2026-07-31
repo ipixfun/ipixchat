@@ -370,7 +370,7 @@ export default function Home() {
     }).subscribe();
     
     const messageSubscription = supabase.channel("public:messages").on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
-      const newMsg = payload.new; fetchData();
+      fetchData();
     }).subscribe();
     return () => { supabase.removeChannel(messageSubscription); supabase.removeChannel(profileChangeListener); };
   }, [mounted, auth.isAuth, auth.user, fetchData]);
@@ -411,7 +411,7 @@ export default function Home() {
     const handleServiceWorkerMessage = (event: MessageEvent) => { if (event.data && (event.data.type === "ACTION_REPLY" || event.data.type === "ACTION_OPEN")) focusChatInput(); };
     if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", handleServiceWorkerMessage);
     let pushListener: any;
-    if (Capacitor.isNativePlatform()) pushListener = PushNotifications.addListener("pushNotificationActionPerformed", (notification) => { focusChatInput(); });
+    if (Capacitor.isNativePlatform()) pushListener = PushNotifications.addListener("pushNotificationActionPerformed", () => { focusChatInput(); });
     return () => { if ("serviceWorker" in navigator) navigator.serviceWorker.removeEventListener("message", handleServiceWorkerMessage); if (pushListener) pushListener.remove(); };
   }, [mounted]);
 
@@ -449,7 +449,7 @@ export default function Home() {
       username: auth.user, 
       pesan: txt, 
       image_url: input.image, 
-      is_approved: auth.user === "Admin●ipix.my.id", 
+      is_approved: true, 
       user_browser: navigator.userAgent,
       is_private: true,
       private_with: recipientUsername
@@ -621,25 +621,25 @@ export default function Home() {
       {/* MODAL POPUP ACTION PESAN */}
       {auth.isAuth && interact.popup && interact.popup.pesan !== "___DELETED___" && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
-          <div className="w-full max-w-lg rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col border-t-4" style={{ backgroundColor: "var(--background)", borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
-            <button type="button" onClick={() => setInteract((p) => ({ ...p, popup: null }))} className="absolute top-3 right-3 rounded-full w-8 h-8 flex items-center justify-center font-bold active:scale-95 border" style={{ backgroundColor: "var(--background)", color: "var(--foreground)", borderColor: "var(--card-border)" }}>×</button>
-            <div className="flex items-center gap-2 border-b pb-3 mb-3" style={{ borderColor: "var(--card-border)" }}>
-              <span className={`px-2.5 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === "Admin●ipix.my.id" ? "bg-red-600" : interact.popup.username === auth.user ? "bg-blue-600" : "bg-gray-700"}`}>{interact.popup.username}</span>
+          <div className="w-full max-w-lg rounded-2xl shadow-2xl p-4 relative max-h-[90vh] flex flex-col border-t-4" style={{ backgroundColor: "var(--background)", borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setInteract((p) => ({ ...p, popup: null }))} className="absolute top-3 right-3 rounded-full w-7 h-7 flex items-center justify-center font-bold active:scale-95 border text-xs" style={{ backgroundColor: "var(--background)", color: "var(--foreground)", borderColor: "var(--card-border)" }}>×</button>
+            
+            <div className="flex items-center gap-2 border-b pb-2 mb-3" style={{ borderColor: "var(--card-border)" }}>
+              <span className={`px-2 py-0.5 rounded-full text-white text-[10px] font-bold shadow-sm ${interact.popup.username === "Admin●ipix.my.id" ? "bg-red-600" : interact.popup.username === auth.user ? "bg-blue-600" : "bg-gray-700"}`}>{interact.popup.username}</span>
               <span className="text-[10px] opacity-70" style={{ color: "var(--foreground)" }}>{getFmt.time(interact.popup.created_at)}</span>
             </div>
             
             <div className="overflow-y-auto pr-2 pb-2 text-sm flex flex-col break-words break-all whitespace-pre-wrap" style={{ color: "var(--foreground)" }}>
               {interact.popup.image_url && (
                 <div className="relative mb-3 w-full">
-                  <img src={interact.popup.image_url} alt="Uploaded Image" className={`w-full h-auto max-h-[50vh] object-contain rounded-lg border shadow-sm ${interact.popup.is_approved === false && ui.tab !== "admin" && interact.popup.username !== "Admin●ipix.my.id" ? "blur-xl" : ""}`} style={{ backgroundColor: "var(--background)", borderColor: "var(--card-border)" }} />
-                  {interact.popup.is_approved === false && ui.tab !== "admin" && interact.popup.username !== "Admin●ipix.my.id" && (<div className="absolute inset-0 flex items-center justify-center"><span className="text-white text-xs sm:text-sm font-bold px-3 py-1.5 bg-black/60 rounded-full text-center">Menunggu Persetujuan Admin</span></div>)}
+                  <img src={interact.popup.image_url} alt="Uploaded Image" className="w-full h-auto max-h-[50vh] object-contain rounded-lg border shadow-sm" style={{ backgroundColor: "var(--background)", borderColor: "var(--card-border)" }} />
                 </div>
               )}
               {interact.popup.pesan && applyCensor(interact.popup.pesan)}
             </div>
             
-            {/* ACTION PILLS DI POPUP */}
-            <div className="flex flex-wrap items-center justify-end gap-2 mt-4 pt-3 border-t" style={{ borderColor: "var(--card-border)" }}>
+            {/* ACTION PILLS DI POPUP (SEJAJAR 1 BARIS KECIL & RESPONSIVE) */}
+            <div className="flex items-center gap-1.5 overflow-x-auto w-full pt-3 mt-3 border-t [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden shrink-0 justify-start sm:justify-end" style={{ borderColor: "var(--card-border)" }}>
               <button 
                 type="button" 
                 onClick={(e) => { 
@@ -648,13 +648,13 @@ export default function Home() {
                   setInteract((p) => ({ ...p, popup: null })); 
                   dbActions.togglePin(pMsg); 
                 }} 
-                className="px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
+                className="px-2.5 py-1 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 text-[10px] font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 17v5" />
                   <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
                 </svg>
-                {interact.popup.is_pinned ? "Lepas Sematan" : "Sematkan"}
+                {interact.popup.is_pinned ? "Lepas Pin" : "Pin"}
               </button>
 
               <button 
@@ -665,9 +665,9 @@ export default function Home() {
                   setInput((p) => ({ ...p, blink: true })); 
                   setTimeout(() => setInput((p) => ({ ...p, blink: false })), 800); 
                 }} 
-                className="px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-400 border border-indigo-500/30 text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
+                className="px-2.5 py-1 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-400 border border-indigo-500/30 text-[10px] font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6m-6-6l6-6" />
                 </svg>
                 Balas
@@ -679,9 +679,9 @@ export default function Home() {
                   e.stopPropagation(); 
                   copyTxt(interact.popup.pesan, "Pesan"); 
                 }} 
-                className="px-3 py-1.5 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
+                className="px-2.5 py-1 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 text-[10px] font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                 </svg>
@@ -698,9 +698,9 @@ export default function Home() {
                     if (ui.tab === "admin") dbActions.editMsg(popupMsg.id); 
                     else dbActions.editLmt(popupMsg); 
                   }} 
-                  className="px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
+                  className="px-2.5 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 20h9" />
                     <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                   </svg>
@@ -708,7 +708,7 @@ export default function Home() {
                 </button>
               )}
 
-              {interact.popup.image_url && !(interact.popup.is_approved === false && ui.tab !== "admin" && interact.popup.username !== "Admin●ipix.my.id") && (
+              {interact.popup.image_url && (
                 <button 
                   type="button" 
                   onClick={async (e) => { 
@@ -728,9 +728,9 @@ export default function Home() {
                       window.open(interact.popup.image_url, "_blank"); 
                     } 
                   }} 
-                  className="px-3 py-1.5 bg-teal-500/15 hover:bg-teal-500/25 text-teal-400 border border-teal-500/30 text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
+                  className="px-2.5 py-1 bg-teal-500/15 hover:bg-teal-500/25 text-teal-400 border border-teal-500/30 text-[10px] font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" y1="15" x2="12" y2="3" />
@@ -748,9 +748,9 @@ export default function Home() {
                     setInteract((p) => ({ ...p, popup: null })); 
                     dbActions.delMsg(popupMsg, false); 
                   }} 
-                  className="px-3 py-1.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 text-xs font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
+                  className="px-2.5 py-1 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 text-[10px] font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="3 6 5 6 21 6" />
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                   </svg>
