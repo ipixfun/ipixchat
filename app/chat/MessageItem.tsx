@@ -1,6 +1,65 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
 
+// =========================================================
+// 1. KOMPONEN PESAN SEMATAN (BERSIH & TANPA LOGIKA ROLL UP)
+// =========================================================
+export function PinnedMessage({ pinnedMsg, onUnpin }: { pinnedMsg?: any; onUnpin?: () => void }) {
+  if (!pinnedMsg) return null;
+
+  return (
+    <div className="w-full mb-3 px-1 sticky top-0 z-30">
+      <div 
+        className="relative overflow-hidden rounded-xl border backdrop-blur-md shadow-lg p-3"
+        style={{ 
+          backgroundColor: "rgba(15, 23, 42, 0.85)", 
+          borderColor: "var(--accent, #3b82f6)",
+          boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.4)"
+        }}
+      >
+        <div 
+          className="absolute left-0 top-0 bottom-0 w-1.5"
+          style={{ backgroundColor: "var(--accent, #3b82f6)" }}
+        />
+        
+        <div className="flex items-center justify-between mb-1.5 pl-1">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 bg-red-500/20 text-red-400 text-xs shadow-inner border border-red-500/30">
+              📌
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-gray-200">
+                Pesan Sematan
+              </span>
+              <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
+                oleh Admin
+              </span>
+            </div>
+          </div>
+
+          {onUnpin && (
+            <button
+              type="button"
+              onClick={onUnpin}
+              className="w-6 h-6 flex items-center justify-center rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-300 text-xs transition-colors active:scale-95"
+              title="Lepas Sematan"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        <div className="pl-1 text-xs text-gray-100 leading-relaxed break-words font-medium">
+          {pinnedMsg.pesan}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =========================================================
+// 2. KOMPONEN MESSAGE ITEM (EKOR SESUAI POSISI: KANAN/KIRI)
+// =========================================================
 export function MessageItem({
   m, colType, isMinimized, activeTab, isAdminOnline, adminOfflineTime, userStatus,
   activeMenuId, setActiveMenuId, swipingId, setSwipingId, handleTag, handleReply,
@@ -13,23 +72,17 @@ export function MessageItem({
   const [touchInitialY, setTouchInitialY] = useState(0);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // --- HELPER UNTUK MENGUBAH WAKTU OFFLINE ATAS (26 jam lalu -> 1 hari lalu) ---
   const formatOfflineTime = (timeStr: any) => {
     if (!timeStr) return "";
     const str = String(timeStr);
-
-    // Jika string berformat "26 jam lalu" atau "26 jam"
     const match = str.match(/(\d+)\s*jam/i);
     if (match) {
       const hours = parseInt(match[1], 10);
       if (hours >= 24) {
-        const days = Math.floor(hours / 24);
-        return `${days} hari lalu`;
+        return `${Math.floor(hours / 24)} hari lalu`;
       }
       return str;
     }
-
-    // Jika string berformat timestamp/date
     const parsedDate = Date.parse(str);
     if (!isNaN(parsedDate)) {
       const diffInHours = Math.floor((Date.now() - parsedDate) / (1000 * 60 * 60));
@@ -37,15 +90,15 @@ export function MessageItem({
         return `${Math.floor(diffInHours / 24)} hari lalu`;
       }
     }
-
     return str;
   };
 
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
-  const isMsgMine = m.username === authUser;
+  const isMsgMine = authUser ? (m.username === authUser) : !isMsgAdmin;
   
-  // Admin ke kiri, User ke kanan
-  const isRightAligned = !isMsgAdmin;
+  // Jika pesan milik saya -> posisi di KANAN & ekor di KANAN
+  // Jika pesan orang lain -> posisi di KIRI & ekor di KIRI
+  const isRightAligned = isMsgMine;
 
   const [pillColor, setPillColor] = useState(() => {
     if (typeof window !== "undefined") {
@@ -94,19 +147,15 @@ export function MessageItem({
   const shortBrowser = m.user_browser ? m.user_browser.split("(")[0].trim() + (m.user_browser.includes("(") ? ` (${m.user_browser.split("(")[1].split(")")[0]})` : "") : "Unknown Browser";
   const isEdited = m.is_edited === true || m.edited_by != null || (typeof window !== "undefined" ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || "0") > 0 : false);
 
-  // FUNGSI QUOTE CLICK: Menambahkan efek bergoyang smooth + menyala pada pesan tujuan
   const handleQuoteClick = (quotedText: string) => {
     scrollToMessage(quotedText);
-    
     setTimeout(() => {
       const messageElements = document.querySelectorAll('[id^="msg-bubble-"]');
       for (const el of messageElements) {
         if (el.textContent?.includes(quotedText)) {
           const htmlEl = el as HTMLElement;
-          
           htmlEl.classList.add("ring-4", "ring-[var(--accent)]", "scale-[1.03]", "animate-smooth-shake", "transition-all", "duration-300");
           htmlEl.style.boxShadow = "0 0 25px var(--accent)";
-          
           setTimeout(() => {
             htmlEl.classList.remove("ring-4", "ring-[var(--accent)]", "scale-[1.03]", "animate-smooth-shake");
             htmlEl.style.boxShadow = "";
@@ -159,11 +208,7 @@ export function MessageItem({
         <>
           <div 
             className={`text-[10px] italic p-2 rounded cursor-pointer hover:opacity-100 border-l-4 mb-1.5 transition-colors break-words break-all shadow-inner`} 
-            style={{ 
-              backgroundColor: "var(--card-bg)", 
-              borderColor: "var(--accent)",
-              color: "var(--foreground)" 
-            }} 
+            style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--accent)", color: "var(--foreground)" }} 
             onClick={(e) => { e.stopPropagation(); handleQuoteClick(quotedText); }}
           >
             <span className={`font-bold ${tagColor}`}>@{user}</span>: "{applyCensor(quotedText)}"
@@ -179,33 +224,26 @@ export function MessageItem({
   const activeBgColor = bubbleBg === "transparent" ? "transparent" : (bubbleBg || "var(--card-bg)");
 
   return (
-    <div id={`msg-${m.id}`} className="relative w-full mb-2">
-      {/* CSS KEYFRAMES UNTUK EFEK BERGOYANG SMOOTH */}
+    <div id={`msg-${m.id}`} className={`relative w-full mb-2 flex ${isRightAligned ? "justify-end" : "justify-start"}`}>
       <style>{`
         @keyframes smoothShake {
           0%, 100% { transform: translateX(0); }
           20%, 60% { transform: translateX(-6px); }
           40%, 80% { transform: translateX(6px); }
         }
-        .animate-smooth-shake {
-          animation: smoothShake 0.4s ease-in-out infinite;
-        }
+        .animate-smooth-shake { animation: smoothShake 0.4s ease-in-out infinite; }
       `}</style>
 
       {swipingId === m.id && swipeDelta !== 0 && (
         <div className={`absolute inset-0 flex items-center px-5 transition-colors duration-200 bg-transparent ${isMinimized ? "rounded-md" : "rounded-xl"} ${swipeDelta > 0 ? "justify-start" : "justify-end"}`}>
           {swipeDelta > 0 ? (
             <div className="flex flex-col items-center gap-0.5 text-red-600 opacity-90 drop-shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               <span className="text-[10px] font-bold">Hapus</span>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-0.5 opacity-90 drop-shadow-sm" style={{ color: "var(--accent)" }}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
               <span className="text-[10px] font-bold">Balas</span>
             </div>
           )}
@@ -214,7 +252,7 @@ export function MessageItem({
       
       <div
         id={`msg-bubble-${m.id}`}
-        className={`relative z-10 transition-all duration-300 w-full ${
+        className={`relative z-10 transition-all duration-300 max-w-[85%] sm:max-w-[75%] ${
           isMinimized 
             ? (isRightAligned ? "p-1.5 rounded-tl-md rounded-b-md rounded-tr-none" : "p-1.5 rounded-tr-md rounded-b-md rounded-tl-none")
             : (isRightAligned ? "p-3 rounded-tl-xl rounded-b-xl rounded-tr-none" : "p-3 rounded-tr-xl rounded-b-xl rounded-tl-none")
@@ -252,6 +290,7 @@ export function MessageItem({
         {/* EKOR BUBBLE */}
         {isRightAligned ? (
           <>
+            {/* EKOR KANAN (MENUNJUK KELUAR KE KANAN) */}
             <div 
               className="absolute top-[-2px] -right-[10px] w-0 h-0 border-t-[0px] border-t-transparent border-l-[10px] border-b-[14px] border-b-transparent"
               style={{ borderLeftColor: activeBorderColor }}
@@ -263,6 +302,7 @@ export function MessageItem({
           </>
         ) : (
           <>
+            {/* EKOR KIRI (MENUNJUK KELUAR KE KIRI) */}
             <div 
               className="absolute top-[-2px] -left-[10px] w-0 h-0 border-t-[0px] border-t-transparent border-r-[10px] border-b-[14px] border-b-transparent"
               style={{ borderRightColor: activeBorderColor }}
@@ -285,8 +325,7 @@ export function MessageItem({
             </b>
           </div>
           
-          {/* BAGIAN ATAS: Menampilkan status offline yang otomatis terkonversi jika >= 24 jam */}
-          <div className="flex items-center shrink-0 relative z-20">
+          <div className="flex items-center shrink-0 relative z-20 ml-2">
             {isMsgAdmin ? (
               <span className={`px-2.5 py-1 rounded-full bg-black/20 text-[9px] ${isAdminOnline ? "text-green-400 font-bold" : "opacity-60"}`}>
                 {isAdminOnline ? "Online" : formatOfflineTime(adminOfflineTime)}
@@ -342,7 +381,6 @@ export function MessageItem({
             )}
           </div>
           
-          {/* BAGIAN BAWAH: Kembali menggunakan formatMessageTime(m.created_at) bawaan */}
           <div className="flex flex-col items-end gap-1 shrink-0 pb-0.5">
             <span className="text-[8px] opacity-60 font-bold px-1 rounded">{formatMessageTime(m.created_at)}</span>
             <div className="flex items-center gap-2 text-[10px]">
@@ -354,9 +392,7 @@ export function MessageItem({
                   {activeMenuId === m.id && (
                     <>
                       <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} />
-                      
                       <div className="absolute right-0 bottom-full mb-2 bg-white backdrop-blur-md shadow-xl border rounded-full z-[100] p-1.5 flex flex-row items-center gap-1 min-w-max origin-bottom-right" style={{ borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
-                        
                         <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-3 py-1.5 text-[8px] font-black text-white bg-blue-500 hover:bg-blue-600 rounded-full shadow-sm transition-all active:scale-95">Edit</button>
                         {!isMsgAdmin && (
                           <button type="button" onClick={() => { blockUser(m.username); setActiveMenuId(null); }} className="px-3 py-1.5 text-[8px] font-black text-white bg-red-600 hover:bg-red-700 rounded-full shadow-sm transition-all active:scale-95">Blokir</button>

@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Admin from "../../components/Admin";
+import { PinnedMessage } from "./MessageItem";
 import { useTheme } from "../context/ThemeContext";
 
 const hexToRgb = (hex: string) => {
@@ -30,7 +31,6 @@ const FluidBottom = () => {
   
   const isCustomWaveEnabled = typeof window !== "undefined" && localStorage.getItem("global_enable_custom_wave") === "true";
   
-  // Wave warna sekarang mandiri, hanya mengecek apakah custom wave aktif (`isCustomWaveEnabled`)
   const activeWave = isCustomWaveEnabled
     ? { layer1: hexToRgb(customColors.wave1), layer2: hexToRgb(customColors.wave2), layer3: hexToRgb(customColors.wave3), glow: `drop-shadow(0 0 15px ${customColors.wave2}66)` } 
     : (THEME_WAVES[theme] || THEME_WAVES["dark"]);
@@ -46,7 +46,7 @@ const FluidBottom = () => {
   );
 };
 
-export default function ChatLayout({ cMode, hScroll, aTab, selPrivUser, pUsers, privMsgs, renderMsgs, fmtTime, setSelPriv, onBlockUser, onDeleteAllMsgs }: any) {
+export default function ChatLayout({ cMode, hScroll, aTab, selPrivUser, pUsers, privMsgs, renderMsgs, fmtTime, setSelPriv, onBlockUser, onDeleteAllMsgs, pinnedMsg, onUnpin }: any) {
   const [isWaveDisabled, setIsWaveDisabled] = useState<boolean>(false);
 
   useEffect(() => {
@@ -79,6 +79,10 @@ export default function ChatLayout({ cMode, hScroll, aTab, selPrivUser, pUsers, 
           {!isWaveDisabled && <FluidBottom />}
           
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            
+            {/* PESAN SEMATAN SIMPEL DI ATAS CHAT */}
+            {pinnedMsg && <PinnedMessage pinnedMsg={pinnedMsg} onUnpin={onUnpin} />}
+
             {aTab === "admin" && cMode === "private" && !selPrivUser ? (
               <Admin 
                 privateUsers={pUsers} 
