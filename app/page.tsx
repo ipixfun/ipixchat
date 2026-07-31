@@ -61,21 +61,25 @@ export default function HomePage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showDownloadConfirm, setShowDownloadConfirm] = useState(false);
   const [isApk, setIsApk] = useState(false);
-  
+  const [showVideo, setShowVideo] = useState(true);
+
+  // 1. Deteksi Khusus Mode APK (Bukan Web Browser / PWA)
   useEffect(() => {
-    const checkIsApp = () => {
+    const checkIsApkNative = () => {
       if (typeof window === 'undefined') return false;
       const userAgent = navigator.userAgent.toLowerCase();
-      const isWebView = userAgent.includes('wv');
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-      return isWebView || isStandalone;
+      
+      // HANYA true jika dibuka dari WebView APK Android murni
+      // PWA (standalone) dan Web Browser umum akan bernilai false
+      const isWebView = userAgent.includes('wv') || userAgent.includes('ipixchat');
+      return isWebView;
     };
 
-    const isAppMode = checkIsApp();
-    setIsApk(isAppMode);
+    const isApkMode = checkIsApkNative();
+    setIsApk(isApkMode);
 
-    // Jika masuk dari APK pertama kali, otomatis redirect ke tab /chat
-    if (isAppMode) {
+    // Pengarahan otomatis pertama kali jika dibuka via APK Android
+    if (isApkMode) {
       const hasInitialRedirected = localStorage.getItem('ipix_apk_first_open');
       if (!hasInitialRedirected) {
         localStorage.setItem('ipix_apk_first_open', 'true');
@@ -84,19 +88,56 @@ export default function HomePage() {
     }
   }, [router]);
 
+  // 2. Deteksi Notifikasi Masuk -> Otomatis Ke Tab /chat
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'chat' || params.get('redirect') === 'chat' || params.get('from') === 'notification') {
+      router.push('/chat');
+    }
+
+    const handleSWMessage = (event: MessageEvent) => {
+      if (event.data?.action === 'OPEN_CHAT' || event.data?.type === 'NOTIFICATION_CLICK') {
+        router.push('/chat');
+      }
+    };
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleSWMessage);
+    }
+
+    return () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleSWMessage);
+      }
+    };
+  }, [router]);
+
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px] relative overflow-hidden bg-[var(--background)]">
-      {/* Custom Keyframes & Style CSS */}
+      {/* Custom Style & Animation CSS */}
       <style>{`
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         .glow-text { text-shadow: 0 0 20px color-mix(in srgb, var(--accent) 50%, transparent); }
         .glass-card { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
         .color-shift-bg { background-size: 300% 300%; animation: color-shift 5s ease infinite; }
+        
         @keyframes color-shift {
           0% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
           100% { background-position: 0% 50%; }
+        }
+
+        @keyframes wave-motion {
+          0% { transform: translateX(0) translateZ(0) scaleY(1); }
+          50% { transform: translateX(-25%) translateZ(0) scaleY(0.85); }
+          100% { transform: translateX(0) translateZ(0) scaleY(1); }
+        }
+
+        .animate-wave {
+          animation: wave-motion 9s ease-in-out infinite;
         }
       `}</style>
 
@@ -210,7 +251,7 @@ export default function HomePage() {
       {/* Konten Utama */}
       <div className="flex-1 overflow-y-auto hide-scroll space-y-4 sm:space-y-5 pt-3 sm:pt-4 pb-6 px-3.5 sm:px-6">
         
-        {/* 1. Video Player Section */}
+        {/* 1. Video Player Section dengan Pull Down Toggle */}
         <motion.div
           initial={{ opacity: 0, y: 20, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -222,59 +263,117 @@ export default function HomePage() {
             boxShadow: "0 15px 35px -10px color-mix(in srgb, var(--accent) 20%, transparent)",
           }}
         >
-          <div className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-black flex justify-center items-center group">
-            <video
-              src={APP_INFO.videoUrl}
-              controls
-              loop
-              playsInline
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-              className="w-full h-auto max-h-[55vh] object-contain rounded-xl sm:rounded-2xl"
-            />
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-xl sm:rounded-2xl" />
-          </div>
-
-          <div className="flex items-center justify-between gap-2 px-2 pt-2.5 pb-0.5">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full animate-pulse shrink-0" style={{ backgroundColor: 'var(--accent)' }} />
+          {/* Bar Pull-Down / Toggle Sembunyikan Video */}
+          <button
+            onClick={() => setShowVideo(!showVideo)}
+            className="w-full flex items-center justify-between px-2.5 py-1.5 mb-1.5 rounded-xl transition-all hover:bg-white/5 active:scale-[0.99] outline-none"
+            style={{
+              backgroundColor: 'color-mix(in srgb, var(--accent) 8%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
+            }}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2 h-2 rounded-full animate-pulse shrink-0" style={{ backgroundColor: 'var(--accent)' }} />
               <span className="font-extrabold text-xs sm:text-sm tracking-wide truncate" style={{ color: 'var(--foreground-heading)' }}>
-                Panduan Penggunaan ipixchat
+                Panduan Video ipixchat
               </span>
             </div>
-            <span className="text-[9px] sm:text-[10px] px-2 py-0.5 sm:py-1 rounded-full font-bold opacity-75 shrink-0 whitespace-nowrap" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)' }}>
-              Musik: Diatas Normal
-            </span>
-          </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[10px] font-bold opacity-75" style={{ color: 'var(--accent)' }}>
+                {showVideo ? 'Sembunyikan' : 'Tampilkan'}
+              </span>
+              <motion.svg
+                animate={{ rotate: showVideo ? 180 : 0 }}
+                transition={{ duration: 0.3 }}
+                className="w-4 h-4 fill-current"
+                style={{ color: 'var(--accent)' }}
+                viewBox="0 0 24 24"
+              >
+                <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+              </motion.svg>
+            </div>
+          </button>
+
+          {/* Video Container Collapse Animation */}
+          <AnimatePresence initial={false}>
+            {showVideo && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.4, ease: "easeInOut" }}
+                className="overflow-hidden"
+              >
+                <div className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-black flex justify-center items-center group mt-1">
+                  <video
+                    src={APP_INFO.videoUrl}
+                    controls
+                    loop
+                    playsInline
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    className="w-full h-auto max-h-[55vh] object-contain rounded-xl sm:rounded-2xl"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-xl sm:rounded-2xl" />
+                </div>
+
+                <div className="flex items-center justify-between gap-2 px-2 pt-2.5 pb-0.5">
+                  <span className="text-[10px] sm:text-xs font-medium opacity-80" style={{ color: 'var(--foreground)' }}>
+                    Tutorial & Fitur Utama
+                  </span>
+                  <span className="text-[9px] sm:text-[10px] px-2 py-0.5 sm:py-1 rounded-full font-bold opacity-75 shrink-0 whitespace-nowrap" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)' }}>
+                    Musik: Diatas Normal
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
-        {/* 2. Dynamic Section: Thank You (APK) OR Download Banner (Web) */}
+        {/* 2. Dynamic Section: Terima Kasih (HANYA APK) OR Download Banner (Web Browser / PWA) */}
         {isApk ? (
+          /* Kolom Terima Kasih HANYA Tampil di APK */
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
             className="py-8 sm:py-10 px-4 sm:px-6 rounded-2xl sm:rounded-3xl relative overflow-hidden transition-all border text-center flex flex-col items-center justify-center gap-2 sm:gap-3"
             style={{
-              background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--background)) 0%, var(--card-bg) 100%)`,
+              background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, var(--background)) 0%, var(--card-bg) 100%)`,
               borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
               boxShadow: "0 12px 35px color-mix(in srgb, var(--accent) 15%, transparent)",
             }}
           >
-            <div className="absolute -bottom-14 -left-12 w-48 h-48 rounded-full opacity-25 pointer-events-none blur-3xl" style={{ backgroundColor: "var(--accent)" }} />
-            <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-30 pointer-events-none blur-2xl" style={{ backgroundColor: "var(--accent)" }} />
+            {/* Wave Animation Background */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl sm:rounded-3xl opacity-25">
+              <svg 
+                className="absolute -bottom-2 left-0 w-[200%] h-24 animate-wave" 
+                viewBox="0 0 1200 120" 
+                preserveAspectRatio="none"
+              >
+                <path 
+                  d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,120 L0,120 Z" 
+                  fill="var(--accent)" 
+                />
+              </svg>
+            </div>
+
+            <div className="absolute -bottom-14 -left-12 w-48 h-48 rounded-full opacity-20 pointer-events-none blur-3xl" style={{ backgroundColor: "var(--accent)" }} />
+            <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-25 pointer-events-none blur-2xl" style={{ backgroundColor: "var(--accent)" }} />
 
             <div className="relative z-10 w-full">
               <h2 className="text-xl sm:text-3xl font-black tracking-tight mb-1.5" 
                 style={{ color: "var(--accent)", textShadow: "0 0 15px color-mix(in srgb, var(--accent) 40%, transparent)" }}>
                 Terima Kasih!
               </h2>
-              <p className="text-xs sm:text-sm opacity-90 leading-relaxed max-w-[280px] sm:max-w-xs mx-auto break-words" style={{ color: "var(--foreground)" }}>
-                Sudah menggunakan <span className="font-extrabold" style={{ color: "var(--accent)" }}>ipixchat</span> versi Aplikasi Android. Nikmati pengalaman menjelajah yang lebih cepat dan lancar.
+              <p className="text-xs sm:text-sm font-medium leading-relaxed max-w-[280px] sm:max-w-md mx-auto break-words" style={{ color: "var(--foreground)" }}>
+                Terima kasih supportnya sudah menggunakan apk <span className="font-black" style={{ color: "var(--accent)" }}>ipixchat</span>. Nikmati pengalaman berinteraksi yang lebih cepat dan lancar.
               </p>
             </div>
           </motion.div>
         ) : (
+          /* Tampil di Web Browser & PWA: Banner Unduh APK */
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -350,7 +449,7 @@ export default function HomePage() {
           </p>
         </motion.div>
 
-        {/* 4. Dynamic Section: Fitur & Informasi Sistem */}
+        {/* 4. Dynamic Section: Fitur Utama */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -362,7 +461,6 @@ export default function HomePage() {
             boxShadow: "0 10px 30px color-mix(in srgb, var(--accent) 15%, transparent)",
           }}
         >
-          {/* Header Versi */}
           <div className="flex items-center justify-between mb-4 border-b pb-3.5" style={{ borderColor: "color-mix(in srgb, var(--foreground) 10%, transparent)" }}>
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shadow-md border shrink-0" 
@@ -380,7 +478,6 @@ export default function HomePage() {
             </span>
           </div>
 
-          {/* Daftar Fitur / Update Dinamis */}
           <ul className="space-y-3.5 sm:space-y-4">
             {FEATURES.map((feature) => (
               <li key={feature.id} className={feature.action ? "space-y-2" : "flex gap-2.5 sm:gap-3"}>
@@ -403,7 +500,6 @@ export default function HomePage() {
                   </div>
                 </div>
                 
-                {/* Render Button Actions jika ada */}
                 {feature.action && (
                   <div className="pl-6 sm:pl-7">
                     <Link
