@@ -13,7 +13,7 @@ interface PixVideoPlayerProps {
 
 export default function PixVideoPlayer({
   className = '',
-  src = 'https://res.cloudinary.com/bjamo8ld/video/upload/v1785016972/pixvideo_z1kfhn.mp4',
+  src = 'https://res.cloudinary.com/bjamo8ld/video/upload/v1785508218/ipixchat_dryqj3.mp4',
   title = 'ipix Video Player',
   autoPlay = false,
   loop = true,
@@ -34,11 +34,9 @@ export default function PixVideoPlayer({
 
   return (
     <motion.div
-      // Animasi Masuk
       initial={{ opacity: 0, y: 30, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
-      // Interaksi Hover
       whileHover={{
         scale: 1.01,
         boxShadow: '0 25px 50px -12px color-mix(in srgb, var(--accent) 35%, transparent)',
@@ -50,7 +48,6 @@ export default function PixVideoPlayer({
       }}
       className={`relative w-full max-w-4xl mx-auto rounded-3xl overflow-hidden p-2 sm:p-3 transition-all ${className}`}
     >
-      {/* Inner Container dengan Rounded mengikuti tema */}
       <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black/40 group">
         <video
           ref={videoRef}
@@ -63,12 +60,9 @@ export default function PixVideoPlayer({
           onPause={() => setIsPlaying(false)}
           className="w-full h-full object-cover rounded-2xl"
         />
-
-        {/* Overlay Efek Kilauan Kaca saat di-hover */}
         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl" />
       </div>
 
-      {/* Bar Informasi / Header Kecil di Bawah Video */}
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           <span 
@@ -83,7 +77,6 @@ export default function PixVideoPlayer({
           </h3>
         </div>
 
-        {/* Tombol Quick Play/Pause Kustom */}
         <button
           onClick={togglePlay}
           className="px-4 py-1.5 rounded-xl font-medium text-xs sm:text-sm transition-transform active:scale-95"
