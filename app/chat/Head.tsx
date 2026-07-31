@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 
 export interface HeadProps {
   auth: any;
@@ -32,6 +32,7 @@ export default function Head({
   onEditPinned,
   onScrollToMsg,
 }: HeadProps) {
+  const [isOnlineExpanded, setIsOnlineExpanded] = useState(false);
   const isMsgAdmin = auth.user === "Admin●ipix.my.id";
   const totalOnline = onlineUsers.length + (adminStat.online ? 1 : 0);
 
@@ -51,7 +52,7 @@ export default function Head({
               <span className="text-sm font-black tracking-wide" style={{ color: "var(--foreground-heading, var(--foreground))" }}>
                 {isMsgAdmin ? "Admin" : displayUserName}
               </span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              {!isMsgAdmin && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
             </div>
           </div>
 
@@ -87,25 +88,53 @@ export default function Head({
           </div>
         </div>
 
-        {/* HEADER ADMIN: STATUS ONLINE */}
+        {/* HEADER ADMIN: STATUS ONLINE DENGAN SEGITIGA PULL DOWN & TANPA TEKS ADMIN ONLINE / KELIP HIJAU */}
         {isMsgAdmin && (
-          <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-0.5 mt-1">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/20 shrink-0 border border-white/5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span className="text-[10px] font-bold" style={{ color: "var(--foreground)" }}>
-                Online ({totalOnline})
-              </span>
+          <div className="mt-1">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsOnlineExpanded(!isOnlineExpanded)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/20 shrink-0 border border-white/5 active:scale-95 transition-all cursor-pointer"
+              >
+                <span className="text-[10px] font-bold" style={{ color: "var(--foreground)" }}>
+                  Online ({totalOnline})
+                </span>
+                {onlineUsers.length > 2 && (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`w-3 h-3 transition-transform duration-200 ${isOnlineExpanded ? "rotate-180" : ""}`}
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    style={{ color: "var(--foreground)" }}
+                  >
+                    <path d="M12 15l-5-5h10z" />
+                  </svg>
+                )}
+              </button>
+
+              {/* DAFTAR HORISONTAL KETIKA TIDAK DI-EXPAND */}
+              {!isOnlineExpanded && (
+                <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-0.5">
+                  {onlineUsers.map((u: string) => (
+                    <div key={u} className="px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 bg-black/20 border border-white/5" style={{ color: "var(--foreground)" }}>
+                      {u}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 bg-black/20 border border-white/5 ${adminStat.online ? "text-emerald-400" : "opacity-60"}`} style={{ color: adminStat.online ? undefined : "var(--foreground)" }}>
-              Admin ({adminStat.online ? "Online" : "Offline"})
-            </div>
-
-            {onlineUsers.map((u: string) => (
-              <div key={u} className="px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 bg-black/20 border border-white/5" style={{ color: "var(--foreground)" }}>
-                {u}
+            {/* DAFTAR USER ONLINE PULL DOWN KETIKA DI-EXPAND */}
+            {isOnlineExpanded && (
+              <div className="flex flex-wrap gap-1.5 mt-2 p-2 rounded-xl bg-black/30 border border-white/10 max-h-36 overflow-y-auto">
+                {onlineUsers.map((u: string) => (
+                  <div key={u} className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-black/40 border border-white/10" style={{ color: "var(--foreground)" }}>
+                    {u}
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
 
