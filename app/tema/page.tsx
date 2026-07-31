@@ -23,18 +23,29 @@ const themes: ThemeItem[] = [
   { id: "cyber-neon", name: "Cyber Neon", preview: "from-zinc-800 to-zinc-950" },
 ];
 
+// Toggle Komponen - Dibuat Lebih Besar & Lebih Dinamis
 const CompactToggle = ({ 
   label, checked, onChange, disabled, activeColor = "bg-[var(--accent)]", activeText = "text-[var(--accent)]" 
 }: { 
   label: string; checked: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; disabled: boolean; activeColor?: string; activeText?: string;
 }) => (
-  <label className="flex items-center gap-1 cursor-pointer group">
-    <span className={`text-[8.5px] font-bold transition-colors ${checked ? activeText : "text-neutral-400 group-hover:text-white"}`}>
+  <label className={`flex items-center gap-2 cursor-pointer group select-none ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}>
+    <span className={`text-[10px] sm:text-xs font-bold transition-all duration-300 ${checked ? `${activeText} scale-105 drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]` : "text-neutral-400 group-hover:text-neutral-200"}`}>
       {label}
     </span>
     <div className="relative flex items-center">
       <input type="checkbox" checked={checked} onChange={onChange} disabled={disabled} className="sr-only peer" />
-      <div className={`w-5 h-2.5 bg-black/20 dark:bg-white/10 rounded-[4px] peer-focus:outline-none peer peer-checked:after:translate-x-[10px] after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-neutral-400 peer-checked:after:bg-white after:rounded-sm after:h-2 after:w-2 after:transition-all ${checked ? activeColor : ''} disabled:opacity-50 border border-white/10 shadow-inner`}></div>
+      <div className={`w-9 h-5 sm:w-10 sm:h-5.5 rounded-full border transition-all duration-300 shadow-inner relative flex items-center ${
+        checked 
+          ? `${activeColor} border-[var(--accent)] shadow-[0_0_12px_rgba(255,255,255,0.25)] scale-105` 
+          : "bg-black/40 border-white/10 group-hover:border-white/20"
+      }`}>
+        <div className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full transition-all duration-300 shadow-md ${
+          checked 
+            ? "translate-x-4.5 sm:translate-x-5 bg-white scale-110" 
+            : "translate-x-0.5 bg-neutral-400"
+        }`} />
+      </div>
     </div>
   </label>
 );
@@ -57,8 +68,8 @@ const ColorInput = ({
 
   if (horizontal) {
     return (
-      <div className="flex items-center justify-between bg-black/5 dark:bg-white/5 p-2 rounded-lg border border-white/5 w-full shadow-sm gap-2">
-        <span className="text-[10px] font-bold leading-tight opacity-90 truncate shrink-0 w-28" style={{ color: "var(--foreground)" }}>
+      <div className="flex items-center justify-between bg-black/10 dark:bg-white/5 p-2 rounded-lg border border-white/5 w-full shadow-sm gap-2 hover:border-white/10 transition-colors">
+        <span className="text-[10px] sm:text-[11px] font-bold leading-tight opacity-90 truncate shrink-0 w-28 text-[var(--foreground)]">
           {label}
         </span>
         <div className="flex items-center gap-2 shrink-0">
@@ -68,10 +79,10 @@ const ColorInput = ({
               value={isTransparent ? "trans" : value} 
               onChange={(e) => onChange(e.target.value)} 
               disabled={disabled || isTransparent}
-              className="w-12 text-center text-[9px] font-mono bg-black/10 dark:bg-white/10 border border-white/5 rounded-[4px] px-1 py-1 focus:outline-none focus:border-[var(--accent)]"
+              className="w-14 text-center text-[9.5px] font-mono bg-black/20 dark:bg-white/10 border border-white/10 rounded-md px-1 py-1 focus:outline-none focus:border-[var(--accent)]"
             />
           )}
-          <div className={`relative w-7 h-7 rounded-md overflow-hidden border border-white/10 shadow-inner transition-transform ${disabled || isTransparent ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}>
+          <div className={`relative w-7 h-7 rounded-md overflow-hidden border border-white/10 shadow-inner transition-transform ${disabled || isTransparent ? "opacity-50 cursor-not-allowed" : "hover:scale-110 cursor-pointer"}`}>
             {isTransparent && <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-30 pointer-events-none" />}
             <input 
               type="color" 
@@ -83,12 +94,12 @@ const ColorInput = ({
           </div>
 
           {allowTransparent && (
-            <label className="flex items-center gap-1 cursor-pointer group pl-1.5 border-l border-white/10" title="Atur Transparan">
+            <label className="flex items-center gap-1.5 cursor-pointer group pl-2 border-l border-white/10" title="Atur Transparan">
               <div className="relative flex items-center shrink-0">
                 <input type="checkbox" checked={isTransparent} onChange={(e) => handleTransparentToggle(e.target.checked)} disabled={disabled} className="sr-only peer" />
-                <div className="w-5 h-2.5 bg-black/20 dark:bg-white/10 rounded-[4px] peer-checked:bg-[var(--accent)] transition-colors after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-neutral-400 peer-checked:after:bg-white after:rounded-sm after:h-2 after:w-2 after:transition-all peer-checked:after:translate-x-[10px] disabled:opacity-50 border border-white/5 shadow-inner"></div>
+                <div className="w-7 h-3.5 bg-black/30 dark:bg-white/10 rounded-full peer-checked:bg-[var(--accent)] transition-colors after:content-[''] after:absolute after:top-[1.5px] after:left-[1.5px] after:bg-neutral-400 peer-checked:after:bg-white after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:after:translate-x-3.5 disabled:opacity-50 border border-white/10 shadow-inner"></div>
               </div>
-              <span className={`text-[8px] font-bold tracking-wide transition-colors ${isTransparent ? 'text-[var(--accent)]' : 'text-neutral-500 group-hover:text-[var(--foreground)]'}`}>
+              <span className={`text-[9px] font-bold tracking-wide transition-colors ${isTransparent ? 'text-[var(--accent)]' : 'text-neutral-500 group-hover:text-[var(--foreground)]'}`}>
                 Transparan
               </span>
             </label>
@@ -99,11 +110,11 @@ const ColorInput = ({
   }
 
   return (
-    <div className="flex flex-col items-center justify-between bg-black/5 dark:bg-white/5 p-2 rounded-lg border border-white/5 gap-1.5 w-full h-full shadow-sm">
-      <span className="text-[9px] font-bold text-center leading-tight truncate w-full opacity-90" style={{ color: "var(--foreground)" }}>
+    <div className="flex flex-col items-center justify-between bg-black/10 dark:bg-white/5 p-2 rounded-lg border border-white/5 gap-1.5 w-full h-full shadow-sm">
+      <span className="text-[9px] sm:text-[10px] font-bold text-center leading-tight truncate w-full opacity-90 text-[var(--foreground)]">
         {label}
       </span>
-      <div className={`relative w-8 h-8 rounded-md overflow-hidden border border-white/10 shadow-inner shrink-0 transition-transform ${disabled ? "opacity-50" : "hover:scale-105"}`}>
+      <div className={`relative w-8 h-8 rounded-md overflow-hidden border border-white/10 shadow-inner shrink-0 transition-transform ${disabled ? "opacity-50" : "hover:scale-110 cursor-pointer"}`}>
         {isTransparent && <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-30 pointer-events-none" />}
         <input type="color" value={hexColor} onChange={(e) => { if(!isTransparent) onChange(e.target.value) }} disabled={disabled || isTransparent} className={`absolute -inset-2 w-12 h-12 border-0 bg-transparent ${isTransparent ? 'opacity-0' : 'opacity-100'} ${disabled || isTransparent ? "cursor-not-allowed" : "cursor-pointer"}`} />
       </div>
@@ -119,6 +130,16 @@ export default function TemaPage() {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loadingAuth, setLoadingAuth] = useState<boolean>(true);
 
+  // Review State (DRAFT) - Tidak langsung merubah global sebelum Terapkan diklik
+  const [draftCustomColors, setDraftCustomColors] = useState<{ bg: string; accent: string; text: string; wave1: string; wave2: string; wave3: string }>({
+    bg: "#121212",
+    accent: "#10b981",
+    text: "#ffffff",
+    wave1: "#059669",
+    wave2: "#10b981",
+    wave3: "#34d399",
+  });
+
   const [isCustomUiEnabled, setIsCustomUiEnabled] = useState<boolean>(false);
   const [isCustomChatEnabled, setIsCustomChatEnabled] = useState<boolean>(false);
 
@@ -130,7 +151,7 @@ export default function TemaPage() {
   const [isWaveDisabled, setIsWaveDisabled] = useState<boolean>(false);
   const [isCustomWaveEnabled, setIsCustomWaveEnabled] = useState<boolean>(false);
 
-  // Collapse / Minimize States (Default true / minimized)
+  // Collapse / Minimize States
   const [isThemeCollapsed, setIsThemeCollapsed] = useState<boolean>(true);
   const [isWaveCollapsed, setIsWaveCollapsed] = useState<boolean>(true);
   const [isChatCollapsed, setIsChatCollapsed] = useState<boolean>(true);
@@ -149,6 +170,10 @@ export default function TemaPage() {
     setAdminPillColor(localStorage.getItem("global_admin_pill_color") || "#ef4444");
     setAdminBubbleBg(localStorage.getItem("global_admin_bubble_bg") || "");
     setIsWaveDisabled(localStorage.getItem("global_disable_wave") === "true");
+
+    if (customColors) {
+      setDraftCustomColors(customColors);
+    }
 
     const checkAuth = () => {
       try {
@@ -182,30 +207,24 @@ export default function TemaPage() {
     };
 
     checkAuth();
-  }, []);
+  }, [customColors]);
 
   const activeThemeId = isMounted ? theme : "dark";
 
   const handleCustomColorChange = (key: string, value: string) => {
-    setCustomColors({ ...customColors, [key]: value });
+    setDraftCustomColors((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleWaveToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
     const isWaveEnabled = e.target.checked;
-    const newVal = !isWaveEnabled; 
-    
-    setIsWaveDisabled(newVal);
-    localStorage.setItem("global_disable_wave", newVal.toString());
-    window.dispatchEvent(new Event("globalColorChanged"));
+    setIsWaveDisabled(!isWaveEnabled);
   };
 
   const handleCustomWaveToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const checked = e.target.checked;
-    setIsCustomWaveEnabled(checked);
-    localStorage.setItem("global_enable_custom_wave", checked.toString());
-    window.dispatchEvent(new Event("globalColorChanged"));
+    setIsCustomWaveEnabled(e.target.checked);
   };
 
+  // Logika Eksekusi Terapkan Tema (Hanya berjalan ketika tombol diklik)
   const handleApplyCustom = () => {
     localStorage.setItem("global_enable_custom_ui", isCustomUiEnabled.toString());
     localStorage.setItem("global_enable_custom_chat", isCustomChatEnabled.toString());
@@ -224,6 +243,9 @@ export default function TemaPage() {
       localStorage.removeItem("global_admin_bubble_bg");
     }
     
+    // Terapkan custom colors draft ke konteks global
+    setCustomColors(draftCustomColors);
+
     if (isCustomUiEnabled) {
       setTheme("custom");
     } else if (theme === "custom") {
@@ -275,6 +297,7 @@ export default function TemaPage() {
                 </span>
               )}
             </div>
+            <span className="text-[9px] font-medium opacity-60 italic">Mode Pratinjau (Belum Diterapkan)</span>
           </div>
 
           <div className={`p-3 sm:p-4 flex flex-col gap-4 ${!isLoggedIn && !loadingAuth ? "opacity-30 pointer-events-none blur-[2px] select-none" : ""}`}>
@@ -286,7 +309,11 @@ export default function TemaPage() {
                 onClick={() => setIsThemeCollapsed(!isThemeCollapsed)}
               >
                 <div className="flex items-center justify-between w-full pr-3">
-                  <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">
+                  <h4 className={`text-[10px] sm:text-[11px] uppercase tracking-widest transition-all duration-300 ${
+                    isCustomUiEnabled 
+                      ? "text-[var(--accent)] font-black drop-shadow-[0_0_8px_var(--accent)]" 
+                      : "text-neutral-500 opacity-50 font-extrabold"
+                  }`}>
                     WARNA TEMA
                   </h4>
                   <div onClick={(e) => e.stopPropagation()}>
@@ -299,9 +326,9 @@ export default function TemaPage() {
               {!isThemeCollapsed && (
                 <div className={`pt-3 transition-all duration-300 ${!isCustomUiEnabled ? "opacity-30 grayscale pointer-events-none" : ""}`}>
                   <div className="flex flex-col gap-2">
-                    <ColorInput label="Latar" value={customColors.bg} onChange={(v) => handleCustomColorChange("bg", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} horizontal />
-                    <ColorInput label="Aksen" value={customColors.accent} onChange={(v) => handleCustomColorChange("accent", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} horizontal />
-                    <ColorInput label="Teks Utama" value={customColors.text} onChange={(v) => handleCustomColorChange("text", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} horizontal />
+                    <ColorInput label="Latar" value={draftCustomColors.bg} onChange={(v) => handleCustomColorChange("bg", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} horizontal />
+                    <ColorInput label="Aksen" value={draftCustomColors.accent} onChange={(v) => handleCustomColorChange("accent", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} horizontal />
+                    <ColorInput label="Teks Utama" value={draftCustomColors.text} onChange={(v) => handleCustomColorChange("text", v)} disabled={!isLoggedIn || !isCustomUiEnabled} showHex={isAdmin} horizontal />
                   </div>
                 </div>
               )}
@@ -314,7 +341,11 @@ export default function TemaPage() {
                 onClick={() => setIsChatCollapsed(!isChatCollapsed)}
               >
                 <div className="flex items-center justify-between w-full pr-3">
-                  <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">
+                  <h4 className={`text-[10px] sm:text-[11px] uppercase tracking-widest transition-all duration-300 ${
+                    isCustomChatEnabled 
+                      ? "text-emerald-400 font-black drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" 
+                      : "text-neutral-500 opacity-50 font-extrabold"
+                  }`}>
                     GELEMBUNG CHAT
                   </h4>
                   <div onClick={(e) => e.stopPropagation()}>
@@ -357,13 +388,17 @@ export default function TemaPage() {
                 className="flex items-center justify-between cursor-pointer select-none pb-2 border-b border-white/5"
                 onClick={() => setIsWaveCollapsed(!isWaveCollapsed)}
               >
-                <div className="flex items-center justify-between w-full pr-3 flex-wrap gap-1">
-                  <h4 className="text-[10px] sm:text-[11px] font-extrabold opacity-90 uppercase tracking-widest text-[var(--foreground)]">
+                <div className="flex items-center justify-between w-full pr-3 flex-wrap gap-2">
+                  <h4 className={`text-[10px] sm:text-[11px] uppercase tracking-widest transition-all duration-500 ${
+                    !isWaveDisabled 
+                      ? "bg-gradient-to-r from-teal-400 via-cyan-300 to-blue-400 bg-clip-text text-transparent font-black animate-pulse drop-shadow-[0_0_8px_rgba(45,212,191,0.6)]" 
+                      : "text-neutral-500 opacity-50 font-extrabold"
+                  }`}>
                     WAVE
                   </h4>
-                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                    <CompactToggle label={!isWaveDisabled ? "Tampilkan Wave" : "Sembunyikan Wave"} checked={!isWaveDisabled} onChange={handleWaveToggle} disabled={!isLoggedIn} />
-                    <CompactToggle label={isCustomWaveEnabled ? "Aktif" : "Bawaan"} checked={isCustomWaveEnabled} onChange={handleCustomWaveToggle} disabled={!isLoggedIn || isWaveDisabled} />
+                  <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                    <CompactToggle label={!isWaveDisabled ? "Tampilkan" : "Sembunyikan"} checked={!isWaveDisabled} onChange={handleWaveToggle} disabled={!isLoggedIn} />
+                    <CompactToggle label={isCustomWaveEnabled ? "Warna Aktif" : "Bawaan"} checked={isCustomWaveEnabled} onChange={handleCustomWaveToggle} disabled={!isLoggedIn || isWaveDisabled} />
                   </div>
                 </div>
                 <span className="text-xs text-neutral-400 font-mono">{isWaveCollapsed ? "▼" : "▲"}</span>
@@ -372,9 +407,9 @@ export default function TemaPage() {
               {!isWaveCollapsed && (
                 <div className={`pt-3 transition-all duration-300 ${(isWaveDisabled || !isCustomWaveEnabled) ? "opacity-30 grayscale pointer-events-none" : ""}`}>
                   <div className="flex flex-col gap-2">
-                    <ColorInput label="Belakang" value={customColors.wave1} onChange={(v) => handleCustomColorChange("wave1", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
-                    <ColorInput label="Tengah" value={customColors.wave2} onChange={(v) => handleCustomColorChange("wave2", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
-                    <ColorInput label="Depan" value={customColors.wave3} onChange={(v) => handleCustomColorChange("wave3", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
+                    <ColorInput label="Belakang" value={draftCustomColors.wave1} onChange={(v) => handleCustomColorChange("wave1", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
+                    <ColorInput label="Tengah" value={draftCustomColors.wave2} onChange={(v) => handleCustomColorChange("wave2", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
+                    <ColorInput label="Depan" value={draftCustomColors.wave3} onChange={(v) => handleCustomColorChange("wave3", v)} disabled={!isLoggedIn || isWaveDisabled || !isCustomWaveEnabled} showHex={isAdmin} horizontal />
                   </div>
                 </div>
               )}
@@ -386,11 +421,11 @@ export default function TemaPage() {
                 onClick={handleApplyCustom}
                 className={`w-full py-3 rounded-lg font-bold text-[11px] sm:text-xs transition-all active:scale-95 flex items-center justify-center gap-2 tracking-wide ${
                   isApplied
-                    ? "bg-emerald-500 text-black border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]"
-                    : "bg-[var(--accent)] text-[var(--background)] hover:opacity-90 shadow-md"
+                    ? "bg-emerald-500 text-black border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)] scale-[0.99]"
+                    : "bg-[var(--accent)] text-[var(--background)] hover:opacity-90 shadow-md hover:shadow-lg"
                 }`}
               >
-                {isApplied ? "✓ Tema Diterapkan" : "Terapkan Tema"}
+                {isApplied ? "✓ Tema Berhasil Diterapkan" : "Terapkan Tema"}
               </button>
             </div>
 
