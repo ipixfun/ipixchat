@@ -264,7 +264,7 @@ export default function Home() {
     rmWrd: async (w: string) => { const { error } = await supabase.from("blocked_words").delete().eq("word", w); if (error) alert("Gagal menghapus kata terlarang."); fetchData(); },
     approveImg: async (id: number) => { await supabase.from("messages").update({ is_approved: true }).eq("id", id); fetchData(); },
     
-    // FUNGSI EDIT PIN EKSKLUSIF ADMIN
+    // EDIT PESAN SEMATAN
     editPinned: async (currentPinned: any) => {
       if (auth.user !== "Admin●ipix.my.id") return alert("Hanya admin yang dapat mengedit pesan sematan.");
       const defaultText = "halo semua";
@@ -272,10 +272,8 @@ export default function Home() {
       const nt = prompt("Edit Pesan Sematan:", currentText);
       if (nt !== null && nt.trim() !== "") {
         if (currentPinned) {
-          // Update pesan yang sudah ada
           await supabase.from("messages").update({ pesan: nt.trim() }).eq("id", currentPinned.id);
         } else {
-          // Buat pesan pin baru jika di DB kosong
           const recipientUsername = ui.tab === "user" ? "Admin●ipix.my.id" : usersInfo.selPriv;
           await supabase.from("messages").insert([{ 
             username: "Admin●ipix.my.id", 
@@ -443,9 +441,6 @@ export default function Home() {
   const currentMsgs = msgs.priv; 
   const pinnedMsg = currentMsgs.find((m) => m.is_pinned && m.pesan !== "___DELETED___");
 
-  // Banner Pin selalu tampil asalkan dalam sesi obrolan yang aktif
-  const shouldShowPinned = auth.isAuth && currentHash !== "#block" && (ui.tab === "user" || (ui.tab === "admin" && usersInfo.selPriv !== null));
-
   const renderMsgs = (arr: any[], colType: any) => {
     if (!auth.isAuth) return null;
     const messageContent = arr.length === 0 ? (<div className="text-center text-white/70 italic mt-10 text-[10px]">Belum ada pesan.</div>) : (
@@ -503,6 +498,7 @@ export default function Home() {
         </div>
       )}
       
+      {/* HEADER DENGAN PILIHAN PESAN SEMATAN DINAMIS TERINTEGRASI */}
       <Head 
         auth={auth} 
         ui={ui} 
@@ -513,45 +509,12 @@ export default function Home() {
         handleLogout={handleLogout} 
         onBlockMgr={() => window.open(`${window.location.pathname}#block`, "_blank")}
         onTrashMgr={dbActions.emptyTrash}
+        pinnedMsg={pinnedMsg}
+        onEditPinned={dbActions.editPinned}
+        onScrollToMsg={scrollMsg}
       />
 
-      {/* AREA PESAN SEMATAN - TEMA DINAMIS */}
-      {shouldShowPinned && (
-        <div className="w-full px-3 py-2 z-10 shrink-0 border-b shadow-sm transition-colors duration-500" style={{ backgroundColor: "var(--background)", borderColor: "var(--card-border)" }}>
-          <div 
-            onClick={() => pinnedMsg && scrollMsg(pinnedMsg.id)} 
-            className="w-full p-2.5 rounded-lg cursor-pointer shadow-md transition-all active:scale-95 flex items-center gap-3 border-l-4 backdrop-blur-md relative"
-            style={{ backgroundColor: "var(--background)", borderColor: "var(--accent)" }}
-          >
-            <div className="text-xl drop-shadow-md">📌</div>
-            <div className="flex flex-col flex-1 overflow-hidden pr-8">
-              <span className="text-[10px] font-bold tracking-wide flex items-center gap-1.5" style={{ color: "var(--foreground-heading)" }}>
-                PESAN SEMATAN
-                <span className="px-1.5 py-0.5 rounded-full text-white text-[8px] font-black tracking-wider bg-red-600 shadow-sm">
-                  oleh Admin
-                </span>
-              </span>
-              <span className="text-xs truncate mt-0.5 opacity-90 font-medium" style={{ color: "var(--foreground)" }}>
-                {pinnedMsg ? pinnedMsg.pesan : " halo semua"}
-              </span>
-            </div>
-            
-            {/* TOMBOL EDIT KHUSUS ADMIN */}
-            {ui.tab === "admin" && (
-              <button 
-                type="button" 
-                onClick={(e) => { e.stopPropagation(); dbActions.editPinned(pinnedMsg); }} 
-                className="absolute right-3 top-1/2 -translate-y-1/2 bg-amber-500 hover:bg-amber-600 text-white w-7 h-7 flex items-center justify-center rounded-full shadow-sm active:scale-95 transition-all"
-                title="Edit Pesan Sematan"
-              >
-                ✏️
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* AREA KOTAK CHAT UTAMA: MENGHAPUS BACKGROUND TRANSPARAN */}
+      {/* AREA KOTAK CHAT UTAMA */}
       <div className="flex-1 w-full relative flex overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
         {ui.tab === "admin" && currentHash === "#block" && auth.isAuth ? (<Block blockedList={usersInfo.blockedList} unblock={async (identifier: string) => { await supabase.from("blocked_users").delete().eq("username", identifier); if (!isNaN(Number(identifier))) { await supabase.from("blocked_users").delete().eq("id", Number(identifier)); } fetchData(); }} blockedWords={censor.words} newWord={censor.newWord} setNewWord={(w: string) => setCensor((p) => ({ ...p, newWord: w }))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} />) : (
           <ChatLayout 
@@ -586,7 +549,6 @@ export default function Home() {
       
       {auth.isAuth && interact.popup && interact.popup.pesan !== "___DELETED___" && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
-          {/* AREA KOTAK POPUP: MENGHAPUS BACKGROUND TRANSPARAN, MENGGUNAKAN var(--background) SOLID */}
           <div className="w-full max-w-lg rounded-2xl shadow-2xl p-5 relative max-h-[90vh] flex flex-col border-t-4" style={{ backgroundColor: "var(--background)", borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={() => setInteract((p) => ({ ...p, popup: null }))} className="absolute top-3 right-3 rounded-full w-8 h-8 flex items-center justify-center font-bold active:scale-95 border" style={{ backgroundColor: "var(--background)", color: "var(--foreground)", borderColor: "var(--card-border)" }}>×</button>
             <div className="flex items-center gap-2 border-b pb-3 mb-3" style={{ borderColor: "var(--card-border)" }}><span className={`px-2 py-1 rounded-full text-white text-xs font-bold shadow-sm ${interact.popup.username === "Admin●ipix.my.id" ? "bg-red-600" : interact.popup.username === auth.user ? "bg-blue-600" : "bg-gray-700"}`}>{interact.popup.username}</span><span className="text-[10px] opacity-70" style={{ color: "var(--foreground)" }}>{getFmt.time(interact.popup.created_at)}</span></div>
@@ -600,7 +562,6 @@ export default function Home() {
               {interact.popup.pesan && applyCensor(interact.popup.pesan)}
             </div>
             
-            {/* TOMBOL-TOMBOL DI MENU POPUP */}
             <div className="flex flex-wrap items-center justify-end gap-2 mt-4 pt-3 border-t" style={{ borderColor: "var(--card-border)" }}>
               {((interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id") || ui.tab === "admin") && (<button type="button" onClick={(e) => { e.stopPropagation(); const popupMsg = interact.popup; setInteract((p) => ({ ...p, popup: null })); dbActions.delMsg(popupMsg, false); }} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1">🗑️ Hapus</button>)}
               {interact.popup.image_url && !(interact.popup.is_approved === false && ui.tab !== "admin" && interact.popup.username !== "Admin●ipix.my.id") && (<button type="button" onClick={async (e) => { e.stopPropagation(); try { const response = await fetch(interact.popup.image_url); const blob = await response.blob(); const url = window.URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `ipix_image_${interact.popup.id}.jpg`; document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url); } catch (err) { window.open(interact.popup.image_url, "_blank"); } }} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] sm:text-xs font-black rounded-full shadow-md active:scale-95 transition-all flex items-center gap-1">📥 Unduh</button>)}

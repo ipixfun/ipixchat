@@ -2,63 +2,69 @@
 import React, { useRef, useState, useEffect } from "react";
 
 // =========================================================
-// 1. KOMPONEN PESAN SEMATAN (BERSIH & TANPA LOGIKA ROLL UP)
+// 1. KOMPONEN PESAN SEMATAN (MINIMALIS & PROFESIONAL)
 // =========================================================
-export function PinnedMessage({ pinnedMsg, onUnpin }: { pinnedMsg?: any; onUnpin?: () => void }) {
-  if (!pinnedMsg) return null;
-
+export function PinnedMessage({ 
+  pinnedMsg, 
+  uiTab, 
+  onEditPinned, 
+  onScrollToMsg 
+}: { 
+  pinnedMsg?: any; 
+  uiTab?: string; 
+  onEditPinned?: (msg: any) => void; 
+  onScrollToMsg?: (id: number) => void; 
+}) {
   return (
-    <div className="w-full mb-3 px-1 sticky top-0 z-30">
+    <div className="w-full px-3 py-1.5 z-10 shrink-0 border-b transition-all duration-300" style={{ backgroundColor: "var(--background)", borderColor: "var(--card-border)" }}>
       <div 
-        className="relative overflow-hidden rounded-xl border backdrop-blur-md shadow-lg p-3"
-        style={{ 
-          backgroundColor: "rgba(15, 23, 42, 0.85)", 
-          borderColor: "var(--accent, #3b82f6)",
-          boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.4)"
-        }}
+        onClick={() => pinnedMsg && onScrollToMsg?.(pinnedMsg.id)} 
+        className="w-full p-2.5 rounded-lg cursor-pointer transition-all active:scale-[0.99] flex items-center gap-2.5 border-l-2 backdrop-blur-md relative"
+        style={{ backgroundColor: "var(--card-bg, rgba(255,255,255,0.03))", borderColor: "var(--accent)" }}
       >
-        <div 
-          className="absolute left-0 top-0 bottom-0 w-1.5"
-          style={{ backgroundColor: "var(--accent, #3b82f6)" }}
-        />
-        
-        <div className="flex items-center justify-between mb-1.5 pl-1">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 bg-red-500/20 text-red-400 text-xs shadow-inner border border-red-500/30">
-              📌
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-gray-200">
-                Pesan Sematan
-              </span>
-              <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
-                oleh Admin
-              </span>
-            </div>
+        {/* Ikon Vektor Pin Minimalis (SVG) */}
+        <div className="shrink-0 opacity-80" style={{ color: "var(--accent)" }}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 17v5" />
+            <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+          </svg>
+        </div>
+
+        <div className="flex flex-col flex-1 overflow-hidden pr-7">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-bold uppercase tracking-wider opacity-70" style={{ color: "var(--foreground)" }}>
+              Pesan Sematan
+            </span>
+            <span className="px-1.5 py-0.2 text-[8px] font-semibold rounded bg-red-500/15 text-red-400 border border-red-500/20">
+              Admin
+            </span>
           </div>
-
-          {onUnpin && (
-            <button
-              type="button"
-              onClick={onUnpin}
-              className="w-6 h-6 flex items-center justify-center rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-300 text-xs transition-colors active:scale-95"
-              title="Lepas Sematan"
-            >
-              ✕
-            </button>
-          )}
+          <p className="text-xs truncate mt-0.5 font-medium leading-tight opacity-90" style={{ color: "var(--foreground)" }}>
+            {pinnedMsg ? pinnedMsg.pesan : "halo semua"}
+          </p>
         </div>
-
-        <div className="pl-1 text-xs text-gray-100 leading-relaxed break-words font-medium">
-          {pinnedMsg.pesan}
-        </div>
+        
+        {/* Tombol Edit Admin dengan Ikon Pensil SVG */}
+        {uiTab === "admin" && onEditPinned && (
+          <button 
+            type="button" 
+            onClick={(e) => { e.stopPropagation(); onEditPinned(pinnedMsg); }} 
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-amber-400 rounded-md hover:bg-white/5 transition-all active:scale-95"
+            title="Edit Pesan Sematan"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
 // =========================================================
-// 2. KOMPONEN MESSAGE ITEM (EKOR SESUAI POSISI: KANAN/KIRI)
+// 2. KOMPONEN MESSAGE ITEM
 // =========================================================
 export function MessageItem({
   m, colType, isMinimized, activeTab, isAdminOnline, adminOfflineTime, userStatus,
@@ -96,8 +102,6 @@ export function MessageItem({
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
   const isMsgMine = authUser ? (m.username === authUser) : !isMsgAdmin;
   
-  // Jika pesan milik saya -> posisi di KANAN & ekor di KANAN
-  // Jika pesan orang lain -> posisi di KIRI & ekor di KIRI
   const isRightAligned = isMsgMine;
 
   const [pillColor, setPillColor] = useState(() => {
@@ -290,7 +294,6 @@ export function MessageItem({
         {/* EKOR BUBBLE */}
         {isRightAligned ? (
           <>
-            {/* EKOR KANAN (MENUNJUK KELUAR KE KANAN) */}
             <div 
               className="absolute top-[-2px] -right-[10px] w-0 h-0 border-t-[0px] border-t-transparent border-l-[10px] border-b-[14px] border-b-transparent"
               style={{ borderLeftColor: activeBorderColor }}
@@ -302,7 +305,6 @@ export function MessageItem({
           </>
         ) : (
           <>
-            {/* EKOR KIRI (MENUNJUK KELUAR KE KIRI) */}
             <div 
               className="absolute top-[-2px] -left-[10px] w-0 h-0 border-t-[0px] border-t-transparent border-r-[10px] border-b-[14px] border-b-transparent"
               style={{ borderRightColor: activeBorderColor }}

@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Admin from "../../components/Admin";
-import { PinnedMessage } from "./MessageItem";
 import { useTheme } from "../context/ThemeContext";
 
 const hexToRgb = (hex: string) => {
@@ -46,7 +45,7 @@ const FluidBottom = () => {
   );
 };
 
-export default function ChatLayout({ cMode, hScroll, aTab, selPrivUser, pUsers, privMsgs, renderMsgs, fmtTime, setSelPriv, onBlockUser, onDeleteAllMsgs, pinnedMsg, onUnpin }: any) {
+export default function ChatLayout({ cMode, hScroll, aTab, selPrivUser, pUsers, privMsgs, renderMsgs, fmtTime, setSelPriv, onBlockUser, onDeleteAllMsgs }: any) {
   const [isWaveDisabled, setIsWaveDisabled] = useState<boolean>(false);
 
   useEffect(() => {
@@ -79,10 +78,6 @@ export default function ChatLayout({ cMode, hScroll, aTab, selPrivUser, pUsers, 
           {!isWaveDisabled && <FluidBottom />}
           
           <div onScroll={hScroll} className="relative z-10 p-1 sm:p-2 space-y-2 overflow-y-auto overflow-x-hidden flex-1 h-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            
-            {/* PESAN SEMATAN SIMPEL DI ATAS CHAT */}
-            {pinnedMsg && <PinnedMessage pinnedMsg={pinnedMsg} onUnpin={onUnpin} />}
-
             {aTab === "admin" && cMode === "private" && !selPrivUser ? (
               <Admin 
                 privateUsers={pUsers} 
