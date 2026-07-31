@@ -88,12 +88,21 @@ export default function Home() {
   const isCensored = (t: string) => censor.words.some((w) => w.trim() && t.toLowerCase().includes(w.toLowerCase()));
   const applyCensor = (t: string) => { let r = t; censor.words.forEach((w) => { if (w.trim()) r = r.replace(new RegExp(`\\b${w}\\b`, "gi"), "***"); }); return r; };
   const copyTxt = (t: string, l: string) => { navigator.clipboard.writeText(t); alert(`${l} disalin!`); };
+
+  // FUNGSI SCROLL & SOROTAN MENYALA + BERGETAR PERANGKAT
   const scrollMsg = (id: number) => {
     const el = document.getElementById(`msg-bubble-${id}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
-      const bc = "anim-bg-blink-cream"; el.classList.remove(bc); void el.offsetWidth; el.classList.add(bc);
-      setTimeout(() => el.classList.remove(bc), 1500);
+      if (typeof window !== "undefined" && navigator.vibrate) {
+        try { navigator.vibrate([80, 50, 80]); } catch (e) {}
+      }
+      el.classList.remove("highlight-active");
+      void el.offsetWidth; // Trigger reflow animation
+      el.classList.add("highlight-active");
+      setTimeout(() => {
+        el.classList.remove("highlight-active");
+      }, 1800);
     }
   };
 
@@ -505,7 +514,12 @@ export default function Home() {
                 handleLongPress={(m: any) => setInteract((p) => ({ ...p, popup: m }))} 
                 approveImage={dbActions.approveImg} 
                 applyCensor={applyCensor} 
-                scrollToMessage={(t: string) => { const cleanText = t.endsWith("...") ? t.slice(0, -3) : t; const x = msgs.all.find((m) => m.pesan.includes(cleanText)); if (x) scrollMsg(x.id); }} 
+                scrollToMessage={(t: string) => { 
+                  const cleanText = t.endsWith("...") ? t.slice(0, -3).trim() : t.trim(); 
+                  if (!cleanText) return;
+                  const targetMsg = msgs.all.find((m) => !m.pesan.startsWith("@") && m.pesan.includes(cleanText)) || msgs.all.find((m) => m.pesan.includes(cleanText));
+                  if (targetMsg) scrollMsg(targetMsg.id); 
+                }} 
                 formatMessageTime={getFmt.time} 
                 authUser={auth.user} 
               />
@@ -527,7 +541,41 @@ export default function Home() {
 
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col bg-transparent shadow-xl overflow-hidden font-sans overscroll-none" onClick={() => setInteract((p) => ({ ...p, activeMenu: null }))}>
-      <style dangerouslySetInnerHTML={{ __html: ` body{overscroll-behavior-y:none;} @keyframes bC{0%,100%{filter:brightness(1);}50%{background-color:#fef9c3 !important;filter:brightness(0.9);}} .anim-bg-blink-cream{animation:bC 1.5s ease-in-out;} @keyframes tW{0%,100%{color:#fff;text-shadow:0 0 5px rgba(255,255,255,0.8);}50%{color:rgba(255,255,255,0.6);text-shadow:none;}} .anim-text-blink-white{animation:tW 1.5s ease-in-out infinite;} ` }} />
+      {/* CSS KEYFRAMES SOROTAN MENYALA & GOYANG PADA CHAT TUJUAN */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        body { overscroll-behavior-y: none; }
+        @keyframes bC { 0%, 100% { filter: brightness(1); } 50% { background-color: #fef9c3 !important; filter: brightness(0.9); } }
+        .anim-bg-blink-cream { animation: bC 1.5s ease-in-out; }
+        @keyframes tW { 0%, 100% { color: #fff; text-shadow: 0 0 5px rgba(255,255,255,0.8); } 50% { color: rgba(255,255,255,0.6); text-shadow: none; } }
+        .anim-text-blink-white { animation: tW 1.5s ease-in-out infinite; }
+
+        @keyframes highlightGlow {
+          0% {
+            transform: scale(1.04);
+            box-shadow: 0 0 30px var(--accent, #eab308);
+            outline: 3px solid var(--accent, #eab308);
+          }
+          20%, 60% {
+            transform: scale(1.04) translateX(-6px);
+            box-shadow: 0 0 30px var(--accent, #eab308);
+            outline: 3px solid var(--accent, #eab308);
+          }
+          40%, 80% {
+            transform: scale(1.04) translateX(6px);
+            box-shadow: 0 0 30px var(--accent, #eab308);
+            outline: 3px solid var(--accent, #eab308);
+          }
+          100% {
+            transform: scale(1);
+            box-shadow: none;
+            outline: none;
+          }
+        }
+        .highlight-active {
+          animation: highlightGlow 1.8s ease-in-out forwards !important;
+        }
+      ` }} />
+      
       {!auth.isAuth && (
         <div className="absolute inset-0 z-[40] flex flex-col pointer-events-none pb-16">
           <div className="pointer-events-auto flex-1 flex flex-col">

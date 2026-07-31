@@ -28,7 +28,7 @@ export function PinnedMessage({
           <div className="shrink-0 opacity-90" style={{ color: "var(--accent)" }}>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 17v5" />
-              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
             </svg>
           </div>
           <div className="flex flex-col flex-1 overflow-hidden pr-3">
@@ -63,7 +63,7 @@ export function PinnedMessage({
           <div className="shrink-0 opacity-90" style={{ color: "var(--accent)" }}>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 17v5" />
-              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
             </svg>
           </div>
           <div className="flex flex-col flex-1 overflow-hidden">
@@ -161,22 +161,10 @@ export function MessageItem({
   const isEdited = m.is_edited === true || m.edited_by != null || (typeof window !== "undefined" ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || "0") > 0 : false);
 
   const handleQuoteClick = (quotedText: string) => {
+    if (typeof window !== "undefined" && navigator.vibrate) {
+      try { navigator.vibrate([80, 50, 80]); } catch (e) {}
+    }
     scrollToMessage(quotedText);
-    setTimeout(() => {
-      const messageElements = document.querySelectorAll('[id^="msg-bubble-"]');
-      for (const el of messageElements) {
-        if (el.textContent?.includes(quotedText)) {
-          const htmlEl = el as HTMLElement;
-          htmlEl.classList.add("ring-4", "ring-[var(--accent)]", "scale-[1.03]", "animate-smooth-shake", "transition-all", "duration-300");
-          htmlEl.style.boxShadow = "0 0 25px var(--accent)";
-          setTimeout(() => {
-            htmlEl.classList.remove("ring-4", "ring-[var(--accent)]", "scale-[1.03]", "animate-smooth-shake");
-            htmlEl.style.boxShadow = "";
-          }, 2000);
-          break;
-        }
-      }
-    }, 120);
   };
 
   if (m.pesan === "___DELETED___") {
@@ -198,9 +186,6 @@ export function MessageItem({
     );
   }
 
-  const needsApproval = m.image_url && m.is_approved === false && !isMsgAdmin;
-  const showBlurred = needsApproval && activeTab !== "admin";
-
   const renderTextWithTags = (t: string) => t.split(/(@\w+)/g).map((part, i) => {
     if (part.startsWith("@")) {
       const uname = part.substring(1).toLowerCase();
@@ -212,7 +197,8 @@ export function MessageItem({
 
   const renderContent = (text: string, isMin: boolean) => {
     if (!text) return null;
-    const match = text.match(/^@(\w+)\s\("(.*?)"\)\s?(.*)$/);
+    // REGEX DIPERBAIKI DENGAN DUKUNGAN TEKS BANYAK BARIS (MULTILINE)
+    const match = text.match(/^@(\w+)\s\("([\s\S]*?)"\)\s?([\s\S]*)$/);
     const textSize = isMin ? "text-xs sm:text-sm leading-relaxed" : "text-sm leading-relaxed";
     if (match) {
       const [_, user, quotedText, replyText] = match;
@@ -371,9 +357,7 @@ export function MessageItem({
         <div className="flex items-start gap-2.5 my-1">
           {m.image_url && (
             <div className="relative cursor-zoom-in group shrink-0 w-max">
-              <img src={m.image_url} alt="attachment" onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? "w-20 h-20" : "w-28 h-28"} ${showBlurred ? "blur-md" : ""}`} loading="lazy" />
-              {showBlurred && <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg pointer-events-none"><span className="text-white text-[8px] font-bold px-1.5 py-1 bg-black/60 rounded text-center leading-tight">Menunggu<br />Persetujuan</span></div>}
-              {needsApproval && activeTab === "admin" && <button onClick={(e) => { e.stopPropagation(); approveImage(m.id); }} className="absolute -top-2 -right-2 text-white text-[8px] font-bold px-2 py-0.5 rounded-full shadow-md active:scale-95 transition-all" style={{ backgroundColor: "var(--accent)" }}>Setujui</button>}
+              <img src={m.image_url} alt="attachment" onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? "w-20 h-20" : "w-28 h-28"}`} loading="lazy" />
             </div>
           )}
           
