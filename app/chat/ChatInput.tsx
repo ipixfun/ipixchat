@@ -25,7 +25,7 @@ const InputThemeWrapper = ({ children }: { children: (styles: any) => React.Reac
     placeholder: "text-[var(--foreground)]/40",
     counter: "text-[var(--foreground)]/60",
     refreshBtn: "bg-yellow-500/90 text-black border-yellow-600 font-bold hover:bg-yellow-400/90",
-    cancelBtn: "bg-red-600/80 text-white border-red-700",
+    cancelBtn: "bg-red-600/80 text-white border-red-700 font-bold",
     uploadIcon: "text-[var(--foreground)] hover:text-[var(--accent)]",
     labelText: "text-[var(--foreground)]",
   };
@@ -153,7 +153,7 @@ export default function ChatInput({
       {(styles) => (
         <div className="shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-20 w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative mb-16">
           
-          {/* Style Keyframes Animasi Emoji */}
+          {/* Keyframes Animasi Emoji */}
           <style>{`
             @keyframes heartbeat {
               0%, 100% { transform: scale(1); }
@@ -216,20 +216,20 @@ export default function ChatInput({
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 items-end w-full relative transition-all duration-300">
+          <form onSubmit={handleSubmit} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 sm:gap-2.5 items-end w-full relative transition-all duration-300">
             
-            {/* Bagian Kiri: Tombol Emoji Di Atas Tombol Upload Foto */}
-            <div className="relative shrink-0 flex flex-col items-center justify-end gap-1 mb-1.5">
+            {/* 1. KOLOM KIRI: Tombol Emoji & Upload Foto */}
+            <div className="shrink-0 flex flex-col justify-end items-center gap-1">
               
               {/* Tombol Toggle Emoji */}
               <button
                 type="button"
                 onClick={() => setShowEmoji((prev) => !prev)}
                 disabled={isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)}
-                className={`p-1 rounded-full transition-all active:scale-90 ${showEmoji ? "text-[var(--accent)] bg-white/10" : styles.uploadIcon} ${(ui.tab === "admin" && !usersInfo.selPriv) || isBlocked ? "opacity-30 pointer-events-none" : ""}`}
+                className={`p-1 rounded-lg transition-all active:scale-90 flex items-center justify-center ${showEmoji ? "text-[var(--accent)] bg-white/10" : styles.uploadIcon} ${(ui.tab === "admin" && !usersInfo.selPriv) || isBlocked ? "opacity-30 pointer-events-none" : ""}`}
                 title="Pilih Emoji"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 sm:w-6 sm:h-6">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-6 h-6 sm:w-7 sm:h-7">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 10h.01M15 10h.01" />
                 </svg>
               </button>
@@ -237,14 +237,14 @@ export default function ChatInput({
               {/* Tombol Upload Foto */}
               <div className="relative flex items-center justify-center">
                 <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isBlocked || input.uploadingImage || input.image !== null} />
-                <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full ${(ui.tab === "admin" && !usersInfo.selPriv) || input.image !== null || isBlocked ? "opacity-30 pointer-events-none" : styles.uploadIcon}`}>
+                <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-lg flex items-center justify-center ${(ui.tab === "admin" && !usersInfo.selPriv) || input.image !== null || isBlocked ? "opacity-30 pointer-events-none" : styles.uploadIcon}`}>
                   {input.uploadingImage ? (
-                    <svg className="animate-spin h-5 w-5 sm:h-6 sm:w-6 text-[var(--accent)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin w-6 h-6 sm:w-7 sm:h-7 text-[var(--accent)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 sm:w-6 sm:h-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-6 h-6 sm:w-7 sm:h-7">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                     </svg>
                   )}
@@ -253,20 +253,20 @@ export default function ChatInput({
 
             </div>
 
-            {/* Bagian Tengah: Textarea Input + Kolom Dinamis di Atasnya */}
+            {/* 2. KOLOM TENGAH: Textarea Input + Baris Informasi/Emoji */}
             <div className="relative flex-1 flex flex-col justify-end transition-all duration-300 min-w-0">
               
-              {/* Kolom Dinamis: Teks Info Atau Mengisi Emoji Ketika Ditekan */}
-              <div className={`text-[9px] mb-1 px-1 min-h-[18px] flex items-center ${styles.labelText}`}>
+              {/* Baris Informasi / Selector Emoji (Sejajar dengan tombol REFRESH) */}
+              <div className={`text-[9px] mb-1 px-1 h-[20px] flex items-center ${styles.labelText}`}>
                 {showEmoji ? (
-                  <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden animate-in fade-in zoom-in-95 duration-150 py-1 px-3 w-full bg-[var(--card-bg)]/60 border border-[var(--card-border)] rounded-full shadow-inner backdrop-blur-md">
+                  <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden animate-in fade-in zoom-in-95 duration-150 py-0.5 px-2.5 w-full bg-[var(--card-bg)]/60 border border-[var(--card-border)] rounded-lg shadow-inner backdrop-blur-md">
                     {EMOJIS.map((item, idx) => (
                       <button
                         key={idx}
                         type="button"
                         onClick={() => addEmoji(item.char)}
                         disabled={isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)}
-                        className="inline-block text-sm sm:text-base hover:scale-130 active:scale-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed select-none shrink-0"
+                        className="inline-block text-xs sm:text-sm hover:scale-125 active:scale-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed select-none shrink-0"
                         title="Tambah emoji"
                       >
                         <span className={`inline-block ${item.anim}`}>
@@ -284,6 +284,7 @@ export default function ChatInput({
                 )}
               </div>
 
+              {/* Textarea Input */}
               <div className="flex items-end gap-2 w-full">
                 <div className="relative flex-1 w-full">
                   <textarea
@@ -292,7 +293,7 @@ export default function ChatInput({
                       setUi((p: any) => ({ ...p, inputFocus: true }));
                     }}
                     onBlur={() => setUi((p: any) => ({ ...p, inputFocus: false }))}
-                    className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm resize-none focus:outline-none min-h-[32px] sm:min-h-[38px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${input.blink ? styles.inputBlink : styles.input} ${(ui.tab === "admin" && !usersInfo.selPriv) || isBlocked ? "opacity-30 cursor-not-allowed" : ""}`}
+                    className={`w-full border p-2 sm:p-2.5 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm resize-none focus:outline-none min-h-[42px] sm:min-h-[48px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${input.blink ? styles.inputBlink : styles.input} ${(ui.tab === "admin" && !usersInfo.selPriv) || isBlocked ? "opacity-30 cursor-not-allowed" : ""}`}
                     value={input.text}
                     onChange={(e) => {
                       setInput((p: any) => ({ ...p, text: e.target.value }));
@@ -306,21 +307,21 @@ export default function ChatInput({
                       }
                     }}
                     placeholder={isBlocked ? "Akun Anda diblokir..." : (ui.tab === "admin" && !usersInfo.selPriv ? "Pilih user..." : "Ketik pesan...")}
-                    maxLength={500}
+                    maxLength={200}
                     rows={1}
                     disabled={input.sending || isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)}
                   />
-                  <div className={`absolute right-3 bottom-1.5 text-[9px] font-mono select-none bg-black/20 px-1 rounded ${styles.counter}`}>{500 - input.text.length}</div>
+                  <div className={`absolute right-3 bottom-1.5 text-[9px] font-mono select-none bg-black/20 px-1 rounded ${styles.counter}`}>{200 - input.text.length}</div>
                 </div>
               </div>
             </div>
 
-            {/* Bagian Kanan: Tombol Kirim & Pop-up Preview Gambar di Atas Tombol BATAL/REFRESH */}
-            <div className="relative shrink-0 flex flex-col justify-end w-[85px] md:w-[110px] h-[32px] sm:h-[38px]">
+            {/* 3. KOLOM KANAN: Refresh (Atas - Kotak) + Kirim (Bawah - Presisi Sejajar Input) */}
+            <div className="relative shrink-0 flex flex-col justify-end gap-1 w-[72px] sm:w-[88px]">
               
-              {/* Pop-up Preview Gambar Dinamis Melayang Di Atas Tombol Batal/Refresh */}
+              {/* Pop-up Preview Gambar Dinamis */}
               {input.image && (
-                <div className="absolute bottom-full mb-3 right-0 z-30 animate-in fade-in zoom-in duration-200">
+                <div className="absolute bottom-full mb-8 right-0 z-30 animate-in fade-in zoom-in duration-200">
                   <div className="relative p-1.5 bg-[var(--card-bg)]/95 backdrop-blur-md rounded-2xl border border-[var(--card-border)] shadow-2xl flex items-center justify-center">
                     <img
                       src={input.image}
@@ -339,6 +340,7 @@ export default function ChatInput({
                 </div>
               )}
 
+              {/* Tombol REFRESH / BATAL (Bentuk Kotak rounded-lg, Tinggi h-[20px] Pas Sejajar Teks Info) */}
               {auth.isAuth && currentHash !== "#block" && (
                 <button
                   type="button"
@@ -348,7 +350,7 @@ export default function ChatInput({
                       setInput((p: any) => ({
                         ...p,
                         text: "",
-                        image: window.location.reload(),
+                        image: null,
                         uploadingImage: false,
                       }));
                       setInteract((p: any) => ({ ...p, replyTo: null }));
@@ -356,14 +358,21 @@ export default function ChatInput({
                       window.location.reload();
                     }
                   }}
-                  className={`absolute bottom-full mb-1.5 left-0 right-0 px-2 py-0.5 rounded-full font-black tracking-widest text-[8px] border shadow-sm active:scale-95 transition-all text-center select-none ${hasInputReady ? styles.cancelBtn : styles.refreshBtn}`}
+                  className={`w-full h-[20px] rounded-lg font-black tracking-wider text-[8px] sm:text-[9px] border shadow-xs active:scale-95 transition-all flex items-center justify-center select-none uppercase ${hasInputReady ? styles.cancelBtn : styles.refreshBtn}`}
                 >
                   {hasInputReady ? "BATAL" : "REFRESH"}
                 </button>
               )}
-              <button type="submit" disabled={isBlocked || input.sending || (!input.text.trim() && !input.image) || (ui.tab === "admin" && !usersInfo.selPriv)} className={`w-full h-[32px] sm:h-[38px] rounded-xl font-bold text-[10px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${ui.tab === "admin" && !usersInfo.selPriv ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}>
+
+              {/* Tombol KIRIM (Bentuk rounded-xl, Tinggi h-[42px]/[48px] Presisi Sejajar Textarea) */}
+              <button 
+                type="submit" 
+                disabled={isBlocked || input.sending || (!input.text.trim() && !input.image) || (ui.tab === "admin" && !usersInfo.selPriv)} 
+                className={`w-full h-[42px] sm:h-[48px] rounded-xl font-bold text-[11px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${ui.tab === "admin" && !usersInfo.selPriv ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}
+              >
                 {input.sending ? "..." : "Kirim"}
               </button>
+
             </div>
           </form>
         </div>
