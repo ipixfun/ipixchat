@@ -151,10 +151,10 @@ export default function ChatInput({
   return (
     <InputThemeWrapper>
       {(styles) => (
-        /* MARGIN BAWAH OTOMATIS 0 SAAT KEYBOARD AKTIF (ui.inputFocus) */
-        <div className={`shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-20 w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative transition-all duration-200 ${ui?.inputFocus ? "mb-0" : "mb-16"}`}>
+        /* MARGIN BAWAH OTOMATIS 0 DAN DIBERIKAN Z-INDEX LEBIH TINGGI SAAT KEYBOARD AKTIF */
+        <div className={`shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-[1000] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative transition-all duration-150 ${ui?.inputFocus ? "mb-0" : "mb-16"}`}>
           
-          {/* Keyframes Animasi Emoji */}
+          {/* PAKSA HILANGKAN NAVBAR DI DESKTOP/MOBILE SAAT INPUT FOKUS */}
           <style>{`
             @keyframes heartbeat {
               0%, 100% { transform: scale(1); }
@@ -194,6 +194,26 @@ export default function ChatInput({
               50% { transform: scale(1.12); }
             }
             .anim-pulse-soft { animation: pulseSoft 1.3s infinite ease-in-out; }
+
+            /* CSS RULE: SEMBUNYIKAN BOTTOMNAV SAAT KEYBOARD / INPUT DIAKTIFKAN */
+            ${ui?.inputFocus ? `
+              nav, footer, [class*="bottomnav"], [class*="bottom-nav"], [class*="BottomNav"], .z-\\[999\\] {
+                display: none !important;
+                visibility: hidden !important;
+                height: 0 !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+              }
+            ` : ""}
+            body:has(#chat-input:focus) nav,
+            body:has(#chat-input:focus) footer,
+            body:has(#chat-input:focus) [class*="bottomnav"],
+            body:has(#chat-input:focus) [class*="bottom-nav"],
+            body:has(#chat-input:focus) .z-\\[999\\] {
+              display: none !important;
+              visibility: hidden !important;
+              height: 0 !important;
+            }
           `}</style>
 
           {interact.replyTo && (
@@ -222,7 +242,7 @@ export default function ChatInput({
             {/* ==================== BARIS 1 (ROW ATAS) ==================== */}
             <div className="flex items-center gap-1.5 sm:gap-2 w-full">
               
-              {/* 1. Teks Info / Selector Emoji Lebih Besar */}
+              {/* 1. Teks Info / Selector Emoji */}
               <div className={`flex-1 text-[9px] h-[36px] sm:h-[40px] flex items-center min-w-0 ${styles.labelText}`}>
                 {showEmoji ? (
                   <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden animate-in fade-in zoom-in-95 duration-150 py-1 px-3 w-full bg-[var(--card-bg)]/80 border border-[var(--card-border)] rounded-xl shadow-inner backdrop-blur-md">
@@ -283,7 +303,6 @@ export default function ChatInput({
               {/* 4. SLOT KANAN: REFRESH/BATAL ATAU PREVIEW GAMBAR LEBAR PERSIS TOMBOL KIRIM */}
               <div className="relative shrink-0 w-[80px] sm:w-[100px] h-[32px] sm:h-[36px] flex items-center justify-center">
                 {input.image ? (
-                  /* Preview Gambar Square Melayang Ke Atas Dengan Lebar SAMA PERSIS Tombol Kirim */
                   <div className="absolute bottom-0 right-0 z-20 flex items-center justify-center">
                     <div className="relative w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] bg-[var(--card-bg)] p-1 rounded-xl border-2 border-[var(--accent)] shadow-xl flex items-center justify-center">
                       <img
@@ -291,7 +310,6 @@ export default function ChatInput({
                         alt="Preview Upload"
                         className="w-full h-full object-cover rounded-lg"
                       />
-                      {/* Tombol X Hapus Gambar di Kiri Atas */}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -336,14 +354,22 @@ export default function ChatInput({
             {/* ==================== BARIS 2 (ROW BAWAH) ==================== */}
             <div className="flex items-stretch gap-1.5 sm:gap-2 w-full">
               
-              {/* Textarea Input Utama (Flex-1) */}
+              {/* Textarea Input Utama */}
               <div className="relative flex-1 w-full min-w-0">
                 <textarea
                   id="chat-input"
                   onFocus={() => {
                     setUi((p: any) => ({ ...p, inputFocus: true }));
+                    setTimeout(() => {
+                      const el = document.getElementById("chat-input");
+                      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }, 200);
                   }}
-                  onBlur={() => setUi((p: any) => ({ ...p, inputFocus: false }))}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      setUi((p: any) => ({ ...p, inputFocus: false }));
+                    }, 100);
+                  }}
                   className={`w-full border p-2 sm:p-2.5 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm resize-none focus:outline-none min-h-[42px] sm:min-h-[48px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${input.blink ? styles.inputBlink : styles.input} ${(ui.tab === "admin" && !usersInfo.selPriv) || isBlocked ? "opacity-30 cursor-not-allowed" : ""}`}
                   value={input.text}
                   onChange={(e) => {
@@ -365,7 +391,7 @@ export default function ChatInput({
                 <div className={`absolute right-3 bottom-1.5 text-[9px] font-mono select-none bg-black/20 px-1 rounded ${styles.counter}`}>{200 - input.text.length}</div>
               </div>
 
-              {/* Tombol KIRIM Utama (Tinggi 100% Presisi Sejajar SAMA DENGAN Textarea) */}
+              {/* Tombol KIRIM Utama */}
               <button 
                 type="submit" 
                 disabled={isBlocked || input.sending || (!input.text.trim() && !input.image) || (ui.tab === "admin" && !usersInfo.selPriv)} 
