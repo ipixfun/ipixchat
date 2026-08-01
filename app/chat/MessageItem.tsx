@@ -6,7 +6,7 @@ const EMOJI_ANIM_MAP: Record<string, string> = {
   "🤬": "anim-pulse-glow",
   "😍": "anim-heartbeat",
   "😂": "anim-wiggle",
-  "🎉": "anim-wiggle",
+  "💦": "anim-wiggle",
   "👍": "anim-bounce-soft",
   "😱": "anim-bounce-soft",
   "🔥": "anim-pulse-glow",

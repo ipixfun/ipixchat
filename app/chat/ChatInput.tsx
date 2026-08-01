@@ -10,7 +10,7 @@ const EMOJIS = [
   { char: "🔥", anim: "anim-pulse-glow" },
   { char: "🙏", anim: "anim-shake-soft" },
   { char: "😍", anim: "anim-heartbeat" },
-  { char: "🎉", anim: "anim-wiggle" },
+  { char: "💦", anim: "anim-wiggle" },
   { char: "😭", anim: "anim-shake-soft" },
   { char: "😱", anim: "anim-bounce-soft" },
 ];
