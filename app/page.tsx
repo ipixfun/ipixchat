@@ -305,7 +305,7 @@ export default function HomePage() {
 
   const renderHighlightedText = (text: string) => {
     if (!text) return null;
-    const parts = text.split(/(pix)/i);
+    const parts = text.split(/\b(pix)\b/i);
     return parts.map((part, index) => {
       if (part.toLowerCase() === 'pix') {
         return (
@@ -573,42 +573,23 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 1. Animasi Mascot GIF (ROUNDED MAKSIMAL 3XL, PILL PENUTUP WATERMARK QWEN) */}
+        {/* 1. Animasi Mascot GIF */}
         {!isEditMode && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="w-full flex justify-center items-center py-0.5 pointer-events-none relative"
+            className="w-full flex justify-center items-center py-0.5"
           >
-            <div className="w-full overflow-hidden rounded-3xl flex justify-center items-center relative border border-white/5 shadow-md" style={{ borderColor: "var(--card-border)" }}>
+            <div className="w-full overflow-hidden rounded-3xl flex justify-center items-center border border-white/5 shadow-md" style={{ borderColor: "var(--card-border)" }}>
               <img
                 src={appInfo.gifUrl}
                 alt="Mascot GIF"
                 className="w-full h-auto object-cover block"
                 style={{ 
-                  clipPath: 'inset(2% 0% 2% 0%)', 
-                  transform: 'scale(1.02)',
                   filter: "drop-shadow(0 10px 20px color-mix(in srgb, var(--accent) 25%, transparent))" 
                 }}
               />
-              {/* PILL PENUTUP WATERMARK QWEN */}
-              <div 
-                className="absolute bottom-1.5 right-2 px-2.5 py-1 rounded-full text-[10px] flex items-center gap-0.5 shadow-lg border"
-                style={{ backgroundColor: "var(--card-bg)", borderColor: "color-mix(in srgb, var(--accent) 45%, transparent)" }}
-              >
-                <span className="font-normal opacity-90 tracking-tight" style={{ color: "var(--foreground)" }}>ipix</span>
-                <span 
-                  className="font-black italic uppercase tracking-wider brightness-[1.4]" 
-                  style={{ 
-                    color: 'var(--accent)', 
-                    filter: 'drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 90%, white))' 
-                  }}
-                >
-                  PIX
-                </span>
-                <span className="font-normal opacity-90 tracking-tight" style={{ color: "var(--foreground)" }}>chat</span>
-              </div>
             </div>
           </motion.div>
         )}
@@ -649,8 +630,8 @@ export default function HomePage() {
                   <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase mb-0.5" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)', color: 'var(--accent)' }}>
                     {bannerInfo.webBadge}
                   </div>
-                  <h2 className="text-sm sm:text-base font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>
-                    {renderHighlightedText(bannerInfo.webTitle)} <span className="text-[11px] font-bold opacity-80">({appInfo.apkSize})</span>
+                  <h2 className="text-xs sm:text-sm font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>
+                    {renderHighlightedText(bannerInfo.webTitle)} <span className="text-[10px] font-bold opacity-80">({appInfo.apkSize})</span>
                   </h2>
                   <p className="text-[11px] opacity-85 leading-relaxed" style={{ color: "var(--foreground)" }}>{bannerInfo.webDesc}</p>
                 </div>
@@ -784,7 +765,7 @@ export default function HomePage() {
           </div>
         ) : (
           <motion.div className="p-3.5 rounded-3xl border" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" }}>
-            <div onClick={() => setShowFeatures(!showFeatures)} className="flex items-center justify-between gap-2 border-b pb-2.5 cursor-pointer group" style={{ borderColor: "var(--card-border)" }}>
+            <div onClick={() => setShowFeatures(!showFeatures)} className="flex items-center justify-between gap-2 cursor-pointer group">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center border shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--accent) 10%, transparent)", borderColor: "var(--accent)" }}>
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--accent)" }} />
@@ -852,10 +833,10 @@ export default function HomePage() {
             </div>
           )}
 
-          <div onClick={() => !isEditMode && setShowVideo(!showVideo)} className={`flex items-center justify-between gap-2 pb-2.5 cursor-pointer group ${showVideo ? 'border-b' : ''}`} style={{ borderColor: "var(--card-border)" }}>
+          <div onClick={() => !isEditMode && setShowVideo(!showVideo)} className="flex items-center justify-between gap-2 cursor-pointer group">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-full flex items-center justify-center border shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--accent) 10%, transparent)", borderColor: "var(--accent)" }}>
-                <svg className="w-2.5 h-2.5 fill-current ml-0.5" style={{ color: "var(--accent)" }} viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                <svg className="w-3.5 h-3.5 fill-current ml-0.5" style={{ color: "var(--accent)" }} viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
               </div>
               <h3 className="text-sm sm:text-base font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>{appInfo.videoSectionTitle}</h3>
             </div>
@@ -880,7 +861,7 @@ export default function HomePage() {
           </AnimatePresence>
         </motion.div>
         
-        {/* Footer (Dapat Diedit Sepenuhnya & Mengarah ke Link Tujuan) */}
+        {/* Footer */}
         <div className="flex flex-col items-center justify-center mt-5 mb-1 space-y-0.5">
           <div className="w-6 h-0.5 rounded-full mb-1" style={{ backgroundColor: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />
           <a href={appInfo.footerUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black uppercase tracking-[0.2em] hover:opacity-80 transition-opacity" style={{ color: "var(--accent)" }}>
