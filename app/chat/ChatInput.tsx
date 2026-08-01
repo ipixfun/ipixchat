@@ -5,12 +5,12 @@ import { useTheme } from "../context/ThemeContext";
 const EMOJIS = [
   { char: "😊", anim: "anim-pulse-soft" },
   { char: "😂", anim: "anim-wiggle" },
-  { char: "🤬", anim: "anim-pulse-glow" },
+  { char: "🤬", anim: "anim-heartbeat" },
   { char: "👍", anim: "anim-bounce-soft" },
   { char: "🔥", anim: "anim-pulse-glow" },
   { char: "🙏", anim: "anim-shake-soft" },
   { char: "😍", anim: "anim-heartbeat" },
-  { char: "💦", anim: "anim-wiggle" },
+  { char: "💦", anim: "anim-wiggle"},
   { char: "😭", anim: "anim-shake-soft" },
   { char: "😱", anim: "anim-bounce-soft" },
 ];
@@ -66,7 +66,6 @@ export default function ChatInput({
 }) {
 
   const [showEmoji, setShowEmoji] = useState(false);
-  const [flyingEmojis, setFlyingEmojis] = useState<Array<{ id: number; emoji: string; left: number }>>([]);
 
   // Auto-register push subscription
   useEffect(() => {
@@ -143,25 +142,9 @@ export default function ChatInput({
     }));
   };
 
-  const handleSendWithAnimation = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    const extractedEmojis = input.text.match(/[\p{Extended_Pictographic}\p{Emoji_Presentation}]/gu);
-
-    if (extractedEmojis && extractedEmojis.length > 0) {
-      const newFlying = extractedEmojis.map((emoji: string, i: number) => ({
-        id: Date.now() + i,
-        emoji,
-        left: 20 + Math.random() * 60,
-      }));
-
-      setFlyingEmojis((prev) => [...prev, ...newFlying]);
-
-      setTimeout(() => {
-        setFlyingEmojis([]);
-      }, 1100);
-    }
-
+    setShowEmoji(false);
     sendMsg(e);
   };
 
@@ -172,13 +155,6 @@ export default function ChatInput({
           
           {/* Style Keyframes Animasi Emoji */}
           <style>{`
-            @keyframes flyUpEmoji {
-              0% { opacity: 1; transform: translateY(0) scale(0.8) rotate(0deg); }
-              50% { opacity: 1; transform: translateY(-70px) scale(1.4) rotate(-12deg); }
-              100% { opacity: 0; transform: translateY(-140px) scale(1.8) rotate(12deg); }
-            }
-            .animate-fly-emoji { animation: flyUpEmoji 1s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-
             @keyframes heartbeat {
               0%, 100% { transform: scale(1); }
               15% { transform: scale(1.3); }
@@ -219,19 +195,6 @@ export default function ChatInput({
             .anim-pulse-soft { animation: pulseSoft 1.3s infinite ease-in-out; }
           `}</style>
 
-          {/* Container Animasi Emoji Terbang saat Kirim */}
-          <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
-            {flyingEmojis.map((item) => (
-              <span
-                key={item.id}
-                className="absolute bottom-6 text-2xl sm:text-3xl select-none animate-fly-emoji"
-                style={{ left: `${item.left}%` }}
-              >
-                {item.emoji}
-              </span>
-            ))}
-          </div>
-
           {interact.replyTo && (
             <div 
               className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${styles.replyBg}`} 
@@ -253,12 +216,12 @@ export default function ChatInput({
             </div>
           )}
 
-          <form onSubmit={handleSendWithAnimation} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 items-end w-full relative transition-all duration-300">
+          <form onSubmit={handleSubmit} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 items-end w-full relative transition-all duration-300">
             
             {/* Bagian Kiri: Tombol Emoji Di Atas Tombol Upload Foto */}
             <div className="relative shrink-0 flex flex-col items-center justify-end gap-1 mb-1.5">
               
-              {/* 2. Tombol Toggle Emoji (Terletak Di Atas Tombol Upload) */}
+              {/* Tombol Toggle Emoji */}
               <button
                 type="button"
                 onClick={() => setShowEmoji((prev) => !prev)}
@@ -293,7 +256,7 @@ export default function ChatInput({
             {/* Bagian Tengah: Textarea Input + Kolom Dinamis di Atasnya */}
             <div className="relative flex-1 flex flex-col justify-end transition-all duration-300 min-w-0">
               
-              {/* 3. Kolom Dinamis: Teks Info Atau Mengisi Emoji Ketika Ditekan */}
+              {/* Kolom Dinamis: Teks Info Atau Mengisi Emoji Ketika Ditekan */}
               <div className={`text-[9px] mb-1 px-1 min-h-[18px] flex items-center ${styles.labelText}`}>
                 {showEmoji ? (
                   <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden animate-in fade-in zoom-in-95 duration-150 py-0.5 w-full">
@@ -339,7 +302,7 @@ export default function ChatInput({
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
-                        handleSendWithAnimation(e as any);
+                        handleSubmit(e as any);
                       }
                     }}
                     placeholder={isBlocked ? "Akun Anda diblokir..." : (ui.tab === "admin" && !usersInfo.selPriv ? "Pilih user..." : "Ketik pesan...")}
@@ -355,7 +318,7 @@ export default function ChatInput({
             {/* Bagian Kanan: Tombol Kirim & Pop-up Preview Gambar di Atas Tombol BATAL/REFRESH */}
             <div className="relative shrink-0 flex flex-col justify-end w-[85px] md:w-[110px] h-[32px] sm:h-[38px]">
               
-              {/* 1. Pop-up Preview Gambar Dinamis Melayang Di Atas Tombol Batal/Refresh */}
+              {/* Pop-up Preview Gambar Dinamis Melayang Di Atas Tombol Batal/Refresh */}
               {input.image && (
                 <div className="absolute bottom-full mb-3 right-0 z-30 animate-in fade-in zoom-in duration-200">
                   <div className="relative p-1.5 bg-[var(--card-bg)]/95 backdrop-blur-md rounded-2xl border border-[var(--card-border)] shadow-2xl flex items-center justify-center">
