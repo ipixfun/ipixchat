@@ -16,6 +16,8 @@ const DEFAULT_APP_INFO = {
   gifUrl: "https://res.cloudinary.com/bjamo8ld/image/upload/v1785537508/Bear_fcdw39.gif",
   apkDownloadUrl: "https://ipix.my.id/ipixchat.apk",
   year: new Date().getFullYear(),
+  featuresTitle: "Fitur Utama",
+  videoSectionTitle: "Panduan Video",
 };
 
 const DEFAULT_BANNER_INFO = {
@@ -70,7 +72,7 @@ const DEFAULT_FEATURES = [
   }
 ];
 
-const ECOSYSTEM_LINKS = [
+const DEFAULT_ECOSYSTEM_LINKS = [
   { name: "ipix.my.id", url: "https://ipix.my.id" },
   { name: "sukachub", url: "https://sukachub.my.id" },
   { name: "ipix.fun", url: "https://ipix.fun" },
@@ -85,26 +87,35 @@ export default function HomePage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
+  const [adminEmailInput, setAdminEmailInput] = useState('');
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [loginError, setLoginError] = useState('');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const [clickCount, setClickCount] = useState(0);
 
   // DATA KONTEN DENGAN STATE
   const [appInfo, setAppInfo] = useState(DEFAULT_APP_INFO);
   const [bannerInfo, setBannerInfo] = useState(DEFAULT_BANNER_INFO);
   const [platformInfo, setPlatformInfo] = useState(DEFAULT_PLATFORM_INFO);
   const [features, setFeatures] = useState(DEFAULT_FEATURES);
+  const [ecosystemLinks, setEcosystemLinks] = useState(DEFAULT_ECOSYSTEM_LINKS);
 
   // State Toggle Pull-Down
   const [showVideo, setShowVideo] = useState(true);
   const [showPlatform, setShowPlatform] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
 
-  // Load Data dari Supabase
+  // Load Data dari Supabase & Sesi Auth
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const adminSaved = localStorage.getItem('ipix_is_admin') === 'true';
-    setIsAdmin(adminSaved);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setIsAdmin(true);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAdmin(!!session);
+    });
 
     const fetchContent = async () => {
       try {
@@ -121,6 +132,7 @@ export default function HomePage() {
           if (data.banner_info) setBannerInfo({ ...DEFAULT_BANNER_INFO, ...data.banner_info });
           if (data.platform_info) setPlatformInfo({ ...DEFAULT_PLATFORM_INFO, ...data.platform_info });
           if (data.features) setFeatures(data.features);
+          if (data.ecosystem_links) setEcosystemLinks(data.ecosystem_links);
         }
       } catch (err) {
         console.error("Menggunakan fallback data default:", err);
@@ -128,6 +140,8 @@ export default function HomePage() {
     };
 
     fetchContent();
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // Deteksi APK
@@ -151,23 +165,51 @@ export default function HomePage() {
     }
   }, [router]);
 
-  // Handler Admin & Simpan ke Supabase
-  const handleAdminLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (adminPasswordInput === 'admin123') {
-      setIsAdmin(true);
-      localStorage.setItem('ipix_is_admin', 'true');
-      setShowAdminLoginModal(false);
-      setAdminPasswordInput('');
-    } else {
-      alert('Password Admin Salah!');
-    }
+  // --- SECRET SHORTCUT KEYBOARD (Ctrl + Shift + A) ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        setShowAdminLoginModal((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // --- SECRET TAP LOGO (5x Tap Cepat) ---
+  const handleSecretLogoClick = () => {
+    setClickCount((prev) => {
+      const newCount = prev + 1;
+      if (newCount >= 5) {
+        setShowAdminLoginModal(true);
+        return 0;
+      }
+      return newCount;
+    });
+    setTimeout(() => setClickCount(0), 1500);
   };
 
-  const handleAdminLogout = () => {
-    setIsAdmin(false);
-    setIsEditMode(false);
-    localStorage.removeItem('ipix_is_admin');
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: adminEmailInput,
+        password: adminPasswordInput,
+      });
+
+      if (error) throw error;
+
+      if (data.session) {
+        setIsAdmin(true);
+        setShowAdminLoginModal(false);
+        setAdminEmailInput('');
+        setAdminPasswordInput('');
+        setLoginError('');
+      }
+    } catch (err: any) {
+      setLoginError('Email atau Password salah!');
+    }
   };
 
   const toggleEditMode = () => {
@@ -192,6 +234,7 @@ export default function HomePage() {
           banner_info: bannerInfo,
           platform_info: platformInfo,
           features: features,
+          ecosystem_links: ecosystemLinks,
           updated_at: new Date().toISOString()
         });
 
@@ -249,6 +292,12 @@ export default function HomePage() {
 
   const handleRemoveFeature = (id: number) => {
     setFeatures(features.filter(f => f.id !== id));
+  };
+
+  const handleEcosystemChange = (index: number, field: 'name' | 'url', value: string) => {
+    const updated = [...ecosystemLinks];
+    updated[index][field] = value;
+    setEcosystemLinks(updated);
   };
 
   const renderHighlightedText = (text: string) => {
@@ -321,18 +370,6 @@ export default function HomePage() {
         }
       `}</style>
 
-      {/* FLOATING ACTION BUTTON ADMIN */}
-      {isAdmin && !isEditMode && (
-        <motion.button 
-          initial={{ scale: 0 }} animate={{ scale: 1 }}
-          onClick={toggleEditMode} 
-          className="fixed bottom-24 right-4 sm:right-6 z-[60] bg-amber-500 text-black px-4 py-3 rounded-full font-black shadow-[0_5px_20px_rgba(245,158,11,0.5)] flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform"
-        >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.995.995 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-          Edit Halaman
-        </motion.button>
-      )}
-
       {/* FLOATING CONTROL BAR ADMIN */}
       {isAdmin && isEditMode && (
         <motion.div 
@@ -341,10 +378,10 @@ export default function HomePage() {
         >
           <div className="flex flex-col">
             <span className="text-amber-500 font-black text-xs leading-none">MODE EDIT AKTIF</span>
-            <span className="text-[9px] text-white/60">Edit konten & simpan ke Supabase</span>
+            <span className="text-[9px] text-white/60">Simpan perubahan langsung ke database</span>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setIsEditMode(false)} className="px-3 py-2 bg-red-600/20 text-red-400 text-xs font-bold rounded-xl active:scale-95 border border-red-600/30">Batal</button>
+            <button onClick={() => setIsEditMode(false)} className="px-3 py-2 bg-red-600/20 text-red-400 text-xs font-bold rounded-xl active:scale-95 border border-red-600/30">Tutup</button>
             <button onClick={handleSaveAllChanges} className="px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl active:scale-95 shadow-lg shadow-emerald-900/50">Simpan Perubahan</button>
           </div>
         </motion.div>
@@ -362,24 +399,36 @@ export default function HomePage() {
               className="w-full max-w-sm p-6 rounded-3xl shadow-2xl"
               style={{ backgroundColor: "var(--card-bg)", border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)" }}
             >
-              <h3 className="text-lg font-black mb-1" style={{ color: "var(--foreground-heading)" }}>Akses Mode Admin</h3>
+              <h3 className="text-lg font-black mb-1" style={{ color: "var(--foreground-heading)" }}>Login Admin Supabase</h3>
               <p className="text-xs mb-4 opacity-75" style={{ color: "var(--foreground)" }}>
-                Pass default: <strong>admin123</strong>
+                Masukkan akun admin yang terdaftar di Supabase Auth.
               </p>
 
-              <form onSubmit={handleAdminLogin} className="space-y-4">
+              <form onSubmit={handleAdminLogin} className="space-y-3">
+                <input
+                  type="email"
+                  placeholder="Email Admin"
+                  value={adminEmailInput}
+                  onChange={(e) => setAdminEmailInput(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl text-sm border outline-none text-white"
+                  style={{ backgroundColor: "var(--background)", borderColor: "var(--card-border)" }}
+                  required
+                />
                 <input
                   type="password"
-                  placeholder="Masukkan Password"
+                  placeholder="Password"
                   value={adminPasswordInput}
                   onChange={(e) => setAdminPasswordInput(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-sm border outline-none"
-                  style={{ backgroundColor: "var(--background)", color: "var(--foreground)", borderColor: "var(--card-border)" }}
+                  className="w-full px-4 py-3 rounded-xl text-sm border outline-none text-white"
+                  style={{ backgroundColor: "var(--background)", borderColor: "var(--card-border)" }}
+                  required
                 />
+
+                {loginError && <p className="text-xs text-red-500 font-bold">{loginError}</p>}
                 
-                <div className="flex gap-2.5">
-                  <button type="button" onClick={() => setShowAdminLoginModal(false)} className="flex-1 py-2.5 rounded-xl text-xs font-bold border" style={{ borderColor: "var(--card-border)", color: "var(--foreground)" }}>Batal</button>
-                  <button type="submit" className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white" style={{ backgroundColor: "var(--accent)" }}>Login</button>
+                <div className="flex gap-2.5 pt-2">
+                  <button type="button" onClick={() => setShowAdminLoginModal(false)} className="flex-1 py-2.5 rounded-xl text-xs font-bold border text-white" style={{ borderColor: "var(--card-border)" }}>Batal</button>
+                  <button type="submit" className="flex-1 py-2.5 rounded-xl text-xs font-bold text-black bg-amber-500">Login</button>
                 </div>
               </form>
             </motion.div>
@@ -413,7 +462,7 @@ export default function HomePage() {
       {/* Header */}
       <header className="sticky top-0 z-20 px-4 sm:px-5 py-3 glass-card border-b" style={{ backgroundColor: "color-mix(in srgb, var(--background) 75%, transparent)", borderColor: "var(--card-border)" }}>
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div onClick={handleSecretLogoClick} className="flex items-center gap-2 cursor-pointer select-none active:scale-95 transition-transform">
             <div className="w-9 h-9 rounded-2xl flex items-center justify-center shadow-md overflow-hidden bg-black/10 border" style={{ borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)" }}>
               <img src="/icon.png" alt="ipixchat" className="w-full h-full object-cover" />
             </div>
@@ -422,15 +471,15 @@ export default function HomePage() {
             </h1>
           </div>
           <div className="flex items-center gap-1.5 justify-end">
-            {ECOSYSTEM_LINKS.map((item, idx) => (
+            {ecosystemLinks.map((item, idx) => (
               <a key={idx} href={item.url} target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 rounded-full text-[9px] font-extrabold tracking-wide transition-transform hover:scale-105 active:scale-95" style={{ color: "var(--accent)", border: "1px solid color-mix(in srgb, var(--accent) 60%, transparent)", backgroundColor: "color-mix(in srgb, var(--accent) 5%, transparent)" }}>
                 {item.name}
               </a>
             ))}
             
             {isAdmin && (
-              <button onClick={handleAdminLogout} className="px-2.5 py-1 rounded-full text-[9px] font-extrabold tracking-wide bg-red-600/20 text-red-500 border border-red-600/30 active:scale-95">
-                Keluar Admin
+              <button onClick={toggleEditMode} className="px-2.5 py-1 rounded-full text-[9px] font-extrabold tracking-wide bg-amber-500 text-black shadow-md active:scale-95">
+                {isEditMode ? 'Tutup Form' : 'Edit Form'}
               </button>
             )}
           </div>
@@ -440,10 +489,11 @@ export default function HomePage() {
       {/* Konten Utama */}
       <div className="flex-1 overflow-y-auto hide-scroll space-y-4 sm:space-y-5 pt-3 pb-6 px-3.5 sm:px-6">
 
-        {/* [MODE EDIT] PENGATURAN APP UMUM */}
+        {/* [MODE EDIT] PENGATURAN APLIKASI & LINK HEADER/PILL */}
         {isEditMode && (
-          <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3">
-            <h3 className="text-amber-500 font-black text-sm border-b border-amber-500/30 pb-2">Pengaturan Aplikasi Umum</h3>
+          <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-4">
+            <h3 className="text-amber-500 font-black text-sm border-b border-amber-500/30 pb-2">Pengaturan Umum & Link Header</h3>
+            
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="admin-label">Nama Aplikasi</label>
@@ -462,22 +512,49 @@ export default function HomePage() {
                 <input type="number" className="admin-input" value={appInfo.year} onChange={e => setAppInfo({...appInfo, year: parseInt(e.target.value)})} />
               </div>
             </div>
+
             <div>
               <label className="admin-label">Link Download APK</label>
               <input type="text" className="admin-input" value={appInfo.apkDownloadUrl} onChange={e => setAppInfo({...appInfo, apkDownloadUrl: e.target.value})} />
             </div>
+
             <div>
               <label className="admin-label">Link GIF Animasi (Mascot)</label>
               <input type="text" className="admin-input" value={appInfo.gifUrl || ''} onChange={e => setAppInfo({...appInfo, gifUrl: e.target.value})} />
             </div>
-            <div>
-              <label className="admin-label">Link Video Panduan (MP4)</label>
-              <input type="text" className="admin-input" value={appInfo.videoUrl || ''} onChange={e => setAppInfo({...appInfo, videoUrl: e.target.value})} />
+
+            {/* EDIT LINK PILL / HEADER ATAS */}
+            <div className="pt-2 border-t border-amber-500/20">
+              <label className="admin-label mb-2">Edit Link Header / Pill Atas</label>
+              <div className="space-y-2">
+                {ecosystemLinks.map((link, idx) => (
+                  <div key={idx} className="grid grid-cols-2 gap-2 p-2 bg-black/30 rounded-xl border border-amber-500/20">
+                    <div>
+                      <span className="text-[9px] text-amber-400 font-bold block mb-1">NAMA LINK #{idx + 1}</span>
+                      <input 
+                        type="text" 
+                        className="admin-input" 
+                        value={link.name} 
+                        onChange={e => handleEcosystemChange(idx, 'name', e.target.value)} 
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-amber-400 font-bold block mb-1">URL LINK #{idx + 1}</span>
+                      <input 
+                        type="text" 
+                        className="admin-input" 
+                        value={link.url} 
+                        onChange={e => handleEcosystemChange(idx, 'url', e.target.value)} 
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
-        {/* 1. Animasi Mascot GIF (LEBAR DIBUAT 100% SAMAN DENGAN KOLOM) */}
+        {/* 1. Animasi Mascot GIF (DIPOTONG ATAS & BAWAH UNTUK TUTUP WATERMARK) */}
         {!isEditMode && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
@@ -485,12 +562,18 @@ export default function HomePage() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="w-full flex justify-center items-center py-1 sm:py-2 pointer-events-none"
           >
-            <img
-              src={appInfo.gifUrl}
-              alt="Mascot GIF"
-              className="w-full h-auto max-h-[280px] sm:max-h-[350px] object-cover rounded-2xl overflow-hidden"
-              style={{ filter: "drop-shadow(0 15px 25px color-mix(in srgb, var(--accent) 35%, transparent))" }}
-            />
+            <div className="w-full h-[200px] sm:h-[260px] overflow-hidden rounded-2xl flex justify-center items-center relative">
+              <img
+                src={appInfo.gifUrl}
+                alt="Mascot GIF"
+                className="w-full h-full object-cover"
+                style={{ 
+                  clipPath: 'inset(10% 0% 10% 0%)', 
+                  transform: 'scale(1.15)',
+                  filter: "drop-shadow(0 15px 25px color-mix(in srgb, var(--accent) 35%, transparent))" 
+                }}
+              />
+            </div>
           </motion.div>
         )}
         
@@ -583,72 +666,85 @@ export default function HomePage() {
           </motion.div>
         )}
 
-        {/* 4. Fitur Utama */}
+        {/* 4. Fitur Utama (Judul Bisa Diedit) */}
         {isEditMode ? (
           <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-4">
-            <h3 className="text-amber-500 font-black text-sm border-b border-amber-500/30 pb-2">Edit Fitur Utama</h3>
-            {features.map((feature, idx) => (
-              <div key={feature.id} className="p-3 bg-black/40 rounded-xl border border-amber-500/20 space-y-2">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-[10px] font-black text-amber-500">FITUR #{idx + 1}</span>
-                  <button onClick={() => handleRemoveFeature(feature.id)} className="text-[10px] bg-red-900/50 text-red-300 px-2 py-1 rounded">Hapus</button>
-                </div>
-                
-                <div>
-                  <label className="admin-label">Judul Fitur</label>
-                  <input type="text" className="admin-input" value={feature.title} onChange={e => handleFeatureChange(feature.id, 'title', e.target.value)} />
-                </div>
-                
-                <div>
-                  <label className="admin-label">Deskripsi Teks</label>
-                  <textarea rows={2} className="admin-input" value={feature.text} onChange={e => handleFeatureChange(feature.id, 'text', e.target.value)} />
-                </div>
+            <h3 className="text-amber-500 font-black text-sm border-b border-amber-500/30 pb-2">Edit Judul & Daftar Fitur Utama</h3>
+            
+            <div>
+              <label className="admin-label">Judul Kolom Fitur Utama</label>
+              <input 
+                type="text" 
+                className="admin-input" 
+                value={appInfo.featuresTitle} 
+                onChange={e => setAppInfo({...appInfo, featuresTitle: e.target.value})} 
+              />
+            </div>
 
-                <div className="flex items-center justify-between pt-1">
-                  <label className="text-[11px] text-white/80 font-bold flex items-center gap-1.5 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={feature.isHighlight || false} 
-                      onChange={e => handleFeatureChange(feature.id, 'isHighlight', e.target.checked)}
-                      className="rounded border-amber-500 text-amber-500" 
-                    />
-                    Cetak Tebal / Highlight Teks
-                  </label>
-
-                  <button 
-                    type="button" 
-                    onClick={() => toggleFeatureAction(feature.id)}
-                    className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-1 rounded border border-amber-500/30 font-bold"
-                  >
-                    {feature.action ? 'Gunakan Tombol: YA' : 'Gunakan Tombol: TIDAK'}
-                  </button>
-                </div>
-
-                {feature.action && (
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10">
-                    <div>
-                      <label className="admin-label">Teks Tombol</label>
-                      <input 
-                        type="text" 
-                        className="admin-input" 
-                        value={feature.action.label} 
-                        onChange={e => handleFeatureActionChange(feature.id, 'label', e.target.value)} 
-                      />
-                    </div>
-                    <div>
-                      <label className="admin-label">Link Tujuan (Href)</label>
-                      <input 
-                        type="text" 
-                        className="admin-input" 
-                        value={feature.action.href} 
-                        onChange={e => handleFeatureActionChange(feature.id, 'href', e.target.value)} 
-                      />
-                    </div>
+            <div className="space-y-3 pt-2 border-t border-amber-500/20">
+              {features.map((feature, idx) => (
+                <div key={feature.id} className="p-3 bg-black/40 rounded-xl border border-amber-500/20 space-y-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-black text-amber-500">FITUR #{idx + 1}</span>
+                    <button onClick={() => handleRemoveFeature(feature.id)} className="text-[10px] bg-red-900/50 text-red-300 px-2 py-1 rounded">Hapus</button>
                   </div>
-                )}
-              </div>
-            ))}
-            <button onClick={handleAddFeature} className="w-full py-2.5 bg-amber-500 text-black rounded-xl text-xs font-black">+ Tambah Fitur Baru</button>
+                  
+                  <div>
+                    <label className="admin-label">Judul Fitur</label>
+                    <input type="text" className="admin-input" value={feature.title} onChange={e => handleFeatureChange(feature.id, 'title', e.target.value)} />
+                  </div>
+                  
+                  <div>
+                    <label className="admin-label">Deskripsi Teks</label>
+                    <textarea rows={2} className="admin-input" value={feature.text} onChange={e => handleFeatureChange(feature.id, 'text', e.target.value)} />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <label className="text-[11px] text-white/80 font-bold flex items-center gap-1.5 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={feature.isHighlight || false} 
+                        onChange={e => handleFeatureChange(feature.id, 'isHighlight', e.target.checked)}
+                        className="rounded border-amber-500 text-amber-500" 
+                      />
+                      Cetak Tebal / Highlight Teks
+                    </label>
+
+                    <button 
+                      type="button" 
+                      onClick={() => toggleFeatureAction(feature.id)}
+                      className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-1 rounded border border-amber-500/30 font-bold"
+                    >
+                      {feature.action ? 'Gunakan Tombol: YA' : 'Gunakan Tombol: TIDAK'}
+                    </button>
+                  </div>
+
+                  {feature.action && (
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10">
+                      <div>
+                        <label className="admin-label">Teks Tombol</label>
+                        <input 
+                          type="text" 
+                          className="admin-input" 
+                          value={feature.action.label} 
+                          onChange={e => handleFeatureActionChange(feature.id, 'label', e.target.value)} 
+                        />
+                      </div>
+                      <div>
+                        <label className="admin-label">Link Tujuan (Href)</label>
+                        <input 
+                          type="text" 
+                          className="admin-input" 
+                          value={feature.action.href} 
+                          onChange={e => handleFeatureActionChange(feature.id, 'href', e.target.value)} 
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+              <button onClick={handleAddFeature} className="w-full py-2.5 bg-amber-500 text-black rounded-xl text-xs font-black">+ Tambah Fitur Baru</button>
+            </div>
           </div>
         ) : (
           <motion.div className="p-4 rounded-2xl border" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" }}>
@@ -657,7 +753,7 @@ export default function HomePage() {
                 <div className="w-7 h-7 rounded-full flex items-center justify-center border shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--accent) 10%, transparent)", borderColor: "var(--accent)" }}>
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "var(--accent)" }} />
                 </div>
-                <h3 className="text-lg sm:text-xl font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>Fitur Utama</h3>
+                <h3 className="text-lg sm:text-xl font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>{appInfo.featuresTitle}</h3>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>{appInfo.version}</span>
@@ -694,25 +790,36 @@ export default function HomePage() {
           </motion.div>
         )}
 
-        {/* 5. Panduan Video Section */}
+        {/* 5. Panduan Video Section (Judul & URL Video Bisa Diedit) */}
         <motion.div className="relative w-full rounded-2xl p-2 sm:p-3 mt-4" style={{ backgroundColor: "var(--card-bg)", border: "1px solid var(--card-border)", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.2)" }}>
           {isEditMode && (
-            <div className="p-3 mb-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1">
-              <label className="admin-label">Edit Link / URL Video Panduan (MP4)</label>
-              <input 
-                type="text" 
-                className="admin-input" 
-                placeholder="https://res.cloudinary.com/.../video.mp4" 
-                value={appInfo.videoUrl || ''} 
-                onChange={e => setAppInfo({...appInfo, videoUrl: e.target.value})} 
-              />
+            <div className="p-3 mb-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2">
+              <div>
+                <label className="admin-label">Judul Kolom Video</label>
+                <input 
+                  type="text" 
+                  className="admin-input" 
+                  value={appInfo.videoSectionTitle} 
+                  onChange={e => setAppInfo({...appInfo, videoSectionTitle: e.target.value})} 
+                />
+              </div>
+              <div>
+                <label className="admin-label">Edit Link / URL Video Panduan (MP4)</label>
+                <input 
+                  type="text" 
+                  className="admin-input" 
+                  placeholder="https://res.cloudinary.com/.../video.mp4" 
+                  value={appInfo.videoUrl || ''} 
+                  onChange={e => setAppInfo({...appInfo, videoUrl: e.target.value})} 
+                />
+              </div>
             </div>
           )}
 
           <button onClick={() => !isEditMode && setShowVideo(!showVideo)} className={`w-full flex items-center justify-between px-2.5 py-1.5 mb-1.5 rounded-xl outline-none ${isEditMode ? 'cursor-default' : 'active:scale-[0.99] hover:bg-white/5'}`} style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 8%, transparent)' }}>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--accent)' }} />
-              <span className="font-extrabold text-xs tracking-wide" style={{ color: 'var(--foreground-heading)' }}>Panduan Video</span>
+              <span className="font-extrabold text-xs tracking-wide" style={{ color: 'var(--foreground-heading)' }}>{appInfo.videoSectionTitle}</span>
             </div>
             {!isEditMode && (
               <div className="flex items-center gap-1.5">
