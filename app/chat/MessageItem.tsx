@@ -3,12 +3,12 @@ import React, { useRef, useState, useEffect } from "react";
 
 // Map emoji ke class animasi CSS
 const EMOJI_ANIM_MAP: Record<string, string> = {
-  "❤️": "anim-heartbeat",
+  "🤬": "anim-pulse-glow",
   "😍": "anim-heartbeat",
   "😂": "anim-wiggle",
   "🎉": "anim-wiggle",
   "👍": "anim-bounce-soft",
-  "😮": "anim-bounce-soft",
+  "😱": "anim-bounce-soft",
   "🔥": "anim-pulse-glow",
   "🙏": "anim-shake-soft",
   "😭": "anim-shake-soft",

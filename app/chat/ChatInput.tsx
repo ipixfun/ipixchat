@@ -5,14 +5,14 @@ import { useTheme } from "../context/ThemeContext";
 const EMOJIS = [
   { char: "😊", anim: "anim-pulse-soft" },
   { char: "😂", anim: "anim-wiggle" },
-  { char: "❤️", anim: "anim-heartbeat" },
+  { char: "🤬", anim: "pulse-glow" },
   { char: "👍", anim: "anim-bounce-soft" },
   { char: "🔥", anim: "anim-pulse-glow" },
   { char: "🙏", anim: "anim-shake-soft" },
   { char: "😍", anim: "anim-heartbeat" },
   { char: "🎉", anim: "anim-wiggle" },
   { char: "😭", anim: "anim-shake-soft" },
-  { char: "😮", anim: "anim-bounce-soft" },
+  { char: "😱", anim: "anim-bounce-soft" },
 ];
 
 const InputThemeWrapper = ({ children }: { children: (styles: any) => React.ReactNode }) => {
