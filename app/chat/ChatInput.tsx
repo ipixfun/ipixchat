@@ -151,7 +151,8 @@ export default function ChatInput({
   return (
     <InputThemeWrapper>
       {(styles) => (
-        <div className="shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-20 w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative mb-16">
+        /* MARGIN BAWAH OTOMATIS 0 SAAT KEYBOARD AKTIF (ui.inputFocus) */
+        <div className={`shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-20 w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative transition-all duration-200 ${ui?.inputFocus ? "mb-0" : "mb-16"}`}>
           
           {/* Keyframes Animasi Emoji */}
           <style>{`
@@ -221,17 +222,17 @@ export default function ChatInput({
             {/* ==================== BARIS 1 (ROW ATAS) ==================== */}
             <div className="flex items-center gap-1.5 sm:gap-2 w-full">
               
-              {/* 1. Teks Info / Selector Emoji (Panjang) */}
-              <div className={`flex-1 text-[9px] h-[32px] sm:h-[36px] flex items-center min-w-0 ${styles.labelText}`}>
+              {/* 1. Teks Info / Selector Emoji Lebih Besar */}
+              <div className={`flex-1 text-[9px] h-[36px] sm:h-[40px] flex items-center min-w-0 ${styles.labelText}`}>
                 {showEmoji ? (
-                  <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden animate-in fade-in zoom-in-95 duration-150 py-1 px-2.5 w-full bg-[var(--card-bg)]/60 border border-[var(--card-border)] rounded-xl shadow-inner backdrop-blur-md">
+                  <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden animate-in fade-in zoom-in-95 duration-150 py-1 px-3 w-full bg-[var(--card-bg)]/80 border border-[var(--card-border)] rounded-xl shadow-inner backdrop-blur-md">
                     {EMOJIS.map((item, idx) => (
                       <button
                         key={idx}
                         type="button"
                         onClick={() => addEmoji(item.char)}
                         disabled={isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)}
-                        className="inline-block text-xs sm:text-sm hover:scale-125 active:scale-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed select-none shrink-0"
+                        className="inline-block text-xl sm:text-2xl hover:scale-125 active:scale-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed select-none shrink-0 p-0.5"
                         title="Tambah emoji"
                       >
                         <span className={`inline-block ${item.anim}`}>
@@ -282,7 +283,7 @@ export default function ChatInput({
               {/* 4. SLOT KANAN: REFRESH/BATAL ATAU PREVIEW GAMBAR LEBAR PERSIS TOMBOL KIRIM */}
               <div className="relative shrink-0 w-[80px] sm:w-[100px] h-[32px] sm:h-[36px] flex items-center justify-center">
                 {input.image ? (
-                  /* Preview Gambar Square Melayang Ke Atas Dengan Lebar SAMA PERSIS Tombol Kirim (80px / 100px) */
+                  /* Preview Gambar Square Melayang Ke Atas Dengan Lebar SAMA PERSIS Tombol Kirim */
                   <div className="absolute bottom-0 right-0 z-20 flex items-center justify-center">
                     <div className="relative w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] bg-[var(--card-bg)] p-1 rounded-xl border-2 border-[var(--accent)] shadow-xl flex items-center justify-center">
                       <img
@@ -305,7 +306,6 @@ export default function ChatInput({
                     </div>
                   </div>
                 ) : (
-                  /* Tombol REFRESH / BATAL Sembunyi Otomatis Jika Ada Gambar */
                   auth.isAuth && currentHash !== "#block" && (
                     <button
                       type="button"
