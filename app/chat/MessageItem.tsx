@@ -161,7 +161,8 @@ export function MessageItem({
   
   const isEdited = m.is_edited === true || m.edited_by != null || (typeof window !== "undefined" ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || "0") > 0 : false);
   
-  // Menggunakan timestamp terbaru jika diedit, atau created_at jika belum
+  // Timestamp aktif: Menggunakan waktu edit terbaru (updated_at/edited_at) sehingga saat pesan diedit, 
+  // sorting list berdasarkan timestamp ini akan menaikkan posisi pesan ke bawah (seperti pesan baru) di panel admin.
   const activeMessageTimestamp = m.updated_at || m.edited_at || m.created_at;
 
   const handleQuoteClick = (quotedText: string) => {
@@ -402,7 +403,7 @@ export function MessageItem({
           </div>
           
           <div className="flex items-center gap-2 shrink-0">
-            {/* HARI & TANGGAL TETAP DIKEMBALIKAN UTUH MELALUI FORMATTING ASLI */}
+            {/* TANGGAL DAN WAKTU TERTANAH SESUAI WAKTU EDIT TERAKHIR ATAU CREATED */}
             <span className="text-[8px] font-bold opacity-60 font-mono">
               {formatMessageTime ? formatMessageTime(activeMessageTimestamp) : activeMessageTimestamp}
             </span>
