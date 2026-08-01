@@ -110,7 +110,7 @@ export function MessageItem({
   };
 
   const isMsgAdmin = m.username === "Admin●ipix.my.id";
-  const isMsgMine = authUser ? (m.username === authUser) : isMsgAdmin;
+  const isMsgMine = authUser ? (m.username === authUser) : !isMsgAdmin;
   const isRightAligned = isMsgMine;
 
   const [pillColor, setPillColor] = useState(() => {
@@ -197,6 +197,7 @@ export function MessageItem({
 
   const renderContent = (text: string, isMin: boolean) => {
     if (!text) return null;
+    // REGEX DIPERBAIKI DENGAN DUKUNGAN TEKS BANYAK BARIS (MULTILINE)
     const match = text.match(/^@(\w+)\s\("([\s\S]*?)"\)\s?([\s\S]*)$/);
     const textSize = isMin ? "text-xs sm:text-sm leading-relaxed" : "text-sm leading-relaxed";
     if (match) {
@@ -283,6 +284,7 @@ export function MessageItem({
           borderColor: activeBorderColor
         }}
       >
+        {/* ICON SVG BERUANG LUCU DI POJOK ATAS GELEMBUNG */}
         {m.is_pinned && (
           <div className="absolute -top-3 right-2.5 z-20 pointer-events-none filter drop-shadow-md" title="Pesan Disematkan">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--background)" strokeWidth="1.2">
@@ -342,7 +344,7 @@ export function MessageItem({
                 {isAdminOnline ? "Online" : formatOfflineTime(adminOfflineTime)}
               </span>
             ) : (
-              userStatus && userStatus[m.username] && (
+              userStatus[m.username] && (
                 <span className={`px-2 py-0.5 rounded-full bg-black/20 text-[8px] font-bold ${userStatus[m.username].online ? "text-emerald-400" : "opacity-60"}`}>
                   {userStatus[m.username].online ? "Online" : formatOfflineTime(userStatus[m.username].offlineTime)}
                 </span>
@@ -377,23 +379,12 @@ export function MessageItem({
         </div>
 
         {/* FOOTER BUBBLE */}
-        <div className="mt-1.5 pt-1.5 border-t border-black/10 flex justify-between items-end gap-2 w-full">
-          <div className="flex-1 min-w-0 flex flex-col gap-0.5 text-left">
+        <div className="mt-1.5 pt-1.5 border-t border-black/10 flex justify-between items-center gap-2">
+          <div className="flex-1 overflow-hidden flex flex-col gap-0.5 text-left">
             {isEdited && (
-              <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                <span className="text-amber-400 font-bold text-[8px] lowercase shrink-0">(edited)</span>
-                <span className="text-[8px] opacity-75 break-words" style={{ color: "var(--foreground)" }}>
-                  oleh {(() => {
-                    // LOGIKA BARU: Jika m.edited_by kosong/null, ambil dari m.username pembuat pesan
-                    const editorName = m.edited_by || m.username;
-                    if (!editorName) return "User";
-                    if (editorName === "Admin●ipix.my.id") return "Admin";
-                    if (authUser && editorName === authUser) return "Anda";
-                    return editorName.split("●")[0];
-                  })()}
-                  {/* Waktu Spesifik Saat Diedit */}
-                  {m.updated_at && ` pada ${formatMessageTime(m.updated_at)}`}
-                </span>
+              <div className="flex items-center gap-1">
+                <span className="text-amber-400 font-bold text-[8px] lowercase">(edited)</span>
+                {m.edited_by && <span className="text-[8px] opacity-75 truncate" style={{ color: "var(--foreground)" }}>oleh {m.edited_by === "Admin●ipix.my.id" ? "Admin" : m.edited_by.split("●")[0]}</span>}
               </div>
             )}
             {activeTab === "admin" && (
@@ -405,7 +396,7 @@ export function MessageItem({
             <span className="text-[8px] font-bold opacity-60 font-mono">{formatMessageTime(m.created_at)}</span>
             {!isMinimized && <button type="button" onClick={(e) => { e.stopPropagation(); handleReply(m); }} className="text-[9px] font-bold underline" style={{ color: "var(--accent)" }}>Balas</button>}
             
-            {(activeTab === "admin" || isMsgMine) && (
+            {activeTab === "admin" && (
               <div className="relative flex items-center">
                 <button type="button" onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId !== m.id ? m.id : null); }} className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ color: "var(--foreground)" }}>⋮</button>
                 {activeMenuId === m.id && (
@@ -413,10 +404,8 @@ export function MessageItem({
                     <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} />
                     <div className="absolute right-0 bottom-full mb-2 bg-slate-900 border border-slate-700 shadow-xl rounded-full z-[100] p-1 flex items-center gap-1 min-w-max" onClick={(e) => e.stopPropagation()}>
                       <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-2.5 py-1 text-[8px] font-bold text-white bg-blue-600 rounded-full">Edit</button>
-                      <button type="button" onClick={() => { deleteMsg(m, true); setActiveMenuId(null); }} className="px-2.5 py-1 text-[8px] font-bold text-white bg-red-500 rounded-full hover:bg-red-600">Hapus</button>
-                      
-                      {activeTab === "admin" && !isMsgAdmin && (
-                        <button type="button" onClick={() => { blockUser(m.username); setActiveMenuId(null); }} className="px-2.5 py-1 text-[8px] font-bold text-white bg-orange-600 rounded-full">Blokir</button>
+                      {!isMsgAdmin && (
+                        <button type="button" onClick={() => { blockUser(m.username); setActiveMenuId(null); }} className="px-2.5 py-1 text-[8px] font-bold text-white bg-red-600 rounded-full">Blokir</button>
                       )}
                     </div>
                   </>
