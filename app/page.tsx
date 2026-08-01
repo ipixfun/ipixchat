@@ -568,7 +568,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 1. Animasi Mascot GIF (Menggunakan B.gif dengan type guard) */}
+        {/* 1. Animasi Mascot GIF */}
         {!isEditMode && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
@@ -662,7 +662,11 @@ export default function HomePage() {
                   {renderHighlightedText(platformInfo.title)}
                 </h2>
               </div>
-              <button className="p-1.5 rounded-xl flex items-center gap-1" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+              <button 
+                aria-label="Toggle detail platform"
+                className="p-1.5 rounded-xl flex items-center gap-1" 
+                style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}
+              >
                 <motion.svg animate={{ rotate: showPlatform ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
               </button>
             </div>
@@ -769,7 +773,11 @@ export default function HomePage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full border" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>{appInfo.version}</span>
-                <button className="p-1 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+                <button 
+                  aria-label="Toggle detail fitur"
+                  className="p-1 rounded-xl" 
+                  style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}
+                >
                   <motion.svg animate={{ rotate: showFeatures ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
                 </button>
               </div>
@@ -837,7 +845,11 @@ export default function HomePage() {
             </div>
             {!isEditMode && (
               <div className="flex items-center">
-                <button className="p-1 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+                <button 
+                  aria-label="Toggle panduan video"
+                  className="p-1 rounded-xl" 
+                  style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}
+                >
                   <motion.svg animate={{ rotate: showVideo ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
                 </button>
               </div>
