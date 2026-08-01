@@ -554,7 +554,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 1. Animasi Mascot GIF (DIPOTONG ATAS & BAWAH UNTUK TUTUP WATERMARK) */}
+        {/* 1. Animasi Mascot GIF (DIPOTONG TIPIS ATAS & BAWAH SUPAYA WATERMARK TERTUTUP) */}
         {!isEditMode && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
@@ -562,14 +562,14 @@ export default function HomePage() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="w-full flex justify-center items-center py-1 sm:py-2 pointer-events-none"
           >
-            <div className="w-full h-[200px] sm:h-[260px] overflow-hidden rounded-2xl flex justify-center items-center relative">
+            <div className="w-full h-[220px] sm:h-[280px] overflow-hidden rounded-2xl flex justify-center items-center relative">
               <img
                 src={appInfo.gifUrl}
                 alt="Mascot GIF"
                 className="w-full h-full object-cover"
                 style={{ 
-                  clipPath: 'inset(10% 0% 10% 0%)', 
-                  transform: 'scale(1.15)',
+                  clipPath: 'inset(3% 0% 4% 0%)', 
+                  transform: 'scale(1.03)',
                   filter: "drop-shadow(0 15px 25px color-mix(in srgb, var(--accent) 35%, transparent))" 
                 }}
               />
@@ -790,7 +790,7 @@ export default function HomePage() {
           </motion.div>
         )}
 
-        {/* 5. Panduan Video Section (Judul & URL Video Bisa Diedit) */}
+        {/* 5. Panduan Video Section */}
         <motion.div className="relative w-full rounded-2xl p-2 sm:p-3 mt-4" style={{ backgroundColor: "var(--card-bg)", border: "1px solid var(--card-border)", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.2)" }}>
           {isEditMode && (
             <div className="p-3 mb-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2">
@@ -843,7 +843,7 @@ export default function HomePage() {
         {/* Footer */}
         <div className="flex flex-col items-center justify-center mt-6 mb-2 space-y-1">
           <div className="w-8 h-1 rounded-full mb-1" style={{ backgroundColor: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />
-          <p onClick={() => !isAdmin && setShowAdminLoginModal(true)} className="text-[10px] font-black uppercase tracking-[0.2em] cursor-pointer hover:opacity-80" style={{ color: "var(--accent)" }} title="Klik untuk Login Admin">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>
             {appInfo.appName} © {appInfo.year}
           </p>
           <p className="text-[8px] font-bold opacity-60 uppercase tracking-widest" style={{ color: "var(--foreground)" }}>All Rights Reserved</p>
