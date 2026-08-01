@@ -1,6 +1,38 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
 
+// Map emoji ke class animasi CSS
+const EMOJI_ANIM_MAP: Record<string, string> = {
+  "❤️": "anim-heartbeat",
+  "😍": "anim-heartbeat",
+  "😂": "anim-wiggle",
+  "🎉": "anim-wiggle",
+  "👍": "anim-bounce-soft",
+  "😮": "anim-bounce-soft",
+  "🔥": "anim-pulse-glow",
+  "🙏": "anim-shake-soft",
+  "😭": "anim-shake-soft",
+  "😊": "anim-pulse-soft",
+};
+
+// Helper untuk mengubah emoji di teks biasa menjadi elemen beranimasi
+const parseAnimatedEmojis = (text: string) => {
+  const emojiRegex = /([\p{Extended_Pictographic}\p{Emoji_Presentation}])/gu;
+  const parts = text.split(emojiRegex);
+
+  return parts.map((part, idx) => {
+    if (part.match(/[\p{Extended_Pictographic}\p{Emoji_Presentation}]/gu)) {
+      const animClass = EMOJI_ANIM_MAP[part] || "anim-bounce-soft";
+      return (
+        <span key={idx} className={`inline-block mx-[1px] ${animClass}`}>
+          {part}
+        </span>
+      );
+    }
+    return <React.Fragment key={idx}>{part}</React.Fragment>;
+  });
+};
+
 export function PinnedMessage({ 
   adminPinnedMsg,
   userPinnedMsg,
@@ -160,9 +192,6 @@ export function MessageItem({
   const shortBrowser = m.user_browser ? m.user_browser.split("(")[0].trim() + (m.user_browser.includes("(") ? ` (${m.user_browser.split("(")[1].split(")")[0]})` : "") : "Unknown Browser";
   
   const isEdited = m.is_edited === true || m.edited_by != null || (typeof window !== "undefined" ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || "0") > 0 : false);
-  
-  // Timestamp aktif: Menggunakan waktu edit terbaru (updated_at/edited_at) sehingga saat pesan diedit, 
-  // sorting list berdasarkan timestamp ini akan menaikkan posisi pesan ke bawah (seperti pesan baru) di panel admin.
   const activeMessageTimestamp = m.updated_at || m.edited_at || m.created_at;
 
   const handleQuoteClick = (quotedText: string) => {
@@ -191,13 +220,14 @@ export function MessageItem({
     );
   }
 
+  // Render teks yang menyertakan tag dan emoji beranimasi
   const renderTextWithTags = (t: string) => t.split(/(@\w+)/g).map((part, i) => {
     if (part.startsWith("@")) {
       const uname = part.substring(1).toLowerCase();
       const color = uname === "admin" ? "text-red-500 font-bold" : (authUser && uname === authUser.split("●")[0].toLowerCase()) ? "text-blue-400 font-bold" : "text-emerald-400 font-bold";
       return <span key={i} className={`${color} cursor-pointer hover:underline`} onClick={(e) => { e.stopPropagation(); handleTag(part.substring(1)); }}>{part}</span>;
     }
-    return <span key={i}>{part}</span>;
+    return <span key={i}>{parseAnimatedEmojis(part)}</span>;
   });
 
   const renderContent = (text: string, isMin: boolean) => {
@@ -229,6 +259,7 @@ export function MessageItem({
 
   return (
     <div id={`msg-${m.id}`} className={`relative w-full mb-3 flex ${isRightAligned ? "justify-end" : "justify-start"}`}>
+      {/* STYLE ANIMASI KHUSUS EMOJI DI DALAM BUBBLE CHAT */}
       <style>{`
         @keyframes smoothShake {
           0%, 100% { transform: translateX(0); }
@@ -237,6 +268,46 @@ export function MessageItem({
         }
         .animate-smooth-shake { animation: smoothShake 0.4s ease-in-out infinite; }
         .overflow-wrap-anywhere { overflow-wrap: anywhere; word-break: break-word; }
+
+        /* Keyframes Animasi Emoji */
+        @keyframes heartbeat {
+          0%, 100% { transform: scale(1); }
+          15% { transform: scale(1.28); }
+          30% { transform: scale(1); }
+          45% { transform: scale(1.18); }
+        }
+        .anim-heartbeat { animation: heartbeat 1.2s infinite ease-in-out; }
+
+        @keyframes wiggle {
+          0%, 100% { transform: rotate(-8deg); }
+          50% { transform: rotate(8deg); }
+        }
+        .anim-wiggle { animation: wiggle 0.8s infinite ease-in-out alternate; }
+
+        @keyframes bounceSoft {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
+        }
+        .anim-bounce-soft { animation: bounceSoft 0.9s infinite ease-in-out; }
+
+        @keyframes pulseGlow {
+          0%, 100% { transform: scale(1); opacity: 0.9; }
+          50% { transform: scale(1.22); opacity: 1; filter: drop-shadow(0 0 5px rgba(255,165,0,0.6)); }
+        }
+        .anim-pulse-glow { animation: pulseGlow 1.1s infinite ease-in-out; }
+
+        @keyframes shakeSoft {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-2px) rotate(-3deg); }
+          60% { transform: translateX(2px) rotate(3deg); }
+        }
+        .anim-shake-soft { animation: shakeSoft 0.7s infinite linear; }
+
+        @keyframes pulseSoft {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.12); }
+        }
+        .anim-pulse-soft { animation: pulseSoft 1.3s infinite ease-in-out; }
       `}</style>
 
       {swipingId === m.id && swipeDelta !== 0 && (
@@ -382,7 +453,7 @@ export function MessageItem({
           })()}
         </div>
 
-        {/* KETERANGAN EDITED (DI BARIS BAWAH AGAR JELAS TERLIHAT) */}
+        {/* KETERANGAN EDITED */}
         {isEdited && (
           <div className="mt-1.5 pt-1 border-t border-black/10 flex items-center gap-1.5">
             <span className="text-amber-400 font-bold text-[9px] lowercase">(edited)</span>
@@ -403,7 +474,6 @@ export function MessageItem({
           </div>
           
           <div className="flex items-center gap-2 shrink-0">
-            {/* TANGGAL DAN WAKTU TERTANAH SESUAI WAKTU EDIT TERAKHIR ATAU CREATED */}
             <span className="text-[8px] font-bold opacity-60 font-mono">
               {formatMessageTime ? formatMessageTime(activeMessageTimestamp) : activeMessageTimestamp}
             </span>
