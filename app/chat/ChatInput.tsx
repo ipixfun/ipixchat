@@ -259,7 +259,7 @@ export default function ChatInput({
               {/* Kolom Dinamis: Teks Info Atau Mengisi Emoji Ketika Ditekan */}
               <div className={`text-[9px] mb-1 px-1 min-h-[18px] flex items-center ${styles.labelText}`}>
                 {showEmoji ? (
-                  <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden animate-in fade-in zoom-in-95 duration-150 py-0.5 w-full">
+                  <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden animate-in fade-in zoom-in-95 duration-150 py-1 px-3 w-full bg-[var(--card-bg)]/60 border border-[var(--card-border)] rounded-full shadow-inner backdrop-blur-md">
                     {EMOJIS.map((item, idx) => (
                       <button
                         key={idx}
@@ -330,7 +330,7 @@ export default function ChatInput({
                     <button
                       type="button"
                       onClick={() => setInput((p: any) => ({ ...p, image: null }))}
-                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg active:scale-95 transition-all"
+                      className="absolute -top-2 -left-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg active:scale-95 transition-all"
                       title="Hapus gambar"
                     >
                       ×
