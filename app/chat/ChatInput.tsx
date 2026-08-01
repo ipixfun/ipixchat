@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import { useTheme } from "../context/ThemeContext";
 
-// Daftar emoji beserta efek animasi khas masing-masing
 const EMOJIS = [
   { char: "😊", anim: "anim-pulse-soft" },
   { char: "😂", anim: "anim-wiggle" },
@@ -144,12 +143,9 @@ export default function ChatInput({
     }));
   };
 
-  // Trigger animasi emoji terbang saat pesan dikirim
   const handleSendWithAnimation = (e: React.FormEvent) => {
     e.preventDefault();
-    setShowEmoji(false);
 
-    // Cari emoji di dalam teks input
     const extractedEmojis = input.text.match(/[\p{Extended_Pictographic}\p{Emoji_Presentation}]/gu);
 
     if (extractedEmojis && extractedEmojis.length > 0) {
@@ -174,74 +170,53 @@ export default function ChatInput({
       {(styles) => (
         <div className="shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-20 w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative mb-16">
           
-          {/* Keyframes Animasi Khusus Emoji (Goyang, Detak, Denyut, Bounce) */}
+          {/* Style Keyframes Animasi Emoji */}
           <style>{`
-            /* Animasi Terbang saat Kirim */
             @keyframes flyUpEmoji {
               0% { opacity: 1; transform: translateY(0) scale(0.8) rotate(0deg); }
               50% { opacity: 1; transform: translateY(-70px) scale(1.4) rotate(-12deg); }
               100% { opacity: 0; transform: translateY(-140px) scale(1.8) rotate(12deg); }
             }
-            .animate-fly-emoji {
-              animation: flyUpEmoji 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-            }
+            .animate-fly-emoji { animation: flyUpEmoji 1s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
 
-            /* 1. Detak Jantung (Heartbeat) */
             @keyframes heartbeat {
               0%, 100% { transform: scale(1); }
               15% { transform: scale(1.3); }
               30% { transform: scale(1); }
               45% { transform: scale(1.2); }
             }
-            .anim-heartbeat {
-              animation: heartbeat 1.2s infinite ease-in-out;
-            }
+            .anim-heartbeat { animation: heartbeat 1.2s infinite ease-in-out; }
 
-            /* 2. Goyang Kiri-Kanan (Wiggle) */
             @keyframes wiggle {
               0%, 100% { transform: rotate(-10deg); }
               50% { transform: rotate(10deg); }
             }
-            .anim-wiggle {
-              animation: wiggle 0.8s infinite ease-in-out alternate;
-            }
+            .anim-wiggle { animation: wiggle 0.8s infinite ease-in-out alternate; }
 
-            /* 3. Bounce Halus (Membal) */
             @keyframes bounceSoft {
               0%, 100% { transform: translateY(0); }
               50% { transform: translateY(-5px); }
             }
-            .anim-bounce-soft {
-              animation: bounceSoft 0.9s infinite ease-in-out;
-            }
+            .anim-bounce-soft { animation: bounceSoft 0.9s infinite ease-in-out; }
 
-            /* 4. Pulse / Glow Denyut */
             @keyframes pulseGlow {
               0%, 100% { transform: scale(1); opacity: 0.9; }
               50% { transform: scale(1.22); opacity: 1; filter: drop-shadow(0 0 6px rgba(255,165,0,0.6)); }
             }
-            .anim-pulse-glow {
-              animation: pulseGlow 1.1s infinite ease-in-out;
-            }
+            .anim-pulse-glow { animation: pulseGlow 1.1s infinite ease-in-out; }
 
-            /* 5. Shake Getar Halus */
             @keyframes shakeSoft {
               0%, 100% { transform: translateX(0); }
               20% { transform: translateX(-2px) rotate(-3deg); }
               60% { transform: translateX(2px) rotate(3deg); }
             }
-            .anim-shake-soft {
-              animation: shakeSoft 0.7s infinite linear;
-            }
+            .anim-shake-soft { animation: shakeSoft 0.7s infinite linear; }
 
-            /* 6. Pulse Soft */
             @keyframes pulseSoft {
               0%, 100% { transform: scale(1); }
               50% { transform: scale(1.12); }
             }
-            .anim-pulse-soft {
-              animation: pulseSoft 1.3s infinite ease-in-out;
-            }
+            .anim-pulse-soft { animation: pulseSoft 1.3s infinite ease-in-out; }
           `}</style>
 
           {/* Container Animasi Emoji Terbang saat Kirim */}
@@ -256,27 +231,6 @@ export default function ChatInput({
               </span>
             ))}
           </div>
-
-          {/* Popup Preview Gambar Melayang */}
-          {input.image && (
-            <div className="absolute bottom-full mb-3 left-4 z-30 animate-in fade-in zoom-in duration-200">
-              <div className="relative p-1.5 bg-[var(--card-bg)]/95 backdrop-blur-md rounded-2xl border border-[var(--card-border)] shadow-2xl flex items-center justify-center">
-                <img
-                  src={input.image}
-                  alt="Preview Upload"
-                  className="h-20 w-20 sm:h-24 sm:w-24 object-cover rounded-xl shadow-md border border-white/10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setInput((p: any) => ({ ...p, image: null }))}
-                  className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg active:scale-95 transition-all"
-                  title="Hapus gambar"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          )}
 
           {interact.replyTo && (
             <div 
@@ -301,54 +255,33 @@ export default function ChatInput({
 
           <form onSubmit={handleSendWithAnimation} className="shrink-0 p-2 sm:p-3 bg-transparent flex gap-2 items-end w-full relative transition-all duration-300">
             
-            {/* Bagian Tombol Upload & Pull-Up Popover Emoji Di Atas Gambar */}
-            <div className="relative shrink-0 flex items-center justify-center w-8 mb-2">
+            {/* Bagian Kiri: Tombol Emoji Di Atas Tombol Upload Foto */}
+            <div className="relative shrink-0 flex flex-col items-center justify-end gap-1 mb-1.5">
               
-              {/* Popover Emoji Melayang Tepat DI ATAS Ikon Upload Gambar */}
-              {showEmoji && (
-                <div className="absolute bottom-full mb-3 left-0 z-40 p-2 bg-[var(--card-bg)]/95 backdrop-blur-md border border-[var(--card-border)] rounded-2xl shadow-2xl flex items-center gap-1.5 sm:gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200 min-w-max">
-                  {EMOJIS.map((item, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => addEmoji(item.char)}
-                      disabled={isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)}
-                      className="inline-block text-lg sm:text-xl p-1 rounded-lg hover:bg-white/15 hover:scale-130 active:scale-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed select-none"
-                      title="Klik untuk memasukkan emoji"
-                    >
-                      <span className={`inline-block ${item.anim}`}>
-                        {item.char}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* 2. Tombol Toggle Emoji (Terletak Di Atas Tombol Upload) */}
+              <button
+                type="button"
+                onClick={() => setShowEmoji((prev) => !prev)}
+                disabled={isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)}
+                className={`p-1 rounded-full transition-all active:scale-90 ${showEmoji ? "text-[var(--accent)] bg-white/10" : styles.uploadIcon} ${(ui.tab === "admin" && !usersInfo.selPriv) || isBlocked ? "opacity-30 pointer-events-none" : ""}`}
+                title="Pilih Emoji"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 sm:w-6 sm:h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 10h.01M15 10h.01" />
+                </svg>
+              </button>
 
-              <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isBlocked || input.uploadingImage || input.image !== null} />
-              
-              <div className="flex items-center gap-1">
-                {/* Tombol Toggle Menu Emoji */}
-                <button
-                  type="button"
-                  onClick={() => setShowEmoji((prev) => !prev)}
-                  disabled={isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)}
-                  className={`p-1 rounded-full transition-all active:scale-90 ${showEmoji ? "text-[var(--accent)] bg-white/10" : styles.uploadIcon} ${(ui.tab === "admin" && !usersInfo.selPriv) || isBlocked ? "opacity-30 pointer-events-none" : ""}`}
-                  title="Pilih Emoji"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 10h.01M15 10h.01" />
-                  </svg>
-                </button>
-
-                {/* Tombol Upload Gambar */}
+              {/* Tombol Upload Foto */}
+              <div className="relative flex items-center justify-center">
+                <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isBlocked || input.uploadingImage || input.image !== null} />
                 <label htmlFor="image-upload" className={`cursor-pointer transition-colors p-1 rounded-full ${(ui.tab === "admin" && !usersInfo.selPriv) || input.image !== null || isBlocked ? "opacity-30 pointer-events-none" : styles.uploadIcon}`}>
                   {input.uploadingImage ? (
-                    <svg className="animate-spin h-6 w-6 text-[var(--accent)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-5 w-5 sm:h-6 sm:w-6 text-[var(--accent)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 sm:w-6 sm:h-6">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                     </svg>
                   )}
@@ -357,9 +290,35 @@ export default function ChatInput({
 
             </div>
 
-            <div className="relative flex-1 flex flex-col justify-end transition-all duration-300">
-              <div className={`text-[9px] mb-1 px-1 ${styles.labelText}`}>
-                {isBlocked ? "Anda telah diblokir." : ui.tab === "admin" && !usersInfo.selPriv ? "Pilih obrolan di atas" : "*bijaklah dalam berinteraksi"}
+            {/* Bagian Tengah: Textarea Input + Kolom Dinamis di Atasnya */}
+            <div className="relative flex-1 flex flex-col justify-end transition-all duration-300 min-w-0">
+              
+              {/* 3. Kolom Dinamis: Teks Info Atau Mengisi Emoji Ketika Ditekan */}
+              <div className={`text-[9px] mb-1 px-1 min-h-[18px] flex items-center ${styles.labelText}`}>
+                {showEmoji ? (
+                  <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden animate-in fade-in zoom-in-95 duration-150 py-0.5 w-full">
+                    {EMOJIS.map((item, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => addEmoji(item.char)}
+                        disabled={isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)}
+                        className="inline-block text-sm sm:text-base hover:scale-130 active:scale-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed select-none shrink-0"
+                        title="Tambah emoji"
+                      >
+                        <span className={`inline-block ${item.anim}`}>
+                          {item.char}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : isBlocked ? (
+                  "Anda telah diblokir."
+                ) : ui.tab === "admin" && !usersInfo.selPriv ? (
+                  "Pilih obrolan di atas"
+                ) : (
+                  "*bijaklah dalam berinteraksi"
+                )}
               </div>
 
               <div className="flex items-end gap-2 w-full">
@@ -368,7 +327,6 @@ export default function ChatInput({
                     id="chat-input"
                     onFocus={() => {
                       setUi((p: any) => ({ ...p, inputFocus: true }));
-                      setShowEmoji(false);
                     }}
                     onBlur={() => setUi((p: any) => ({ ...p, inputFocus: false }))}
                     className={`w-full border p-1.5 sm:p-2 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm resize-none focus:outline-none min-h-[32px] sm:min-h-[38px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${input.blink ? styles.inputBlink : styles.input} ${(ui.tab === "admin" && !usersInfo.selPriv) || isBlocked ? "opacity-30 cursor-not-allowed" : ""}`}
@@ -394,7 +352,30 @@ export default function ChatInput({
               </div>
             </div>
 
+            {/* Bagian Kanan: Tombol Kirim & Pop-up Preview Gambar di Atas Tombol BATAL/REFRESH */}
             <div className="relative shrink-0 flex flex-col justify-end w-[85px] md:w-[110px] h-[32px] sm:h-[38px]">
+              
+              {/* 1. Pop-up Preview Gambar Dinamis Melayang Di Atas Tombol Batal/Refresh */}
+              {input.image && (
+                <div className="absolute bottom-full mb-3 right-0 z-30 animate-in fade-in zoom-in duration-200">
+                  <div className="relative p-1.5 bg-[var(--card-bg)]/95 backdrop-blur-md rounded-2xl border border-[var(--card-border)] shadow-2xl flex items-center justify-center">
+                    <img
+                      src={input.image}
+                      alt="Preview Upload"
+                      className="h-20 w-20 sm:h-24 sm:w-24 object-cover rounded-xl shadow-md border border-white/10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setInput((p: any) => ({ ...p, image: null }))}
+                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center shadow-lg active:scale-95 transition-all"
+                      title="Hapus gambar"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {auth.isAuth && currentHash !== "#block" && (
                 <button
                   type="button"
