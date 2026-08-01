@@ -8,6 +8,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/app/lib/supabaseClient';
 import mascotGif from './B.webp';
 
+// --- CACHE MEMORI (Mencegah kedip teks lama saat navigasi tab) ---
+let memoryCache: any = null;
+
 // --- DATA DEFAULT ---
 const DEFAULT_APP_INFO = {
   appName: "ipixchat",
@@ -84,7 +87,9 @@ const DEFAULT_ECOSYSTEM_LINKS = [
 export default function HomePage() {
   const router = useRouter();
   const [showDownloadConfirm, setShowDownloadConfirm] = useState(false);
-  const [isApk, setIsApk] = useState(false);
+
+  // Inisialisasi awal sama persis antara Server dan Client untuk cegah Hydration Error
+  const [isApk, setIsApk] = useState<boolean>(false);
 
   // ADMIN & EDIT STATE
   const [isAdmin, setIsAdmin] = useState(false);
@@ -103,15 +108,48 @@ export default function HomePage() {
   const [features, setFeatures] = useState(DEFAULT_FEATURES);
   const [ecosystemLinks, setEcosystemLinks] = useState(DEFAULT_ECOSYSTEM_LINKS);
 
-  // State Toggle Pull-Down (Default Sembunyi/false)
+  // State Toggle Pull-Down
   const [showVideo, setShowVideo] = useState(false);
   const [showPlatform, setShowPlatform] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
 
-  // Load Data dari Supabase & Sesi Auth
+  // Deteksi Client-Side (APK, Cache, Supabase) setelah Mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    // 1. Deteksi Mode APK setelah komponen terpasang di browser
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isApkMode = userAgent.includes('wv') || userAgent.includes('ipixchat');
+    setIsApk(isApkMode);
+
+    if (isApkMode) {
+      setShowVideo(false);
+      const hasInitialRedirected = localStorage.getItem('ipix_apk_first_open');
+      if (!hasInitialRedirected) {
+        localStorage.setItem('ipix_apk_first_open', 'true');
+        router.push('/chat');
+      }
+    }
+
+    // 2. Muat Cache Lokal / Memori Instan
+    const cachedData = memoryCache || (() => {
+      try {
+        const stored = localStorage.getItem('ipix_homepage_config');
+        return stored ? JSON.parse(stored) : null;
+      } catch (e) {
+        return null;
+      }
+    })();
+
+    if (cachedData) {
+      if (cachedData.app_info) setAppInfo({ ...DEFAULT_APP_INFO, ...cachedData.app_info });
+      if (cachedData.banner_info) setBannerInfo({ ...DEFAULT_BANNER_INFO, ...cachedData.banner_info });
+      if (cachedData.platform_info) setPlatformInfo({ ...DEFAULT_PLATFORM_INFO, ...cachedData.platform_info });
+      if (cachedData.features) setFeatures(cachedData.features);
+      if (cachedData.ecosystem_links) setEcosystemLinks(cachedData.ecosystem_links);
+    }
+
+    // Auth Session Check
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setIsAdmin(true);
     });
@@ -120,6 +158,7 @@ export default function HomePage() {
       setIsAdmin(!!session);
     });
 
+    // 3. Fetch data terbaru dari Supabase
     const fetchContent = async () => {
       try {
         const { data, error } = await supabase
@@ -131,6 +170,9 @@ export default function HomePage() {
         if (error) throw error;
         
         if (data) {
+          memoryCache = data;
+          localStorage.setItem('ipix_homepage_config', JSON.stringify(data));
+
           if (data.app_info) setAppInfo({ ...DEFAULT_APP_INFO, ...data.app_info });
           if (data.banner_info) setBannerInfo({ ...DEFAULT_BANNER_INFO, ...data.banner_info });
           if (data.platform_info) setPlatformInfo({ ...DEFAULT_PLATFORM_INFO, ...data.platform_info });
@@ -145,27 +187,6 @@ export default function HomePage() {
     fetchContent();
 
     return () => subscription.unsubscribe();
-  }, []);
-
-  // Deteksi APK
-  useEffect(() => {
-    const checkIsApkNative = () => {
-      if (typeof window === 'undefined') return false;
-      const userAgent = navigator.userAgent.toLowerCase();
-      return userAgent.includes('wv') || userAgent.includes('ipixchat');
-    };
-
-    const isApkMode = checkIsApkNative();
-    setIsApk(isApkMode);
-
-    if (isApkMode) {
-      setShowVideo(false);
-      const hasInitialRedirected = localStorage.getItem('ipix_apk_first_open');
-      if (!hasInitialRedirected) {
-        localStorage.setItem('ipix_apk_first_open', 'true');
-        router.push('/chat');
-      }
-    }
   }, [router]);
 
   // --- SECRET SHORTCUT KEYBOARD (Ctrl + Shift + A) ---
@@ -180,7 +201,6 @@ export default function HomePage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // --- SECRET TAP LOGO (5x Tap Cepat) ---
   const handleSecretLogoClick = () => {
     setClickCount((prev) => {
       const newCount = prev + 1;
@@ -229,17 +249,24 @@ export default function HomePage() {
     try {
       setSaveSuccessMsg('Menyimpan ke Supabase...');
 
+      const payload = {
+        id: 1,
+        app_info: appInfo,
+        banner_info: bannerInfo,
+        platform_info: platformInfo,
+        features: features,
+        ecosystem_links: ecosystemLinks,
+        updated_at: new Date().toISOString()
+      };
+
+      memoryCache = payload;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ipix_homepage_config', JSON.stringify(payload));
+      }
+
       const { error } = await supabase
         .from('homepage_config')
-        .upsert({
-          id: 1,
-          app_info: appInfo,
-          banner_info: bannerInfo,
-          platform_info: platformInfo,
-          features: features,
-          ecosystem_links: ecosystemLinks,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(payload);
 
       if (error) throw error;
 
@@ -327,7 +354,8 @@ export default function HomePage() {
 
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px] relative overflow-hidden bg-[var(--background)] font-sans text-xs">
-      <style>{`
+      {/* Penggunaan dangerouslySetInnerHTML Mencegah Hydration Mismatch pada CSS */}
+      <style dangerouslySetInnerHTML={{ __html: `
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         .glow-text { text-shadow: 0 0 15px color-mix(in srgb, var(--accent) 50%, transparent); }
@@ -340,12 +368,18 @@ export default function HomePage() {
           100% { background-position: 0% 50%; }
         }
 
-        @keyframes wave-motion {
+        @keyframes wave-left {
           0% { transform: translateX(0) translateZ(0) scaleY(1); }
           50% { transform: translateX(-25%) translateZ(0) scaleY(0.85); }
           100% { transform: translateX(0) translateZ(0) scaleY(1); }
         }
-        .animate-wave { animation: wave-motion 9s ease-in-out infinite; }
+        @keyframes wave-right {
+          0% { transform: translateX(-25%) translateZ(0) scaleY(0.85); }
+          50% { transform: translateX(0) translateZ(0) scaleY(1); }
+          100% { transform: translateX(-25%) translateZ(0) scaleY(0.85); }
+        }
+        .animate-wave-left { animation: wave-left 8s ease-in-out infinite; }
+        .animate-wave-right { animation: wave-right 10s ease-in-out infinite; }
 
         .admin-input {
           width: 100%;
@@ -371,7 +405,7 @@ export default function HomePage() {
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
-      `}</style>
+      ` }} />
 
       {/* FLOATING CONTROL BAR ADMIN */}
       {isAdmin && isEditMode && (
@@ -568,14 +602,9 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 1. Animasi Mascot WebP (dioptimasi untuk LCP & CLS) */}
+        {/* 1. Animasi Mascot WebP */}
         {!isEditMode && (
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className="w-full flex justify-center items-center py-0.5"
-          >
+          <div className="w-full flex justify-center items-center py-0.5">
             <div 
               className="w-full aspect-[16/9] min-h-[180px] overflow-hidden rounded-3xl flex justify-center items-center border border-white/5 shadow-md bg-black/20" 
               style={{ borderColor: "var(--card-border)" }}
@@ -593,7 +622,7 @@ export default function HomePage() {
                 }}
               />
             </div>
-          </motion.div>
+          </div>
         )}
         
         {/* 2. Banner APK / Web */}
@@ -614,19 +643,36 @@ export default function HomePage() {
           </div>
         ) : (
           isApk ? (
-            <motion.div className="py-3 px-3.5 rounded-3xl relative overflow-hidden border text-center flex flex-col items-center justify-center gap-1" style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}>
-              <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
-                <svg className="absolute -bottom-1 left-0 w-[200%] h-10 animate-wave" viewBox="0 0 1200 120" preserveAspectRatio="none">
+            <div 
+              className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border text-center flex flex-col items-center justify-center gap-1 min-h-[110px]" 
+              style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}
+            >
+              <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-25">
+                <svg className="absolute -bottom-1 left-0 w-[200%] h-12 animate-wave-left" viewBox="0 0 1200 120" preserveAspectRatio="none">
                   <path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,120 L0,120 Z" fill="var(--accent)" />
                 </svg>
+                <svg className="absolute -bottom-1 left-0 w-[200%] h-10 animate-wave-right opacity-60" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                  <path d="M0,30 C200,-20 400,80 600,20 C800,-30 1000,70 1200,10 L1200,120 L0,120 Z" fill="var(--accent)" />
+                </svg>
               </div>
-              <div className="relative z-10 w-full">
-                <h2 className="text-xs sm:text-sm font-black tracking-tight mb-0.5" style={{ color: "var(--accent)" }}>{bannerInfo.apkThankYouTitle}</h2>
-                <p className="text-[11px] font-medium leading-snug max-w-[280px] mx-auto opacity-90 break-words" style={{ color: "var(--foreground)" }}>{bannerInfo.apkThankYouDesc}</p>
+
+              <div className="relative z-10 w-full flex flex-col items-center justify-center">
+                <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase mb-1" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)', color: 'var(--accent)' }}>
+                  {bannerInfo.webBadge || "Aplikasi Android"}
+                </div>
+                <h2 className="text-xs sm:text-sm font-black tracking-tight mb-0.5" style={{ color: "var(--foreground-heading)" }}>
+                  {renderHighlightedText(bannerInfo.apkThankYouTitle)}
+                </h2>
+                <p className="text-[11px] font-medium leading-relaxed max-w-[320px] mx-auto opacity-85 break-words" style={{ color: "var(--foreground)" }}>
+                  {renderHighlightedText(bannerInfo.apkThankYouDesc)}
+                </p>
               </div>
-            </motion.div>
+            </div>
           ) : (
-            <motion.div className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border" style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}>
+            <div 
+              className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border min-h-[110px] flex flex-col justify-center" 
+              style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}
+            >
               <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="space-y-1 flex-1">
                   <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase mb-0.5" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)', color: 'var(--accent)' }}>
@@ -641,7 +687,7 @@ export default function HomePage() {
                   <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg> Unduh APK
                 </button>
               </div>
-            </motion.div>
+            </div>
           )
         )}
 
@@ -659,7 +705,7 @@ export default function HomePage() {
             <textarea rows={3} className="admin-input" value={platformInfo.description} onChange={e => setPlatformInfo({...platformInfo, description: e.target.value})} />
           </div>
         ) : (
-          <motion.div className="p-3.5 rounded-3xl text-left border" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+          <div className="p-3.5 rounded-3xl text-left border" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" }}>
             <div onClick={() => setShowPlatform(!showPlatform)} className="flex items-center justify-between gap-2 cursor-pointer group">
               <div>
                 <span className="inline-block px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase mb-1.5" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)' }}>
@@ -686,7 +732,7 @@ export default function HomePage() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </div>
         )}
 
         {/* 4. Fitur Utama */}
@@ -770,7 +816,7 @@ export default function HomePage() {
             </div>
           </div>
         ) : (
-          <motion.div className="p-3.5 rounded-3xl border" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+          <div className="p-3.5 rounded-3xl border" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" }}>
             <div onClick={() => setShowFeatures(!showFeatures)} className="flex items-center justify-between gap-2 cursor-pointer group">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center border shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--accent) 10%, transparent)", borderColor: "var(--accent)" }}>
@@ -814,11 +860,11 @@ export default function HomePage() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </div>
         )}
 
         {/* 5. Panduan Video Section */}
-        <motion.div className="relative w-full rounded-3xl p-3.5 mt-3 border" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "0 8px 24px -8px rgba(0,0,0,0.2)" }}>
+        <div className="relative w-full rounded-3xl p-3.5 mt-3 border" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)", boxShadow: "0 8px 24px -8px rgba(0,0,0,0.2)" }}>
           {isEditMode && (
             <div className="p-2.5 mb-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2 text-xs">
               <div>
@@ -872,7 +918,7 @@ export default function HomePage() {
               </motion.div>
             )}
           </AnimatePresence>
-        </motion.div>
+        </div>
         
         {/* Footer */}
         <div className="flex flex-col items-center justify-center mt-5 mb-1 space-y-0.5">
