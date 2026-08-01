@@ -158,7 +158,11 @@ export function MessageItem({
 
   const clearTimer = () => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } };
   const shortBrowser = m.user_browser ? m.user_browser.split("(")[0].trim() + (m.user_browser.includes("(") ? ` (${m.user_browser.split("(")[1].split(")")[0]})` : "") : "Unknown Browser";
+  
   const isEdited = m.is_edited === true || m.edited_by != null || (typeof window !== "undefined" ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || "0") > 0 : false);
+  
+  // Menggunakan timestamp terbaru jika diedit, atau created_at jika belum
+  const activeMessageTimestamp = m.updated_at || m.edited_at || m.created_at;
 
   const handleQuoteClick = (quotedText: string) => {
     if (typeof window !== "undefined" && navigator.vibrate) {
@@ -177,7 +181,7 @@ export function MessageItem({
             <span className="bg-gray-500/20 text-gray-400 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">🚫 Dihapus</span>
             <span className="text-[10px] font-bold" style={{ color: isDeletedByAdmin ? "var(--accent)" : "var(--foreground)" }}>oleh {isDeletedByAdmin ? "Admin" : m.username}</span>
           </div>
-          <div className="text-[8px] opacity-60 mt-1 flex items-center gap-1 font-mono"><span>{formatMessageTime(m.created_at)}</span></div>
+          <div className="text-[8px] opacity-60 mt-1 flex items-center gap-1 font-mono"><span>{formatMessageTime ? formatMessageTime(m.created_at) : m.created_at}</span></div>
           {activeTab === "admin" && (
             <button onClick={(e) => { e.stopPropagation(); deleteMsg(m, false); }} className="absolute right-2 top-2 text-[14px] hover:opacity-80 w-7 h-7 flex items-center justify-center rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all transform active:scale-95" style={{ backgroundColor: "var(--accent)", color: "var(--background)" }} title="Hapus Permanen dari Database">🗑️</button>
           )}
@@ -197,7 +201,6 @@ export function MessageItem({
 
   const renderContent = (text: string, isMin: boolean) => {
     if (!text) return null;
-    // REGEX DIPERBAIKI DENGAN DUKUNGAN TEKS BANYAK BARIS (MULTILINE)
     const match = text.match(/^@(\w+)\s\("([\s\S]*?)"\)\s?([\s\S]*)$/);
     const textSize = isMin ? "text-xs sm:text-sm leading-relaxed" : "text-sm leading-relaxed";
     if (match) {
@@ -378,22 +381,31 @@ export function MessageItem({
           })()}
         </div>
 
-        {/* FOOTER BUBBLE */}
-        <div className="mt-1.5 pt-1.5 border-t border-black/10 flex justify-between items-center gap-2">
-          <div className="flex-1 overflow-hidden flex flex-col gap-0.5 text-left">
-            {isEdited && (
-              <div className="flex items-center gap-1">
-                <span className="text-amber-400 font-bold text-[8px] lowercase">(edited)</span>
-                {m.edited_by && <span className="text-[8px] opacity-75 truncate" style={{ color: "var(--foreground)" }}>oleh {m.edited_by === "Admin●ipix.my.id" ? "Admin" : m.edited_by.split("●")[0]}</span>}
-              </div>
+        {/* KETERANGAN EDITED (DI BARIS BAWAH AGAR JELAS TERLIHAT) */}
+        {isEdited && (
+          <div className="mt-1.5 pt-1 border-t border-black/10 flex items-center gap-1.5">
+            <span className="text-amber-400 font-bold text-[9px] lowercase">(edited)</span>
+            {m.edited_by && (
+              <span className="text-[9px] opacity-85 truncate" style={{ color: "var(--foreground)" }}>
+                oleh {m.edited_by === "Admin●ipix.my.id" ? "Admin" : m.edited_by.split("●")[0]}
+              </span>
             )}
+          </div>
+        )}
+
+        {/* FOOTER BUBBLE */}
+        <div className="mt-1.5 pt-1 border-t border-black/10 flex justify-between items-center gap-2">
+          <div className="flex-1 overflow-hidden flex flex-col gap-0.5 text-left">
             {activeTab === "admin" && (
               <span className="truncate font-mono text-[8px] opacity-50" title={m.user_browser || ""}>🌐 {shortBrowser}</span>
             )}
           </div>
           
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[8px] font-bold opacity-60 font-mono">{formatMessageTime(m.created_at)}</span>
+            {/* HARI & TANGGAL TETAP DIKEMBALIKAN UTUH MELALUI FORMATTING ASLI */}
+            <span className="text-[8px] font-bold opacity-60 font-mono">
+              {formatMessageTime ? formatMessageTime(activeMessageTimestamp) : activeMessageTimestamp}
+            </span>
             {!isMinimized && <button type="button" onClick={(e) => { e.stopPropagation(); handleReply(m); }} className="text-[9px] font-bold underline" style={{ color: "var(--accent)" }}>Balas</button>}
             
             {activeTab === "admin" && (
