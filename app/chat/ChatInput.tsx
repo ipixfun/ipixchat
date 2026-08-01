@@ -67,6 +67,35 @@ export default function ChatInput({
 
   const [showEmoji, setShowEmoji] = useState(false);
 
+  // DETEKSI TURUN/NAIKNYA KEYBOARD ANDROID VIA VISUAL VIEWPORT
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+
+    const initialHeight = window.innerHeight;
+
+    const handleResize = () => {
+      if (!window.visualViewport) return;
+      const currentHeight = window.visualViewport.height;
+
+      // Jika tinggi viewport kembali mendekati tinggi layar asli -> Keyboard Diturunkan
+      if (currentHeight >= initialHeight - 120) {
+        setUi((p: any) => ({ ...p, inputFocus: false }));
+        const inputEl = document.getElementById("chat-input");
+        if (inputEl && document.activeElement === inputEl) {
+          inputEl.blur();
+        }
+      } else {
+        // Keyboard sedang terbuka
+        setUi((p: any) => ({ ...p, inputFocus: true }));
+      }
+    };
+
+    window.visualViewport.addEventListener("resize", handleResize);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", handleResize);
+    };
+  }, [setUi]);
+
   // Auto-register push subscription
   useEffect(() => {
     async function setupPushSubscription() {
@@ -151,10 +180,9 @@ export default function ChatInput({
   return (
     <InputThemeWrapper>
       {(styles) => (
-        /* MARGIN BAWAH OTOMATIS 0 DAN DIBERIKAN Z-INDEX LEBIH TINGGI SAAT KEYBOARD AKTIF */
         <div className={`shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-[1000] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative transition-all duration-150 ${ui?.inputFocus ? "mb-0" : "mb-16"}`}>
           
-          {/* PAKSA HILANGKAN NAVBAR DI DESKTOP/MOBILE SAAT INPUT FOKUS */}
+          {/* Style Keyframes & Sembunyikan Navbar HANYA ketika Keyboard terdeteksi aktif */}
           <style>{`
             @keyframes heartbeat {
               0%, 100% { transform: scale(1); }
@@ -194,9 +222,11 @@ export default function ChatInput({
               50% { transform: scale(1.12); }
             }
             .anim-pulse-soft { animation: pulseSoft 1.3s infinite ease-in-out; }
+          `}</style>
 
-            /* CSS RULE: SEMBUNYIKAN BOTTOMNAV SAAT KEYBOARD / INPUT DIAKTIFKAN */
-            ${ui?.inputFocus ? `
+          {/* Sembunyikan Navbar khusus saat ui.inputFocus bernilai true */}
+          {ui?.inputFocus && (
+            <style>{`
               nav, footer, [class*="bottomnav"], [class*="bottom-nav"], [class*="BottomNav"], .z-\\[999\\] {
                 display: none !important;
                 visibility: hidden !important;
@@ -204,17 +234,8 @@ export default function ChatInput({
                 opacity: 0 !important;
                 pointer-events: none !important;
               }
-            ` : ""}
-            body:has(#chat-input:focus) nav,
-            body:has(#chat-input:focus) footer,
-            body:has(#chat-input:focus) [class*="bottomnav"],
-            body:has(#chat-input:focus) [class*="bottom-nav"],
-            body:has(#chat-input:focus) .z-\\[999\\] {
-              display: none !important;
-              visibility: hidden !important;
-              height: 0 !important;
-            }
-          `}</style>
+            `}</style>
+          )}
 
           {interact.replyTo && (
             <div 
@@ -366,9 +387,10 @@ export default function ChatInput({
                     }, 200);
                   }}
                   onBlur={() => {
+                    // Delay kecil untuk menghindari flicker saat memindahkan fokus
                     setTimeout(() => {
                       setUi((p: any) => ({ ...p, inputFocus: false }));
-                    }, 100);
+                    }, 150);
                   }}
                   className={`w-full border p-2 sm:p-2.5 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm resize-none focus:outline-none min-h-[42px] sm:min-h-[48px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${input.blink ? styles.inputBlink : styles.input} ${(ui.tab === "admin" && !usersInfo.selPriv) || isBlocked ? "opacity-30 cursor-not-allowed" : ""}`}
                   value={input.text}
