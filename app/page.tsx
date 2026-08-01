@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/bottomnav';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/app/lib/supabaseClient';
+import mascotGif from './B.gif';
 
 // --- DATA DEFAULT ---
 const DEFAULT_APP_INFO = {
@@ -13,7 +14,6 @@ const DEFAULT_APP_INFO = {
   version: "v1.0",
   apkSize: "4.45 MB",
   videoUrl: "https://res.cloudinary.com/bjamo8ld/video/upload/v1785508218/ipixchat_dryqj3.mp4",
-  gifUrl: "https://res.cloudinary.com/bjamo8ld/image/upload/v1785537508/Bear_fcdw39.gif",
   apkDownloadUrl: "https://ipix.my.id/ipixchat.apk",
   year: new Date().getFullYear(),
   featuresTitle: "Fitur aplikasi",
@@ -103,8 +103,8 @@ export default function HomePage() {
   const [features, setFeatures] = useState(DEFAULT_FEATURES);
   const [ecosystemLinks, setEcosystemLinks] = useState(DEFAULT_ECOSYSTEM_LINKS);
 
-  // State Toggle Pull-Down
-  const [showVideo, setShowVideo] = useState(true);
+  // State Toggle Pull-Down (Default Sembunyi/false)
+  const [showVideo, setShowVideo] = useState(false);
   const [showPlatform, setShowPlatform] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
 
@@ -521,11 +521,6 @@ export default function HomePage() {
               <input type="text" className="admin-input" value={appInfo.apkDownloadUrl} onChange={e => setAppInfo({...appInfo, apkDownloadUrl: e.target.value})} />
             </div>
 
-            <div>
-              <label className="admin-label">Link GIF Animasi (Mascot)</label>
-              <input type="text" className="admin-input" value={appInfo.gifUrl || ''} onChange={e => setAppInfo({...appInfo, gifUrl: e.target.value})} />
-            </div>
-
             {/* EDIT FOOTER TEXT & URL */}
             <div className="grid grid-cols-2 gap-2.5 pt-1">
               <div>
@@ -573,7 +568,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 1. Animasi Mascot GIF */}
+        {/* 1. Animasi Mascot GIF (Menggunakan B.gif dengan type guard) */}
         {!isEditMode && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
@@ -583,7 +578,7 @@ export default function HomePage() {
           >
             <div className="w-full overflow-hidden rounded-3xl flex justify-center items-center border border-white/5 shadow-md" style={{ borderColor: "var(--card-border)" }}>
               <img
-                src={appInfo.gifUrl}
+                src={typeof mascotGif === 'string' ? mascotGif : mascotGif.src}
                 alt="Mascot GIF"
                 className="w-full h-auto object-cover block"
                 style={{ 
@@ -841,8 +836,7 @@ export default function HomePage() {
               <h3 className="text-sm sm:text-base font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>{appInfo.videoSectionTitle}</h3>
             </div>
             {!isEditMode && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full border" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>{showVideo ? 'Tutup' : 'Buka'}</span>
+              <div className="flex items-center">
                 <button className="p-1 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
                   <motion.svg animate={{ rotate: showVideo ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
                 </button>
