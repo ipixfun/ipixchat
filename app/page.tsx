@@ -211,6 +211,31 @@ export default function HomePage() {
     setFeatures(prev => prev.map(f => f.id === id ? { ...f, [field]: value } : f));
   };
 
+  const handleFeatureActionChange = (id: number, field: string, value: string) => {
+    setFeatures(prev => prev.map(f => {
+      if (f.id === id) {
+        const currentAction = f.action || { label: '', href: '' };
+        return {
+          ...f,
+          action: { ...currentAction, [field]: value }
+        };
+      }
+      return f;
+    }));
+  };
+
+  const toggleFeatureAction = (id: number) => {
+    setFeatures(prev => prev.map(f => {
+      if (f.id === id) {
+        return {
+          ...f,
+          action: f.action ? null : { label: 'Buka Link', href: '/chat' }
+        };
+      }
+      return f;
+    }));
+  };
+
   const handleAddFeature = () => {
     const newId = features.length > 0 ? Math.max(...features.map(f => f.id)) + 1 : 1;
     setFeatures([...features, {
@@ -452,7 +477,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 1. Animasi Mascot GIF */}
+        {/* 1. Animasi Mascot GIF (LEBAR DIBUAT 100% SAMAN DENGAN KOLOM) */}
         {!isEditMode && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
@@ -463,7 +488,7 @@ export default function HomePage() {
             <img
               src={appInfo.gifUrl}
               alt="Mascot GIF"
-              className="w-full h-auto max-h-[220px] sm:max-h-[280px] object-contain"
+              className="w-full h-auto max-h-[280px] sm:max-h-[350px] object-cover rounded-2xl overflow-hidden"
               style={{ filter: "drop-shadow(0 15px 25px color-mix(in srgb, var(--accent) 35%, transparent))" }}
             />
           </motion.div>
@@ -487,15 +512,15 @@ export default function HomePage() {
           </div>
         ) : (
           isApk ? (
-            <motion.div className="py-8 px-4 rounded-2xl relative overflow-hidden border text-center flex flex-col items-center justify-center gap-2" style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}>
-              <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-25">
-                <svg className="absolute -bottom-2 left-0 w-[200%] h-24 animate-wave" viewBox="0 0 1200 120" preserveAspectRatio="none">
+            <motion.div className="py-3.5 px-4 rounded-2xl relative overflow-hidden border text-center flex flex-col items-center justify-center gap-1" style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}>
+              <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
+                <svg className="absolute -bottom-1 left-0 w-[200%] h-12 animate-wave" viewBox="0 0 1200 120" preserveAspectRatio="none">
                   <path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,120 L0,120 Z" fill="var(--accent)" />
                 </svg>
               </div>
               <div className="relative z-10 w-full">
-                <h2 className="text-lg sm:text-xl font-black tracking-tight mb-1.5" style={{ color: "var(--accent)" }}>{bannerInfo.apkThankYouTitle}</h2>
-                <p className="text-xs font-medium leading-relaxed max-w-[280px] mx-auto break-words" style={{ color: "var(--foreground)" }}>{bannerInfo.apkThankYouDesc}</p>
+                <h2 className="text-sm sm:text-base font-black tracking-tight mb-0.5" style={{ color: "var(--accent)" }}>{bannerInfo.apkThankYouTitle}</h2>
+                <p className="text-[11px] font-medium leading-snug max-w-[260px] mx-auto opacity-90 break-words" style={{ color: "var(--foreground)" }}>{bannerInfo.apkThankYouDesc}</p>
               </div>
             </motion.div>
           ) : (
@@ -561,18 +586,69 @@ export default function HomePage() {
         {/* 4. Fitur Utama */}
         {isEditMode ? (
           <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-4">
-            <h3 className="text-amber-500 font-black text-sm border-b border-amber-500/30 pb-2">Edit Fitur Aplikasi</h3>
+            <h3 className="text-amber-500 font-black text-sm border-b border-amber-500/30 pb-2">Edit Fitur Utama</h3>
             {features.map((feature, idx) => (
               <div key={feature.id} className="p-3 bg-black/40 rounded-xl border border-amber-500/20 space-y-2">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-[10px] font-black text-amber-500">FITUR #{idx + 1}</span>
                   <button onClick={() => handleRemoveFeature(feature.id)} className="text-[10px] bg-red-900/50 text-red-300 px-2 py-1 rounded">Hapus</button>
                 </div>
-                <input type="text" className="admin-input" placeholder="Judul Fitur" value={feature.title} onChange={e => handleFeatureChange(feature.id, 'title', e.target.value)} />
-                <textarea rows={2} className="admin-input" placeholder="Deskripsi Fitur" value={feature.text} onChange={e => handleFeatureChange(feature.id, 'text', e.target.value)} />
+                
+                <div>
+                  <label className="admin-label">Judul Fitur</label>
+                  <input type="text" className="admin-input" value={feature.title} onChange={e => handleFeatureChange(feature.id, 'title', e.target.value)} />
+                </div>
+                
+                <div>
+                  <label className="admin-label">Deskripsi Teks</label>
+                  <textarea rows={2} className="admin-input" value={feature.text} onChange={e => handleFeatureChange(feature.id, 'text', e.target.value)} />
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <label className="text-[11px] text-white/80 font-bold flex items-center gap-1.5 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={feature.isHighlight || false} 
+                      onChange={e => handleFeatureChange(feature.id, 'isHighlight', e.target.checked)}
+                      className="rounded border-amber-500 text-amber-500" 
+                    />
+                    Cetak Tebal / Highlight Teks
+                  </label>
+
+                  <button 
+                    type="button" 
+                    onClick={() => toggleFeatureAction(feature.id)}
+                    className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-1 rounded border border-amber-500/30 font-bold"
+                  >
+                    {feature.action ? 'Gunakan Tombol: YA' : 'Gunakan Tombol: TIDAK'}
+                  </button>
+                </div>
+
+                {feature.action && (
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10">
+                    <div>
+                      <label className="admin-label">Teks Tombol</label>
+                      <input 
+                        type="text" 
+                        className="admin-input" 
+                        value={feature.action.label} 
+                        onChange={e => handleFeatureActionChange(feature.id, 'label', e.target.value)} 
+                      />
+                    </div>
+                    <div>
+                      <label className="admin-label">Link Tujuan (Href)</label>
+                      <input 
+                        type="text" 
+                        className="admin-input" 
+                        value={feature.action.href} 
+                        onChange={e => handleFeatureActionChange(feature.id, 'href', e.target.value)} 
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
-            <button onClick={handleAddFeature} className="w-full py-2.5 bg-amber-500 text-black rounded-xl text-xs font-black">+ Tambah Fitur</button>
+            <button onClick={handleAddFeature} className="w-full py-2.5 bg-amber-500 text-black rounded-xl text-xs font-black">+ Tambah Fitur Baru</button>
           </div>
         ) : (
           <motion.div className="p-4 rounded-2xl border" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" }}>
@@ -650,7 +726,6 @@ export default function HomePage() {
             {showVideo && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                 <div className="relative w-full rounded-xl overflow-hidden bg-black flex justify-center mt-1">
-                  {/* key={appInfo.videoUrl} memaksa player re-render penuh tiap URL diubah */}
                   <video key={appInfo.videoUrl} src={appInfo.videoUrl} controls loop playsInline className="w-full h-auto max-h-[50vh] object-contain rounded-xl" />
                 </div>
               </motion.div>
