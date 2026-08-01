@@ -88,7 +88,8 @@ export default function HomePage() {
   const router = useRouter();
   const [showDownloadConfirm, setShowDownloadConfirm] = useState(false);
 
-  // Inisialisasi awal sama persis antara Server dan Client untuk cegah Hydration Error
+  // Status Hydration & APK Detection
+  const [isMounted, setIsMounted] = useState(false);
   const [isApk, setIsApk] = useState<boolean>(false);
 
   // ADMIN & EDIT STATE
@@ -115,6 +116,7 @@ export default function HomePage() {
 
   // Deteksi Client-Side (APK, Cache, Supabase) setelah Mount
   useEffect(() => {
+    setIsMounted(true);
     if (typeof window === 'undefined') return;
 
     // 1. Deteksi Mode APK setelah komponen terpasang di browser
@@ -368,18 +370,24 @@ export default function HomePage() {
           100% { background-position: 0% 50%; }
         }
 
-        @keyframes wave-left {
-          0% { transform: translateX(0) translateZ(0) scaleY(1); }
-          50% { transform: translateX(-25%) translateZ(0) scaleY(0.85); }
-          100% { transform: translateX(0) translateZ(0) scaleY(1); }
+        /* --- GELOMBANG ANIMASI DUAL WAVE LOOP PERFECT SEAMLESS --- */
+        @keyframes wave-loop-1 {
+          0% { transform: translate3d(0, 0, 0); }
+          100% { transform: translate3d(-50%, 0, 0); }
         }
-        @keyframes wave-right {
-          0% { transform: translateX(-25%) translateZ(0) scaleY(0.85); }
-          50% { transform: translateX(0) translateZ(0) scaleY(1); }
-          100% { transform: translateX(-25%) translateZ(0) scaleY(0.85); }
+        @keyframes wave-loop-2 {
+          0% { transform: translate3d(-50%, 0, 0); }
+          100% { transform: translate3d(0, 0, 0); }
         }
-        .animate-wave-left { animation: wave-left 8s ease-in-out infinite; }
-        .animate-wave-right { animation: wave-right 10s ease-in-out infinite; }
+
+        .animate-wave-1 {
+          animation: wave-loop-1 12s linear infinite;
+          will-change: transform;
+        }
+        .animate-wave-2 {
+          animation: wave-loop-2 8s linear infinite;
+          will-change: transform;
+        }
 
         .admin-input {
           width: 100%;
@@ -625,37 +633,53 @@ export default function HomePage() {
           </div>
         )}
         
-        {/* 2. Banner APK / Web */}
-        {isEditMode ? (
-          <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3 text-xs">
-            <h3 className="text-amber-500 font-black text-xs border-b border-amber-500/30 pb-1.5">Edit Teks Banner</h3>
-            <div className="space-y-2">
-              <label className="admin-label">Banner Web (Unduh)</label>
-              <input type="text" className="admin-input" placeholder="Badge" value={bannerInfo.webBadge} onChange={e => setBannerInfo({...bannerInfo, webBadge: e.target.value})} />
-              <input type="text" className="admin-input" placeholder="Judul" value={bannerInfo.webTitle} onChange={e => setBannerInfo({...bannerInfo, webTitle: e.target.value})} />
-              <textarea rows={2} className="admin-input" placeholder="Deskripsi" value={bannerInfo.webDesc} onChange={e => setBannerInfo({...bannerInfo, webDesc: e.target.value})} />
-            </div>
-            <div className="space-y-2 pt-2 border-t border-amber-500/30">
-              <label className="admin-label">Banner APK (Terima Kasih)</label>
-              <input type="text" className="admin-input" placeholder="Judul" value={bannerInfo.apkThankYouTitle} onChange={e => setBannerInfo({...bannerInfo, apkThankYouTitle: e.target.value})} />
-              <textarea rows={2} className="admin-input" placeholder="Deskripsi" value={bannerInfo.apkThankYouDesc} onChange={e => setBannerInfo({...bannerInfo, apkThankYouDesc: e.target.value})} />
-            </div>
-          </div>
-        ) : (
-          isApk ? (
-            <div 
-              className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border text-center flex flex-col items-center justify-center gap-1 min-h-[110px]" 
+        {/* 2. Banner APK / Web (DENGAN ANIMATE PRESENCE BIAR GAK GLITCH & TUMPANG TINDIH SAMA WAVE LOOPING PERMANEN) */}
+        <AnimatePresence mode="wait">
+          {isEditMode ? (
+            <motion.div 
+              key="banner-edit"
+              initial={{ opacity: 0, y: 5 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -5 }}
+              className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3 text-xs"
+            >
+              <h3 className="text-amber-500 font-black text-xs border-b border-amber-500/30 pb-1.5">Edit Teks Banner</h3>
+              <div className="space-y-2">
+                <label className="admin-label">Banner Web (Unduh)</label>
+                <input type="text" className="admin-input" placeholder="Badge" value={bannerInfo.webBadge} onChange={e => setBannerInfo({...bannerInfo, webBadge: e.target.value})} />
+                <input type="text" className="admin-input" placeholder="Judul" value={bannerInfo.webTitle} onChange={e => setBannerInfo({...bannerInfo, webTitle: e.target.value})} />
+                <textarea rows={2} className="admin-input" placeholder="Deskripsi" value={bannerInfo.webDesc} onChange={e => setBannerInfo({...bannerInfo, webDesc: e.target.value})} />
+              </div>
+              <div className="space-y-2 pt-2 border-t border-amber-500/30">
+                <label className="admin-label">Banner APK (Terima Kasih)</label>
+                <input type="text" className="admin-input" placeholder="Judul" value={bannerInfo.apkThankYouTitle} onChange={e => setBannerInfo({...bannerInfo, apkThankYouTitle: e.target.value})} />
+                <textarea rows={2} className="admin-input" placeholder="Deskripsi" value={bannerInfo.apkThankYouDesc} onChange={e => setBannerInfo({...bannerInfo, apkThankYouDesc: e.target.value})} />
+              </div>
+            </motion.div>
+          ) : isMounted && isApk ? (
+            /* BANNER TERIMA KASIH (MODE APK) DENGAN 2 GELOMBANG SEAMLESS CONTINUOUS LOOP */
+            <motion.div 
+              key="banner-apk"
+              initial={{ opacity: 0, y: 5 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.2 }}
+              className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border text-center flex flex-col items-center justify-center gap-1 min-h-[115px] z-0" 
               style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}
             >
-              <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-25">
-                <svg className="absolute -bottom-1 left-0 w-[200%] h-12 animate-wave-left" viewBox="0 0 1200 120" preserveAspectRatio="none">
-                  <path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,120 L0,120 Z" fill="var(--accent)" />
+              {/* BACKDROP 2 GELOMBANG ANIMASI LOOPING TERUS */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30 z-0">
+                {/* Gelombang 1 - Utama */}
+                <svg className="absolute -bottom-1 left-0 w-[200%] h-12 animate-wave-1" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                  <path d="M 0 40 Q 150 10 300 40 T 600 40 T 900 40 T 1200 40 V 120 H 0 Z" fill="var(--accent)" />
                 </svg>
-                <svg className="absolute -bottom-1 left-0 w-[200%] h-10 animate-wave-right opacity-60" viewBox="0 0 1200 120" preserveAspectRatio="none">
-                  <path d="M0,30 C200,-20 400,80 600,20 C800,-30 1000,70 1200,10 L1200,120 L0,120 Z" fill="var(--accent)" />
+                {/* Gelombang 2 - Lapisan Kedua Soft Opacity */}
+                <svg className="absolute -bottom-1 left-0 w-[200%] h-10 animate-wave-2 opacity-50" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                  <path d="M 0 30 Q 150 60 300 30 T 600 30 T 900 30 T 1200 30 V 120 H 0 Z" fill="var(--accent)" />
                 </svg>
               </div>
 
+              {/* KONTEN TEKS */}
               <div className="relative z-10 w-full flex flex-col items-center justify-center">
                 <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase mb-1" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)', color: 'var(--accent)' }}>
                   {bannerInfo.webBadge || "Aplikasi Android"}
@@ -667,10 +691,16 @@ export default function HomePage() {
                   {renderHighlightedText(bannerInfo.apkThankYouDesc)}
                 </p>
               </div>
-            </div>
+            </motion.div>
           ) : (
-            <div 
-              className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border min-h-[110px] flex flex-col justify-center" 
+            /* BANNER UNDUH APLIKASI (MODE WEB BROWSER) */
+            <motion.div 
+              key="banner-web"
+              initial={{ opacity: 0, y: 5 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.2 }}
+              className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border min-h-[115px] flex flex-col justify-center z-0" 
               style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}
             >
               <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -687,9 +717,9 @@ export default function HomePage() {
                   <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg> Unduh APK
                 </button>
               </div>
-            </div>
-          )
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* 3. Kolom Platform Perpesanan */}
         {isEditMode ? (
