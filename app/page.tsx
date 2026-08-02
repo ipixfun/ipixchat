@@ -27,7 +27,7 @@ const DEFAULT_APP_INFO = {
 };
 
 const DEFAULT_BANNER_INFO = {
-  apkThankYouTitle: "Terima Kasih!",
+  apkThankYouTitle: "Support App",
   apkThankYouDesc: "Terima kasih supportnya sudah menggunakan apk ipixchat. Nikmati pengalaman berinteraksi yang lebih cepat dan lancar.",
   webBadge: "Terima Kasih",
   webTitle: "Unduh aplikasi ipixchat",
@@ -116,7 +116,7 @@ export default function HomePage() {
   const [showPlatform, setShowPlatform] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
 
-  // Deteksi Client-Side (APK, Cache, Supabase, User Name) setelah Mount
+  // Deteksi Client-Side (APK, Cache, Supabase, User Name)
   useEffect(() => {
     setIsMounted(true);
     if (typeof window === 'undefined') return;
@@ -377,8 +377,10 @@ export default function HomePage() {
     });
   };
 
-  // Teks Dinamis untuk Badge/Pill Banner
-  const dynamicBadgeLabel = `${bannerInfo.webBadge || "Terima Kasih"} ${userName ? userName : "Orang Baik"}`;
+  // Teks Dinamis Pill Kanan (Maksimal 20 Huruf)
+  const displayUserPill = userName 
+    ? (userName.length > 20 ? userName.slice(0, 20) : userName) 
+    : "Orang Baik";
 
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px] relative overflow-hidden bg-[var(--background)] font-sans text-xs">
@@ -528,7 +530,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header Utama */}
       <header className="sticky top-0 z-20 px-3.5 py-2.5 glass-card border-b" style={{ backgroundColor: "color-mix(in srgb, var(--background) 75%, transparent)", borderColor: "var(--card-border)" }}>
         <div className="flex items-center justify-between gap-1.5">
           <div onClick={handleSecretLogoClick} className="flex items-center gap-1.5 cursor-pointer select-none active:scale-95 transition-transform">
@@ -660,7 +662,7 @@ export default function HomePage() {
           </div>
         )}
         
-        {/* 2. Banner APK / Web (DENGAN EDIT PILL BADGE & TOGGLE) */}
+        {/* 2. Banner APK / Web (DENGAN DUA PILL: TERIMA KASIH [KIRI] & NAMA USER [KANAN]) */}
         <AnimatePresence mode="wait">
           {isEditMode ? (
             <motion.div 
@@ -670,23 +672,23 @@ export default function HomePage() {
               exit={{ opacity: 0, y: -5 }}
               className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3 text-xs"
             >
-              <h3 className="text-amber-500 font-black text-xs border-b border-amber-500/30 pb-1.5">Edit Teks Banner & Awalan Pill Badge</h3>
+              <h3 className="text-amber-500 font-black text-xs border-b border-amber-500/30 pb-1.5">Edit Teks Banner & Pill Badge Kiri</h3>
               <div className="space-y-2">
-                <label className="admin-label">Awalan Teks Pill Badge (Default: Terima Kasih)</label>
-                <input type="text" className="admin-input" placeholder="Misal: Terima Kasih" value={bannerInfo.webBadge} onChange={e => setBannerInfo({...bannerInfo, webBadge: e.target.value})} />
+                <label className="admin-label">Pill Badge Kiri (Default: Terima Kasih)</label>
+                <input type="text" className="admin-input" placeholder="Misal: Terima Kasih / Aplikasi Android" value={bannerInfo.webBadge} onChange={e => setBannerInfo({...bannerInfo, webBadge: e.target.value})} />
                 
                 <label className="admin-label">Banner Web (Unduh)</label>
                 <input type="text" className="admin-input" placeholder="Judul" value={bannerInfo.webTitle} onChange={e => setBannerInfo({...bannerInfo, webTitle: e.target.value})} />
                 <textarea rows={2} className="admin-input" placeholder="Deskripsi" value={bannerInfo.webDesc} onChange={e => setBannerInfo({...bannerInfo, webDesc: e.target.value})} />
               </div>
               <div className="space-y-2 pt-2 border-t border-amber-500/30">
-                <label className="admin-label">Banner APK (Terima Kasih)</label>
+                <label className="admin-label">Banner APK (Support App)</label>
                 <input type="text" className="admin-input" placeholder="Judul" value={bannerInfo.apkThankYouTitle} onChange={e => setBannerInfo({...bannerInfo, apkThankYouTitle: e.target.value})} />
                 <textarea rows={2} className="admin-input" placeholder="Deskripsi" value={bannerInfo.apkThankYouDesc} onChange={e => setBannerInfo({...bannerInfo, apkThankYouDesc: e.target.value})} />
               </div>
             </motion.div>
           ) : isMounted && isApk ? (
-            /* BANNER TERIMA KASIH (MODE APK) DENGAN PULL DOWN */
+            /* BANNER TERIMA KASIH (MODE APK) */
             <motion.div 
               key="banner-apk"
               initial={{ opacity: 0, y: 5 }} 
@@ -697,24 +699,40 @@ export default function HomePage() {
               style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}
             >
               {/* HEADER PULL DOWN BANNER APK */}
-              <div onClick={() => setShowBanner(!showBanner)} className="w-full flex items-center justify-between cursor-pointer group z-10">
-                {/* PILL TERANG DINAMIS */}
-                <div 
-                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow-md" 
-                  style={{ 
-                    backgroundColor: 'var(--accent)', 
-                    color: 'var(--background)',
-                    boxShadow: '0 0 10px color-mix(in srgb, var(--accent) 40%, transparent)'
-                  }}
-                >
-                  {dynamicBadgeLabel}
+              <div onClick={() => setShowBanner(!showBanner)} className="w-full flex items-center justify-between gap-2 cursor-pointer group z-10">
+                {/* PILL KIRI */}
+                <div className="flex items-center gap-2 min-w-0">
+                  <span 
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide shrink-0 border"
+                    style={{ 
+                      backgroundColor: 'color-mix(in srgb, var(--accent) 15%, transparent)', 
+                      color: 'var(--accent)',
+                      borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)'
+                    }}
+                  >
+                    {bannerInfo.webBadge || "Terima Kasih"}
+                  </span>
+                  <h2 className="text-xs font-black truncate" style={{ color: "var(--foreground-heading)" }}>
+                    {renderHighlightedText(bannerInfo.apkThankYouTitle)}
+                  </h2>
                 </div>
-                <h2 className="text-xs font-black truncate px-2" style={{ color: "var(--foreground-heading)" }}>
-                  {renderHighlightedText(bannerInfo.apkThankYouTitle)}
-                </h2>
-                <button aria-label="Toggle banner" className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
-                  <motion.svg animate={{ rotate: showBanner ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
-                </button>
+
+                {/* PILL KANAN (NAMA USER / ORANG BAIK) + TOMBOL TOGGLE */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span 
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow-md" 
+                    style={{ 
+                      backgroundColor: 'var(--accent)', 
+                      color: 'var(--background)',
+                      boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 50%, transparent)'
+                    }}
+                  >
+                    {displayUserPill}
+                  </span>
+                  <button aria-label="Toggle banner" className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+                    <motion.svg animate={{ rotate: showBanner ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
+                  </button>
+                </div>
               </div>
 
               {/* KONTEN PULL DOWN */}
@@ -739,7 +757,7 @@ export default function HomePage() {
               </div>
             </motion.div>
           ) : (
-            /* BANNER UNDUH APLIKASI (MODE WEB BROWSER) DENGAN PULL DOWN */
+            /* BANNER UNDUH APLIKASI (MODE WEB BROWSER) */
             <motion.div 
               key="banner-web"
               initial={{ opacity: 0, y: 5 }} 
@@ -750,26 +768,40 @@ export default function HomePage() {
               style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}
             >
               {/* HEADER PULL DOWN BANNER WEB */}
-              <div onClick={() => setShowBanner(!showBanner)} className="flex items-center justify-between cursor-pointer group z-10 w-full">
-                <div className="flex items-center gap-2">
-                  {/* PILL TERANG DINAMIS */}
+              <div onClick={() => setShowBanner(!showBanner)} className="flex items-center justify-between gap-2 cursor-pointer group z-10 w-full">
+                {/* PILL KIRI */}
+                <div className="flex items-center gap-2 min-w-0">
+                  <span 
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide shrink-0 border"
+                    style={{ 
+                      backgroundColor: 'color-mix(in srgb, var(--accent) 15%, transparent)', 
+                      color: 'var(--accent)',
+                      borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)'
+                    }}
+                  >
+                    {bannerInfo.webBadge || "Terima Kasih"}
+                  </span>
+                  <h2 className="text-xs sm:text-sm font-black tracking-tight truncate" style={{ color: "var(--foreground-heading)" }}>
+                    {renderHighlightedText(bannerInfo.webTitle)} <span className="text-[10px] font-bold opacity-80">({appInfo.apkSize})</span>
+                  </h2>
+                </div>
+
+                {/* PILL KANAN (NAMA USER / ORANG BAIK) + TOMBOL TOGGLE */}
+                <div className="flex items-center gap-1.5 shrink-0">
                   <span 
                     className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow-md" 
                     style={{ 
                       backgroundColor: 'var(--accent)', 
                       color: 'var(--background)',
-                      boxShadow: '0 0 10px color-mix(in srgb, var(--accent) 40%, transparent)'
+                      boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 50%, transparent)'
                     }}
                   >
-                    {dynamicBadgeLabel}
+                    {displayUserPill}
                   </span>
-                  <h2 className="text-xs sm:text-sm font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>
-                    {renderHighlightedText(bannerInfo.webTitle)} <span className="text-[10px] font-bold opacity-80">({appInfo.apkSize})</span>
-                  </h2>
+                  <button aria-label="Toggle detail download" className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+                    <motion.svg animate={{ rotate: showBanner ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
+                  </button>
                 </div>
-                <button aria-label="Toggle detail download" className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
-                  <motion.svg animate={{ rotate: showBanner ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
-                </button>
               </div>
 
               {/* KONTEN PULL DOWN */}
