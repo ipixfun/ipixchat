@@ -366,12 +366,12 @@ export default function HomePage() {
                 <input type="text" className="admin-input" placeholder="Misal: Terima Kasih / Aplikasi Android" value={bannerInfo.webBadge} onChange={e => setBannerInfo({...bannerInfo, webBadge: e.target.value})} />
                 <label className="admin-label">Banner Web (Unduh)</label>
                 <input type="text" className="admin-input" placeholder="Judul" value={bannerInfo.webTitle} onChange={e => setBannerInfo({...bannerInfo, webTitle: e.target.value})} />
-                <textarea rows={2} className="admin-input" placeholder="Deskripsi" value={bannerInfo.webDesc} onChange={e => setBannerInfo({...bannerInfo, webDesc: e.target.value})} />
+                <textarea rows={3} className="admin-input leading-relaxed" placeholder="Deskripsi" value={bannerInfo.webDesc} onChange={e => setBannerInfo({...bannerInfo, webDesc: e.target.value})} />
               </div>
               <div className="space-y-2 pt-2 border-t border-amber-500/30">
                 <label className="admin-label">Banner APK (Support App)</label>
                 <input type="text" className="admin-input" placeholder="Judul" value={bannerInfo.apkThankYouTitle} onChange={e => setBannerInfo({...bannerInfo, apkThankYouTitle: e.target.value})} />
-                <textarea rows={2} className="admin-input" placeholder="Deskripsi" value={bannerInfo.apkThankYouDesc} onChange={e => setBannerInfo({...bannerInfo, apkThankYouDesc: e.target.value})} />
+                <textarea rows={3} className="admin-input leading-relaxed" placeholder="Deskripsi" value={bannerInfo.apkThankYouDesc} onChange={e => setBannerInfo({...bannerInfo, apkThankYouDesc: e.target.value})} />
               </div>
             </motion.div>
           ) : isMounted && isApk ? (
@@ -393,7 +393,7 @@ export default function HomePage() {
               <AnimatePresence initial={false}>
                 {showBanner && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden w-full pt-2">
-                    <p className="text-[11px] font-medium leading-relaxed max-w-[320px] mx-auto opacity-85 break-words" style={{ color: "var(--foreground)" }}>{renderHighlightedText(bannerInfo.apkThankYouDesc)}</p>
+                    <p className="text-[11px] font-medium leading-relaxed max-w-[320px] mx-auto opacity-85 whitespace-pre-line break-words" style={{ color: "var(--foreground)" }}>{renderHighlightedText(bannerInfo.apkThankYouDesc)}</p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -422,7 +422,7 @@ export default function HomePage() {
                 {showBanner && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden pt-3">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t pt-2.5" style={{ borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)' }}>
-                      <p className="text-[11px] opacity-85 leading-relaxed flex-1" style={{ color: "var(--foreground)" }}>{bannerInfo.webDesc}</p>
+                      <p className="text-[11px] opacity-85 leading-relaxed flex-1 whitespace-pre-line break-words" style={{ color: "var(--foreground)" }}>{bannerInfo.webDesc}</p>
                       <button onClick={() => setShowDownloadConfirm(true)} className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-white font-extrabold text-[11px] shadow-lg color-shift-bg flex justify-center items-center gap-1.5 shrink-0" style={{ backgroundImage: 'linear-gradient(270deg, var(--accent), #ff6b6b, #4ecdc4, var(--accent))' }}>
                         <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg> Download APK
                       </button>
@@ -439,7 +439,7 @@ export default function HomePage() {
             <h3 className="text-amber-500 font-black text-xs border-b border-amber-500/30 pb-1.5">Edit Teks Platform</h3>
             <label className="admin-label">Badge</label><input type="text" className="admin-input" value={platformInfo.badge} onChange={e => setPlatformInfo({...platformInfo, badge: e.target.value})} />
             <label className="admin-label">Judul</label><input type="text" className="admin-input" value={platformInfo.title} onChange={e => setPlatformInfo({...platformInfo, title: e.target.value})} />
-            <label className="admin-label">Deskripsi</label><textarea rows={3} className="admin-input" value={platformInfo.description} onChange={e => setPlatformInfo({...platformInfo, description: e.target.value})} />
+            <label className="admin-label">Deskripsi</label><textarea rows={3} className="admin-input leading-relaxed" value={platformInfo.description} onChange={e => setPlatformInfo({...platformInfo, description: e.target.value})} />
           </div>
         ) : (
           <div className="p-3.5 rounded-3xl text-left border" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" }}>
@@ -455,7 +455,7 @@ export default function HomePage() {
             <AnimatePresence initial={false}>
               {showPlatform && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                  <p className="text-[11px] opacity-85 leading-relaxed mt-2.5 pt-2 border-t" style={{ color: "var(--foreground)", borderColor: "var(--card-border)" }}>{renderHighlightedText(platformInfo.description)}</p>
+                  <p className="text-[11px] opacity-85 leading-relaxed mt-2.5 pt-2 border-t whitespace-pre-line break-words" style={{ color: "var(--foreground)", borderColor: "var(--card-border)" }}>{renderHighlightedText(platformInfo.description)}</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -471,7 +471,7 @@ export default function HomePage() {
                 <div key={feature.id} className="p-2.5 bg-black/40 rounded-xl border border-amber-500/20 space-y-2">
                   <div className="flex justify-between items-center mb-0.5"><span className="text-[9px] font-black text-amber-500">FITUR #{idx + 1}</span><button onClick={() => handleRemoveFeature(feature.id)} className="text-[9px] bg-red-900/50 text-red-300 px-2 py-0.5 rounded">Hapus</button></div>
                   <div><label className="admin-label">Judul Fitur</label><input type="text" className="admin-input" value={feature.title} onChange={e => handleFeatureChange(feature.id, 'title', e.target.value)} /></div>
-                  <div><label className="admin-label">Deskripsi Teks</label><textarea rows={2} className="admin-input" value={feature.text} onChange={e => handleFeatureChange(feature.id, 'text', e.target.value)} /></div>
+                  <div><label className="admin-label">Deskripsi Teks</label><textarea rows={3} className="admin-input leading-relaxed" value={feature.text} onChange={e => handleFeatureChange(feature.id, 'text', e.target.value)} /></div>
                   <div className="flex items-center justify-between pt-0.5">
                     <label className="text-[10px] text-white/80 font-bold flex items-center gap-1.5 cursor-pointer">
                       <input type="checkbox" checked={feature.isHighlight || false} onChange={e => handleFeatureChange(feature.id, 'isHighlight', e.target.checked)} className="rounded border-amber-500 text-amber-500" />Cetak Tebal / Highlight
@@ -515,7 +515,7 @@ export default function HomePage() {
                         <span className="font-black text-xs mt-0.5 shrink-0" style={{ color: "var(--accent)" }}>{idx + 1}.</span>
                         <div>
                           <h4 className="text-xs font-bold mb-0.5" style={{ color: "var(--foreground-heading)" }}>{feature.title}</h4>
-                          <p className={`text-[11px] opacity-85 leading-relaxed ${feature.isHighlight ? 'font-bold italic' : ''}`} style={{ color: feature.isHighlight ? "var(--accent)" : "var(--foreground)" }}>{renderHighlightedText(feature.text)}</p>
+                          <p className={`text-[11px] opacity-85 leading-relaxed whitespace-pre-line break-words ${feature.isHighlight ? 'font-bold italic' : ''}`} style={{ color: feature.isHighlight ? "var(--accent)" : "var(--foreground)" }}>{renderHighlightedText(feature.text)}</p>
                           {feature.action && (
                             <div className="mt-1.5">
                               <Link href={feature.action.href} className="inline-flex items-center px-3 py-1 rounded-full text-white font-bold text-[10px] shadow-md" style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 60%, white), var(--accent))" }}>{feature.action.label}</Link>
