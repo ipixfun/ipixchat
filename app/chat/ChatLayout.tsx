@@ -91,7 +91,21 @@ const FluidBottom = () => {
   );
 };
 
-export default function ChatLayout({ cMode, hScroll, aTab, selPrivUser, pUsers, privMsgs, renderMsgs, fmtTime, setSelPriv, onBlockUser, onDeleteAllMsgs }: any) {
+export default function ChatLayout({ 
+  cMode, 
+  hScroll, 
+  aTab, 
+  selPrivUser, 
+  pUsers, 
+  privMsgs, 
+  renderMsgs, 
+  fmtTime, 
+  setSelPriv, 
+  onDeleteAllMsgs,
+  onUpdatePin,
+  onUpdateUsername,
+  onRefresh
+}: any) {
   const [isWaveDisabled, setIsWaveDisabled] = useState<boolean>(false);
 
   useEffect(() => {
@@ -129,8 +143,9 @@ export default function ChatLayout({ cMode, hScroll, aTab, selPrivUser, pUsers, 
                 privateUsers={pUsers} 
                 setSelectedPrivateUser={setSelPriv} 
                 formatMessageTime={fmtTime} 
-                onBlockUser={onBlockUser}
                 onDeleteAllMsgs={onDeleteAllMsgs}
+                onUpdatePin={onUpdatePin}
+                onUpdateUsername={onUpdateUsername}
               />
             ) : (
               renderMsgs(privMsgs, "private")

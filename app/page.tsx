@@ -110,6 +110,7 @@ export default function HomePage() {
   const [ecosystemLinks, setEcosystemLinks] = useState(DEFAULT_ECOSYSTEM_LINKS);
 
   // State Toggle Pull-Down
+  const [showBanner, setShowBanner] = useState(false); // Dropdown Banner Download / Terima Kasih
   const [showVideo, setShowVideo] = useState(false);
   const [showPlatform, setShowPlatform] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
@@ -151,13 +152,25 @@ export default function HomePage() {
       if (cachedData.ecosystem_links) setEcosystemLinks(cachedData.ecosystem_links);
     }
 
-    // Auth Session Check
+    // Auth Session Check & Banner State Initialization
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setIsAdmin(true);
+      const loggedIn = !!session;
+      setIsAdmin(loggedIn);
+
+      // ATURAN BANNER: 
+      // Jika belum login & di Web -> Terbuka
+      // Jika sudah login ATAU di APK -> Tertutup (posisi awal home)
+      if (loggedIn || isApkMode) {
+        setShowBanner(false);
+      } else {
+        setShowBanner(true);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAdmin(!!session);
+      const loggedIn = !!session;
+      setIsAdmin(loggedIn);
+      if (loggedIn) setShowBanner(false);
     });
 
     // 3. Fetch data terbaru dari Supabase
@@ -191,7 +204,7 @@ export default function HomePage() {
     return () => subscription.unsubscribe();
   }, [router]);
 
-  // --- SECRET SHORTCUT KEYBOARD (Ctrl + Shift + A) ---
+  // --- SHORTCUT KEYBOARD (Ctrl + Shift + A) ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
@@ -203,11 +216,12 @@ export default function HomePage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // --- KETUK LOGO 5X DIARAHKAN KE LINK SUKACHUB ---
   const handleSecretLogoClick = () => {
     setClickCount((prev) => {
       const newCount = prev + 1;
       if (newCount >= 5) {
-        setShowAdminLoginModal(true);
+        window.location.href = "https://sukachub.my.id/chat#admin";
         return 0;
       }
       return newCount;
@@ -237,10 +251,18 @@ export default function HomePage() {
     }
   };
 
+  // Handler Logout / Keluar
+  const handleAdminLogout = async () => {
+    await supabase.auth.signOut();
+    setIsAdmin(false);
+    setIsEditMode(false);
+  };
+
   const toggleEditMode = () => {
     const newMode = !isEditMode;
     setIsEditMode(newMode);
     if (newMode) {
+      setShowBanner(true);
       setShowVideo(true);
       setShowPlatform(true);
       setShowFeatures(true);
@@ -522,10 +544,16 @@ export default function HomePage() {
               </a>
             ))}
             
+            {/* TOMBOL EDIT & KELUAR (SAMPINGAN) */}
             {isAdmin && (
-              <button onClick={toggleEditMode} className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide bg-amber-500 text-black shadow-md active:scale-95">
-                {isEditMode ? 'Tutup' : 'Edit'}
-              </button>
+              <div className="flex items-center gap-1">
+                <button onClick={toggleEditMode} className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide bg-amber-500 text-black shadow-md active:scale-95">
+                  {isEditMode ? 'Tutup' : 'Edit'}
+                </button>
+                <button onClick={handleAdminLogout} className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide bg-red-600 text-white shadow-md active:scale-95">
+                  Keluar
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -633,7 +661,7 @@ export default function HomePage() {
           </div>
         )}
         
-        {/* 2. Banner APK / Web (DENGAN ANIMATE PRESENCE BIAR GAK GLITCH & TUMPANG TINDIH SAMA WAVE LOOPING PERMANEN) */}
+        {/* 2. Banner APK / Web (DENGAN FEATURE PULL-DOWN & TOGGLE) */}
         <AnimatePresence mode="wait">
           {isEditMode ? (
             <motion.div 
@@ -657,66 +685,89 @@ export default function HomePage() {
               </div>
             </motion.div>
           ) : isMounted && isApk ? (
-            /* BANNER TERIMA KASIH (MODE APK) DENGAN 2 GELOMBANG SEAMLESS CONTINUOUS LOOP */
+            /* BANNER TERIMA KASIH (MODE APK) DENGAN PULL DOWN */
             <motion.div 
               key="banner-apk"
               initial={{ opacity: 0, y: 5 }} 
               animate={{ opacity: 1, y: 0 }} 
               exit={{ opacity: 0, y: -5 }}
               transition={{ duration: 0.2 }}
-              className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border text-center flex flex-col items-center justify-center gap-1 min-h-[115px] z-0" 
+              className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border text-center flex flex-col items-center justify-center gap-1 z-0" 
               style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}
             >
-              {/* BACKDROP 2 GELOMBANG ANIMASI LOOPING TERUS */}
+              {/* HEADER PULL DOWN BANNER APK */}
+              <div onClick={() => setShowBanner(!showBanner)} className="w-full flex items-center justify-between cursor-pointer group z-10">
+                <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)', color: 'var(--accent)' }}>
+                  {bannerInfo.webBadge || "Aplikasi Android"}
+                </div>
+                <h2 className="text-xs font-black truncate px-2" style={{ color: "var(--foreground-heading)" }}>
+                  {renderHighlightedText(bannerInfo.apkThankYouTitle)}
+                </h2>
+                <button aria-label="Toggle banner" className="p-1 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+                  <motion.svg animate={{ rotate: showBanner ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
+                </button>
+              </div>
+
+              {/* KONTEN PULL DOWN */}
+              <AnimatePresence initial={false}>
+                {showBanner && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden w-full pt-2">
+                    <p className="text-[11px] font-medium leading-relaxed max-w-[320px] mx-auto opacity-85 break-words" style={{ color: "var(--foreground)" }}>
+                      {renderHighlightedText(bannerInfo.apkThankYouDesc)}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* BACKDROP GELOMBANG */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30 z-0">
-                {/* Gelombang 1 - Utama */}
                 <svg className="absolute -bottom-1 left-0 w-[200%] h-12 animate-wave-1" viewBox="0 0 1200 120" preserveAspectRatio="none">
                   <path d="M 0 40 Q 150 10 300 40 T 600 40 T 900 40 T 1200 40 V 120 H 0 Z" fill="var(--accent)" />
                 </svg>
-                {/* Gelombang 2 - Lapisan Kedua Soft Opacity */}
                 <svg className="absolute -bottom-1 left-0 w-[200%] h-10 animate-wave-2 opacity-50" viewBox="0 0 1200 120" preserveAspectRatio="none">
                   <path d="M 0 30 Q 150 60 300 30 T 600 30 T 900 30 T 1200 30 V 120 H 0 Z" fill="var(--accent)" />
                 </svg>
               </div>
-
-              {/* KONTEN TEKS */}
-              <div className="relative z-10 w-full flex flex-col items-center justify-center">
-                <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase mb-1" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)', color: 'var(--accent)' }}>
-                  {bannerInfo.webBadge || "Aplikasi Android"}
-                </div>
-                <h2 className="text-xs sm:text-sm font-black tracking-tight mb-0.5" style={{ color: "var(--foreground-heading)" }}>
-                  {renderHighlightedText(bannerInfo.apkThankYouTitle)}
-                </h2>
-                <p className="text-[11px] font-medium leading-relaxed max-w-[320px] mx-auto opacity-85 break-words" style={{ color: "var(--foreground)" }}>
-                  {renderHighlightedText(bannerInfo.apkThankYouDesc)}
-                </p>
-              </div>
             </motion.div>
           ) : (
-            /* BANNER UNDUH APLIKASI (MODE WEB BROWSER) */
+            /* BANNER UNDUH APLIKASI (MODE WEB BROWSER) DENGAN PULL DOWN */
             <motion.div 
               key="banner-web"
               initial={{ opacity: 0, y: 5 }} 
               animate={{ opacity: 1, y: 0 }} 
               exit={{ opacity: 0, y: -5 }}
               transition={{ duration: 0.2 }}
-              className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border min-h-[115px] flex flex-col justify-center z-0" 
+              className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border z-0" 
               style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}
             >
-              <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="space-y-1 flex-1">
-                  <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase mb-0.5" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)', color: 'var(--accent)' }}>
+              {/* HEADER PULL DOWN BANNER WEB */}
+              <div onClick={() => setShowBanner(!showBanner)} className="flex items-center justify-between cursor-pointer group z-10 w-full">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)', color: 'var(--accent)' }}>
                     {bannerInfo.webBadge}
-                  </div>
+                  </span>
                   <h2 className="text-xs sm:text-sm font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>
                     {renderHighlightedText(bannerInfo.webTitle)} <span className="text-[10px] font-bold opacity-80">({appInfo.apkSize})</span>
                   </h2>
-                  <p className="text-[11px] opacity-85 leading-relaxed" style={{ color: "var(--foreground)" }}>{bannerInfo.webDesc}</p>
                 </div>
-                <button onClick={() => setShowDownloadConfirm(true)} className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-white font-extrabold text-[11px] shadow-lg color-shift-bg flex justify-center items-center gap-1.5" style={{ backgroundImage: 'linear-gradient(270deg, var(--accent), #ff6b6b, #4ecdc4, var(--accent))' }}>
-                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg> Unduh APK
+                <button aria-label="Toggle detail download" className="p-1 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+                  <motion.svg animate={{ rotate: showBanner ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
                 </button>
               </div>
+
+              {/* KONTEN PULL DOWN */}
+              <AnimatePresence initial={false}>
+                {showBanner && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden pt-3">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t pt-2.5" style={{ borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)' }}>
+                      <p className="text-[11px] opacity-85 leading-relaxed flex-1" style={{ color: "var(--foreground)" }}>{bannerInfo.webDesc}</p>
+                      <button onClick={() => setShowDownloadConfirm(true)} className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-white font-extrabold text-[11px] shadow-lg color-shift-bg flex justify-center items-center gap-1.5 shrink-0" style={{ backgroundImage: 'linear-gradient(270deg, var(--accent), #ff6b6b, #4ecdc4, var(--accent))' }}>
+                        <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg> Unduh APK
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>
