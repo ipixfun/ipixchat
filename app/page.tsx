@@ -393,7 +393,7 @@ export default function HomePage() {
               <AnimatePresence initial={false}>
                 {showBanner && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden w-full pt-2">
-                    <p className="text-[11px] font-medium leading-relaxed max-w-[320px] mx-auto opacity-85 whitespace-pre-line break-words" style={{ color: "var(--foreground)" }}>{renderHighlightedText(bannerInfo.apkThankYouDesc)}</p>
+                    <p className="text-[11px] font-medium leading-relaxed max-w-[320px] mx-auto opacity-85 whitespace-pre-line break-words text-justify" style={{ color: "var(--foreground)" }}>{renderHighlightedText(bannerInfo.apkThankYouDesc)}</p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -422,7 +422,7 @@ export default function HomePage() {
                 {showBanner && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden pt-3">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t pt-2.5" style={{ borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)' }}>
-                      <p className="text-[11px] opacity-85 leading-relaxed flex-1 whitespace-pre-line break-words" style={{ color: "var(--foreground)" }}>{bannerInfo.webDesc}</p>
+                      <p className="text-[11px] opacity-85 leading-relaxed flex-1 whitespace-pre-line break-words text-justify" style={{ color: "var(--foreground)" }}>{bannerInfo.webDesc}</p>
                       <button onClick={() => setShowDownloadConfirm(true)} className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-white font-extrabold text-[11px] shadow-lg color-shift-bg flex justify-center items-center gap-1.5 shrink-0" style={{ backgroundImage: 'linear-gradient(270deg, var(--accent), #ff6b6b, #4ecdc4, var(--accent))' }}>
                         <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg> Download APK
                       </button>
@@ -455,7 +455,7 @@ export default function HomePage() {
             <AnimatePresence initial={false}>
               {showPlatform && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                  <p className="text-[11px] opacity-85 leading-relaxed mt-2.5 pt-2 border-t whitespace-pre-line break-words" style={{ color: "var(--foreground)", borderColor: "var(--card-border)" }}>{renderHighlightedText(platformInfo.description)}</p>
+                  <p className="text-[11px] opacity-85 leading-relaxed mt-2.5 pt-2 border-t whitespace-pre-line break-words text-justify" style={{ color: "var(--foreground)", borderColor: "var(--card-border)" }}>{renderHighlightedText(platformInfo.description)}</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -515,7 +515,7 @@ export default function HomePage() {
                         <span className="font-black text-xs mt-0.5 shrink-0" style={{ color: "var(--accent)" }}>{idx + 1}.</span>
                         <div>
                           <h4 className="text-xs font-bold mb-0.5" style={{ color: "var(--foreground-heading)" }}>{feature.title}</h4>
-                          <p className={`text-[11px] opacity-85 leading-relaxed whitespace-pre-line break-words ${feature.isHighlight ? 'font-bold italic' : ''}`} style={{ color: feature.isHighlight ? "var(--accent)" : "var(--foreground)" }}>{renderHighlightedText(feature.text)}</p>
+                          <p className={`text-[11px] opacity-85 leading-relaxed whitespace-pre-line break-words text-justify ${feature.isHighlight ? 'font-bold italic' : ''}`} style={{ color: feature.isHighlight ? "var(--accent)" : "var(--foreground)" }}>{renderHighlightedText(feature.text)}</p>
                           {feature.action && (
                             <div className="mt-1.5">
                               <Link href={feature.action.href} className="inline-flex items-center px-3 py-1 rounded-full text-white font-bold text-[10px] shadow-md" style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 60%, white), var(--accent))" }}>{feature.action.label}</Link>
