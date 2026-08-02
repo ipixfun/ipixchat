@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useTheme } from "../context/ThemeContext";
 
 const EMOJIS = [
   { char: "😊", anim: "anim-pulse-soft" },
@@ -67,7 +66,6 @@ export default function ChatInput({
 
   const [showEmoji, setShowEmoji] = useState(false);
 
-  // DETEKSI TURUN/NAIKNYA KEYBOARD ANDROID VIA VISUAL VIEWPORT
   useEffect(() => {
     if (typeof window === "undefined" || !window.visualViewport) return;
 
@@ -93,67 +91,6 @@ export default function ChatInput({
       window.visualViewport?.removeEventListener("resize", handleResize);
     };
   }, [setUi]);
-
-  // Push notification setup
-  useEffect(() => {
-    async function setupPushSubscription() {
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
-
-      try {
-        const currentUsername = typeof auth?.user === "string" ? auth.user : auth?.user?.username;
-        if (!currentUsername) return;
-
-        let registration = await navigator.serviceWorker.getRegistration();
-        if (!registration) {
-          registration = await navigator.serviceWorker.register("/sw.js");
-        }
-        await navigator.serviceWorker.ready;
-
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") return;
-
-        const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-        if (!publicVapidKey) return;
-
-        let subscription = await registration.pushManager.getSubscription();
-
-        if (!subscription) {
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
-          });
-        }
-
-        if (subscription) {
-          await fetch("/api/save-subscription", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              username: currentUsername,
-              subscription: subscription,
-            }),
-          });
-        }
-      } catch (err) {
-        console.error("[Push] Error setup push subscription:", err);
-      }
-    }
-
-    if (auth?.isAuth && auth?.user) {
-      setupPushSubscription();
-    }
-  }, [auth?.isAuth, auth?.user]);
-
-  function urlBase64ToUint8Array(base64String: string) {
-    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-  }
 
   const addEmoji = (emoji: string) => {
     if (isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)) return;
@@ -194,7 +131,6 @@ export default function ChatInput({
             .anim-pulse-soft { animation: pulseSoft 1.3s infinite ease-in-out; }
           `}</style>
 
-          {/* Sembunyikan Nav saat input aktif */}
           {ui?.inputFocus && (
             <style>{`
               nav, footer, [class*="bottomnav"], [class*="bottom-nav"], [class*="BottomNav"], .z-\\[999\\] {
@@ -207,7 +143,6 @@ export default function ChatInput({
             `}</style>
           )}
 
-          {/* BARIS BALAS PESAN */}
           {interact?.replyTo && (
             <div 
               className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${styles.replyBg}`} 
@@ -229,7 +164,6 @@ export default function ChatInput({
             </div>
           )}
 
-          {/* BARIS EDIT PESAN */}
           {interact?.editingMsg && (
             <div className="mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x bg-blue-500/20 border-blue-500/40 text-blue-300">
               <div className="truncate flex-1 pr-2 font-medium">
@@ -250,10 +184,7 @@ export default function ChatInput({
 
           <form onSubmit={handleSubmit} className="shrink-0 p-2 sm:p-3 bg-transparent flex flex-col gap-1.5 w-full relative transition-all duration-300">
             
-            {/* BARIS 1 (ROW ATAS) */}
             <div className="flex items-center gap-1.5 sm:gap-2 w-full">
-              
-              {/* Teks Info / Selector Emoji */}
               <div className={`flex-1 text-[9px] h-[36px] sm:h-[40px] flex items-center min-w-0 ${styles.labelText}`}>
                 {showEmoji ? (
                   <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden animate-in fade-in zoom-in-95 duration-150 py-1 px-3 w-full bg-[var(--card-bg)]/80 border border-[var(--card-border)] rounded-xl shadow-inner backdrop-blur-md">
@@ -281,7 +212,6 @@ export default function ChatInput({
                 )}
               </div>
 
-              {/* Toggle Emoji */}
               <button
                 type="button"
                 onClick={() => setShowEmoji((prev) => !prev)}
@@ -294,7 +224,6 @@ export default function ChatInput({
                 </svg>
               </button>
 
-              {/* Upload Foto */}
               <div className="relative shrink-0 flex items-center justify-center">
                 <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isBlocked || input.uploadingImage || input.image !== null} />
                 <label htmlFor="image-upload" className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] cursor-pointer transition-colors flex items-center justify-center ${(ui.tab === "admin" && !usersInfo.selPriv) || input.image !== null || isBlocked ? "opacity-30 pointer-events-none" : styles.uploadIcon}`}>
@@ -311,7 +240,6 @@ export default function ChatInput({
                 </label>
               </div>
 
-              {/* REFRESH / BATAL / PREVIEW GAMBAR */}
               <div className="relative shrink-0 w-[80px] sm:w-[100px] h-[32px] sm:h-[36px] flex items-center justify-center">
                 {input.image ? (
                   <div className="absolute bottom-0 right-0 z-20 flex items-center justify-center">
@@ -362,9 +290,7 @@ export default function ChatInput({
 
             </div>
 
-            {/* BARIS 2 (ROW BAWAH - INPUT TEXT & TOMBOL KIRIM) */}
             <div className="flex items-stretch gap-1.5 sm:gap-2 w-full">
-              
               <div className="relative flex-1 w-full min-w-0">
                 <textarea
                   id="chat-input"
@@ -401,7 +327,6 @@ export default function ChatInput({
                 <div className={`absolute right-3 bottom-1.5 text-[9px] font-mono select-none bg-black/20 px-1 rounded ${styles.counter}`}>{200 - input.text.length}</div>
               </div>
 
-              {/* Tombol Kirim / Simpan */}
               <button 
                 type="submit" 
                 disabled={isBlocked || input.sending || (!input.text.trim() && !input.image) || (ui.tab === "admin" && !usersInfo.selPriv)} 

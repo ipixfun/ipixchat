@@ -34,7 +34,7 @@ const parseAnimatedEmojis = (text: string) => {
 };
 
 /* ========================================================================
-   1. KOMPONEN PINNED MESSAGE
+   KOMPONEN PINNED MESSAGE
    ======================================================================== */
 export function PinnedMessage({ 
   adminPinnedMsg,
@@ -116,7 +116,7 @@ export function PinnedMessage({
 }
 
 /* ========================================================================
-   2. POPUP MODAL GAMBAR (DENGAN ZOOM BEBAS) ATAU TEKS SAJA
+   POPUP MODAL GAMBAR (DENGAN ZOOM BEBAS) ATAU TEKS SAJA
    ======================================================================== */
 export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popupMsg: any; onClose: () => void; formatMessageTime?: (t: any) => string }) {
   if (!popupMsg) return null;
@@ -130,7 +130,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
   const isImageMode = popupMsg.popupMode === "image" || (!popupMsg.popupMode && popupMsg.image_url);
   const isTextMode = popupMsg.popupMode === "text" || (!popupMsg.popupMode && popupMsg.pesan && !popupMsg.image_url);
 
-  // Zoom controls
   const handleZoomIn = () => setScale((prev) => Math.min(prev + 0.5, 4));
   const handleZoomOut = () => {
     setScale((prev) => {
@@ -144,7 +143,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
     setPosition({ x: 0, y: 0 });
   };
 
-  // Drag handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     if (scale > 1) {
       setIsDragging(true);
@@ -163,7 +161,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
 
   const handleMouseUp = () => setIsDragging(false);
 
-  // Touch Pinch & Pan for Android
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       const dist = Math.hypot(
@@ -204,7 +201,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
       className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-between p-3 sm:p-4 transition-all duration-300 animate-fadeIn select-none"
       onClick={onClose}
     >
-      {/* Header Modal */}
       <div 
         className="w-full max-w-3xl flex justify-between items-center z-10 px-2 py-2 bg-slate-900/90 border border-slate-700/80 rounded-xl backdrop-blur-md shadow-lg"
         onClick={(e) => e.stopPropagation()}
@@ -216,7 +212,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
           </span>
         </div>
 
-        {/* Tombol Kontrol Zoom jika Mode Gambar */}
         {isImageMode && popupMsg.image_url && (
           <div className="flex items-center gap-1.5 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700">
             <button 
@@ -259,7 +254,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
         </button>
       </div>
 
-      {/* BODY POPUP: POPUP FOTO SAJA DENGAN ZOOM BEBAS */}
       {isImageMode && popupMsg.image_url && (
         <div 
           className="w-full flex-1 max-w-4xl my-auto overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing relative"
@@ -288,7 +282,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
         </div>
       )}
 
-      {/* BODY POPUP: POPUP TEKS SAJA */}
       {isTextMode && popupMsg.pesan && popupMsg.pesan !== "___DELETED___" && (
         <div 
           className="w-full max-w-2xl my-auto p-4 sm:p-5 bg-slate-900/95 border border-slate-700/80 rounded-2xl shadow-2xl overflow-y-auto max-h-[75vh]"
@@ -300,7 +293,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
         </div>
       )}
 
-      {/* Footer hint */}
       <div className="text-[10px] text-slate-400 font-mono z-10 py-1">
         {isImageMode ? "Gunakan 2 jari atau tombol di atas untuk Zoom & Geser" : "Klik X atau area luar untuk menutup"}
       </div>
@@ -309,7 +301,7 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
 }
 
 /* ========================================================================
-   3. KOMPONEN MESSAGE ITEM
+   KOMPONEN MESSAGE ITEM Utama
    ======================================================================== */
 export function MessageItem({
   m, colType, isMinimized, activeTab, isAdminOnline, adminOfflineTime, userStatus,
@@ -322,7 +314,6 @@ export function MessageItem({
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchInitialY, setTouchInitialY] = useState(0);
 
-  // Timer Khusus Long Press Gambar & Teks
   const imgLongPressTimer = useRef<NodeJS.Timeout | null>(null);
   const textLongPressTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -403,13 +394,11 @@ export function MessageItem({
     scrollToMessage(quotedText);
   };
 
-  // Fungsi saat tombol Edit diklik dari menu aksi
   const triggerEditAction = () => {
     if (editMsg) {
       editMsg(m.id || m);
     }
     setActiveMenuId(null);
-    // Otomatis fokus ke kolom input
     setTimeout(() => {
       const inputEl = document.getElementById("chat-input") as HTMLTextAreaElement;
       if (inputEl) {
@@ -516,7 +505,6 @@ export function MessageItem({
         </div>
       )}
       
-      {/* BUBBLE CHAT CONTAINER */}
       <div
         id={`msg-bubble-${m.id}`}
         className="relative z-10 transition-all duration-200 max-w-[90%] sm:max-w-[80%] min-w-[180px] p-3 border-[1.5px] shadow-sm select-none rounded-2xl"
@@ -546,7 +534,6 @@ export function MessageItem({
           borderColor: activeBorderColor
         }}
       >
-        {/* ICON PIN */}
         {m.is_pinned && (
           <div className="absolute -top-3 right-2.5 z-20 pointer-events-none filter drop-shadow-md" title="Pesan Disematkan">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--background)" strokeWidth="1.2">
@@ -563,7 +550,6 @@ export function MessageItem({
           </div>
         )}
 
-        {/* EKOR BUBBLE */}
         {isRightAligned ? (
           <>
             <div className="absolute top-1/2 -translate-y-1/2 -right-[7px] w-0 h-0 border-t-[6px] border-t-transparent border-l-[7px] border-b-[6px] border-b-transparent" style={{ borderLeftColor: activeBorderColor }} />
@@ -576,7 +562,6 @@ export function MessageItem({
           </>
         )}
 
-        {/* HEADER BUBBLE */}
         <div className="flex justify-between items-center gap-2 mb-1.5 w-full">
           <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
             <span 
@@ -604,10 +589,7 @@ export function MessageItem({
           </div>
         </div>
 
-        {/* ISI CHAT: FOTO DAN TEKS DIPISAHKAN EVENT-NYA */}
         <div className="flex items-start gap-2.5 my-1">
-          
-          {/* 1. AREA FOTO (DIKLIK/DITAHAN -> POPUP FOTO SAJA & BISA ZOOM) */}
           {m.image_url && (
             <div 
               className="relative cursor-pointer group shrink-0 w-max z-20"
@@ -645,7 +627,6 @@ export function MessageItem({
             </div>
           )}
           
-          {/* 2. AREA TEKS (DITAHAN -> POPUP TEKS SAJA) */}
           {m.pesan && (() => {
             const isPage2Private = colType === "private";
             const maxLines = isPage2Private ? 4 : 2, maxChars = isPage2Private ? 120 : 60; 
@@ -696,7 +677,6 @@ export function MessageItem({
           })()}
         </div>
 
-        {/* KETERANGAN EDITED */}
         {isEdited && (
           <div className="mt-1.5 pt-1 border-t border-black/10 flex items-center gap-1.5">
             <span className="text-amber-400 font-bold text-[9px] lowercase">(edited)</span>
@@ -708,7 +688,6 @@ export function MessageItem({
           </div>
         )}
 
-        {/* FOOTER BUBBLE */}
         <div className="mt-1.5 pt-1 border-t border-black/10 flex justify-between items-center gap-2">
           <div className="flex-1 overflow-hidden flex flex-col gap-0.5 text-left" />
           
@@ -742,7 +721,6 @@ export function MessageItem({
           </div>
         </div>
 
-        {/* WEB BROWSER ADMIN */}
         {activeTab === "admin" && m.user_browser && (
           <div 
             className="w-full mt-2 pt-1.5 border-t border-black/10 text-[9px] font-mono opacity-70 leading-tight truncate sm:whitespace-normal sm:break-all sm:line-clamp-none" 
