@@ -41,6 +41,9 @@ export default function Home() {
     swipeId: null as number | null,
     editingMsg: null as any 
   });
+
+  // STATE UNTUK POPUP GALERI FOTO USER (KUMPULAN KOTAK-KOTAK THUMBNAIL)
+  const [galleryModal, setGalleryModal] = useState<{ username: string; msgs: any[] } | null>(null);
   
   const [currentHash, setCurrentHash] = useState("");
   const CLOUDINARY_CLOUD_NAME = "bjamo8ld";
@@ -527,6 +530,18 @@ export default function Home() {
   const userPinnedMsg = currentMsgs.find((m) => m.is_pinned && m.pesan !== "___DELETED___" && m.username !== "Admin●ipix.my.id");
   const shouldShowPinned = auth.isAuth && currentHash !== "#block" && (ui.tab === "user" || (ui.tab === "admin" && usersInfo.selPriv !== null));
 
+  // HELPER MENGAMBIL FOTO-FOTO USER TERTENTU
+  const handleOpenUserGallery = (targetUsername: string) => {
+    const userImagesMsgs = msgs.priv.filter(
+      (m) => m.username === targetUsername && m.image_url && m.pesan !== "___DELETED___"
+    );
+    if (userImagesMsgs.length > 0) {
+      setGalleryModal({ username: targetUsername, msgs: userImagesMsgs });
+    } else {
+      alert(`Belum ada foto yang di-upload oleh ${targetUsername.split("●")[0]}`);
+    }
+  };
+
   const renderMsgs = (arr: any[], colType: any) => {
     if (!auth.isAuth) return null;
     const messageContent = arr.length === 0 ? (
@@ -535,6 +550,12 @@ export default function Home() {
       arr.map((m, idx) => {
         const isMine = m.username === auth.user; 
         const maxWidthClass = "max-w-[85%] md:max-w-[75%]";
+
+        // Hitung berapa total foto yang pernah di-upload oleh user dari pesan ini
+        const userImagesCount = msgs.priv.filter(
+          (x) => x.username === m.username && x.image_url && x.pesan !== "___DELETED___"
+        ).length;
+
         return (
           <div key={m.id} className={`w-full flex px-2 sm:px-4 ${isMine ? "justify-end" : "justify-start"}`}>
             <div className={`relative flex flex-col chat-bubble-wrapper min-w-[35%] ${maxWidthClass} ${isMine ? "items-end" : "items-start"}`}>
@@ -570,6 +591,8 @@ export default function Home() {
                 }} 
                 formatMessageTime={getFmt.time} 
                 authUser={auth.user} 
+                onOpenGallery={handleOpenUserGallery}
+                userImagesCount={userImagesCount}
               />
             </div>
           </div>
@@ -608,7 +631,7 @@ export default function Home() {
             outline: 3px solid var(--accent, #eab308);
           }
           40%, 80% {
-            transform: scale(1.04) translateX(-6px);
+            transform: scale(1.04) translateX(6px);
             box-shadow: 0 0 30px var(--accent, #eab308);
             outline: 3px solid var(--accent, #eab308);
           }
@@ -713,7 +736,54 @@ export default function Home() {
       
       {currentHash !== "#block" && auth.isAuth && renderInputForm()}
       
-      {/* 1. POPUP KLIK 1X GAMBAR (GAMBAR SAJA DENGAN ZOOM & HANYA TOMBOL UNDUH) */}
+      {/* POPUP GALERI FOTO USER (KUMPULAN KOTAK-KOTAK THUMBNAIL) */}
+      {galleryModal && (
+        <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn" onClick={() => setGalleryModal(null)}>
+          <div className="w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl p-4 shadow-2xl flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
+              <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                🖼️ Galeri Foto @{galleryModal.username.split("●")[0]} 
+                <span className="text-[10px] bg-amber-500/20 px-2 py-0.5 rounded-full text-amber-300 font-mono">
+                  {galleryModal.msgs.length} foto
+                </span>
+              </span>
+              <button 
+                type="button"
+                onClick={() => setGalleryModal(null)} 
+                className="w-6 h-6 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* GRID KOTAK-KOTAK THUMBNAIL */}
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 overflow-y-auto pr-1 max-h-[60vh] [scrollbar-width:thin]">
+              {galleryModal.msgs.map((imgMsg) => (
+                <div
+                  key={imgMsg.id}
+                  onClick={() => {
+                    setGalleryModal(null);
+                    scrollMsg(imgMsg.id); // LANGSUNG DIARAHKAN KE BUBBLE CHAT GAMBAR TUJUAN
+                  }}
+                  className="aspect-square relative group cursor-pointer rounded-xl overflow-hidden border border-slate-700 hover:border-amber-400 transition-all active:scale-95 bg-black/40 shadow-sm"
+                >
+                  <img 
+                    src={imgMsg.image_url} 
+                    alt="Gallery item" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" 
+                  />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-[9px] text-white font-bold text-center p-1 backdrop-blur-[1px]">
+                    <span>Lompat ke Chat</span>
+                    <span className="text-[8px] text-amber-300 font-mono mt-0.5">{getFmt.time(imgMsg.created_at)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP KLIK 1X GAMBAR */}
       {auth.isAuth && interact.popup && interact.popup.popupMode === "image_only" && (
         <ImagePopupModal 
           popupMsg={interact.popup} 
@@ -722,7 +792,7 @@ export default function Home() {
         />
       )}
 
-      {/* 2. POPUP KLIK 1X TEKS (TEKS SAJA) */}
+      {/* POPUP KLIK 1X TEKS */}
       {auth.isAuth && interact.popup && interact.popup.popupMode === "text_only" && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
           <div className="w-full max-w-md rounded-2xl shadow-2xl p-4 relative max-h-[80vh] flex flex-col border-t-4" style={{ backgroundColor: "var(--background)", borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
@@ -740,7 +810,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* 3. POPUP TAHAN PESAN (LONG PRESS) -> LENGKAP DENGAN PILL AKSI KESELURUHAN */}
+      {/* POPUP TAHAN PESAN (LONG PRESS) */}
       {auth.isAuth && interact.popup && (interact.popup.popupMode === "full" || !interact.popup.popupMode) && interact.popup.pesan !== "___DELETED___" && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
           <div className="w-full max-w-lg rounded-2xl shadow-2xl p-4 relative max-h-[90vh] flex flex-col border-t-4" style={{ backgroundColor: "var(--background)", borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>

@@ -215,7 +215,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
       className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-between p-3 sm:p-4 transition-all duration-300 animate-fadeIn select-none"
       onClick={onClose}
     >
-      {/* HEADER */}
       <div 
         className="w-full max-w-3xl flex justify-between items-center z-10 px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-xl backdrop-blur-md shadow-lg"
         onClick={(e) => e.stopPropagation()}
@@ -227,7 +226,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
           </span>
         </div>
 
-        {/* CONTROLLER ZOOM */}
         <div className="flex items-center gap-1.5 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700">
           <button 
             type="button" 
@@ -268,7 +266,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
         </button>
       </div>
 
-      {/* GAMBAR ZOOMABLE */}
       <div 
         className="w-full flex-1 max-w-4xl my-auto overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing relative"
         onClick={(e) => e.stopPropagation()}
@@ -295,7 +292,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
         />
       </div>
 
-      {/* FOOTER: HANYA TOMBOL UNDUH */}
       <div className="z-10 py-2 flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
         <button 
           type="button" 
@@ -322,14 +318,14 @@ export function MessageItem({
   m, colType, isMinimized, activeTab, isAdminOnline, adminOfflineTime, userStatus,
   activeMenuId, setActiveMenuId, swipingId, setSwipingId, handleTag, handleReply,
   deleteMsg, copyToClipboard, handleEditLimit, editMsg, blockUser, setPopupMsg,
-  handleLongPress, approveImage, applyCensor, scrollToMessage, formatMessageTime, authUser, handlePin
+  handleLongPress, approveImage, applyCensor, scrollToMessage, formatMessageTime, authUser, handlePin,
+  onOpenGallery, userImagesCount
 }: any) {
   const [swipeDelta, setSwipeDelta] = useState(0);
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchInitialY, setTouchInitialY] = useState(0);
 
-  // TIMERS & FLAGS UNTUK DIBEDAKAN: KLIK 1X VS TAHAN (LONG PRESS)
   const imgTimerRef = useRef<NodeJS.Timeout | null>(null);
   const imgLongPressFired = useRef(false);
 
@@ -624,6 +620,21 @@ export function MessageItem({
             >
               {displayCleanUsername}
             </span>
+
+            {/* BADGE GALERI FOTO USER (MUNCUL APABILA USER TERSEBUT MEMILIKI HISTORI FOTO) */}
+            {userImagesCount > 0 && onOpenGallery && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenGallery(m.username);
+                }}
+                className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-purple-600/30 text-purple-300 border border-purple-500/40 hover:bg-purple-600/50 flex items-center gap-1 shrink-0 active:scale-95 transition-all shadow-xs"
+                title={`Buka Galeri Foto @${displayCleanUsername}`}
+              >
+                🖼️ {userImagesCount}
+              </button>
+            )}
           </div>
           
           <div className="flex items-center shrink-0">
@@ -664,7 +675,6 @@ export function MessageItem({
                   imgLongPressFired.current = false;
                   return;
                 }
-                // KLIK 1X PADA GAMBAR -> POPUP GAMBAR SAJA DENGAN ZOOM
                 setPopupMsg({ ...m, popupMode: "image_only" });
               }}
             >
@@ -705,7 +715,6 @@ export function MessageItem({
                     textLongPressFired.current = false;
                     return;
                   }
-                  // KLIK 1X PADA TEKS -> POPUP TEKS SAJA
                   setPopupMsg({ ...m, popupMode: "text_only" });
                 }}
               >
