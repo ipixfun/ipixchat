@@ -377,10 +377,8 @@ export default function HomePage() {
     });
   };
 
-  // Teks Dinamis Pill Kanan (Maksimal 20 Huruf)
-  const displayUserPill = userName 
-    ? (userName.length > 20 ? userName.slice(0, 20) : userName) 
-    : "Orang Baik";
+  // Teks Dinamis Pill Kanan (Sembunyi jika belum login, Maksimal 20 Huruf jika ada)
+  const displayUserName = userName ? (userName.length > 20 ? userName.slice(0, 20) : userName) : null;
 
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px] relative overflow-hidden bg-[var(--background)] font-sans text-xs">
@@ -662,7 +660,7 @@ export default function HomePage() {
           </div>
         )}
         
-        {/* 2. Banner APK / Web (DENGAN DUA PILL: TERIMA KASIH [KIRI] & NAMA USER [KANAN]) */}
+        {/* 2. Banner APK / Web (DENGAN DUA PILL: BADGE [KIRI] & NAMA USER [KANAN, JIKA LOGIN]) */}
         <AnimatePresence mode="wait">
           {isEditMode ? (
             <motion.div 
@@ -717,18 +715,20 @@ export default function HomePage() {
                   </h2>
                 </div>
 
-                {/* PILL KANAN (NAMA USER / ORANG BAIK) + TOMBOL TOGGLE */}
+                {/* PILL KANAN (NAMA USER JIKA LOGIN) + TOMBOL TOGGLE */}
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span 
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow-md" 
-                    style={{ 
-                      backgroundColor: 'var(--accent)', 
-                      color: 'var(--background)',
-                      boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 50%, transparent)'
-                    }}
-                  >
-                    {displayUserPill}
-                  </span>
+                  {displayUserName && (
+                    <span 
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow-md" 
+                      style={{ 
+                        backgroundColor: 'var(--accent)', 
+                        color: 'var(--background)',
+                        boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 50%, transparent)'
+                      }}
+                    >
+                      {displayUserName}
+                    </span>
+                  )}
                   <button aria-label="Toggle banner" className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
                     <motion.svg animate={{ rotate: showBanner ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
                   </button>
@@ -786,18 +786,20 @@ export default function HomePage() {
                   </h2>
                 </div>
 
-                {/* PILL KANAN (NAMA USER / ORANG BAIK) + TOMBOL TOGGLE */}
+                {/* PILL KANAN (NAMA USER JIKA LOGIN) + TOMBOL TOGGLE */}
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span 
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow-md" 
-                    style={{ 
-                      backgroundColor: 'var(--accent)', 
-                      color: 'var(--background)',
-                      boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 50%, transparent)'
-                    }}
-                  >
-                    {displayUserPill}
-                  </span>
+                  {displayUserName && (
+                    <span 
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow-md" 
+                      style={{ 
+                        backgroundColor: 'var(--accent)', 
+                        color: 'var(--background)',
+                        boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 50%, transparent)'
+                      }}
+                    >
+                      {displayUserName}
+                    </span>
+                  )}
                   <button aria-label="Toggle detail download" className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
                     <motion.svg animate={{ rotate: showBanner ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
                   </button>
@@ -811,7 +813,7 @@ export default function HomePage() {
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t pt-2.5" style={{ borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)' }}>
                       <p className="text-[11px] opacity-85 leading-relaxed flex-1" style={{ color: "var(--foreground)" }}>{bannerInfo.webDesc}</p>
                       <button onClick={() => setShowDownloadConfirm(true)} className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-white font-extrabold text-[11px] shadow-lg color-shift-bg flex justify-center items-center gap-1.5 shrink-0" style={{ backgroundImage: 'linear-gradient(270deg, var(--accent), #ff6b6b, #4ecdc4, var(--accent))' }}>
-                        <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg> Unduh APK
+                        <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg> Download APK
                       </button>
                     </div>
                   </motion.div>
