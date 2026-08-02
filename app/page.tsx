@@ -110,7 +110,7 @@ export default function HomePage() {
   const [ecosystemLinks, setEcosystemLinks] = useState(DEFAULT_ECOSYSTEM_LINKS);
 
   // State Toggle Pull-Down
-  const [showBanner, setShowBanner] = useState(false); // Dropdown Banner Download / Terima Kasih
+  const [showBanner, setShowBanner] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
   const [showPlatform, setShowPlatform] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
@@ -120,7 +120,6 @@ export default function HomePage() {
     setIsMounted(true);
     if (typeof window === 'undefined') return;
 
-    // 1. Deteksi Mode APK setelah komponen terpasang di browser
     const userAgent = navigator.userAgent.toLowerCase();
     const isApkMode = userAgent.includes('wv') || userAgent.includes('ipixchat');
     setIsApk(isApkMode);
@@ -134,7 +133,6 @@ export default function HomePage() {
       }
     }
 
-    // 2. Muat Cache Lokal / Memori Instan
     const cachedData = memoryCache || (() => {
       try {
         const stored = localStorage.getItem('ipix_homepage_config');
@@ -152,14 +150,10 @@ export default function HomePage() {
       if (cachedData.ecosystem_links) setEcosystemLinks(cachedData.ecosystem_links);
     }
 
-    // Auth Session Check & Banner State Initialization
     supabase.auth.getSession().then(({ data: { session } }) => {
       const loggedIn = !!session;
       setIsAdmin(loggedIn);
 
-      // ATURAN BANNER: 
-      // Jika belum login & di Web -> Terbuka
-      // Jika sudah login ATAU di APK -> Tertutup (posisi awal home)
       if (loggedIn || isApkMode) {
         setShowBanner(false);
       } else {
@@ -173,7 +167,6 @@ export default function HomePage() {
       if (loggedIn) setShowBanner(false);
     });
 
-    // 3. Fetch data terbaru dari Supabase
     const fetchContent = async () => {
       try {
         const { data, error } = await supabase
@@ -216,7 +209,6 @@ export default function HomePage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // --- KETUK LOGO 5X DIARAHKAN KE LINK SUKACHUB ---
   const handleSecretLogoClick = () => {
     setClickCount((prev) => {
       const newCount = prev + 1;
@@ -249,13 +241,6 @@ export default function HomePage() {
     } catch (err: any) {
       setLoginError('Email atau Password salah!');
     }
-  };
-
-  // Handler Logout / Keluar
-  const handleAdminLogout = async () => {
-    await supabase.auth.signOut();
-    setIsAdmin(false);
-    setIsEditMode(false);
   };
 
   const toggleEditMode = () => {
@@ -378,7 +363,6 @@ export default function HomePage() {
 
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px] relative overflow-hidden bg-[var(--background)] font-sans text-xs">
-      {/* Penggunaan dangerouslySetInnerHTML Mencegah Hydration Mismatch pada CSS */}
       <style dangerouslySetInnerHTML={{ __html: `
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
@@ -392,7 +376,6 @@ export default function HomePage() {
           100% { background-position: 0% 50%; }
         }
 
-        /* --- GELOMBANG ANIMASI DUAL WAVE LOOP PERFECT SEAMLESS --- */
         @keyframes wave-loop-1 {
           0% { transform: translate3d(0, 0, 0); }
           100% { transform: translate3d(-50%, 0, 0); }
@@ -544,14 +527,11 @@ export default function HomePage() {
               </a>
             ))}
             
-            {/* TOMBOL EDIT & KELUAR (SAMPINGAN) */}
+            {/* TOMBOL EDIT ADMIN */}
             {isAdmin && (
               <div className="flex items-center gap-1">
                 <button onClick={toggleEditMode} className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide bg-amber-500 text-black shadow-md active:scale-95">
                   {isEditMode ? 'Tutup' : 'Edit'}
-                </button>
-                <button onClick={handleAdminLogout} className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide bg-red-600 text-white shadow-md active:scale-95">
-                  Keluar
                 </button>
               </div>
             )}
@@ -661,7 +641,7 @@ export default function HomePage() {
           </div>
         )}
         
-        {/* 2. Banner APK / Web (DENGAN FEATURE PULL-DOWN & TOGGLE) */}
+        {/* 2. Banner APK / Web (DENGAN EDIT PILL BADGE & TOGGLE) */}
         <AnimatePresence mode="wait">
           {isEditMode ? (
             <motion.div 
@@ -671,10 +651,12 @@ export default function HomePage() {
               exit={{ opacity: 0, y: -5 }}
               className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3 text-xs"
             >
-              <h3 className="text-amber-500 font-black text-xs border-b border-amber-500/30 pb-1.5">Edit Teks Banner</h3>
+              <h3 className="text-amber-500 font-black text-xs border-b border-amber-500/30 pb-1.5">Edit Teks Banner & Pill Badge</h3>
               <div className="space-y-2">
+                <label className="admin-label">Teks Pill Badge (Aplikasi Android)</label>
+                <input type="text" className="admin-input" placeholder="Teks Pill Badge" value={bannerInfo.webBadge} onChange={e => setBannerInfo({...bannerInfo, webBadge: e.target.value})} />
+                
                 <label className="admin-label">Banner Web (Unduh)</label>
-                <input type="text" className="admin-input" placeholder="Badge" value={bannerInfo.webBadge} onChange={e => setBannerInfo({...bannerInfo, webBadge: e.target.value})} />
                 <input type="text" className="admin-input" placeholder="Judul" value={bannerInfo.webTitle} onChange={e => setBannerInfo({...bannerInfo, webTitle: e.target.value})} />
                 <textarea rows={2} className="admin-input" placeholder="Deskripsi" value={bannerInfo.webDesc} onChange={e => setBannerInfo({...bannerInfo, webDesc: e.target.value})} />
               </div>
@@ -703,7 +685,7 @@ export default function HomePage() {
                 <h2 className="text-xs font-black truncate px-2" style={{ color: "var(--foreground-heading)" }}>
                   {renderHighlightedText(bannerInfo.apkThankYouTitle)}
                 </h2>
-                <button aria-label="Toggle banner" className="p-1 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+                <button aria-label="Toggle banner" className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
                   <motion.svg animate={{ rotate: showBanner ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
                 </button>
               </div>
@@ -744,13 +726,13 @@ export default function HomePage() {
               <div onClick={() => setShowBanner(!showBanner)} className="flex items-center justify-between cursor-pointer group z-10 w-full">
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)', color: 'var(--accent)' }}>
-                    {bannerInfo.webBadge}
+                    {bannerInfo.webBadge || "Aplikasi Android"}
                   </span>
                   <h2 className="text-xs sm:text-sm font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>
                     {renderHighlightedText(bannerInfo.webTitle)} <span className="text-[10px] font-bold opacity-80">({appInfo.apkSize})</span>
                   </h2>
                 </div>
-                <button aria-label="Toggle detail download" className="p-1 rounded-xl" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+                <button aria-label="Toggle detail download" className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
                   <motion.svg animate={{ rotate: showBanner ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
                 </button>
               </div>
@@ -798,7 +780,7 @@ export default function HomePage() {
               </div>
               <button 
                 aria-label="Toggle detail platform"
-                className="p-1.5 rounded-xl flex items-center gap-1" 
+                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" 
                 style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}
               >
                 <motion.svg animate={{ rotate: showPlatform ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
@@ -909,7 +891,7 @@ export default function HomePage() {
                 <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full border" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>{appInfo.version}</span>
                 <button 
                   aria-label="Toggle detail fitur"
-                  className="p-1 rounded-xl" 
+                  className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" 
                   style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}
                 >
                   <motion.svg animate={{ rotate: showFeatures ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
@@ -981,7 +963,7 @@ export default function HomePage() {
               <div className="flex items-center">
                 <button 
                   aria-label="Toggle panduan video"
-                  className="p-1 rounded-xl" 
+                  className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" 
                   style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}
                 >
                   <motion.svg animate={{ rotate: showVideo ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg>
