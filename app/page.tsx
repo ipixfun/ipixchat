@@ -29,7 +29,7 @@ const DEFAULT_APP_INFO = {
 const DEFAULT_BANNER_INFO = {
   apkThankYouTitle: "Terima Kasih!",
   apkThankYouDesc: "Terima kasih supportnya sudah menggunakan apk ipixchat. Nikmati pengalaman berinteraksi yang lebih cepat dan lancar.",
-  webBadge: "Aplikasi Android",
+  webBadge: "Terima Kasih",
   webTitle: "Unduh aplikasi ipixchat",
   webDesc: "Dapatkan pengalaman interaksi yang lebih optimal, ringan, dan cepat langsung melalui perangkat Android Anda."
 };
@@ -92,8 +92,9 @@ export default function HomePage() {
   const [isMounted, setIsMounted] = useState(false);
   const [isApk, setIsApk] = useState<boolean>(false);
 
-  // ADMIN & EDIT STATE
+  // USER & ADMIN STATE
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userName, setUserName] = useState<string>('');
   const [isEditMode, setIsEditMode] = useState(false);
   const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
   const [adminEmailInput, setAdminEmailInput] = useState('');
@@ -115,7 +116,7 @@ export default function HomePage() {
   const [showPlatform, setShowPlatform] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
 
-  // Deteksi Client-Side (APK, Cache, Supabase) setelah Mount
+  // Deteksi Client-Side (APK, Cache, Supabase, User Name) setelah Mount
   useEffect(() => {
     setIsMounted(true);
     if (typeof window === 'undefined') return;
@@ -131,6 +132,12 @@ export default function HomePage() {
         localStorage.setItem('ipix_apk_first_open', 'true');
         router.push('/chat');
       }
+    }
+
+    // Deteksi Nama User dari Local Storage
+    const storedUser = localStorage.getItem('ipix_user') || localStorage.getItem('username') || localStorage.getItem('ipix_username');
+    if (storedUser) {
+      setUserName(storedUser.split('●')[0]);
     }
 
     const cachedData = memoryCache || (() => {
@@ -154,6 +161,11 @@ export default function HomePage() {
       const loggedIn = !!session;
       setIsAdmin(loggedIn);
 
+      if (session?.user) {
+        const nameFromAuth = session.user.user_metadata?.username || session.user.email?.split('●')[0]?.split('@')[0];
+        if (nameFromAuth) setUserName(nameFromAuth);
+      }
+
       if (loggedIn || isApkMode) {
         setShowBanner(false);
       } else {
@@ -164,6 +176,10 @@ export default function HomePage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const loggedIn = !!session;
       setIsAdmin(loggedIn);
+      if (session?.user) {
+        const nameFromAuth = session.user.user_metadata?.username || session.user.email?.split('●')[0]?.split('@')[0];
+        if (nameFromAuth) setUserName(nameFromAuth);
+      }
       if (loggedIn) setShowBanner(false);
     });
 
@@ -360,6 +376,9 @@ export default function HomePage() {
       return part;
     });
   };
+
+  // Teks Dinamis untuk Badge/Pill Banner
+  const dynamicBadgeLabel = `${bannerInfo.webBadge || "Terima Kasih"} ${userName ? userName : "Orang Baik"}`;
 
   return (
     <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px] relative overflow-hidden bg-[var(--background)] font-sans text-xs">
@@ -651,10 +670,10 @@ export default function HomePage() {
               exit={{ opacity: 0, y: -5 }}
               className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3 text-xs"
             >
-              <h3 className="text-amber-500 font-black text-xs border-b border-amber-500/30 pb-1.5">Edit Teks Banner & Pill Badge</h3>
+              <h3 className="text-amber-500 font-black text-xs border-b border-amber-500/30 pb-1.5">Edit Teks Banner & Awalan Pill Badge</h3>
               <div className="space-y-2">
-                <label className="admin-label">Teks Pill Badge (Aplikasi Android)</label>
-                <input type="text" className="admin-input" placeholder="Teks Pill Badge" value={bannerInfo.webBadge} onChange={e => setBannerInfo({...bannerInfo, webBadge: e.target.value})} />
+                <label className="admin-label">Awalan Teks Pill Badge (Default: Terima Kasih)</label>
+                <input type="text" className="admin-input" placeholder="Misal: Terima Kasih" value={bannerInfo.webBadge} onChange={e => setBannerInfo({...bannerInfo, webBadge: e.target.value})} />
                 
                 <label className="admin-label">Banner Web (Unduh)</label>
                 <input type="text" className="admin-input" placeholder="Judul" value={bannerInfo.webTitle} onChange={e => setBannerInfo({...bannerInfo, webTitle: e.target.value})} />
@@ -679,8 +698,16 @@ export default function HomePage() {
             >
               {/* HEADER PULL DOWN BANNER APK */}
               <div onClick={() => setShowBanner(!showBanner)} className="w-full flex items-center justify-between cursor-pointer group z-10">
-                <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)', color: 'var(--accent)' }}>
-                  {bannerInfo.webBadge || "Aplikasi Android"}
+                {/* PILL TERANG DINAMIS */}
+                <div 
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow-md" 
+                  style={{ 
+                    backgroundColor: 'var(--accent)', 
+                    color: 'var(--background)',
+                    boxShadow: '0 0 10px color-mix(in srgb, var(--accent) 40%, transparent)'
+                  }}
+                >
+                  {dynamicBadgeLabel}
                 </div>
                 <h2 className="text-xs font-black truncate px-2" style={{ color: "var(--foreground-heading)" }}>
                   {renderHighlightedText(bannerInfo.apkThankYouTitle)}
@@ -725,8 +752,16 @@ export default function HomePage() {
               {/* HEADER PULL DOWN BANNER WEB */}
               <div onClick={() => setShowBanner(!showBanner)} className="flex items-center justify-between cursor-pointer group z-10 w-full">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)', color: 'var(--accent)' }}>
-                    {bannerInfo.webBadge || "Aplikasi Android"}
+                  {/* PILL TERANG DINAMIS */}
+                  <span 
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow-md" 
+                    style={{ 
+                      backgroundColor: 'var(--accent)', 
+                      color: 'var(--background)',
+                      boxShadow: '0 0 10px color-mix(in srgb, var(--accent) 40%, transparent)'
+                    }}
+                  >
+                    {dynamicBadgeLabel}
                   </span>
                   <h2 className="text-xs sm:text-sm font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>
                     {renderHighlightedText(bannerInfo.webTitle)} <span className="text-[10px] font-bold opacity-80">({appInfo.apkSize})</span>
