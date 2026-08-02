@@ -7,7 +7,7 @@ import Block from "../../components/Block";
 import ChatLayout from "./ChatLayout";
 import ChatInput from "./ChatInput";
 import Head from "./Head";
-import { MessageItem, PinnedMessage } from "./MessageItem";
+import { MessageItem, PinnedMessage, ImagePopupModal } from "./MessageItem";
 import Loading from "../loading";
 import BottomNav from "../../components/bottomnav";
 import { Capacitor } from "@capacitor/core";
@@ -34,7 +34,6 @@ export default function Home() {
   const [censor, setCensor] = useState({ words: [] as string[], newWord: "" });
   const [input, setInput] = useState({ text: "", sending: false, blink: false, image: null as string | null, uploadingImage: false });
   
-  // State interact mencakup editingMsg
   const [interact, setInteract] = useState({ 
     replyTo: null as any, 
     activeMenu: null as number | null, 
@@ -212,47 +211,31 @@ export default function Home() {
     });
   };
 
-  // LOGIKA DB ACTIONS UNTUK USER BIASA DAN ADMIN tetap dibedakan!
   const dbActions = {
-    // Edit untuk User biasa (Maksimal 2x Edit)
+    editMsg: async (mOrId: any) => {
+      const msgToEdit = typeof mOrId === "object" ? mOrId : msgs.all.find((x) => x.id === mOrId);
+      if (!msgToEdit) return;
+
+      if (auth.user !== "Admin●ipix.my.id") {
+        const c = parseInt(localStorage.getItem(`edit_${msgToEdit.id}`) || "0");
+        if (c >= 2) return alert("Batas 2x edit!");
+      }
+
+      setInput((p) => ({ ...p, text: msgToEdit.pesan || "" }));
+      setInteract((p) => ({ ...p, editingMsg: msgToEdit, replyTo: null, popup: null, activeMenu: null }));
+
+      setTimeout(() => {
+        const inputEl = document.getElementById("chat-input") as HTMLTextAreaElement;
+        if (inputEl) {
+          inputEl.focus();
+          inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
+          inputEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 100);
+    },
     editLmt: async (m: any) => {
-      if (!m) return;
-      const c = parseInt(localStorage.getItem(`edit_${m.id}`) || "0"); 
-      if (c >= 2) return alert("Batas 2x edit!");
-
-      // Masukkan pesan ke ChatInput & Tutup Popup
-      setInput((p) => ({ ...p, text: m.pesan || "" }));
-      setInteract((p) => ({ ...p, editingMsg: m, replyTo: null, popup: null, activeMenu: null }));
-
-      setTimeout(() => {
-        const inputEl = document.getElementById("chat-input") as HTMLTextAreaElement;
-        if (inputEl) {
-          inputEl.focus();
-          inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
-          inputEl.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }, 100);
+      dbActions.editMsg(m);
     },
-
-    // Edit untuk Admin (Bebas tanpa batasan 2x)
-    editMsg: async (idOrMsg: any) => {
-      const m = typeof idOrMsg === "object" ? idOrMsg : msgs.all.find((x) => x.id === idOrMsg);
-      if (!m) return;
-
-      // Masukkan pesan ke ChatInput & Tutup Popup
-      setInput((p) => ({ ...p, text: m.pesan || "" }));
-      setInteract((p) => ({ ...p, editingMsg: m, replyTo: null, popup: null, activeMenu: null }));
-
-      setTimeout(() => {
-        const inputEl = document.getElementById("chat-input") as HTMLTextAreaElement;
-        if (inputEl) {
-          inputEl.focus();
-          inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
-          inputEl.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }, 100);
-    },
-
     delMsg: async (m: any, isSwipe = false) => {
       const isAlreadyDeleted = m.pesan === "___DELETED___";
       const confirmMsg = isAlreadyDeleted ? "Hapus permanen pesan ini dari database?" : isSwipe ? "Swipe terdeteksi. Pindahkan pesan ini ke tong sampah?" : "Pindahkan pesan ini ke tong sampah?";
@@ -276,19 +259,16 @@ export default function Home() {
       }
       fetchData();
     },
-
     emptyTrash: async () => {
       if (confirm("Kosongkan semua pesan yang telah dihapus di tong sampah secara permanen?")) {
         const { error } = await supabase.from("messages").delete().eq("pesan", "___DELETED___");
         if (error) alert("Gagal mengosongkan tempat sampah."); else alert("Tempat sampah berhasil dikosongkan!"); fetchData();
       }
     },
-
     blkUser: async (arg1: string, arg2?: string) => {
       const targetUsername = arg2 || arg1;
       if (confirm(`Blokir user ${targetUsername}?`)) { await supabase.from("blocked_users").insert([{ username: targetUsername }]); fetchData(); }
     },
-
     deleteAllUserMsgs: async (targetUsername: string) => {
       if (confirm(`Yakin ingin HAPUS SEMUA PESAN dari user ${targetUsername}? Tindakan ini tidak bisa dibatalkan.`)) {
         const { error } = await supabase.from("messages").delete().eq("username", targetUsername);
@@ -301,16 +281,13 @@ export default function Home() {
         }
       }
     },
-
     addWrd: async () => {
       if (censor.newWord.trim()) {
         const { error } = await supabase.from("blocked_words").insert([{ word: censor.newWord.trim().toLowerCase() }]);
         if (error) { alert("Gagal menambah kata terlarang."); console.error(error); } else { setCensor((p) => ({ ...p, newWord: "" })); fetchData(); }
       }
     },
-
     rmWrd: async (w: string) => { const { error } = await supabase.from("blocked_words").delete().eq("word", w); if (error) alert("Gagal menghapus kata terlarang."); fetchData(); },
-    
     approveImg: async (id: number) => { await supabase.from("messages").update({ is_approved: true }).eq("id", id); fetchData(); },
     
     togglePin: async (msg: any) => {
@@ -488,7 +465,6 @@ export default function Home() {
     setInput((p) => ({ ...p, sending: true }));
     let txt = input.text.trim();
 
-    // 1. LOGIKA SIMPAN PESAN YANG SEDANG DIEDIT
     if (interact.editingMsg) {
       const mId = interact.editingMsg.id;
       const isUserAdmin = auth.user === "Admin●ipix.my.id";
@@ -518,7 +494,6 @@ export default function Home() {
       return;
     }
 
-    // 2. LOGIKA KIRIM PESAN BARU
     if (interact.replyTo) { const q = interact.replyTo.pesan; const quote = q.length > 30 ? q.substring(0, 30) + "..." : q; txt = `@${interact.replyTo.username.split("●")[0]} ("${quote}") ${input.text.trim()}`; }
     if (auth.user !== "Admin●ipix.my.id") {
       const fiveMinsAgo = new Date(Date.now() - 300000).toISOString();
@@ -633,7 +608,7 @@ export default function Home() {
             outline: 3px solid var(--accent, #eab308);
           }
           40%, 80% {
-            transform: scale(1.04) translateX(6px);
+            transform: scale(1.04) translateX(-6px);
             box-shadow: 0 0 30px var(--accent, #eab308);
             outline: 3px solid var(--accent, #eab308);
           }
@@ -738,8 +713,35 @@ export default function Home() {
       
       {currentHash !== "#block" && auth.isAuth && renderInputForm()}
       
-      {/* MODAL POPUP ACTION PESAN UTUH DENGAN TOMBOL PILL PERSIS SEPERTI FOTO LALU */}
-      {auth.isAuth && interact.popup && interact.popup.pesan !== "___DELETED___" && (
+      {/* 1. POPUP KLIK 1X GAMBAR (GAMBAR SAJA DENGAN ZOOM & HANYA TOMBOL UNDUH) */}
+      {auth.isAuth && interact.popup && interact.popup.popupMode === "image_only" && (
+        <ImagePopupModal 
+          popupMsg={interact.popup} 
+          onClose={() => setInteract((p) => ({ ...p, popup: null }))} 
+          formatMessageTime={getFmt.time} 
+        />
+      )}
+
+      {/* 2. POPUP KLIK 1X TEKS (TEKS SAJA) */}
+      {auth.isAuth && interact.popup && interact.popup.popupMode === "text_only" && (
+        <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
+          <div className="w-full max-w-md rounded-2xl shadow-2xl p-4 relative max-h-[80vh] flex flex-col border-t-4" style={{ backgroundColor: "var(--background)", borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setInteract((p) => ({ ...p, popup: null }))} className="absolute top-3 right-3 rounded-full w-7 h-7 flex items-center justify-center font-bold active:scale-95 border text-xs" style={{ backgroundColor: "var(--background)", color: "var(--foreground)", borderColor: "var(--card-border)" }}>×</button>
+            
+            <div className="flex items-center gap-2 border-b pb-2 mb-3" style={{ borderColor: "var(--card-border)" }}>
+              <span className={`px-2 py-0.5 rounded-full text-white text-[10px] font-bold shadow-sm ${interact.popup.username === "Admin●ipix.my.id" ? "bg-red-600" : interact.popup.username === auth.user ? "bg-blue-600" : "bg-gray-700"}`}>{interact.popup.username}</span>
+              <span className="text-[10px] opacity-70" style={{ color: "var(--foreground)" }}>{getFmt.time(interact.popup.created_at)}</span>
+            </div>
+            
+            <div className="overflow-y-auto pr-2 pb-2 text-sm flex flex-col break-words break-all whitespace-pre-wrap leading-relaxed select-text" style={{ color: "var(--foreground)" }}>
+              {interact.popup.pesan && applyCensor(interact.popup.pesan)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. POPUP TAHAN PESAN (LONG PRESS) -> LENGKAP DENGAN PILL AKSI KESELURUHAN */}
+      {auth.isAuth && interact.popup && (interact.popup.popupMode === "full" || !interact.popup.popupMode) && interact.popup.pesan !== "___DELETED___" && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
           <div className="w-full max-w-lg rounded-2xl shadow-2xl p-4 relative max-h-[90vh] flex flex-col border-t-4" style={{ backgroundColor: "var(--background)", borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={() => setInteract((p) => ({ ...p, popup: null }))} className="absolute top-3 right-3 rounded-full w-7 h-7 flex items-center justify-center font-bold active:scale-95 border text-xs" style={{ backgroundColor: "var(--background)", color: "var(--foreground)", borderColor: "var(--card-border)" }}>×</button>
@@ -758,10 +760,8 @@ export default function Home() {
               {interact.popup.pesan && applyCensor(interact.popup.pesan)}
             </div>
             
-            {/* BARIS PILL TOMBOL AKSI DI DALAM POPUP */}
+            {/* PILL AKSI LENGKAP PADA POPUP TAHAN PESAN */}
             <div className="flex items-center gap-1.5 overflow-x-auto w-full pt-3 mt-3 border-t [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden shrink-0 justify-start sm:justify-end" style={{ borderColor: "var(--card-border)" }}>
-              
-              {/* 📌 PIN PILL */}
               <button 
                 type="button" 
                 onClick={(e) => { 
@@ -774,12 +774,11 @@ export default function Home() {
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 17v5" />
-                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 1 1 1z" />
                 </svg>
                 {interact.popup.is_pinned ? "Lepas Pin" : "Pin"}
               </button>
 
-              {/* ↩️ BALAS PILL */}
               <button 
                 type="button" 
                 onClick={(e) => { 
@@ -796,7 +795,6 @@ export default function Home() {
                 Balas
               </button>
 
-              {/* 📋 SALIN PILL */}
               <button 
                 type="button" 
                 onClick={(e) => { 
@@ -812,7 +810,6 @@ export default function Home() {
                 Salin
               </button>
 
-              {/* ✏️ EDIT PILL (LOGIKA DIBEDAKAN ANTARA ADMIN & USER BIASA) */}
               {(ui.tab === "admin" || (interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id")) && (
                 <button 
                   type="button" 
@@ -820,7 +817,6 @@ export default function Home() {
                     e.stopPropagation(); 
                     const popupMsg = interact.popup; 
                     setInteract((p) => ({ ...p, popup: null })); 
-                    // Jika login admin panggil editMsg (tanpa limit), jika user biasa panggil editLmt (maks 2x)
                     if (ui.tab === "admin") dbActions.editMsg(popupMsg); 
                     else dbActions.editLmt(popupMsg); 
                   }} 
@@ -834,7 +830,6 @@ export default function Home() {
                 </button>
               )}
 
-              {/* 📥 UNDUH PILL (JIKA ADA GAMBAR) */}
               {interact.popup.image_url && (
                 <button 
                   type="button" 
@@ -866,7 +861,6 @@ export default function Home() {
                 </button>
               )}
 
-              {/* 🗑️ HAPUS PILL */}
               {((interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id") || ui.tab === "admin") && (
                 <button 
                   type="button" 

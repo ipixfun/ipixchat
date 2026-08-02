@@ -15,7 +15,6 @@ const EMOJI_ANIM_MAP: Record<string, string> = {
   "😊": "anim-pulse-soft",
 };
 
-// Helper untuk mengubah emoji di teks biasa menjadi elemen beranimasi
 const parseAnimatedEmojis = (text: string) => {
   const emojiRegex = /([\p{Extended_Pictographic}\p{Emoji_Presentation}])/gu;
   const parts = text.split(emojiRegex);
@@ -63,7 +62,7 @@ export function PinnedMessage({
           <div className="shrink-0 opacity-90" style={{ color: "var(--accent)" }}>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 17v5" />
-              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 1 1 1z" />
             </svg>
           </div>
           <div className="flex flex-col flex-1 overflow-hidden pr-3 min-w-0">
@@ -98,7 +97,7 @@ export function PinnedMessage({
           <div className="shrink-0 opacity-90" style={{ color: "var(--accent)" }}>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 17v5" />
-              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 1 1 1z" />
             </svg>
           </div>
           <div className="flex flex-col flex-1 overflow-hidden min-w-0">
@@ -116,19 +115,16 @@ export function PinnedMessage({
 }
 
 /* ========================================================================
-   POPUP MODAL GAMBAR (DENGAN ZOOM BEBAS) ATAU TEKS SAJA
+   POPUP MODAL GAMBAR DENGAN ZOOM BEBAS & HANYA TOMBOL UNDUH
    ======================================================================== */
 export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popupMsg: any; onClose: () => void; formatMessageTime?: (t: any) => string }) {
-  if (!popupMsg) return null;
+  if (!popupMsg || !popupMsg.image_url) return null;
 
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
   const touchDist = useRef<number | null>(null);
-
-  const isImageMode = popupMsg.popupMode === "image" || (!popupMsg.popupMode && popupMsg.image_url);
-  const isTextMode = popupMsg.popupMode === "text" || (!popupMsg.popupMode && popupMsg.pesan && !popupMsg.image_url);
 
   const handleZoomIn = () => setScale((prev) => Math.min(prev + 0.5, 4));
   const handleZoomOut = () => {
@@ -196,13 +192,32 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
     setIsDragging(false);
   };
 
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const response = await fetch(popupMsg.image_url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ipix_image_${popupMsg.id || Date.now()}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      window.open(popupMsg.image_url, "_blank");
+    }
+  };
+
   return (
     <div 
       className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-between p-3 sm:p-4 transition-all duration-300 animate-fadeIn select-none"
       onClick={onClose}
     >
+      {/* HEADER */}
       <div 
-        className="w-full max-w-3xl flex justify-between items-center z-10 px-2 py-2 bg-slate-900/90 border border-slate-700/80 rounded-xl backdrop-blur-md shadow-lg"
+        className="w-full max-w-3xl flex justify-between items-center z-10 px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-xl backdrop-blur-md shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 overflow-hidden">
@@ -212,96 +227,96 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
           </span>
         </div>
 
-        {isImageMode && popupMsg.image_url && (
-          <div className="flex items-center gap-1.5 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700">
+        {/* CONTROLLER ZOOM */}
+        <div className="flex items-center gap-1.5 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700">
+          <button 
+            type="button" 
+            onClick={handleZoomOut} 
+            className="w-6 h-6 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded text-xs font-bold"
+            title="Zoom Out"
+          >
+            -
+          </button>
+          <span className="text-[10px] font-mono text-slate-200 min-w-[36px] text-center">
+            {Math.round(scale * 100)}%
+          </span>
+          <button 
+            type="button" 
+            onClick={handleZoomIn} 
+            className="w-6 h-6 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded text-xs font-bold"
+            title="Zoom In"
+          >
+            +
+          </button>
+          {scale > 1 && (
             <button 
               type="button" 
-              onClick={handleZoomOut} 
-              className="w-6 h-6 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded text-xs font-bold"
-              title="Zoom Out"
+              onClick={handleResetZoom} 
+              className="ml-1 text-[9px] bg-amber-600 hover:bg-amber-500 text-white px-1.5 py-0.5 rounded font-bold"
             >
-              -
+              Reset
             </button>
-            <span className="text-[10px] font-mono text-slate-200 min-w-[36px] text-center">
-              {Math.round(scale * 100)}%
-            </span>
-            <button 
-              type="button" 
-              onClick={handleZoomIn} 
-              className="w-6 h-6 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded text-xs font-bold"
-              title="Zoom In"
-            >
-              +
-            </button>
-            {scale > 1 && (
-              <button 
-                type="button" 
-                onClick={handleResetZoom} 
-                className="ml-1 text-[9px] bg-amber-600 hover:bg-amber-500 text-white px-1.5 py-0.5 rounded font-bold"
-              >
-                Reset
-              </button>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
         <button 
           type="button" 
           onClick={onClose}
-          className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm transition-colors shrink-0 ml-2"
+          className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm shrink-0 ml-2"
         >
           ✕
         </button>
       </div>
 
-      {isImageMode && popupMsg.image_url && (
-        <div 
-          className="w-full flex-1 max-w-4xl my-auto overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing relative"
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onDoubleClick={() => {
-            if (scale > 1) handleResetZoom();
-            else setScale(2.5);
+      {/* GAMBAR ZOOMABLE */}
+      <div 
+        className="w-full flex-1 max-w-4xl my-auto overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing relative"
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onDoubleClick={() => {
+          if (scale > 1) handleResetZoom();
+          else setScale(2.5);
+        }}
+      >
+        <img 
+          src={popupMsg.image_url} 
+          alt="Preview" 
+          className="max-h-[70vh] max-w-full object-contain transition-transform duration-75 ease-out rounded-lg"
+          style={{
+            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+            touchAction: "none",
           }}
-        >
-          <img 
-            src={popupMsg.image_url} 
-            alt="Preview" 
-            className="max-h-[75vh] max-w-full object-contain transition-transform duration-75 ease-out rounded-lg"
-            style={{
-              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-              touchAction: "none",
-            }}
-            draggable={false}
-          />
-        </div>
-      )}
+          draggable={false}
+        />
+      </div>
 
-      {isTextMode && popupMsg.pesan && popupMsg.pesan !== "___DELETED___" && (
-        <div 
-          className="w-full max-w-2xl my-auto p-4 sm:p-5 bg-slate-900/95 border border-slate-700/80 rounded-2xl shadow-2xl overflow-y-auto max-h-[75vh]"
-          onClick={(e) => e.stopPropagation()}
+      {/* FOOTER: HANYA TOMBOL UNDUH */}
+      <div className="z-10 py-2 flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        <button 
+          type="button" 
+          onClick={handleDownload}
+          className="px-4 py-1.5 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 text-xs font-bold rounded-full shadow-lg active:scale-95 transition-all flex items-center gap-1.5"
         >
-          <p className="text-sm sm:text-base text-slate-100 leading-relaxed whitespace-pre-wrap break-words select-text font-sans">
-            {popupMsg.pesan}
-          </p>
-        </div>
-      )}
-
-      <div className="text-[10px] text-slate-400 font-mono z-10 py-1">
-        {isImageMode ? "Gunakan 2 jari atau tombol di atas untuk Zoom & Geser" : "Klik X atau area luar untuk menutup"}
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Unduh Gambar
+        </button>
+        <span className="text-[10px] text-slate-400 font-mono">Gunakan 2 jari / tombol di atas untuk Zoom & Geser</span>
       </div>
     </div>
   );
 }
 
 /* ========================================================================
-   KOMPONEN MESSAGE ITEM Utama
+   KOMPONEN MESSAGE ITEM UTAMA
    ======================================================================== */
 export function MessageItem({
   m, colType, isMinimized, activeTab, isAdminOnline, adminOfflineTime, userStatus,
@@ -314,11 +329,48 @@ export function MessageItem({
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchInitialY, setTouchInitialY] = useState(0);
 
-  const imgLongPressTimer = useRef<NodeJS.Timeout | null>(null);
-  const textLongPressTimer = useRef<NodeJS.Timeout | null>(null);
+  // TIMERS & FLAGS UNTUK DIBEDAKAN: KLIK 1X VS TAHAN (LONG PRESS)
+  const imgTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const imgLongPressFired = useRef(false);
 
-  const clearImgTimer = () => { if (imgLongPressTimer.current) { clearTimeout(imgLongPressTimer.current); imgLongPressTimer.current = null; } };
-  const clearTextTimer = () => { if (textLongPressTimer.current) { clearTimeout(textLongPressTimer.current); textLongPressTimer.current = null; } };
+  const textTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const textLongPressFired = useRef(false);
+
+  const startImgTimer = () => {
+    imgLongPressFired.current = false;
+    imgTimerRef.current = setTimeout(() => {
+      imgLongPressFired.current = true;
+      if (typeof window !== "undefined" && navigator.vibrate) {
+        try { navigator.vibrate(50); } catch(err){}
+      }
+      setPopupMsg({ ...m, popupMode: "full" });
+    }, 400);
+  };
+
+  const clearImgTimer = () => {
+    if (imgTimerRef.current) {
+      clearTimeout(imgTimerRef.current);
+      imgTimerRef.current = null;
+    }
+  };
+
+  const startTextTimer = () => {
+    textLongPressFired.current = false;
+    textTimerRef.current = setTimeout(() => {
+      textLongPressFired.current = true;
+      if (typeof window !== "undefined" && navigator.vibrate) {
+        try { navigator.vibrate(50); } catch(err){}
+      }
+      setPopupMsg({ ...m, popupMode: "full" });
+    }, 400);
+  };
+
+  const clearTextTimer = () => {
+    if (textTimerRef.current) {
+      clearTimeout(textTimerRef.current);
+      textTimerRef.current = null;
+    }
+  };
 
   const formatOfflineTime = (timeStr: any) => {
     if (!timeStr) return "";
@@ -590,32 +642,30 @@ export function MessageItem({
         </div>
 
         <div className="flex items-start gap-2.5 my-1">
+          {/* AREA GAMBAR CHAT */}
           {m.image_url && (
             <div 
               className="relative cursor-pointer group shrink-0 w-max z-20"
               onMouseDown={(e) => {
                 e.stopPropagation();
-                if (e.button === 0) {
-                  imgLongPressTimer.current = setTimeout(() => {
-                    setPopupMsg({ ...m, popupMode: "image" });
-                    if (typeof window !== "undefined" && navigator.vibrate) navigator.vibrate(50);
-                  }, 350);
-                }
+                if (e.button === 0) startImgTimer();
               }}
               onMouseMove={clearImgTimer}
               onMouseUp={clearImgTimer}
               onTouchStart={(e) => {
                 e.stopPropagation();
-                imgLongPressTimer.current = setTimeout(() => {
-                  setPopupMsg({ ...m, popupMode: "image" });
-                  if (typeof window !== "undefined" && navigator.vibrate) navigator.vibrate(50);
-                }, 350);
+                startImgTimer();
               }}
               onTouchMove={clearImgTimer}
               onTouchEnd={clearImgTimer}
               onClick={(e) => {
                 e.stopPropagation();
-                setPopupMsg({ ...m, popupMode: "image" });
+                if (imgLongPressFired.current) {
+                  imgLongPressFired.current = false;
+                  return;
+                }
+                // KLIK 1X PADA GAMBAR -> POPUP GAMBAR SAJA DENGAN ZOOM
+                setPopupMsg({ ...m, popupMode: "image_only" });
               }}
             >
               <img 
@@ -627,6 +677,7 @@ export function MessageItem({
             </div>
           )}
           
+          {/* AREA TEKS CHAT */}
           {m.pesan && (() => {
             const isPage2Private = colType === "private";
             const maxLines = isPage2Private ? 4 : 2, maxChars = isPage2Private ? 120 : 60; 
@@ -638,24 +689,25 @@ export function MessageItem({
                 className="min-w-0 flex-1 cursor-pointer"
                 onMouseDown={(e) => {
                   e.stopPropagation();
-                  if (e.button === 0) {
-                    textLongPressTimer.current = setTimeout(() => {
-                      setPopupMsg({ ...m, popupMode: "text" });
-                      if (typeof window !== "undefined" && navigator.vibrate) navigator.vibrate(50);
-                    }, 350);
-                  }
+                  if (e.button === 0) startTextTimer();
                 }}
                 onMouseMove={clearTextTimer}
                 onMouseUp={clearTextTimer}
                 onTouchStart={(e) => {
                   e.stopPropagation();
-                  textLongPressTimer.current = setTimeout(() => {
-                    setPopupMsg({ ...m, popupMode: "text" });
-                    if (typeof window !== "undefined" && navigator.vibrate) navigator.vibrate(50);
-                  }, 350);
+                  startTextTimer();
                 }}
                 onTouchMove={clearTextTimer}
                 onTouchEnd={clearTextTimer}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (textLongPressFired.current) {
+                    textLongPressFired.current = false;
+                    return;
+                  }
+                  // KLIK 1X PADA TEKS -> POPUP TEKS SAJA
+                  setPopupMsg({ ...m, popupMode: "text_only" });
+                }}
               >
                 <div className={`break-words overflow-wrap-anywhere ${isLongText ? (isPage2Private ? "line-clamp-4" : "line-clamp-2") : ""}`} style={isLongText ? { display: '-webkit-box', WebkitLineClamp: isPage2Private ? 4 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}>
                   {renderContent(m.pesan, isMinimized)}
@@ -664,7 +716,7 @@ export function MessageItem({
                   <button 
                     onClick={(e) => { 
                       e.stopPropagation(); 
-                      setPopupMsg({ ...m, popupMode: "text" }); 
+                      setPopupMsg({ ...m, popupMode: "text_only" }); 
                     }} 
                     className="text-[9px] font-bold mt-1 px-2 py-0.5 rounded shadow-sm transition-colors block" 
                     style={{ backgroundColor: "rgba(0,0,0,0.2)", color: "var(--foreground)" }}
@@ -707,7 +759,7 @@ export function MessageItem({
                       <button type="button" onClick={triggerEditAction} className="px-2.5 py-1 text-[8px] font-bold text-white bg-blue-600 rounded-full">Edit</button>
                       {handlePin && (
                         <button type="button" onClick={() => { handlePin(m); setActiveMenuId(null); }} className="px-2.5 py-1 text-[8px] font-bold text-white bg-amber-600 rounded-full">
-                          {m.is_pinned ? "Lapas Pin" : "Pin"}
+                          {m.is_pinned ? "Lepas Pin" : "Pin"}
                         </button>
                       )}
                       {!isMsgAdmin && (
