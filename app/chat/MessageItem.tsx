@@ -116,70 +116,193 @@ export function PinnedMessage({
 }
 
 /* ========================================================================
-   2. POPUP DENGAN MEMISAHKAN MODE FOTO (BISA ZOOM) ATAU MODE TEKS
+   2. POPUP MODAL GAMBAR (DENGAN ZOOM BEBAS) ATAU TEKS SAJA
    ======================================================================== */
 export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popupMsg: any; onClose: () => void; formatMessageTime?: (t: any) => string }) {
   if (!popupMsg) return null;
 
-  const [isZoomed, setIsZoomed] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const touchDist = useRef<number | null>(null);
+
   const isImageMode = popupMsg.popupMode === "image" || (!popupMsg.popupMode && popupMsg.image_url);
   const isTextMode = popupMsg.popupMode === "text" || (!popupMsg.popupMode && popupMsg.pesan && !popupMsg.image_url);
 
+  // Zoom controls
+  const handleZoomIn = () => setScale((prev) => Math.min(prev + 0.5, 4));
+  const handleZoomOut = () => {
+    setScale((prev) => {
+      const next = Math.max(prev - 0.5, 1);
+      if (next === 1) setPosition({ x: 0, y: 0 });
+      return next;
+    });
+  };
+  const handleResetZoom = () => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  // Drag handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (scale > 1) {
+      setIsDragging(true);
+      dragStart.current = { x: e.clientX - position.x, y: e.clientY - position.y };
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && scale > 1) {
+      setPosition({
+        x: e.clientX - dragStart.current.x,
+        y: e.clientY - dragStart.current.y,
+      });
+    }
+  };
+
+  const handleMouseUp = () => setIsDragging(false);
+
+  // Touch Pinch & Pan for Android
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      touchDist.current = dist;
+    } else if (e.touches.length === 1 && scale > 1) {
+      setIsDragging(true);
+      dragStart.current = { x: e.touches[0].clientX - position.x, y: e.touches[0].clientY - position.y };
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && touchDist.current !== null) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const delta = dist - touchDist.current;
+      setScale((prev) => Math.min(Math.max(prev + delta * 0.01, 1), 4));
+      touchDist.current = dist;
+    } else if (e.touches.length === 1 && isDragging && scale > 1) {
+      setPosition({
+        x: e.touches[0].clientX - dragStart.current.x,
+        y: e.touches[0].clientY - dragStart.current.y,
+      });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    touchDist.current = null;
+    setIsDragging(false);
+  };
+
   return (
     <div 
-      className="fixed inset-0 z-[9999] bg-black/85 backdrop-blur-lg flex flex-col items-center justify-center p-4 transition-all duration-300 animate-fadeIn select-none"
+      className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-between p-3 sm:p-4 transition-all duration-300 animate-fadeIn select-none"
       onClick={onClose}
     >
+      {/* Header Modal */}
       <div 
-        className="relative w-full max-w-2xl max-h-[85vh] bg-slate-900/95 border border-slate-700/80 rounded-2xl p-4 shadow-2xl flex flex-col items-center overflow-hidden"
+        className="w-full max-w-3xl flex justify-between items-center z-10 px-2 py-2 bg-slate-900/90 border border-slate-700/80 rounded-xl backdrop-blur-md shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Modal */}
-        <div className="w-full flex justify-between items-center mb-3 px-1 text-slate-200 shrink-0">
-          <div className="flex items-center gap-2 overflow-hidden">
-            <span className="text-xs font-bold truncate text-amber-400">{popupMsg.username?.split("●")[0]}</span>
-            <span className="text-[10px] text-slate-400 font-mono">
-              {formatMessageTime ? formatMessageTime(popupMsg.created_at) : popupMsg.created_at}
-            </span>
-            {isImageMode && popupMsg.image_url && (
-              <span className="text-[9px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-sans border border-slate-700">
-                {isZoomed ? "🔍 2.5x Zoom" : "👆 Ketuk foto untuk Zoom"}
-              </span>
-            )}
-          </div>
-          <button 
-            type="button" 
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-base transition-colors shrink-0"
-          >
-            ✕
-          </button>
+        <div className="flex items-center gap-2 overflow-hidden">
+          <span className="text-xs font-bold truncate text-amber-400">{popupMsg.username?.split("●")[0]}</span>
+          <span className="text-[10px] text-slate-400 font-mono">
+            {formatMessageTime ? formatMessageTime(popupMsg.created_at) : popupMsg.created_at}
+          </span>
         </div>
 
-        {/* POPUP FOTO SAJA (BISA ZOOM KETIKA DIKETUK) */}
+        {/* Tombol Kontrol Zoom jika Mode Gambar */}
         {isImageMode && popupMsg.image_url && (
-          <div 
-            className="w-full flex-1 max-h-[70vh] overflow-auto rounded-xl bg-black/60 flex items-center justify-center p-2 cursor-pointer"
-            onClick={() => setIsZoomed(!isZoomed)}
-          >
-            <img 
-              src={popupMsg.image_url} 
-              alt="Preview" 
-              className={`transition-transform duration-300 rounded-lg object-contain ${
-                isZoomed ? "scale-[2.5] cursor-zoom-out my-auto mx-auto max-w-none" : "max-h-[65vh] max-w-full cursor-zoom-in"
-              }`}
-            />
+          <div className="flex items-center gap-1.5 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700">
+            <button 
+              type="button" 
+              onClick={handleZoomOut} 
+              className="w-6 h-6 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded text-xs font-bold"
+              title="Zoom Out"
+            >
+              -
+            </button>
+            <span className="text-[10px] font-mono text-slate-200 min-w-[36px] text-center">
+              {Math.round(scale * 100)}%
+            </span>
+            <button 
+              type="button" 
+              onClick={handleZoomIn} 
+              className="w-6 h-6 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded text-xs font-bold"
+              title="Zoom In"
+            >
+              +
+            </button>
+            {scale > 1 && (
+              <button 
+                type="button" 
+                onClick={handleResetZoom} 
+                className="ml-1 text-[9px] bg-amber-600 hover:bg-amber-500 text-white px-1.5 py-0.5 rounded font-bold"
+              >
+                Reset
+              </button>
+            )}
           </div>
         )}
 
-        {/* POPUP TEKS SAJA */}
-        {isTextMode && popupMsg.pesan && popupMsg.pesan !== "___DELETED___" && (
-          <div className="w-full my-auto max-h-[65vh] overflow-y-auto p-4 bg-slate-800/80 rounded-xl border border-slate-700/50">
-            <p className="text-sm text-slate-100 leading-relaxed whitespace-pre-wrap break-words select-text font-sans">
-              {popupMsg.pesan}
-            </p>
-          </div>
-        )}
+        <button 
+          type="button" 
+          onClick={onClose}
+          className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm transition-colors shrink-0 ml-2"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* BODY POPUP: POPUP FOTO SAJA DENGAN ZOOM BEBAS */}
+      {isImageMode && popupMsg.image_url && (
+        <div 
+          className="w-full flex-1 max-w-4xl my-auto overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing relative"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onDoubleClick={() => {
+            if (scale > 1) handleResetZoom();
+            else setScale(2.5);
+          }}
+        >
+          <img 
+            src={popupMsg.image_url} 
+            alt="Preview" 
+            className="max-h-[75vh] max-w-full object-contain transition-transform duration-75 ease-out rounded-lg"
+            style={{
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+              touchAction: "none",
+            }}
+            draggable={false}
+          />
+        </div>
+      )}
+
+      {/* BODY POPUP: POPUP TEKS SAJA */}
+      {isTextMode && popupMsg.pesan && popupMsg.pesan !== "___DELETED___" && (
+        <div 
+          className="w-full max-w-2xl my-auto p-4 sm:p-5 bg-slate-900/95 border border-slate-700/80 rounded-2xl shadow-2xl overflow-y-auto max-h-[75vh]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <p className="text-sm sm:text-base text-slate-100 leading-relaxed whitespace-pre-wrap break-words select-text font-sans">
+            {popupMsg.pesan}
+          </p>
+        </div>
+      )}
+
+      {/* Footer hint */}
+      <div className="text-[10px] text-slate-400 font-mono z-10 py-1">
+        {isImageMode ? "Gunakan 2 jari atau tombol di atas untuk Zoom & Geser" : "Klik X atau area luar untuk menutup"}
       </div>
     </div>
   );
@@ -278,6 +401,22 @@ export function MessageItem({
       try { navigator.vibrate([80, 50, 80]); } catch (e) {}
     }
     scrollToMessage(quotedText);
+  };
+
+  // Fungsi saat tombol Edit diklik dari menu aksi
+  const triggerEditAction = () => {
+    if (editMsg) {
+      editMsg(m.id || m);
+    }
+    setActiveMenuId(null);
+    // Otomatis fokus ke kolom input
+    setTimeout(() => {
+      const inputEl = document.getElementById("chat-input") as HTMLTextAreaElement;
+      if (inputEl) {
+        inputEl.focus();
+        inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
+      }
+    }, 100);
   };
 
   if (m.pesan === "___DELETED___") {
@@ -465,10 +604,10 @@ export function MessageItem({
           </div>
         </div>
 
-        {/* ISI CHAT: FOTO DAN TEKS DIPISAHKAN EVENT LONG PRESS-NYA */}
+        {/* ISI CHAT: FOTO DAN TEKS DIPISAHKAN EVENT-NYA */}
         <div className="flex items-start gap-2.5 my-1">
           
-          {/* 1. AREA FOTO (TAHAN -> POPUP FOTO SAJA & BISA ZOOM) */}
+          {/* 1. AREA FOTO (DIKLIK/DITAHAN -> POPUP FOTO SAJA & BISA ZOOM) */}
           {m.image_url && (
             <div 
               className="relative cursor-pointer group shrink-0 w-max z-20"
@@ -506,7 +645,7 @@ export function MessageItem({
             </div>
           )}
           
-          {/* 2. AREA TEKS (TAHAN -> POPUP TEKS SAJA) */}
+          {/* 2. AREA TEKS (DITAHAN -> POPUP TEKS SAJA) */}
           {m.pesan && (() => {
             const isPage2Private = colType === "private";
             const maxLines = isPage2Private ? 4 : 2, maxChars = isPage2Private ? 120 : 60; 
@@ -586,7 +725,7 @@ export function MessageItem({
                   <>
                     <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} />
                     <div className="absolute right-0 bottom-full mb-2 bg-slate-900 border border-slate-700 shadow-xl rounded-full z-[100] p-1 flex items-center gap-1 min-w-max" onClick={(e) => e.stopPropagation()}>
-                      <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-2.5 py-1 text-[8px] font-bold text-white bg-blue-600 rounded-full">Edit</button>
+                      <button type="button" onClick={triggerEditAction} className="px-2.5 py-1 text-[8px] font-bold text-white bg-blue-600 rounded-full">Edit</button>
                       {handlePin && (
                         <button type="button" onClick={() => { handlePin(m); setActiveMenuId(null); }} className="px-2.5 py-1 text-[8px] font-bold text-white bg-amber-600 rounded-full">
                           {m.is_pinned ? "Lapas Pin" : "Pin"}

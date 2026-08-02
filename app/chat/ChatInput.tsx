@@ -77,7 +77,6 @@ export default function ChatInput({
       if (!window.visualViewport) return;
       const currentHeight = window.visualViewport.height;
 
-      // Jika tinggi viewport kembali mendekati tinggi layar asli -> Keyboard Diturunkan
       if (currentHeight >= initialHeight - 120) {
         setUi((p: any) => ({ ...p, inputFocus: false }));
         const inputEl = document.getElementById("chat-input");
@@ -85,7 +84,6 @@ export default function ChatInput({
           inputEl.blur();
         }
       } else {
-        // Keyboard sedang terbuka
         setUi((p: any) => ({ ...p, inputFocus: true }));
       }
     };
@@ -96,7 +94,7 @@ export default function ChatInput({
     };
   }, [setUi]);
 
-  // Auto-register push subscription
+  // Push notification setup
   useEffect(() => {
     async function setupPushSubscription() {
       if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
@@ -115,10 +113,7 @@ export default function ChatInput({
         if (permission !== "granted") return;
 
         const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-        if (!publicVapidKey) {
-          console.error("[Push] VAPID Public Key tidak ditemukan!");
-          return;
-        }
+        if (!publicVapidKey) return;
 
         let subscription = await registration.pushManager.getSubscription();
 
@@ -130,7 +125,7 @@ export default function ChatInput({
         }
 
         if (subscription) {
-          const res = await fetch("/api/save-subscription", {
+          await fetch("/api/save-subscription", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -138,9 +133,6 @@ export default function ChatInput({
               subscription: subscription,
             }),
           });
-
-          const resData = await res.json();
-          console.log("[Push] Hasil simpan untuk user:", currentUsername, resData);
         }
       } catch (err) {
         console.error("[Push] Error setup push subscription:", err);
@@ -180,51 +172,29 @@ export default function ChatInput({
   return (
     <InputThemeWrapper>
       {(styles) => (
-        <div className={`shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-[1000] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative transition-all duration-150 ${ui?.inputFocus ? "mb-0" : "mb-16"}`}>
+        <div className={`shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-[100] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative transition-all duration-150 ${ui?.inputFocus ? "mb-0" : "mb-16"}`}>
           
-          {/* Style Keyframes & Sembunyikan Navbar HANYA ketika Keyboard terdeteksi aktif */}
           <style>{`
-            @keyframes heartbeat {
-              0%, 100% { transform: scale(1); }
-              15% { transform: scale(1.3); }
-              30% { transform: scale(1); }
-              45% { transform: scale(1.2); }
-            }
+            @keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.3); } 30% { transform: scale(1); } 45% { transform: scale(1.2); } }
             .anim-heartbeat { animation: heartbeat 1.2s infinite ease-in-out; }
 
-            @keyframes wiggle {
-              0%, 100% { transform: rotate(-10deg); }
-              50% { transform: rotate(10deg); }
-            }
+            @keyframes wiggle { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(10deg); } }
             .anim-wiggle { animation: wiggle 0.8s infinite ease-in-out alternate; }
 
-            @keyframes bounceSoft {
-              0%, 100% { transform: translateY(0); }
-              50% { transform: translateY(-5px); }
-            }
+            @keyframes bounceSoft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
             .anim-bounce-soft { animation: bounceSoft 0.9s infinite ease-in-out; }
 
-            @keyframes pulseGlow {
-              0%, 100% { transform: scale(1); opacity: 0.9; }
-              50% { transform: scale(1.22); opacity: 1; filter: drop-shadow(0 0 6px rgba(255,165,0,0.6)); }
-            }
+            @keyframes pulseGlow { 0%, 100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.22); opacity: 1; filter: drop-shadow(0 0 6px rgba(255,165,0,0.6)); } }
             .anim-pulse-glow { animation: pulseGlow 1.1s infinite ease-in-out; }
 
-            @keyframes shakeSoft {
-              0%, 100% { transform: translateX(0); }
-              20% { transform: translateX(-2px) rotate(-3deg); }
-              60% { transform: translateX(2px) rotate(3deg); }
-            }
+            @keyframes shakeSoft { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-2px) rotate(-3deg); } 60% { transform: translateX(2px) rotate(3deg); } }
             .anim-shake-soft { animation: shakeSoft 0.7s infinite linear; }
 
-            @keyframes pulseSoft {
-              0%, 100% { transform: scale(1); }
-              50% { transform: scale(1.12); }
-            }
+            @keyframes pulseSoft { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
             .anim-pulse-soft { animation: pulseSoft 1.3s infinite ease-in-out; }
           `}</style>
 
-          {/* Sembunyikan Navbar khusus saat ui.inputFocus bernilai true */}
+          {/* Sembunyikan Nav saat input aktif */}
           {ui?.inputFocus && (
             <style>{`
               nav, footer, [class*="bottomnav"], [class*="bottom-nav"], [class*="BottomNav"], .z-\\[999\\] {
@@ -237,13 +207,14 @@ export default function ChatInput({
             `}</style>
           )}
 
-          {interact.replyTo && (
+          {/* BARIS BALAS PESAN */}
+          {interact?.replyTo && (
             <div 
               className={`mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x cursor-pointer ${styles.replyBg}`} 
               onClick={() => scrollMsg(interact.replyTo.id)}
             >
               <div className="truncate flex-1 pr-2">
-                <span className="font-bold">Balas @{interact.replyTo.username.split("●")[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span>
+                <span className="font-bold">Balas @{interact.replyTo.username?.split("●")[0]}:</span> <span className="italic">"{interact.replyTo.pesan}"</span>
               </div>
               <button
                 type="button"
@@ -258,12 +229,31 @@ export default function ChatInput({
             </div>
           )}
 
+          {/* BARIS EDIT PESAN */}
+          {interact?.editingMsg && (
+            <div className="mx-3 mt-1.5 p-2 px-3 rounded-t-xl text-xs flex justify-between items-center border-t border-x bg-blue-500/20 border-blue-500/40 text-blue-300">
+              <div className="truncate flex-1 pr-2 font-medium">
+                <span className="font-bold">✏️ Mengedit Pesan:</span> <span className="italic">"{interact.editingMsg.pesan}"</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setInteract((p: any) => ({ ...p, editingMsg: null }));
+                  setInput((p: any) => ({ ...p, text: "" }));
+                }}
+                className="text-blue-200 font-bold px-1 hover:text-white"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="shrink-0 p-2 sm:p-3 bg-transparent flex flex-col gap-1.5 w-full relative transition-all duration-300">
             
-            {/* ==================== BARIS 1 (ROW ATAS) ==================== */}
+            {/* BARIS 1 (ROW ATAS) */}
             <div className="flex items-center gap-1.5 sm:gap-2 w-full">
               
-              {/* 1. Teks Info / Selector Emoji */}
+              {/* Teks Info / Selector Emoji */}
               <div className={`flex-1 text-[9px] h-[36px] sm:h-[40px] flex items-center min-w-0 ${styles.labelText}`}>
                 {showEmoji ? (
                   <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden animate-in fade-in zoom-in-95 duration-150 py-1 px-3 w-full bg-[var(--card-bg)]/80 border border-[var(--card-border)] rounded-xl shadow-inner backdrop-blur-md">
@@ -291,7 +281,7 @@ export default function ChatInput({
                 )}
               </div>
 
-              {/* 2. Tombol Toggle Emoji (BULAT) */}
+              {/* Toggle Emoji */}
               <button
                 type="button"
                 onClick={() => setShowEmoji((prev) => !prev)}
@@ -304,7 +294,7 @@ export default function ChatInput({
                 </svg>
               </button>
 
-              {/* 3. Tombol Upload Foto (KOTAK) */}
+              {/* Upload Foto */}
               <div className="relative shrink-0 flex items-center justify-center">
                 <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isBlocked || input.uploadingImage || input.image !== null} />
                 <label htmlFor="image-upload" className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] cursor-pointer transition-colors flex items-center justify-center ${(ui.tab === "admin" && !usersInfo.selPriv) || input.image !== null || isBlocked ? "opacity-30 pointer-events-none" : styles.uploadIcon}`}>
@@ -321,7 +311,7 @@ export default function ChatInput({
                 </label>
               </div>
 
-              {/* 4. SLOT KANAN: REFRESH/BATAL ATAU PREVIEW GAMBAR LEBAR PERSIS TOMBOL KIRIM */}
+              {/* REFRESH / BATAL / PREVIEW GAMBAR */}
               <div className="relative shrink-0 w-[80px] sm:w-[100px] h-[32px] sm:h-[36px] flex items-center justify-center">
                 {input.image ? (
                   <div className="absolute bottom-0 right-0 z-20 flex items-center justify-center">
@@ -350,21 +340,21 @@ export default function ChatInput({
                       type="button"
                       id="btn-refresh-delete"
                       onClick={() => {
-                        if (hasInputReady) {
+                        if (hasInputReady || interact?.editingMsg) {
                           setInput((p: any) => ({
                             ...p,
                             text: "",
                             image: null,
                             uploadingImage: false,
                           }));
-                          setInteract((p: any) => ({ ...p, replyTo: null }));
+                          setInteract((p: any) => ({ ...p, replyTo: null, editingMsg: null }));
                         } else {
                           window.location.reload();
                         }
                       }}
-                      className={`w-full h-full rounded-lg font-black tracking-wider text-[8px] sm:text-[9px] border shadow-xs active:scale-95 transition-all flex items-center justify-center select-none uppercase ${hasInputReady ? styles.cancelBtn : styles.refreshBtn}`}
+                      className={`w-full h-full rounded-lg font-black tracking-wider text-[8px] sm:text-[9px] border shadow-xs active:scale-95 transition-all flex items-center justify-center select-none uppercase ${hasInputReady || interact?.editingMsg ? styles.cancelBtn : styles.refreshBtn}`}
                     >
-                      {hasInputReady ? "BATAL" : "REFRESH"}
+                      {hasInputReady || interact?.editingMsg ? "BATAL" : "REFRESH"}
                     </button>
                   )
                 )}
@@ -372,10 +362,9 @@ export default function ChatInput({
 
             </div>
 
-            {/* ==================== BARIS 2 (ROW BAWAH) ==================== */}
+            {/* BARIS 2 (ROW BAWAH - INPUT TEXT & TOMBOL KIRIM) */}
             <div className="flex items-stretch gap-1.5 sm:gap-2 w-full">
               
-              {/* Textarea Input Utama */}
               <div className="relative flex-1 w-full min-w-0">
                 <textarea
                   id="chat-input"
@@ -387,7 +376,6 @@ export default function ChatInput({
                     }, 200);
                   }}
                   onBlur={() => {
-                    // Delay kecil untuk menghindari flicker saat memindahkan fokus
                     setTimeout(() => {
                       setUi((p: any) => ({ ...p, inputFocus: false }));
                     }, 150);
@@ -413,13 +401,13 @@ export default function ChatInput({
                 <div className={`absolute right-3 bottom-1.5 text-[9px] font-mono select-none bg-black/20 px-1 rounded ${styles.counter}`}>{200 - input.text.length}</div>
               </div>
 
-              {/* Tombol KIRIM Utama */}
+              {/* Tombol Kirim / Simpan */}
               <button 
                 type="submit" 
                 disabled={isBlocked || input.sending || (!input.text.trim() && !input.image) || (ui.tab === "admin" && !usersInfo.selPriv)} 
                 className={`shrink-0 w-[80px] sm:w-[100px] rounded-xl font-bold text-[11px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${ui.tab === "admin" && !usersInfo.selPriv ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}
               >
-                {input.sending ? "..." : "Kirim"}
+                {input.sending ? "..." : (interact?.editingMsg ? "Simpan" : "Kirim")}
               </button>
 
             </div>
