@@ -115,9 +115,9 @@ export function PinnedMessage({
 }
 
 /* ========================================================================
-   POPUP MODAL GAMBAR DENGAN INFORMASI RESOLUSI & UKURAN FILE
+   POPUP MODAL GAMBAR DENGAN PILL SEMATAN (PIN), RESOLUSI & UKURAN FILE
    ======================================================================== */
-export function ImagePopupModal({ popupMsg, onClose }: { popupMsg: any; onClose: () => void; formatMessageTime?: (t: any) => string }) {
+export function ImagePopupModal({ popupMsg, onClose, onPin }: { popupMsg: any; onClose: () => void; formatMessageTime?: (t: any) => string; onPin?: (msg: any) => void }) {
   if (!popupMsg || !popupMsg.image_url) return null;
 
   const [scale, setScale] = useState(1);
@@ -263,10 +263,29 @@ export function ImagePopupModal({ popupMsg, onClose }: { popupMsg: any; onClose:
         />
       </div>
 
-      {/* PANEL KONTROL BAWAH (UNDUH, RESOLUSI + UKURAN FILE, ZOOM, RESET & TOMBOL TUTUP DI BAWAH) */}
+      {/* PANEL KONTROL BAWAH (SEMATAN, UNDUH, RESOLUSI + UKURAN FILE, ZOOM, RESET & TUTUP) */}
       <div className="z-10 w-full max-w-md flex flex-col items-center gap-2 pb-2" onClick={(e) => e.stopPropagation()}>
         <div className="w-full flex items-center justify-center gap-2 flex-wrap bg-slate-900/90 border border-slate-800 p-2 rounded-2xl backdrop-blur-md shadow-2xl">
-          {/* 1. UNDUH */}
+          {/* 1. PILL SEMATAN (PIN) */}
+          {onPin && (
+            <button 
+              type="button" 
+              onClick={(e) => {
+                e.stopPropagation();
+                onPin(popupMsg);
+                onClose();
+              }} 
+              className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1 shrink-0"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 17v5" />
+                <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 1 1 1z" />
+              </svg>
+              {popupMsg.is_pinned ? "Lepas Pin" : "Sematkan"}
+            </button>
+          )}
+
+          {/* 2. UNDUH */}
           <button 
             type="button" 
             onClick={handleDownload}
@@ -280,7 +299,7 @@ export function ImagePopupModal({ popupMsg, onClose }: { popupMsg: any; onClose:
             Unduh
           </button>
 
-          {/* 2. RESOLUSI & UKURAN FILE */}
+          {/* 3. RESOLUSI & UKURAN FILE */}
           <span className="px-2.5 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 text-[11px] font-mono font-semibold rounded-xl shrink-0 flex items-center gap-1.5">
             <span>{resolution}</span>
             {fileSize && (
@@ -291,7 +310,7 @@ export function ImagePopupModal({ popupMsg, onClose }: { popupMsg: any; onClose:
             )}
           </span>
 
-          {/* 3. ZOOM CONTROLS */}
+          {/* 4. ZOOM CONTROLS */}
           <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700 shrink-0">
             <button 
               type="button" 
@@ -312,7 +331,7 @@ export function ImagePopupModal({ popupMsg, onClose }: { popupMsg: any; onClose:
             </button>
           </div>
 
-          {/* 4. RESET */}
+          {/* 5. RESET */}
           <button 
             type="button" 
             onClick={handleResetZoom} 
@@ -322,7 +341,7 @@ export function ImagePopupModal({ popupMsg, onClose }: { popupMsg: any; onClose:
           </button>
         </div>
 
-        {/* 5. TOMBOL CLOSE DI BAWAH */}
+        {/* 6. TOMBOL CLOSE DI BAWAH */}
         <button 
           type="button" 
           onClick={onClose}
@@ -480,20 +499,52 @@ export function MessageItem({
     }, 100);
   };
 
-  if (m.pesan === "___DELETED___") {
+  /* ========================================================================
+     KONDISI PESAN DIHAPUS (BERDASARKAN TYPE: GAMBAR / GAMBAR & TEKS / TEKS)
+     + LOGIKA HAPUS DATABASE ADMIN DIGABUNG KELOGO '✕'
+     ======================================================================== */
+  if (m.pesan && m.pesan.startsWith("___DELETED")) {
     const isDeletedByAdmin = m.deleted_by_admin === true;
+    
+    // PENENTUAN TEKS NOTIFIKASI DIHAPUS
+    let deletedNoticeText = "🚫 Dihapus";
+    if (m.pesan === "___DELETED_IMAGE___") {
+      deletedNoticeText = "🚫 Gambar Dihapus";
+    } else if (m.pesan === "___DELETED_BOTH___") {
+      deletedNoticeText = "🚫 Gambar & Teks Dihapus";
+    }
+
     return (
       <div id={`msg-${m.id}`} className="relative w-full mb-2 z-10 group">
         <div className="bg-white/10 backdrop-blur-md border rounded-xl p-2.5 flex flex-col w-full shadow-sm relative" style={{ borderColor: "var(--card-border)", backgroundColor: "var(--card-bg)" }}>
-          {activeTab === "admin" && <div className="absolute -top-2 -right-2 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border border-white shadow-sm z-20 cursor-help" style={{ backgroundColor: "var(--accent)" }} title="Dihapus (Dilihat oleh Admin)">X</div>}
-          <div className="flex items-center gap-2">
-            <span className="bg-gray-500/20 text-gray-400 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">🚫 Dihapus</span>
-            <span className="text-[10px] font-bold" style={{ color: isDeletedByAdmin ? "var(--accent)" : "var(--foreground)" }}>oleh {isDeletedByAdmin ? "Admin" : m.username}</span>
-          </div>
-          <div className="text-[8px] opacity-60 mt-1 flex items-center gap-1 font-mono"><span>{formatMessageTime ? formatMessageTime(m.created_at) : m.created_at}</span></div>
+          {/* TOMBOL LOGO '✕' ADMIN: SEKALIGUS JADI ACTION HAPUS PERMANEN DARI DATABASE */}
           {activeTab === "admin" && (
-            <button onClick={(e) => { e.stopPropagation(); deleteMsg(m, false); }} className="absolute right-2 top-2 text-[14px] hover:opacity-80 w-7 h-7 flex items-center justify-center rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all transform active:scale-95" style={{ backgroundColor: "var(--accent)", color: "var(--background)" }} title="Hapus Permanen dari Database">🗑️</button>
+            <button 
+              type="button"
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                deleteMsg(m, false); 
+              }} 
+              className="absolute -top-2 -right-2 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border border-white shadow-md z-20 cursor-pointer hover:bg-red-600 active:scale-95 transition-all" 
+              style={{ backgroundColor: "var(--accent, #ef4444)" }} 
+              title="Klik untuk Hapus Permanen dari Database"
+            >
+              ✕
+            </button>
           )}
+
+          <div className="flex items-center gap-2">
+            <span className="bg-gray-500/20 text-gray-400 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-tighter">
+              {deletedNoticeText}
+            </span>
+            <span className="text-[10px] font-bold" style={{ color: isDeletedByAdmin ? "var(--accent)" : "var(--foreground)" }}>
+              oleh {isDeletedByAdmin ? "Admin" : m.username}
+            </span>
+          </div>
+
+          <div className="text-[8px] opacity-60 mt-1 flex items-center gap-1 font-mono">
+            <span>{formatMessageTime ? formatMessageTime(m.created_at) : m.created_at}</span>
+          </div>
         </div>
       </div>
     );
@@ -516,7 +567,7 @@ export function MessageItem({
       const [_, user, quotedText, replyText] = match;
       const tagColor = user.toLowerCase() === "admin" ? "text-red-400 font-bold" : (authUser && user.toLowerCase() === authUser.split("●")[0].toLowerCase()) ? "text-blue-400 font-bold" : "text-emerald-400 font-bold";
       
-      // Bersihkan tag #id jika ada dari tampilan kutipan agar pesan rapi
+      // Bersihkan tag #id dari kutipan agar tampilan pesan tetap rapi
       const cleanQuotedDisplay = applyCensor(quotedText).replace(/\s*#\d+$/, "");
 
       return (
@@ -762,7 +813,7 @@ export function MessageItem({
           </div>
         )}
 
-        {/* FOOTER BAWAH BUBBLE CHAT (PILL GALERI WARNA DINAMIS MENYESUAIKAN TEMA) */}
+        {/* FOOTER BAWAH BUBBLE CHAT */}
         <div className="mt-1.5 pt-1 border-t border-black/10 flex justify-between items-center gap-2">
           {/* SISI KIRI POJOK BAWAH: TOMBOL GALERI USER TEMA DINAMIS */}
           <div className="flex-1 overflow-hidden flex flex-col gap-0.5 text-left min-w-0">

@@ -238,32 +238,56 @@ export default function Home() {
     editLmt: async (m: any) => {
       dbActions.editMsg(m);
     },
+
+    /* ========================================================================
+       LOGIKA HAPUS PESAN: DETEKSI JENIS KONTEN (GAMBAR / GAMBAR & TEKS / TEKS)
+       ======================================================================== */
     delMsg: async (m: any, isSwipe = false) => {
-      const isAlreadyDeleted = m.pesan === "___DELETED___";
-      const confirmMsg = isAlreadyDeleted ? "Hapus permanen pesan ini dari database?" : isSwipe ? "Swipe terdeteksi. Pindahkan pesan ini ke tong sampah?" : "Pindahkan pesan ini ke tong sampah?";
+      const isAlreadyDeleted = m.pesan && m.pesan.startsWith("___DELETED");
+      const confirmMsg = isAlreadyDeleted 
+        ? "Hapus permanen pesan ini dari database?" 
+        : isSwipe 
+          ? "Swipe terdeteksi. Pindahkan pesan ini ke tong sampah?" 
+          : "Pindahkan pesan ini ke tong sampah?";
+      
       if (!confirm(confirmMsg)) return;
-      if (!isAlreadyDeleted) updateMsgLocal(m.id, "___DELETED___", m.is_edited, m.edited_by, null, auth.user === "Admin●ipix.my.id");
+
+      // Cek kandungan awal pesan sebelum dihapus
+      const hasImage = !!m.image_url;
+      const hasText = !!(m.pesan && m.pesan.trim() !== "" && !m.pesan.startsWith("___DELETED"));
+
+      let deletedTag = "___DELETED___";
+      if (hasImage && hasText) {
+        deletedTag = "___DELETED_BOTH___";
+      } else if (hasImage) {
+        deletedTag = "___DELETED_IMAGE___";
+      }
+
+      if (!isAlreadyDeleted) updateMsgLocal(m.id, deletedTag, m.is_edited, m.edited_by, null, auth.user === "Admin●ipix.my.id");
+      
       if (auth.user !== "Admin●ipix.my.id") {
         if (isAlreadyDeleted) return;
         if (m.username !== auth.user) { alert("Anda hanya diizinkan menghapus pesan milik Anda sendiri!"); fetchData(); return; }
         const lastReset = localStorage.getItem("del_reset_date"); const today = new Date().toLocaleDateString(); let count = parseInt(localStorage.getItem("del_count") || "0");
         if (lastReset !== today) { count = 0; localStorage.setItem("del_reset_date", today); }
         if (count >= 10) { alert("Batas hapus pesan maksimal 10x per hari!"); fetchData(); return; }
-        const { error } = await supabase.from("messages").update({ pesan: "___DELETED___", image_url: null, deleted_by_admin: false, is_pinned: false }).eq("id", m.id);
+        
+        const { error } = await supabase.from("messages").update({ pesan: deletedTag, image_url: null, deleted_by_admin: false, is_pinned: false }).eq("id", m.id);
         if (error) { alert("Gagal menghapus pesan, silakan coba lagi."); fetchData(); return; }
         localStorage.setItem("del_count", (count + 1).toString());
       } else {
         if (isAlreadyDeleted) await supabase.from("messages").delete().eq("id", m.id);
         else {
-          const { error } = await supabase.from("messages").update({ pesan: "___DELETED___", image_url: null, deleted_by_admin: true, is_pinned: false }).eq("id", m.id);
+          const { error } = await supabase.from("messages").update({ pesan: deletedTag, image_url: null, deleted_by_admin: true, is_pinned: false }).eq("id", m.id);
           if (error) { alert("Gagal menghapus pesan ke tong sampah."); fetchData(); return; }
         }
       }
       fetchData();
     },
+
     emptyTrash: async () => {
       if (confirm("Kosongkan semua pesan yang telah dihapus di tong sampah secara permanen?")) {
-        const { error } = await supabase.from("messages").delete().eq("pesan", "___DELETED___");
+        const { error } = await supabase.from("messages").delete().like("pesan", "___DELETED%");
         if (error) alert("Gagal mengosongkan tempat sampah."); else alert("Tempat sampah berhasil dikosongkan!"); fetchData();
       }
     },
@@ -496,7 +520,7 @@ export default function Home() {
       return;
     }
 
-    // MEMBUAT KUTIPAN BALASAN KETIKA DIBALAS (MENYEMATKAN ID UNTUK BALASAN FOTO TANPA TEKS)
+    // KUTIPAN BALASAN PESAN
     if (interact.replyTo) { 
       const qText = interact.replyTo.pesan?.trim();
       const hasImg = !!interact.replyTo.image_url;
@@ -533,13 +557,13 @@ export default function Home() {
   const onlineUsers = Object.entries(usersInfo.status).filter(([_, data]) => data.online).map(([username]) => username);
   
   const currentMsgs = msgs.priv; 
-  const adminPinnedMsg = currentMsgs.find((m) => m.is_pinned && m.pesan !== "___DELETED___" && m.username === "Admin●ipix.my.id");
-  const userPinnedMsg = currentMsgs.find((m) => m.is_pinned && m.pesan !== "___DELETED___" && m.username !== "Admin●ipix.my.id");
+  const adminPinnedMsg = currentMsgs.find((m) => m.is_pinned && !m.pesan?.startsWith("___DELETED") && m.username === "Admin●ipix.my.id");
+  const userPinnedMsg = currentMsgs.find((m) => m.is_pinned && !m.pesan?.startsWith("___DELETED") && m.username !== "Admin●ipix.my.id");
   const shouldShowPinned = auth.isAuth && currentHash !== "#block" && (ui.tab === "user" || (ui.tab === "admin" && usersInfo.selPriv !== null));
 
   const handleOpenUserGallery = (targetUsername: string) => {
     const userImagesMsgs = msgs.priv.filter(
-      (m) => m.username === targetUsername && m.image_url && m.pesan !== "___DELETED___"
+      (m) => m.username === targetUsername && m.image_url && !m.pesan?.startsWith("___DELETED")
     );
     if (userImagesMsgs.length > 0) {
       setGalleryModal({ username: targetUsername, msgs: userImagesMsgs });
@@ -558,7 +582,7 @@ export default function Home() {
         const maxWidthClass = "max-w-[85%] md:max-w-[75%]";
 
         const userImagesCount = msgs.priv.filter(
-          (x) => x.username === m.username && x.image_url && x.pesan !== "___DELETED___"
+          (x) => x.username === m.username && x.image_url && !x.pesan?.startsWith("___DELETED")
         ).length;
 
         return (
@@ -589,7 +613,7 @@ export default function Home() {
                 approveImage={dbActions.approveImg} 
                 applyCensor={applyCensor} 
                 scrollToMessage={(t: string, userTag?: string) => { 
-                  // 1. DENEKSI TAG ID LANGSUNG JIKA BALASAN FOTO TANPA TEKS
+                  // DETEKSI TAG ID DALAM BALASAN GAMBAR
                   const idMatch = t.match(/#(\d+)/);
                   if (idMatch) {
                     const targetId = Number(idMatch[1]);
@@ -603,11 +627,9 @@ export default function Home() {
                   const cleanText = t.endsWith("...") ? t.slice(0, -3).trim() : t.trim(); 
                   if (!cleanText) return;
 
-                  // 2. CARI DENGAN MENGGUNAKAN TEKS KUTIPAN
                   let targetMsg = msgs.all.find((m) => !m.pesan?.startsWith("@") && m.pesan && m.pesan.includes(cleanText)) 
                                || msgs.all.find((m) => m.pesan && m.pesan.includes(cleanText));
 
-                  // 3. FALLBACK JIKA KUTIPAN GAMBAR
                   if (!targetMsg && userTag) {
                     const userMsgs = msgs.all.filter((m) => 
                       m.username.split("●")[0].toLowerCase() === userTag.toLowerCase() && m.image_url
@@ -619,6 +641,7 @@ export default function Home() {
                 }} 
                 formatMessageTime={getFmt.time} 
                 authUser={auth.user} 
+                handlePin={dbActions.togglePin}
                 onOpenGallery={handleOpenUserGallery}
                 userImagesCount={userImagesCount}
               />
@@ -810,12 +833,13 @@ export default function Home() {
         </div>
       )}
 
-      {/* POPUP KLIK 1X GAMBAR */}
+      {/* POPUP KLIK 1X GAMBAR (DENGAN TOMBOL SEMATAN/PIN) */}
       {auth.isAuth && interact.popup && interact.popup.popupMode === "image_only" && (
         <ImagePopupModal 
           popupMsg={interact.popup} 
           onClose={() => setInteract((p) => ({ ...p, popup: null }))} 
           formatMessageTime={getFmt.time} 
+          onPin={dbActions.togglePin}
         />
       )}
 
@@ -838,7 +862,7 @@ export default function Home() {
       )}
 
       {/* POPUP TAHAN PESAN (LONG PRESS) */}
-      {auth.isAuth && interact.popup && (interact.popup.popupMode === "full" || !interact.popup.popupMode) && interact.popup.pesan !== "___DELETED___" && (
+      {auth.isAuth && interact.popup && (interact.popup.popupMode === "full" || !interact.popup.popupMode) && !interact.popup.pesan?.startsWith("___DELETED") && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
           <div className="w-full max-w-lg rounded-2xl shadow-2xl p-4 relative max-h-[90vh] flex flex-col border-t-4" style={{ backgroundColor: "var(--background)", borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={() => setInteract((p) => ({ ...p, popup: null }))} className="absolute top-3 right-3 rounded-full w-7 h-7 flex items-center justify-center font-bold active:scale-95 border text-xs" style={{ backgroundColor: "var(--background)", color: "var(--foreground)", borderColor: "var(--card-border)" }}>×</button>
