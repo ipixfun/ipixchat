@@ -115,7 +115,7 @@ export function PinnedMessage({
 }
 
 /* ========================================================================
-   POPUP MODAL GAMBAR MINIMALIS (UNDUH, RESOLUSI, ZOOM, RESET, TUTUP DI BAWAH)
+   POPUP MODAL GAMBAR DENGAN INFORMASI RESOLUSI & UKURAN FILE
    ======================================================================== */
 export function ImagePopupModal({ popupMsg, onClose }: { popupMsg: any; onClose: () => void; formatMessageTime?: (t: any) => string }) {
   if (!popupMsg || !popupMsg.image_url) return null;
@@ -124,8 +124,24 @@ export function ImagePopupModal({ popupMsg, onClose }: { popupMsg: any; onClose:
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [resolution, setResolution] = useState<string>("Dimuat...");
+  const [fileSize, setFileSize] = useState<string>("");
   const dragStart = useRef({ x: 0, y: 0 });
   const touchDist = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (popupMsg?.image_url) {
+      setFileSize("Cek ukuran...");
+      fetch(popupMsg.image_url)
+        .then((res) => res.blob())
+        .then((blob) => {
+          const bytes = blob.size;
+          if (bytes < 1024) setFileSize(`${bytes} B`);
+          else if (bytes < 1024 * 1024) setFileSize(`${(bytes / 1024).toFixed(1)} KB`);
+          else setFileSize(`${(bytes / (1024 * 1024)).toFixed(2)} MB`);
+        })
+        .catch(() => setFileSize(""));
+    }
+  }, [popupMsg?.image_url]);
 
   const handleZoomIn = () => setScale((prev) => Math.min(prev + 0.5, 4));
   const handleZoomOut = () => {
@@ -247,7 +263,7 @@ export function ImagePopupModal({ popupMsg, onClose }: { popupMsg: any; onClose:
         />
       </div>
 
-      {/* PANEL KONTROL BAWAH (UNDUH, RESOLUSI, ZOOM, RESET & TOMBOL TUTUP DI BAWAH) */}
+      {/* PANEL KONTROL BAWAH (UNDUH, RESOLUSI + UKURAN FILE, ZOOM, RESET & TOMBOL TUTUP DI BAWAH) */}
       <div className="z-10 w-full max-w-md flex flex-col items-center gap-2 pb-2" onClick={(e) => e.stopPropagation()}>
         <div className="w-full flex items-center justify-center gap-2 flex-wrap bg-slate-900/90 border border-slate-800 p-2 rounded-2xl backdrop-blur-md shadow-2xl">
           {/* 1. UNDUH */}
@@ -264,9 +280,15 @@ export function ImagePopupModal({ popupMsg, onClose }: { popupMsg: any; onClose:
             Unduh
           </button>
 
-          {/* 2. RESOLUSI */}
-          <span className="px-2.5 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 text-[11px] font-mono font-semibold rounded-xl shrink-0">
-            {resolution}
+          {/* 2. RESOLUSI & UKURAN FILE */}
+          <span className="px-2.5 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 text-[11px] font-mono font-semibold rounded-xl shrink-0 flex items-center gap-1.5">
+            <span>{resolution}</span>
+            {fileSize && (
+              <>
+                <span className="text-slate-500">•</span>
+                <span className="text-teal-400 font-bold">{fileSize}</span>
+              </>
+            )}
           </span>
 
           {/* 3. ZOOM CONTROLS */}
@@ -493,6 +515,10 @@ export function MessageItem({
     if (match) {
       const [_, user, quotedText, replyText] = match;
       const tagColor = user.toLowerCase() === "admin" ? "text-red-400 font-bold" : (authUser && user.toLowerCase() === authUser.split("●")[0].toLowerCase()) ? "text-blue-400 font-bold" : "text-emerald-400 font-bold";
+      
+      // Bersihkan tag #id jika ada dari tampilan kutipan agar pesan rapi
+      const cleanQuotedDisplay = applyCensor(quotedText).replace(/\s*#\d+$/, "");
+
       return (
         <>
           <div 
@@ -500,7 +526,7 @@ export function MessageItem({
             style={{ backgroundColor: "rgba(0,0,0,0.15)", borderColor: "var(--accent)", color: "var(--foreground)" }} 
             onClick={(e) => { e.stopPropagation(); handleQuoteClick(quotedText, user); }}
           >
-            <span className={tagColor}>@{user}</span>: "{applyCensor(quotedText)}"
+            <span className={tagColor}>@{user}</span>: "{cleanQuotedDisplay}"
           </div>
           <div className={`${textSize} break-words overflow-wrap-anywhere`} style={{ color: "var(--foreground)" }}>{renderTextWithTags(applyCensor(replyText))}</div>
         </>
@@ -736,9 +762,9 @@ export function MessageItem({
           </div>
         )}
 
-        {/* FOOTER BAWAH BUBBLE CHAT (DENGAN TOMBOL GALERI DI KIRI POJOK BAWAH) */}
+        {/* FOOTER BAWAH BUBBLE CHAT (PILL GALERI WARNA DINAMIS MENYESUAIKAN TEMA) */}
         <div className="mt-1.5 pt-1 border-t border-black/10 flex justify-between items-center gap-2">
-          {/* SISI KIRI POJOK BAWAH: TOMBOL GALERI USER */}
+          {/* SISI KIRI POJOK BAWAH: TOMBOL GALERI USER TEMA DINAMIS */}
           <div className="flex-1 overflow-hidden flex flex-col gap-0.5 text-left min-w-0">
             {userImagesCount > 0 && onOpenGallery && (
               <button
@@ -747,7 +773,12 @@ export function MessageItem({
                   e.stopPropagation();
                   onOpenGallery(m.username);
                 }}
-                className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-purple-600/30 text-purple-300 border border-purple-500/40 hover:bg-purple-600/50 flex items-center w-max shrink-0 active:scale-95 transition-all shadow-xs"
+                className="px-2 py-0.5 rounded-full text-[9px] font-extrabold flex items-center w-max shrink-0 active:scale-95 transition-all shadow-xs border"
+                style={{
+                  backgroundColor: pillColor === "transparent" ? "rgba(255,255,255,0.15)" : (pillColor ? `${pillColor}33` : "var(--accent-transparent, rgba(234, 179, 8, 0.2))"),
+                  color: pillColor && pillColor !== "transparent" ? pillColor : "var(--accent, #eab308)",
+                  borderColor: pillColor && pillColor !== "transparent" ? `${pillColor}66` : "var(--accent, rgba(234, 179, 8, 0.4))"
+                }}
                 title={`Buka Galeri Foto @${displayCleanUsername}`}
               >
                 Galeri {userImagesCount}

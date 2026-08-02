@@ -496,11 +496,11 @@ export default function Home() {
       return;
     }
 
-    // MEMBUAT KUTIPAN BALASAN KETIKA DIBALAS (TERMASUK DIBALAS PESAN GAMBAR TANPA TEKS)
+    // MEMBUAT KUTIPAN BALASAN KETIKA DIBALAS (MENYEMATKAN ID UNTUK BALASAN FOTO TANPA TEKS)
     if (interact.replyTo) { 
       const qText = interact.replyTo.pesan?.trim();
       const hasImg = !!interact.replyTo.image_url;
-      const q = qText || (hasImg ? "📷 Gambar" : "Pesan"); 
+      const q = qText || (hasImg ? `📷 Gambar #${interact.replyTo.id}` : "Pesan"); 
       const quote = q.length > 30 ? q.substring(0, 30) + "..." : q; 
       txt = `@${interact.replyTo.username.split("●")[0]} ("${quote}") ${input.text.trim()}`; 
     }
@@ -589,18 +589,30 @@ export default function Home() {
                 approveImage={dbActions.approveImg} 
                 applyCensor={applyCensor} 
                 scrollToMessage={(t: string, userTag?: string) => { 
+                  // 1. DENEKSI TAG ID LANGSUNG JIKA BALASAN FOTO TANPA TEKS
+                  const idMatch = t.match(/#(\d+)/);
+                  if (idMatch) {
+                    const targetId = Number(idMatch[1]);
+                    const exist = msgs.all.some((m) => m.id === targetId);
+                    if (exist) {
+                      scrollMsg(targetId);
+                      return;
+                    }
+                  }
+
                   const cleanText = t.endsWith("...") ? t.slice(0, -3).trim() : t.trim(); 
                   if (!cleanText) return;
 
-                  // 1. CARI DENGAN MENGGUNAKAN TEKS KUTIPAN
-                  let targetMsg = msgs.all.find((m) => !m.pesan.startsWith("@") && m.pesan && m.pesan.includes(cleanText)) 
+                  // 2. CARI DENGAN MENGGUNAKAN TEKS KUTIPAN
+                  let targetMsg = msgs.all.find((m) => !m.pesan?.startsWith("@") && m.pesan && m.pesan.includes(cleanText)) 
                                || msgs.all.find((m) => m.pesan && m.pesan.includes(cleanText));
 
-                  // 2. JIKA KUTIPAN BERUPA GAMBAR TANPA TEKS (SEPERTI "📷 Gambar")
+                  // 3. FALLBACK JIKA KUTIPAN GAMBAR
                   if (!targetMsg && userTag) {
-                    targetMsg = msgs.all.find((m) => 
+                    const userMsgs = msgs.all.filter((m) => 
                       m.username.split("●")[0].toLowerCase() === userTag.toLowerCase() && m.image_url
                     );
+                    targetMsg = userMsgs[userMsgs.length - 1];
                   }
 
                   if (targetMsg) scrollMsg(targetMsg.id); 
