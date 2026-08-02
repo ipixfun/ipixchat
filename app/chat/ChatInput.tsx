@@ -94,10 +94,19 @@ export default function ChatInput({
 
   const addEmoji = (emoji: string) => {
     if (isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)) return;
+    
     setInput((p: any) => ({
       ...p,
       text: (p.text || "") + emoji,
     }));
+
+    // Menjaga agar fokus tetap di area input teks dan keyboard tidak tertutup
+    setTimeout(() => {
+      const inputEl = document.getElementById("chat-input") as HTMLTextAreaElement;
+      if (inputEl) {
+        inputEl.focus();
+      }
+    }, 0);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -192,6 +201,7 @@ export default function ChatInput({
                       <button
                         key={idx}
                         type="button"
+                        onMouseDown={(e) => e.preventDefault()} // Mencegah hilangnya fokus dari input
                         onClick={() => addEmoji(item.char)}
                         disabled={isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)}
                         className="inline-block text-xl sm:text-2xl hover:scale-125 active:scale-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed select-none shrink-0 p-0.5"
@@ -214,7 +224,13 @@ export default function ChatInput({
 
               <button
                 type="button"
-                onClick={() => setShowEmoji((prev) => !prev)}
+                onMouseDown={(e) => e.preventDefault()} // Mencegah hilangnya fokus dari input
+                onClick={() => {
+                  setShowEmoji((prev) => !prev);
+                  // Memastikan input kembali fokus
+                  const inputEl = document.getElementById("chat-input");
+                  if (inputEl) inputEl.focus();
+                }}
                 disabled={isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)}
                 className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] transition-all active:scale-90 flex items-center justify-center shrink-0 ${showEmoji ? "text-[var(--accent)] border-[var(--accent)] bg-white/10" : styles.uploadIcon} ${(ui.tab === "admin" && !usersInfo.selPriv) || isBlocked ? "opacity-30 pointer-events-none" : ""}`}
                 title="Pilih Emoji"
