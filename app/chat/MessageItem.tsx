@@ -33,6 +33,9 @@ const parseAnimatedEmojis = (text: string) => {
   });
 };
 
+/* ========================================================================
+   1. KOMPONEN PINNED MESSAGE
+   ======================================================================== */
 export function PinnedMessage({ 
   adminPinnedMsg,
   userPinnedMsg,
@@ -46,7 +49,7 @@ export function PinnedMessage({
   onEditPinned?: (msg: any) => void; 
   onScrollToMsg?: (id: number) => void; 
 }) {
-  if (!adminPinnedMsg && !userPinnedMsg) return null;
+  if (!adminPinnedMsg && !userPinnedMsg && uiTab !== "admin") return null;
 
   return (
     <div className="w-full px-3 py-1.5 z-10 shrink-0 border-b transition-all duration-300" style={{ backgroundColor: "var(--background)", borderColor: "var(--card-border)" }}>
@@ -54,7 +57,7 @@ export function PinnedMessage({
         {/* KOLOM KIRI: SEMATAN ADMIN */}
         <div 
           onClick={() => adminPinnedMsg && onScrollToMsg?.(adminPinnedMsg.id)} 
-          className={`p-2 rounded-xl transition-all border backdrop-blur-md relative shadow-sm flex items-center gap-2 ${adminPinnedMsg ? "cursor-pointer active:scale-[0.98]" : "opacity-40"}`}
+          className={`p-2 rounded-xl transition-all border backdrop-blur-md relative shadow-sm flex items-center gap-2 min-w-0 ${adminPinnedMsg ? "cursor-pointer active:scale-[0.98]" : "opacity-50"}`}
           style={{ backgroundColor: "var(--card-bg, rgba(255,255,255,0.03))", borderColor: "var(--card-border)" }}
         >
           <div className="shrink-0 opacity-90" style={{ color: "var(--accent)" }}>
@@ -63,9 +66,9 @@ export function PinnedMessage({
               <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
             </svg>
           </div>
-          <div className="flex flex-col flex-1 overflow-hidden pr-3">
+          <div className="flex flex-col flex-1 overflow-hidden pr-3 min-w-0">
             <span className="text-[8px] font-bold uppercase tracking-wider" style={{ color: "var(--accent)" }}>
-              Admin
+              Admin Pin
             </span>
             <p className="text-[11px] truncate font-medium leading-tight opacity-90" style={{ color: "var(--foreground)" }}>
               {adminPinnedMsg ? adminPinnedMsg.pesan : "Belum ada sematan"}
@@ -89,7 +92,7 @@ export function PinnedMessage({
         {/* KOLOM KANAN: SEMATAN USER */}
         <div 
           onClick={() => userPinnedMsg && onScrollToMsg?.(userPinnedMsg.id)} 
-          className={`p-2 rounded-xl transition-all border backdrop-blur-md relative shadow-sm flex items-center gap-2 ${userPinnedMsg ? "cursor-pointer active:scale-[0.98]" : "opacity-40"}`}
+          className={`p-2 rounded-xl transition-all border backdrop-blur-md relative shadow-sm flex items-center gap-2 min-w-0 ${userPinnedMsg ? "cursor-pointer active:scale-[0.98]" : "opacity-50"}`}
           style={{ backgroundColor: "var(--card-bg, rgba(255,255,255,0.03))", borderColor: "var(--card-border)" }}
         >
           <div className="shrink-0 opacity-90" style={{ color: "var(--accent)" }}>
@@ -98,9 +101,9 @@ export function PinnedMessage({
               <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
             </svg>
           </div>
-          <div className="flex flex-col flex-1 overflow-hidden">
-            <span className="text-[8px] font-bold uppercase tracking-wider truncate" style={{ color: "var(--accent)" }}>
-              {userPinnedMsg ? userPinnedMsg.username.split("●")[0] : "User"}
+          <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+            <span className="text-[8px] font-bold uppercase tracking-wider truncate max-w-full" style={{ color: "var(--accent)" }}>
+              {userPinnedMsg ? userPinnedMsg.username.split("●")[0] : "User Pin"}
             </span>
             <p className="text-[11px] truncate font-medium leading-tight opacity-90" style={{ color: "var(--foreground)" }}>
               {userPinnedMsg ? userPinnedMsg.pesan : "Belum ada sematan"}
@@ -112,17 +115,96 @@ export function PinnedMessage({
   );
 }
 
+/* ========================================================================
+   2. POPUP DENGAN MEMISAHKAN MODE FOTO (BISA ZOOM) ATAU MODE TEKS
+   ======================================================================== */
+export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popupMsg: any; onClose: () => void; formatMessageTime?: (t: any) => string }) {
+  if (!popupMsg) return null;
+
+  const [isZoomed, setIsZoomed] = useState(false);
+  const isImageMode = popupMsg.popupMode === "image" || (!popupMsg.popupMode && popupMsg.image_url);
+  const isTextMode = popupMsg.popupMode === "text" || (!popupMsg.popupMode && popupMsg.pesan && !popupMsg.image_url);
+
+  return (
+    <div 
+      className="fixed inset-0 z-[9999] bg-black/85 backdrop-blur-lg flex flex-col items-center justify-center p-4 transition-all duration-300 animate-fadeIn select-none"
+      onClick={onClose}
+    >
+      <div 
+        className="relative w-full max-w-2xl max-h-[85vh] bg-slate-900/95 border border-slate-700/80 rounded-2xl p-4 shadow-2xl flex flex-col items-center overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header Modal */}
+        <div className="w-full flex justify-between items-center mb-3 px-1 text-slate-200 shrink-0">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <span className="text-xs font-bold truncate text-amber-400">{popupMsg.username?.split("●")[0]}</span>
+            <span className="text-[10px] text-slate-400 font-mono">
+              {formatMessageTime ? formatMessageTime(popupMsg.created_at) : popupMsg.created_at}
+            </span>
+            {isImageMode && popupMsg.image_url && (
+              <span className="text-[9px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-sans border border-slate-700">
+                {isZoomed ? "🔍 2.5x Zoom" : "👆 Ketuk foto untuk Zoom"}
+              </span>
+            )}
+          </div>
+          <button 
+            type="button" 
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-base transition-colors shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* POPUP FOTO SAJA (BISA ZOOM KETIKA DIKETUK) */}
+        {isImageMode && popupMsg.image_url && (
+          <div 
+            className="w-full flex-1 max-h-[70vh] overflow-auto rounded-xl bg-black/60 flex items-center justify-center p-2 cursor-pointer"
+            onClick={() => setIsZoomed(!isZoomed)}
+          >
+            <img 
+              src={popupMsg.image_url} 
+              alt="Preview" 
+              className={`transition-transform duration-300 rounded-lg object-contain ${
+                isZoomed ? "scale-[2.5] cursor-zoom-out my-auto mx-auto max-w-none" : "max-h-[65vh] max-w-full cursor-zoom-in"
+              }`}
+            />
+          </div>
+        )}
+
+        {/* POPUP TEKS SAJA */}
+        {isTextMode && popupMsg.pesan && popupMsg.pesan !== "___DELETED___" && (
+          <div className="w-full my-auto max-h-[65vh] overflow-y-auto p-4 bg-slate-800/80 rounded-xl border border-slate-700/50">
+            <p className="text-sm text-slate-100 leading-relaxed whitespace-pre-wrap break-words select-text font-sans">
+              {popupMsg.pesan}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ========================================================================
+   3. KOMPONEN MESSAGE ITEM
+   ======================================================================== */
 export function MessageItem({
   m, colType, isMinimized, activeTab, isAdminOnline, adminOfflineTime, userStatus,
   activeMenuId, setActiveMenuId, swipingId, setSwipingId, handleTag, handleReply,
   deleteMsg, copyToClipboard, handleEditLimit, editMsg, blockUser, setPopupMsg,
-  handleLongPress, approveImage, applyCensor, scrollToMessage, formatMessageTime, authUser,
+  handleLongPress, approveImage, applyCensor, scrollToMessage, formatMessageTime, authUser, handlePin
 }: any) {
   const [swipeDelta, setSwipeDelta] = useState(0);
   const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
   const [touchStartX, setTouchStartX] = useState(0);
   const [touchInitialY, setTouchInitialY] = useState(0);
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Timer Khusus Long Press Gambar & Teks
+  const imgLongPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const textLongPressTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const clearImgTimer = () => { if (imgLongPressTimer.current) { clearTimeout(imgLongPressTimer.current); imgLongPressTimer.current = null; } };
+  const clearTextTimer = () => { if (textLongPressTimer.current) { clearTimeout(textLongPressTimer.current); textLongPressTimer.current = null; } };
 
   const formatOfflineTime = (timeStr: any) => {
     if (!timeStr) return "";
@@ -188,9 +270,6 @@ export function MessageItem({
     };
   }, [isMsgAdmin]);
 
-  const clearTimer = () => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } };
-  const shortBrowser = m.user_browser ? m.user_browser.split("(")[0].trim() + (m.user_browser.includes("(") ? ` (${m.user_browser.split("(")[1].split(")")[0]})` : "") : "Unknown Browser";
-  
   const isEdited = m.is_edited === true || m.edited_by != null || (typeof window !== "undefined" ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || "0") > 0 : false);
   const activeMessageTimestamp = m.updated_at || m.edited_at || m.created_at;
 
@@ -220,7 +299,6 @@ export function MessageItem({
     );
   }
 
-  // Render teks yang menyertakan tag dan emoji beranimasi
   const renderTextWithTags = (t: string) => t.split(/(@\w+)/g).map((part, i) => {
     if (part.startsWith("@")) {
       const uname = part.substring(1).toLowerCase();
@@ -259,54 +337,27 @@ export function MessageItem({
 
   return (
     <div id={`msg-${m.id}`} className={`relative w-full mb-3 flex ${isRightAligned ? "justify-end" : "justify-start"}`}>
-      {/* STYLE ANIMASI KHUSUS EMOJI DI DALAM BUBBLE CHAT */}
       <style>{`
-        @keyframes smoothShake {
-          0%, 100% { transform: translateX(0); }
-          20%, 60% { transform: translateX(-6px); }
-          40%, 80% { transform: translateX(6px); }
-        }
+        @keyframes smoothShake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
         .animate-smooth-shake { animation: smoothShake 0.4s ease-in-out infinite; }
         .overflow-wrap-anywhere { overflow-wrap: anywhere; word-break: break-word; }
 
-        /* Keyframes Animasi Emoji */
-        @keyframes heartbeat {
-          0%, 100% { transform: scale(1); }
-          15% { transform: scale(1.28); }
-          30% { transform: scale(1); }
-          45% { transform: scale(1.18); }
-        }
+        @keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.28); } 30% { transform: scale(1); } 45% { transform: scale(1.18); } }
         .anim-heartbeat { animation: heartbeat 1.2s infinite ease-in-out; }
 
-        @keyframes wiggle {
-          0%, 100% { transform: rotate(-8deg); }
-          50% { transform: rotate(8deg); }
-        }
+        @keyframes wiggle { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
         .anim-wiggle { animation: wiggle 0.8s infinite ease-in-out alternate; }
 
-        @keyframes bounceSoft {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-4px); }
-        }
+        @keyframes bounceSoft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
         .anim-bounce-soft { animation: bounceSoft 0.9s infinite ease-in-out; }
 
-        @keyframes pulseGlow {
-          0%, 100% { transform: scale(1); opacity: 0.9; }
-          50% { transform: scale(1.22); opacity: 1; filter: drop-shadow(0 0 5px rgba(255,165,0,0.6)); }
-        }
+        @keyframes pulseGlow { 0%, 100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.22); opacity: 1; filter: drop-shadow(0 0 5px rgba(255,165,0,0.6)); } }
         .anim-pulse-glow { animation: pulseGlow 1.1s infinite ease-in-out; }
 
-        @keyframes shakeSoft {
-          0%, 100% { transform: translateX(0); }
-          20% { transform: translateX(-2px) rotate(-3deg); }
-          60% { transform: translateX(2px) rotate(3deg); }
-        }
+        @keyframes shakeSoft { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-2px) rotate(-3deg); } 60% { transform: translateX(2px) rotate(3deg); } }
         .anim-shake-soft { animation: shakeSoft 0.7s infinite linear; }
 
-        @keyframes pulseSoft {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.12); }
-        }
+        @keyframes pulseSoft { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
         .anim-pulse-soft { animation: pulseSoft 1.3s infinite ease-in-out; }
       `}</style>
 
@@ -326,26 +377,23 @@ export function MessageItem({
         </div>
       )}
       
+      {/* BUBBLE CHAT CONTAINER */}
       <div
         id={`msg-bubble-${m.id}`}
-        className="relative z-10 transition-all duration-200 max-w-[85%] sm:max-w-[75%] min-w-[140px] p-3 border-[1.5px] shadow-sm select-none rounded-2xl"
-        onMouseDown={(e) => { if (e.button === 0) longPressTimer.current = setTimeout(() => { handleLongPress(m); if (navigator.vibrate) navigator.vibrate(50); }, 350); }}
-        onMouseMove={clearTimer}
-        onMouseUp={clearTimer}
+        className="relative z-10 transition-all duration-200 max-w-[90%] sm:max-w-[80%] min-w-[180px] p-3 border-[1.5px] shadow-sm select-none rounded-2xl"
         onTouchStart={(e) => {
           setTouchStartX(e.touches[0].clientX); setTouchInitialY(e.touches[0].clientY);
           setSwipingId(m.id); setSwipeDelta(0); setIsHorizontalSwipe(false);
-          longPressTimer.current = setTimeout(() => { setSwipingId(null); handleLongPress(m); if (navigator.vibrate) navigator.vibrate(50); }, 350);
         }}
         onTouchMove={(e) => {
-          clearTimer();
+          clearImgTimer(); clearTextTimer();
           if (swipingId !== m.id) return;
           const deltaX = e.touches[0].clientX - touchStartX, deltaY = e.touches[0].clientY - touchInitialY;
           if (!isHorizontalSwipe && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) setIsHorizontalSwipe(true);
           if (isHorizontalSwipe) setSwipeDelta(Math.max(-75, Math.min(75, (deltaX > 0 && !(activeTab === "admin" || isMsgMine)) ? 0 : deltaX)));
         }}
         onTouchEnd={() => {
-          clearTimer();
+          clearImgTimer(); clearTextTimer();
           if (swipingId === m.id && isHorizontalSwipe) {
             if (swipeDelta > 50) (activeTab === "admin" || isMsgMine) ? deleteMsg(m, true) : alert("Anda hanya bisa menghapus pesan milik Anda sendiri.");
             else if (swipeDelta < -50) handleReply(m);
@@ -359,7 +407,7 @@ export function MessageItem({
           borderColor: activeBorderColor
         }}
       >
-        {/* ICON SVG BERUANG LUCU DI POJOK ATAS GELEMBUNG */}
+        {/* ICON PIN */}
         {m.is_pinned && (
           <div className="absolute -top-3 right-2.5 z-20 pointer-events-none filter drop-shadow-md" title="Pesan Disematkan">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--background)" strokeWidth="1.2">
@@ -379,35 +427,24 @@ export function MessageItem({
         {/* EKOR BUBBLE */}
         {isRightAligned ? (
           <>
-            <div 
-              className="absolute top-1/2 -translate-y-1/2 -right-[7px] w-0 h-0 border-t-[6px] border-t-transparent border-l-[7px] border-b-[6px] border-b-transparent"
-              style={{ borderLeftColor: activeBorderColor }}
-            />
-            <div 
-              className="absolute top-1/2 -translate-y-1/2 -right-[5px] w-0 h-0 z-10 border-t-[5px] border-t-transparent border-l-[5px] border-b-[5px] border-b-transparent"
-              style={{ borderLeftColor: activeBgColor }}
-            />
+            <div className="absolute top-1/2 -translate-y-1/2 -right-[7px] w-0 h-0 border-t-[6px] border-t-transparent border-l-[7px] border-b-[6px] border-b-transparent" style={{ borderLeftColor: activeBorderColor }} />
+            <div className="absolute top-1/2 -translate-y-1/2 -right-[5px] w-0 h-0 z-10 border-t-[5px] border-t-transparent border-l-[5px] border-b-[5px] border-b-transparent" style={{ borderLeftColor: activeBgColor }} />
           </>
         ) : (
           <>
-            <div 
-              className="absolute top-1/2 -translate-y-1/2 -left-[7px] w-0 h-0 border-t-[6px] border-t-transparent border-r-[7px] border-b-[6px] border-b-transparent"
-              style={{ borderRightColor: activeBorderColor }}
-            />
-            <div 
-              className="absolute top-1/2 -translate-y-1/2 -left-[5px] w-0 h-0 z-10 border-t-[5px] border-t-transparent border-r-[5px] border-b-[5px] border-b-transparent"
-              style={{ borderRightColor: activeBgColor }}
-            />
+            <div className="absolute top-1/2 -translate-y-1/2 -left-[7px] w-0 h-0 border-t-[6px] border-t-transparent border-r-[7px] border-b-[6px] border-b-transparent" style={{ borderRightColor: activeBorderColor }} />
+            <div className="absolute top-1/2 -translate-y-1/2 -left-[5px] w-0 h-0 z-10 border-t-[5px] border-t-transparent border-r-[5px] border-b-[5px] border-b-transparent" style={{ borderRightColor: activeBgColor }} />
           </>
         )}
 
         {/* HEADER BUBBLE */}
         <div className="flex justify-between items-center gap-2 mb-1.5 w-full">
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
             <span 
               onClick={(e) => { e.stopPropagation(); handleTag(m.username); }} 
-              className="px-2.5 py-0.5 rounded-full text-[10px] font-black shrink-0 cursor-pointer shadow-sm active:scale-95 transition-transform"
+              className="px-2.5 py-0.5 rounded-full text-[10px] font-black shrink-0 cursor-pointer shadow-sm active:scale-95 transition-transform truncate max-w-full"
               style={{ backgroundColor: pillColor === "transparent" ? "rgba(255,255,255,0.1)" : (pillColor || "var(--accent)"), color: "var(--background, #ffffff)" }}
+              title={displayCleanUsername}
             >
               {displayCleanUsername}
             </span>
@@ -428,14 +465,48 @@ export function MessageItem({
           </div>
         </div>
 
-        {/* ISI PESAN / GAMBAR */}
+        {/* ISI CHAT: FOTO DAN TEKS DIPISAHKAN EVENT LONG PRESS-NYA */}
         <div className="flex items-start gap-2.5 my-1">
+          
+          {/* 1. AREA FOTO (TAHAN -> POPUP FOTO SAJA & BISA ZOOM) */}
           {m.image_url && (
-            <div className="relative cursor-zoom-in group shrink-0 w-max">
-              <img src={m.image_url} alt="attachment" onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? "w-20 h-20" : "w-28 h-28"}`} loading="lazy" />
+            <div 
+              className="relative cursor-pointer group shrink-0 w-max z-20"
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                if (e.button === 0) {
+                  imgLongPressTimer.current = setTimeout(() => {
+                    setPopupMsg({ ...m, popupMode: "image" });
+                    if (typeof window !== "undefined" && navigator.vibrate) navigator.vibrate(50);
+                  }, 350);
+                }
+              }}
+              onMouseMove={clearImgTimer}
+              onMouseUp={clearImgTimer}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                imgLongPressTimer.current = setTimeout(() => {
+                  setPopupMsg({ ...m, popupMode: "image" });
+                  if (typeof window !== "undefined" && navigator.vibrate) navigator.vibrate(50);
+                }, 350);
+              }}
+              onTouchMove={clearImgTimer}
+              onTouchEnd={clearImgTimer}
+              onClick={(e) => {
+                e.stopPropagation();
+                setPopupMsg({ ...m, popupMode: "image" });
+              }}
+            >
+              <img 
+                src={m.image_url} 
+                alt="attachment" 
+                className={`object-cover rounded-lg border border-black/10 shadow-sm transition-all bg-black/5 group-hover:brightness-90 ${isMinimized ? "w-20 h-20" : "w-28 h-28"}`} 
+                loading="lazy" 
+              />
             </div>
           )}
           
+          {/* 2. AREA TEKS (TAHAN -> POPUP TEKS SAJA) */}
           {m.pesan && (() => {
             const isPage2Private = colType === "private";
             const maxLines = isPage2Private ? 4 : 2, maxChars = isPage2Private ? 120 : 60; 
@@ -443,11 +514,44 @@ export function MessageItem({
             const isLongText = paragraphs.length > maxLines || m.pesan.length > maxChars;
 
             return (
-              <div className="min-w-0 flex-1">
+              <div 
+                className="min-w-0 flex-1 cursor-pointer"
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  if (e.button === 0) {
+                    textLongPressTimer.current = setTimeout(() => {
+                      setPopupMsg({ ...m, popupMode: "text" });
+                      if (typeof window !== "undefined" && navigator.vibrate) navigator.vibrate(50);
+                    }, 350);
+                  }
+                }}
+                onMouseMove={clearTextTimer}
+                onMouseUp={clearTextTimer}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                  textLongPressTimer.current = setTimeout(() => {
+                    setPopupMsg({ ...m, popupMode: "text" });
+                    if (typeof window !== "undefined" && navigator.vibrate) navigator.vibrate(50);
+                  }, 350);
+                }}
+                onTouchMove={clearTextTimer}
+                onTouchEnd={clearTextTimer}
+              >
                 <div className={`break-words overflow-wrap-anywhere ${isLongText ? (isPage2Private ? "line-clamp-4" : "line-clamp-2") : ""}`} style={isLongText ? { display: '-webkit-box', WebkitLineClamp: isPage2Private ? 4 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}}>
                   {renderContent(m.pesan, isMinimized)}
                 </div>
-                {isLongText && <button onClick={(e) => { e.stopPropagation(); setPopupMsg(m); }} className="text-[9px] font-bold mt-1 px-2 py-0.5 rounded shadow-sm transition-colors block" style={{ backgroundColor: "rgba(0,0,0,0.2)", color: "var(--foreground)" }}>Selengkapnya...</button>}
+                {isLongText && (
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setPopupMsg({ ...m, popupMode: "text" }); 
+                    }} 
+                    className="text-[9px] font-bold mt-1 px-2 py-0.5 rounded shadow-sm transition-colors block" 
+                    style={{ backgroundColor: "rgba(0,0,0,0.2)", color: "var(--foreground)" }}
+                  >
+                    Selengkapnya...
+                  </button>
+                )}
               </div>
             );
           })()}
@@ -467,11 +571,7 @@ export function MessageItem({
 
         {/* FOOTER BUBBLE */}
         <div className="mt-1.5 pt-1 border-t border-black/10 flex justify-between items-center gap-2">
-          <div className="flex-1 overflow-hidden flex flex-col gap-0.5 text-left">
-            {activeTab === "admin" && (
-              <span className="truncate font-mono text-[8px] opacity-50" title={m.user_browser || ""}>🌐 {shortBrowser}</span>
-            )}
-          </div>
+          <div className="flex-1 overflow-hidden flex flex-col gap-0.5 text-left" />
           
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[8px] font-bold opacity-60 font-mono">
@@ -487,6 +587,11 @@ export function MessageItem({
                     <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} />
                     <div className="absolute right-0 bottom-full mb-2 bg-slate-900 border border-slate-700 shadow-xl rounded-full z-[100] p-1 flex items-center gap-1 min-w-max" onClick={(e) => e.stopPropagation()}>
                       <button type="button" onClick={() => { editMsg(m.id); setActiveMenuId(null); }} className="px-2.5 py-1 text-[8px] font-bold text-white bg-blue-600 rounded-full">Edit</button>
+                      {handlePin && (
+                        <button type="button" onClick={() => { handlePin(m); setActiveMenuId(null); }} className="px-2.5 py-1 text-[8px] font-bold text-white bg-amber-600 rounded-full">
+                          {m.is_pinned ? "Lapas Pin" : "Pin"}
+                        </button>
+                      )}
                       {!isMsgAdmin && (
                         <button type="button" onClick={() => { blockUser(m.username); setActiveMenuId(null); }} className="px-2.5 py-1 text-[8px] font-bold text-white bg-red-600 rounded-full">Blokir</button>
                       )}
@@ -497,6 +602,16 @@ export function MessageItem({
             )}
           </div>
         </div>
+
+        {/* WEB BROWSER ADMIN */}
+        {activeTab === "admin" && m.user_browser && (
+          <div 
+            className="w-full mt-2 pt-1.5 border-t border-black/10 text-[9px] font-mono opacity-70 leading-tight truncate sm:whitespace-normal sm:break-all sm:line-clamp-none" 
+            title={m.user_browser}
+          >
+            🌐 {m.user_browser}
+          </div>
+        )}
       </div>
     </div>
   );
