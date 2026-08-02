@@ -115,14 +115,15 @@ export function PinnedMessage({
 }
 
 /* ========================================================================
-   POPUP MODAL GAMBAR DENGAN ZOOM BEBAS & HANYA TOMBOL UNDUH
+   POPUP MODAL GAMBAR MINIMALIS (UNDUH, RESOLUSI, ZOOM, RESET, TUTUP DI BAWAH)
    ======================================================================== */
-export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popupMsg: any; onClose: () => void; formatMessageTime?: (t: any) => string }) {
+export function ImagePopupModal({ popupMsg, onClose }: { popupMsg: any; onClose: () => void; formatMessageTime?: (t: any) => string }) {
   if (!popupMsg || !popupMsg.image_url) return null;
 
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [resolution, setResolution] = useState<string>("Dimuat...");
   const dragStart = useRef({ x: 0, y: 0 });
   const touchDist = useRef<number | null>(null);
 
@@ -212,60 +213,10 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
 
   return (
     <div 
-      className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-between p-3 sm:p-4 transition-all duration-300 animate-fadeIn select-none"
+      className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-between p-3 sm:p-4 select-none animate-fadeIn"
       onClick={onClose}
     >
-      <div 
-        className="w-full max-w-3xl flex justify-between items-center z-10 px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-xl backdrop-blur-md shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center gap-2 overflow-hidden">
-          <span className="text-xs font-bold truncate text-amber-400">{popupMsg.username?.split("●")[0]}</span>
-          <span className="text-[10px] text-slate-400 font-mono">
-            {formatMessageTime ? formatMessageTime(popupMsg.created_at) : popupMsg.created_at}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700">
-          <button 
-            type="button" 
-            onClick={handleZoomOut} 
-            className="w-6 h-6 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded text-xs font-bold"
-            title="Zoom Out"
-          >
-            -
-          </button>
-          <span className="text-[10px] font-mono text-slate-200 min-w-[36px] text-center">
-            {Math.round(scale * 100)}%
-          </span>
-          <button 
-            type="button" 
-            onClick={handleZoomIn} 
-            className="w-6 h-6 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded text-xs font-bold"
-            title="Zoom In"
-          >
-            +
-          </button>
-          {scale > 1 && (
-            <button 
-              type="button" 
-              onClick={handleResetZoom} 
-              className="ml-1 text-[9px] bg-amber-600 hover:bg-amber-500 text-white px-1.5 py-0.5 rounded font-bold"
-            >
-              Reset
-            </button>
-          )}
-        </div>
-
-        <button 
-          type="button" 
-          onClick={onClose}
-          className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm shrink-0 ml-2"
-        >
-          ✕
-        </button>
-      </div>
-
+      {/* AREA GAMBAR ZOOMABLE */}
       <div 
         className="w-full flex-1 max-w-4xl my-auto overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing relative"
         onClick={(e) => e.stopPropagation()}
@@ -283,7 +234,11 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
         <img 
           src={popupMsg.image_url} 
           alt="Preview" 
-          className="max-h-[70vh] max-w-full object-contain transition-transform duration-75 ease-out rounded-lg"
+          onLoad={(e) => {
+            const img = e.currentTarget;
+            setResolution(`${img.naturalWidth}x${img.naturalHeight}`);
+          }}
+          className="max-h-[75vh] max-w-full object-contain transition-transform duration-75 ease-out rounded-lg"
           style={{
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             touchAction: "none",
@@ -292,20 +247,67 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime }: { popu
         />
       </div>
 
-      <div className="z-10 py-2 flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
+      {/* PANEL KONTROL BAWAH (UNDUH, RESOLUSI, ZOOM, RESET & TOMBOL TUTUP DI BAWAH) */}
+      <div className="z-10 w-full max-w-md flex flex-col items-center gap-2 pb-2" onClick={(e) => e.stopPropagation()}>
+        <div className="w-full flex items-center justify-center gap-2 flex-wrap bg-slate-900/90 border border-slate-800 p-2 rounded-2xl backdrop-blur-md shadow-2xl">
+          {/* 1. UNDUH */}
+          <button 
+            type="button" 
+            onClick={handleDownload}
+            className="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1 shrink-0"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Unduh
+          </button>
+
+          {/* 2. RESOLUSI */}
+          <span className="px-2.5 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 text-[11px] font-mono font-semibold rounded-xl shrink-0">
+            {resolution}
+          </span>
+
+          {/* 3. ZOOM CONTROLS */}
+          <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700 shrink-0">
+            <button 
+              type="button" 
+              onClick={handleZoomOut} 
+              className="w-6 h-6 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold"
+            >
+              -
+            </button>
+            <span className="text-[10px] font-mono text-slate-200 min-w-[32px] text-center">
+              {Math.round(scale * 100)}%
+            </span>
+            <button 
+              type="button" 
+              onClick={handleZoomIn} 
+              className="w-6 h-6 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold"
+            >
+              +
+            </button>
+          </div>
+
+          {/* 4. RESET */}
+          <button 
+            type="button" 
+            onClick={handleResetZoom} 
+            className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl active:scale-95 transition-all shrink-0"
+          >
+            Reset
+          </button>
+        </div>
+
+        {/* 5. TOMBOL CLOSE DI BAWAH */}
         <button 
           type="button" 
-          onClick={handleDownload}
-          className="px-4 py-1.5 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 text-xs font-bold rounded-full shadow-lg active:scale-95 transition-all flex items-center gap-1.5"
+          onClick={onClose}
+          className="px-6 py-1.5 bg-red-600/80 hover:bg-red-600 text-white text-xs font-bold rounded-full border border-red-500/50 shadow-lg active:scale-95 transition-all"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-          Unduh Gambar
+          Tutup ✕
         </button>
-        <span className="text-[10px] text-slate-400 font-mono">Gunakan 2 jari / tombol di atas untuk Zoom & Geser</span>
       </div>
     </div>
   );
@@ -435,11 +437,11 @@ export function MessageItem({
   const isEdited = m.is_edited === true || m.edited_by != null || (typeof window !== "undefined" ? parseInt(localStorage.getItem(`edit_count_${m.id}`) || "0") > 0 : false);
   const activeMessageTimestamp = m.updated_at || m.edited_at || m.created_at;
 
-  const handleQuoteClick = (quotedText: string) => {
+  const handleQuoteClick = (quotedText: string, userTag?: string) => {
     if (typeof window !== "undefined" && navigator.vibrate) {
       try { navigator.vibrate([80, 50, 80]); } catch (e) {}
     }
-    scrollToMessage(quotedText);
+    scrollToMessage(quotedText, userTag);
   };
 
   const triggerEditAction = () => {
@@ -496,7 +498,7 @@ export function MessageItem({
           <div 
             className="text-[10px] italic p-2 rounded-lg cursor-pointer hover:opacity-100 border-l-2 mb-1.5 transition-colors break-words overflow-hidden shadow-inner" 
             style={{ backgroundColor: "rgba(0,0,0,0.15)", borderColor: "var(--accent)", color: "var(--foreground)" }} 
-            onClick={(e) => { e.stopPropagation(); handleQuoteClick(quotedText); }}
+            onClick={(e) => { e.stopPropagation(); handleQuoteClick(quotedText, user); }}
           >
             <span className={tagColor}>@{user}</span>: "{applyCensor(quotedText)}"
           </div>
@@ -610,6 +612,7 @@ export function MessageItem({
           </>
         )}
 
+        {/* HEADER ATAS BUBBLE CHAT */}
         <div className="flex justify-between items-center gap-2 mb-1.5 w-full">
           <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
             <span 
@@ -620,21 +623,6 @@ export function MessageItem({
             >
               {displayCleanUsername}
             </span>
-
-            {/* BADGE GALERI FOTO USER (MUNCUL APABILA USER TERSEBUT MEMILIKI HISTORI FOTO) */}
-            {userImagesCount > 0 && onOpenGallery && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenGallery(m.username);
-                }}
-                className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-purple-600/30 text-purple-300 border border-purple-500/40 hover:bg-purple-600/50 flex items-center gap-1 shrink-0 active:scale-95 transition-all shadow-xs"
-                title={`Buka Galeri Foto @${displayCleanUsername}`}
-              >
-                🖼️ {userImagesCount}
-              </button>
-            )}
           </div>
           
           <div className="flex items-center shrink-0">
@@ -652,8 +640,8 @@ export function MessageItem({
           </div>
         </div>
 
+        {/* KONTEN BUBBLE CHAT */}
         <div className="flex items-start gap-2.5 my-1">
-          {/* AREA GAMBAR CHAT */}
           {m.image_url && (
             <div 
               className="relative cursor-pointer group shrink-0 w-max z-20"
@@ -687,7 +675,6 @@ export function MessageItem({
             </div>
           )}
           
-          {/* AREA TEKS CHAT */}
           {m.pesan && (() => {
             const isPage2Private = colType === "private";
             const maxLines = isPage2Private ? 4 : 2, maxChars = isPage2Private ? 120 : 60; 
@@ -749,9 +736,26 @@ export function MessageItem({
           </div>
         )}
 
+        {/* FOOTER BAWAH BUBBLE CHAT (DENGAN TOMBOL GALERI DI KIRI POJOK BAWAH) */}
         <div className="mt-1.5 pt-1 border-t border-black/10 flex justify-between items-center gap-2">
-          <div className="flex-1 overflow-hidden flex flex-col gap-0.5 text-left" />
+          {/* SISI KIRI POJOK BAWAH: TOMBOL GALERI USER */}
+          <div className="flex-1 overflow-hidden flex flex-col gap-0.5 text-left min-w-0">
+            {userImagesCount > 0 && onOpenGallery && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenGallery(m.username);
+                }}
+                className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-purple-600/30 text-purple-300 border border-purple-500/40 hover:bg-purple-600/50 flex items-center w-max shrink-0 active:scale-95 transition-all shadow-xs"
+                title={`Buka Galeri Foto @${displayCleanUsername}`}
+              >
+                Galeri {userImagesCount}
+              </button>
+            )}
+          </div>
           
+          {/* SISI KANAN POJOK BAWAH: JAM & ACTION */}
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[8px] font-bold opacity-60 font-mono">
               {formatMessageTime ? formatMessageTime(activeMessageTimestamp) : activeMessageTimestamp}

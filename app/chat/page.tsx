@@ -42,7 +42,6 @@ export default function Home() {
     editingMsg: null as any 
   });
 
-  // STATE UNTUK POPUP GALERI FOTO USER (KUMPULAN KOTAK-KOTAK THUMBNAIL)
   const [galleryModal, setGalleryModal] = useState<{ username: string; msgs: any[] } | null>(null);
   
   const [currentHash, setCurrentHash] = useState("");
@@ -497,7 +496,15 @@ export default function Home() {
       return;
     }
 
-    if (interact.replyTo) { const q = interact.replyTo.pesan; const quote = q.length > 30 ? q.substring(0, 30) + "..." : q; txt = `@${interact.replyTo.username.split("●")[0]} ("${quote}") ${input.text.trim()}`; }
+    // MEMBUAT KUTIPAN BALASAN KETIKA DIBALAS (TERMASUK DIBALAS PESAN GAMBAR TANPA TEKS)
+    if (interact.replyTo) { 
+      const qText = interact.replyTo.pesan?.trim();
+      const hasImg = !!interact.replyTo.image_url;
+      const q = qText || (hasImg ? "📷 Gambar" : "Pesan"); 
+      const quote = q.length > 30 ? q.substring(0, 30) + "..." : q; 
+      txt = `@${interact.replyTo.username.split("●")[0]} ("${quote}") ${input.text.trim()}`; 
+    }
+
     if (auth.user !== "Admin●ipix.my.id") {
       const fiveMinsAgo = new Date(Date.now() - 300000).toISOString();
       const { count } = await supabase.from("messages").select("*", { count: "exact", head: true }).eq("username", auth.user).gte("created_at", fiveMinsAgo);
@@ -530,7 +537,6 @@ export default function Home() {
   const userPinnedMsg = currentMsgs.find((m) => m.is_pinned && m.pesan !== "___DELETED___" && m.username !== "Admin●ipix.my.id");
   const shouldShowPinned = auth.isAuth && currentHash !== "#block" && (ui.tab === "user" || (ui.tab === "admin" && usersInfo.selPriv !== null));
 
-  // HELPER MENGAMBIL FOTO-FOTO USER TERTENTU
   const handleOpenUserGallery = (targetUsername: string) => {
     const userImagesMsgs = msgs.priv.filter(
       (m) => m.username === targetUsername && m.image_url && m.pesan !== "___DELETED___"
@@ -551,7 +557,6 @@ export default function Home() {
         const isMine = m.username === auth.user; 
         const maxWidthClass = "max-w-[85%] md:max-w-[75%]";
 
-        // Hitung berapa total foto yang pernah di-upload oleh user dari pesan ini
         const userImagesCount = msgs.priv.filter(
           (x) => x.username === m.username && x.image_url && x.pesan !== "___DELETED___"
         ).length;
@@ -583,10 +588,21 @@ export default function Home() {
                 handleLongPress={(m: any) => setInteract((p) => ({ ...p, popup: m }))} 
                 approveImage={dbActions.approveImg} 
                 applyCensor={applyCensor} 
-                scrollToMessage={(t: string) => { 
+                scrollToMessage={(t: string, userTag?: string) => { 
                   const cleanText = t.endsWith("...") ? t.slice(0, -3).trim() : t.trim(); 
                   if (!cleanText) return;
-                  const targetMsg = msgs.all.find((m) => !m.pesan.startsWith("@") && m.pesan.includes(cleanText)) || msgs.all.find((m) => m.pesan.includes(cleanText));
+
+                  // 1. CARI DENGAN MENGGUNAKAN TEKS KUTIPAN
+                  let targetMsg = msgs.all.find((m) => !m.pesan.startsWith("@") && m.pesan && m.pesan.includes(cleanText)) 
+                               || msgs.all.find((m) => m.pesan && m.pesan.includes(cleanText));
+
+                  // 2. JIKA KUTIPAN BERUPA GAMBAR TANPA TEKS (SEPERTI "📷 Gambar")
+                  if (!targetMsg && userTag) {
+                    targetMsg = msgs.all.find((m) => 
+                      m.username.split("●")[0].toLowerCase() === userTag.toLowerCase() && m.image_url
+                    );
+                  }
+
                   if (targetMsg) scrollMsg(targetMsg.id); 
                 }} 
                 formatMessageTime={getFmt.time} 
@@ -736,13 +752,13 @@ export default function Home() {
       
       {currentHash !== "#block" && auth.isAuth && renderInputForm()}
       
-      {/* POPUP GALERI FOTO USER (KUMPULAN KOTAK-KOTAK THUMBNAIL) */}
+      {/* POPUP GALERI FOTO USER */}
       {galleryModal && (
         <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn" onClick={() => setGalleryModal(null)}>
           <div className="w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl p-4 shadow-2xl flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
               <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                🖼️ Galeri Foto @{galleryModal.username.split("●")[0]} 
+                Galeri @{galleryModal.username.split("●")[0]} 
                 <span className="text-[10px] bg-amber-500/20 px-2 py-0.5 rounded-full text-amber-300 font-mono">
                   {galleryModal.msgs.length} foto
                 </span>
@@ -756,14 +772,13 @@ export default function Home() {
               </button>
             </div>
 
-            {/* GRID KOTAK-KOTAK THUMBNAIL */}
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 overflow-y-auto pr-1 max-h-[60vh] [scrollbar-width:thin]">
               {galleryModal.msgs.map((imgMsg) => (
                 <div
                   key={imgMsg.id}
                   onClick={() => {
                     setGalleryModal(null);
-                    scrollMsg(imgMsg.id); // LANGSUNG DIARAHKAN KE BUBBLE CHAT GAMBAR TUJUAN
+                    scrollMsg(imgMsg.id);
                   }}
                   className="aspect-square relative group cursor-pointer rounded-xl overflow-hidden border border-slate-700 hover:border-amber-400 transition-all active:scale-95 bg-black/40 shadow-sm"
                 >
