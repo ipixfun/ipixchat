@@ -76,7 +76,8 @@ export default function Head({
               </>
             )}
 
-            {!isMsgAdmin && (
+            {/* TOMBOL KELUAR (Hanya tampil jika auth.user terisi, berlaku untuk Admin & User) */}
+            {auth.user && (
               <button
                 type="button"
                 onClick={handleLogout}
