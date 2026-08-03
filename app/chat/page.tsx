@@ -116,12 +116,34 @@ export default function Home() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem("is_auth"); localStorage.removeItem("active_tab"); sessionStorage.clear();
-    setAuth((p) => ({ ...p, isAuth: false })); window.location.reload();
+    localStorage.clear(); sessionStorage.clear();
+    setAuth({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" }); 
+    window.location.reload();
   };
 
   const fetchData = useCallback(async () => {
     if (!auth.isAuth) return;
+
+    // VALIDASI INTEGRITAS USER AKUN AKTIFF
+    if (auth.user && auth.user !== "Admin●ipix.my.id") {
+      const savedPin = localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
+      const { data: currentProfile } = await supabase
+        .from("profiles")
+        .select("username, pin")
+        .ilike("username", auth.user)
+        .maybeSingle();
+
+      // Jika profile tidak ditemukan (karena nama diubah) ATAU PIN sudah berbeda di database -> AUTO LOGOUT
+      if (!currentProfile || (savedPin && currentProfile.pin !== savedPin)) {
+        localStorage.clear(); sessionStorage.clear();
+        await supabase.auth.signOut();
+        setAuth({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" });
+        alert("Username atau PIN Anda telah diubah oleh Admin. Silakan login kembali.");
+        window.location.reload();
+        return;
+      }
+    }
+
     try {
       const [{ data: bD }, { data: bW }, { data: prD }] = await Promise.all([
         supabase.from("blocked_users").select("*"), 
@@ -401,30 +423,35 @@ export default function Home() {
     chk();
   }, [pathname]);
 
-  // REALTIME LISTENER UNTUK MONITORING EDIT NAMA ATAU PIN -> AUTO LOGOUT USER YANG BERSANGKUTAN
+  // REALTIME LISTENER AKURAT UNTUK PERUBAHAN PROFILE DARI ADMIN
   useEffect(() => {
     if (!mounted || !auth.isAuth) return;
     fetchData();
     if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
     
-    const profileChangeListener = supabase.channel('public:profiles_update').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
-      const oldRecord = payload.old; 
-      const newRecord = payload.new; 
-      const currentSaved = localStorage.getItem("username") || localStorage.getItem("active_username");
-      
-      if ((currentSaved === oldRecord?.username || auth.user === oldRecord?.username || currentSaved === newRecord?.username) && auth.user !== "Admin●ipix.my.id") {
-        localStorage.removeItem("active_username");
-        localStorage.removeItem("username");
-        localStorage.removeItem("saved_pin");
-        localStorage.removeItem("user_pin");
-        localStorage.removeItem("pin");
-        localStorage.removeItem("is_auth");
-        sessionStorage.clear();
-        
-        supabase.auth.signOut();
-        setAuth({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" });
-        
-        alert("Username atau PIN akun Anda telah diperbarui oleh Admin. Silakan masuk kembali dengan data baru Anda.");
+    const profileChangeListener = supabase.channel('public:profiles_update').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, async (payload) => {
+      if (auth.user === "Admin●ipix.my.id") return;
+
+      const savedPin = localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
+      const savedUser = localStorage.getItem("username") || localStorage.getItem("active_username") || auth.user;
+
+      const newRecord = payload.new;
+      const isMyUsername = newRecord.username?.toLowerCase() === savedUser?.toLowerCase();
+      const isMyPin = savedPin && newRecord.pin === savedPin;
+
+      // Jika update terjadi pada akun user aktif saat ini
+      if (isMyUsername || isMyPin) {
+        const usernameChanged = newRecord.username?.toLowerCase() !== auth.user?.toLowerCase();
+        const pinChanged = savedPin && newRecord.pin !== savedPin;
+
+        if (usernameChanged || pinChanged) {
+          localStorage.clear();
+          sessionStorage.clear();
+          await supabase.auth.signOut();
+          setAuth({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" });
+          alert("Username atau PIN Anda telah diubah oleh Admin. Silakan masuk kembali dengan data baru.");
+          window.location.reload();
+        }
       }
     }).subscribe();
     
@@ -596,7 +623,7 @@ export default function Home() {
     );
   };
 
-  const renderInputForm = () => { const isBlocked = usersInfo.blockedList.some((b) => b.username === auth.user); return <ChatInput input={input} setInput={setInput} interact={interact} setInteract={setInteract} ui={ui} setUi={setUi} auth={auth} usersInfo={usersInfo} currentHash={currentHash} isBlocked={isBlocked} hasInputReady={hasInputReady} handleImageUpload={handleImageUpload} scrollMsg={scrollMsg} sendMsg={sendMsg} />; };
+  const renderInputForm = () => { const isBlocked = usersInfo.blockedList.some((b) => b.username === auth.user); return <ChatInput input={input} setInput={setInput} interact={interact} setInteract={setInteract} ui={ui} setUi={setUi} auth={auth} usersInfo={usersInfo} currentHash={currentHash} isBlocked={isBlocked} hasInputReady={hasInputReady} handleImageUpload={handleImageUpload} scrollMsg={scrollMsg} sendMsg={sendMsg} handleLogout={handleLogout} />; };
   if (!mounted) return <Loading />;
 
   return (

@@ -95,7 +95,8 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const [showFireworks, setShowFireworks] = useState(false); const [isSavedDevice, setIsSavedDevice] = useState(false);
   const [hasTyped, setHasTyped] = useState(false); const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
-  const [rememberCredentials, setRememberCredentials] = useState(true);
+  // OTOMATIS TERSIMPAN (SANGAT AKTIF)
+  const rememberCredentials = true;
 
   useEffect(() => {
     try {
@@ -274,7 +275,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                   
                   <InputField icon={<UserIcon />} placeholder="Username" value={username || ""} readOnly={isSavedDevice || isLocked} disabled={isSavedDevice || isLocked} onChange={(e: any) => { if (isSavedDevice || isLocked) return; if (!hasTyped) setHasTyped(true); setUsername(e.target.value.slice(0, 20)); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('username')} onBlur={() => setFocusedField(null)} className={inputInset} style={(isSavedDevice || isLocked) ? existingStyle : usernameStyle} autoComplete="off" />
                   
-                  {/* INPUT PIN - MENGAKTIFKAN TOMBOL EYE ICON MESKIPUN DALAM MODE SAVED DEVICE */}
                   <InputField icon={<LockIcon />} placeholder={isSavedDevice ? "PIN Tersimpan" : "PIN (6 angka)"} type={showPin ? "text" : "password"} readOnly={isSavedDevice || isLocked} disabled={isSavedDevice || isLocked} value={pin || ""} onChange={(e: any) => { if (isSavedDevice || isLocked) return; const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPin(val); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('pin')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} disabled={isLocked} className="focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={inputInset} style={(isSavedDevice || isLocked) ? existingStyle : pinStyle} maxLength={6} />
                   
                   {(isSavedDevice || isLocked) && (
@@ -283,11 +283,10 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                     </div>
                   )}
 
-                  {/* CENTANG SIMPAN NAMA DAN PIN (HANYA JIKA USER SUDAH ADA / DIEDIT DAN BERADA DI KOLOM LOGIN) */}
+                  {/* TEKS STATIS LOGIN OTOMATIS (TOGGLE CEKLIS DISEMBUNYIKAN) */}
                   {(isLoginMode && isExistingUser && !isSavedDevice && !isLocked) && (
                     <div className="flex items-center justify-start w-full mb-3 px-2 select-none">
-                      <input type="checkbox" id="rememberLogin" className="w-3.5 h-3.5 cursor-pointer rounded-sm accent-[var(--accent)]" checked={rememberCredentials} onChange={(e) => setRememberCredentials(e.target.checked)} />
-                      <label htmlFor="rememberLogin" className="text-[11px] font-medium ml-2 select-none leading-none opacity-90 cursor-pointer" style={{ color: "var(--foreground-heading)" }}>Simpan nama dan PIN</label>
+                      <span className="text-[11px] font-medium opacity-80" style={{ color: "var(--foreground-heading)" }}>*Login otomatis</span>
                     </div>
                   )}
 
