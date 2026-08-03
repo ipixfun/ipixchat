@@ -34,7 +34,7 @@ export default function Home() {
   const [censor, setCensor] = useState({ words: [] as string[], newWord: "" });
   const [input, setInput] = useState({ text: "", sending: false, blink: false, image: null as string | null, uploadingImage: false });
   
-  // STATE DETEKSI USER TERSIMPAN / SUDAH PERNAH EDIT
+  // STATE DETEKSI USER TERSIMPAN / SUDAH PERNAH REGISTER
   const [isSavedDeviceState, setIsSavedDeviceState] = useState(false);
 
   const [confirmModal, setConfirmModal] = useState({
@@ -654,32 +654,28 @@ export default function Home() {
       
       {/* FORM LOGIN / REGISTER OVERLAY */}
       {!auth.isAuth && (
-        <div className={`absolute inset-0 z-[40] flex flex-col pointer-events-none ${isSavedDeviceState ? 'pb-0' : 'pb-16'}`}>
-          <div className="pointer-events-auto flex-1 flex flex-col">
-            <Login activeTab={ui.tab} username={auth.user} setUsername={handleUsernameChange} pin={auth.pin} setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))} umur={auth.umur} setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))} berat={auth.berat} setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))} adminPass={auth.adminPass} setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))} handleUserLogin={async (isLoginMode?: boolean) => {
-              const inputName = auth.user.trim(); if (!inputName || isCensored(inputName)) return { error: true };
-              const plainPin = auth.pin || localStorage.getItem("saved_pin") || localStorage.getItem("pin") || ""; if (!plainPin) return { error: true };
-              try {
-                const { data: existUser } = await supabase.from("profiles").select("username, pin, email, umur, berat").ilike("username", inputName).maybeSingle();
-                const finalUsername = existUser ? existUser.username : inputName.toLowerCase();
-                if (isLoginMode) {
-                  if (!existUser || existUser.pin !== plainPin) return { error: true };
-                  localStorage.setItem("active_username", finalUsername); localStorage.setItem("username", finalUsername); localStorage.setItem("saved_pin", plainPin); localStorage.setItem("user_pin", plainPin); localStorage.setItem("pin", plainPin); localStorage.setItem("is_auth", "true"); localStorage.setItem("active_tab", "user");
-                  setTimeout(() => { setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, umur: existUser.umur || "", berat: existUser.berat || "", pin: "" })); }, 3000); return true;
-                }
-                if (existUser && existUser.pin !== plainPin) return { error: true };
-                let finalEmail = "user@ipix.fun"; if (existUser?.email) { finalEmail = existUser.email; } else { const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true }); const nextId = (count || 0) + 1; finalEmail = `user${nextId}@ipix.fun`; }
-                const { error: upsertError } = await supabase.from("profiles").upsert({ email: finalEmail, username: finalUsername, user_browser: navigator.userAgent, pin: plainPin, umur: auth.umur, berat: auth.berat }, { onConflict: "username" });
-                if (upsertError) return { error: true };
-                localStorage.setItem("active_username", finalUsername); localStorage.setItem("username", finalUsername); localStorage.setItem("saved_pin", plainPin); localStorage.setItem("user_pin", finalUsername); localStorage.setItem("pin", plainPin); localStorage.setItem("is_auth", "true"); localStorage.setItem("active_tab", "user");
-                setTimeout(() => { setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: "" })); }, 3000); return true;
-              } catch (e) { return { error: true }; }
-            }} handleAdminLogin={async () => {
-              const { error } = await supabase.auth.signInWithPassword({ email: auth.adminEmail, password: auth.adminPass });
-              if (error) alert("Gagal"); else { setAuth((p) => ({ ...p, isAuth: true, user: "Admin●ipix.my.id" })); setUi((p) => ({ ...p, tab: "admin" })); localStorage.setItem("active_username", "Admin●ipix.my.id"); localStorage.setItem("username", "Admin●ipix.my.id"); localStorage.setItem("is_auth", "true"); localStorage.setItem("active_tab", "admin"); }
-            }} />
-          </div>
-        </div>
+        <Login activeTab={ui.tab} username={auth.user} setUsername={handleUsernameChange} pin={auth.pin} setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))} umur={auth.umur} setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))} berat={auth.berat} setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))} adminPass={auth.adminPass} setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))} handleUserLogin={async (isLoginMode?: boolean) => {
+          const inputName = auth.user.trim(); if (!inputName || isCensored(inputName)) return { error: true };
+          const plainPin = auth.pin || localStorage.getItem("saved_pin") || localStorage.getItem("pin") || ""; if (!plainPin) return { error: true };
+          try {
+            const { data: existUser } = await supabase.from("profiles").select("username, pin, email, umur, berat").ilike("username", inputName).maybeSingle();
+            const finalUsername = existUser ? existUser.username : inputName.toLowerCase();
+            if (isLoginMode) {
+              if (!existUser || existUser.pin !== plainPin) return { error: true };
+              localStorage.setItem("active_username", finalUsername); localStorage.setItem("username", finalUsername); localStorage.setItem("saved_pin", plainPin); localStorage.setItem("user_pin", plainPin); localStorage.setItem("pin", plainPin); localStorage.setItem("is_auth", "true"); localStorage.setItem("active_tab", "user");
+              setTimeout(() => { setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, umur: existUser.umur || "", berat: existUser.berat || "", pin: "" })); }, 3000); return true;
+            }
+            if (existUser && existUser.pin !== plainPin) return { error: true };
+            let finalEmail = "user@ipix.fun"; if (existUser?.email) { finalEmail = existUser.email; } else { const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true }); const nextId = (count || 0) + 1; finalEmail = `user${nextId}@ipix.fun`; }
+            const { error: upsertError } = await supabase.from("profiles").upsert({ email: finalEmail, username: finalUsername, user_browser: navigator.userAgent, pin: plainPin, umur: auth.umur, berat: auth.berat }, { onConflict: "username" });
+            if (upsertError) return { error: true };
+            localStorage.setItem("active_username", finalUsername); localStorage.setItem("username", finalUsername); localStorage.setItem("saved_pin", plainPin); localStorage.setItem("user_pin", finalUsername); localStorage.setItem("pin", plainPin); localStorage.setItem("is_auth", "true"); localStorage.setItem("active_tab", "user");
+            setTimeout(() => { setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: "" })); }, 3000); return true;
+          } catch (e) { return { error: true }; }
+        }} handleAdminLogin={async () => {
+          const { error } = await supabase.auth.signInWithPassword({ email: auth.adminEmail, password: auth.adminPass });
+          if (error) alert("Gagal"); else { setAuth((p) => ({ ...p, isAuth: true, user: "Admin●ipix.my.id" })); setUi((p) => ({ ...p, tab: "admin" })); localStorage.setItem("active_username", "Admin●ipix.my.id"); localStorage.setItem("username", "Admin●ipix.my.id"); localStorage.setItem("is_auth", "true"); localStorage.setItem("active_tab", "admin"); }
+        }} />
       )}
       
       <Head auth={auth} ui={ui} adminStat={adminStat} onlineUsers={onlineUsers} currentHash={currentHash} getFmt={getFmt} handleLogout={handleLogout} onBlockMgr={() => window.open(`${window.location.pathname}#block`, "_blank")} onTrashMgr={dbActions.emptyTrash} adminPinnedMsg={adminPinnedMsg} userPinnedMsg={userPinnedMsg} onEditPinned={dbActions.editPinned} onScrollToMsg={scrollMsg} />
@@ -813,7 +809,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* BOTTOM NAV: TAMPIL JIKA USER BELUM REGISTER ATAU SUDAH BERHASIL LOGIN */}
+      {/* NAVBAR: TAMPIL SAAT BELUM REGISTER ATAU SUDAH BERHASIL MASUK CHAT */}
       {(auth.isAuth || !isSavedDeviceState) && (
         <div className="relative z-[999] w-full shrink-0 bg-transparent">
           <BottomNav />
