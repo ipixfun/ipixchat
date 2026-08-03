@@ -114,17 +114,19 @@ export default function Home() {
     }
   };
 
+  // LOGOUT DENGAN MENJAGA DATA KREDENSIAL LOKAL AGAR TERKUNCI OTOMATIS
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    localStorage.clear(); sessionStorage.clear();
-    setAuth({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" }); 
+    localStorage.removeItem("is_auth");
+    sessionStorage.clear();
+    setAuth({ isAuth: false, isExist: false, user: auth.user, adminEmail: "", adminPass: "", pin: auth.pin, umur: "", berat: "" }); 
     window.location.reload();
   };
 
   const fetchData = useCallback(async () => {
     if (!auth.isAuth) return;
 
-    // VALIDASI INTEGRITAS USER AKUN AKTIFF
+    // Cek integritas akun user
     if (auth.user && auth.user !== "Admin●ipix.my.id") {
       const savedPin = localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
       const { data: currentProfile } = await supabase
@@ -133,7 +135,6 @@ export default function Home() {
         .ilike("username", auth.user)
         .maybeSingle();
 
-      // Jika profile tidak ditemukan (karena nama diubah) ATAU PIN sudah berbeda di database -> AUTO LOGOUT
       if (!currentProfile || (savedPin && currentProfile.pin !== savedPin)) {
         localStorage.clear(); sessionStorage.clear();
         await supabase.auth.signOut();
@@ -423,7 +424,7 @@ export default function Home() {
     chk();
   }, [pathname]);
 
-  // REALTIME LISTENER AKURAT UNTUK PERUBAHAN PROFILE DARI ADMIN
+  // Realtime Listener untuk mendeteksi perubahan profil oleh admin
   useEffect(() => {
     if (!mounted || !auth.isAuth) return;
     fetchData();
@@ -439,7 +440,6 @@ export default function Home() {
       const isMyUsername = newRecord.username?.toLowerCase() === savedUser?.toLowerCase();
       const isMyPin = savedPin && newRecord.pin === savedPin;
 
-      // Jika update terjadi pada akun user aktif saat ini
       if (isMyUsername || isMyPin) {
         const usernameChanged = newRecord.username?.toLowerCase() !== auth.user?.toLowerCase();
         const pinChanged = savedPin && newRecord.pin !== savedPin;
@@ -686,7 +686,7 @@ export default function Home() {
       
       {currentHash !== "#block" && auth.isAuth && renderInputForm()}
       
-      {/* POPUP CONFIRMATION MODAL MODERN */}
+      {/* POPUP CONFIRMATION MODAL */}
       {confirmModal.isOpen && (
         <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn select-none" onClick={() => setConfirmModal((p) => ({ ...p, isOpen: false }))}>
           <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center text-center gap-4 animate-scaleUp" onClick={(e) => e.stopPropagation()}>
@@ -703,7 +703,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* POPUP PROMPT INPUT MODAL MODERN */}
+      {/* POPUP PROMPT INPUT MODAL */}
       {promptModal.isOpen && (
         <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn select-none" onClick={() => setPromptModal((p) => ({ ...p, isOpen: false }))}>
           <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 animate-scaleUp text-white" onClick={(e) => e.stopPropagation()}>

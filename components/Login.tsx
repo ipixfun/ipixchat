@@ -95,16 +95,17 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const [showFireworks, setShowFireworks] = useState(false); const [isSavedDevice, setIsSavedDevice] = useState(false);
   const [hasTyped, setHasTyped] = useState(false); const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
-  // 1. PENGECEKAN DATA LOGING/TERSIMPAN DI LOCALSTORAGE
+  const rememberCredentials = true;
+
+  // PENGECEKAN DATA KREDENSIAL TERSIMPAN DI LOCALSTORAGE
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem('username') || localStorage.getItem('active_username');
       const savedPin = localStorage.getItem('user_pin') || localStorage.getItem('pin') || localStorage.getItem('saved_pin');
       
-      // PERBAIKAN: Hanya aktifkan mode tersimpan jika KEDUANYA (User & PIN) benar-benar ada di localStorage
       if (savedUser && savedPin) {
-        if (!username) setUsername(savedUser);
-        if (!pin) setPin(savedPin);
+        setUsername(savedUser);
+        setPin(savedPin);
         setIsSavedDevice(true);
         setIsLoginMode(true);
       } else {
@@ -113,7 +114,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
     } catch (e) {
       setIsSavedDevice(false);
     }
-  }, []);
+  }, [setUsername, setPin]);
 
   useEffect(() => {
     if (isSavedDevice) return;
@@ -173,7 +174,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
         return setValidationMsg("Username atau PIN telah diubah sayang");
       }
       
-      // 2. OTOMATIS SIMPAN KREDENSIAL BARU
       try { 
         localStorage.setItem('username', username); 
         localStorage.setItem('active_username', username); 
@@ -277,7 +277,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                     </div>
                   )}
 
-                  {/* 3. TEKS STATIS LOGIN OTOMATIS */}
+                  {/* TEKS LOGIN OTOMATIS */}
                   {(isLoginMode && !isSavedDevice && !isLocked) && (
                     <div className="flex items-center justify-start w-full mb-3 px-2 select-none">
                       <span className="text-[11px] font-medium opacity-80" style={{ color: "var(--foreground-heading)" }}>
