@@ -95,6 +95,9 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const [showFireworks, setShowFireworks] = useState(false); const [isSavedDevice, setIsSavedDevice] = useState(false);
   const [hasTyped, setHasTyped] = useState(false); const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
+  // STATE UNTUK CENTANG "SIMPAN NAMA DAN PIN"
+  const [rememberCredentials, setRememberCredentials] = useState(true);
+
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem('username') || localStorage.getItem('active_username');
@@ -148,7 +151,25 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
     try {
       const result = await handleUserLogin(isLoginMode);
       if (!result || result === false || result.error) return setValidationMsg("Username atau PIN salah sayang");
-      try { localStorage.setItem('username', username); localStorage.setItem('active_username', username); localStorage.setItem('user_pin', pin); localStorage.setItem('saved_pin', pin); localStorage.setItem('pin', pin); localStorage.setItem('is_auth', 'true'); setIsSavedDevice(true); } catch (e) {}
+      try { 
+        if (rememberCredentials) {
+          localStorage.setItem('username', username); 
+          localStorage.setItem('active_username', username); 
+          localStorage.setItem('user_pin', pin); 
+          localStorage.setItem('saved_pin', pin); 
+          localStorage.setItem('pin', pin); 
+          localStorage.setItem('is_auth', 'true'); 
+          setIsSavedDevice(true);
+        } else {
+          localStorage.removeItem('username');
+          localStorage.removeItem('user_pin');
+          localStorage.removeItem('saved_pin');
+          localStorage.removeItem('pin');
+          localStorage.setItem('active_username', username);
+          localStorage.setItem('is_auth', 'true');
+          setIsSavedDevice(false);
+        }
+      } catch (e) {}
       setShowWelcomePill(true); setShowFireworks(true); await new Promise((resolve) => setTimeout(resolve, 3000));
     } catch (err) { setValidationMsg("Username atau PIN salah sayang"); }
   };
@@ -201,6 +222,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
               )}
             </motion.div>
             <div className="absolute inset-0 z-10 w-full h-full">
+              {/* REGISTER FORM */}
               <motion.div initial={false} animate={{ opacity: !isLoginMode ? 1 : 0, y: !isLoginMode ? '0%' : '8%' }} transition={FORM_TRANSITION} className="absolute top-4 sm:top-6 w-full h-[65%] px-4 sm:px-6 pt-16 sm:pt-20 pb-2 flex flex-col items-center justify-center overflow-y-auto [&::-webkit-scrollbar]:hidden" style={{ pointerEvents: !isLoginMode ? 'auto' : 'none', ...gpuStyle, willChange: 'transform, opacity' }}>
                 <div className={`relative w-full rounded-[2.5rem] p-6 sm:p-8 flex flex-col items-center border ${glassBox}`} style={{ backgroundColor: "color-mix(in srgb, var(--background) 90%, transparent)", borderColor: "var(--card-border)" }}>
                   {(!isSavedDevice && !isLocked) && !isLoginMode && (
@@ -212,23 +234,46 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                     <SelectField icon={<CalendarIcon />} placeholder="Umur" options={["25+", "30+", "35+", "40+", "45+"]} value={umur} disabled={isLocked} onChange={(e: any) => { setUmur(e.target.value); if (validationMsg) setValidationMsg(""); }} className={inputInset} style={isLocked ? existingStyle : umurStyle} />
                     <SelectField icon={<ScaleIcon />} placeholder="Berat" options={["70+", "80+", "90+", "100+"]} value={berat} disabled={isLocked} onChange={(e: any) => { setBerat(e.target.value); if (validationMsg) setValidationMsg(""); }} className={inputInset} style={isLocked ? existingStyle : beratStyle} />
                   </div>
-                  <div className="flex items-center justify-start w-full mb-4 px-2 select-none">
+                  
+                  {/* CENTANG ATURAN CHAT */}
+                  <div className="flex items-center justify-start w-full mb-3 px-2 select-none">
                     <input type="checkbox" id="agree" disabled={isLocked} className="w-3.5 h-3.5 cursor-pointer rounded-sm accent-[var(--accent)] disabled:cursor-not-allowed" checked={isUsernameAgreed} onChange={(e) => { setIsUsernameAgreed(e.target.checked); if (validationMsg) setValidationMsg(""); }} />
                     <label htmlFor="agree" className={`text-[11px] font-light italic ml-2 select-none leading-none opacity-80 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`} style={{ color: "var(--foreground)" }}>*Mengikuti aturan di dalam chat</label>
                   </div>
+
+                  {/* CENTANG SIMPAN NAMA DAN PIN UNTUK REGISTER */}
+                  {(!isSavedDevice && !isLocked) && (
+                    <div className="flex items-center justify-start w-full mb-4 px-2 select-none">
+                      <input type="checkbox" id="rememberRegister" className="w-3.5 h-3.5 cursor-pointer rounded-sm accent-[var(--accent)]" checked={rememberCredentials} onChange={(e) => setRememberCredentials(e.target.checked)} />
+                      <label htmlFor="rememberRegister" className="text-[11px] font-medium ml-2 select-none leading-none opacity-90 cursor-pointer" style={{ color: "var(--foreground-heading)" }}>Simpan nama dan PIN</label>
+                    </div>
+                  )}
+
                   {!isLocked && (<button onClick={handleUserLoginWrapper} className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer shadow-md ${validationMsg ? "animate-pulse" : ""}`} style={buttonStyleObj}>{buttonText}</button>)}
                 </div>
               </motion.div>
+
+              {/* LOGIN FORM */}
               <motion.div initial={false} animate={{ opacity: isLoginMode ? 1 : 0, y: isLoginMode ? '0%' : '-8%' }} transition={FORM_TRANSITION} className="absolute bottom-0 w-full h-[65%] px-4 sm:px-6 pt-16 sm:pt-20 pb-4 flex flex-col items-center justify-center overflow-y-auto [&::-webkit-scrollbar]:hidden" style={{ pointerEvents: isLoginMode ? 'auto' : 'none', ...gpuStyle, willChange: 'transform, opacity' }}>
                 <div className={`relative w-full rounded-[2.5rem] p-6 sm:p-8 flex flex-col items-center border ${glassBox}`} style={{ backgroundColor: "color-mix(in srgb, var(--background) 90%, transparent)", borderColor: "var(--card-border)" }}>
                   {isLoginMode && (<div className="absolute -top-16 sm:-top-20 z-30 pointer-events-none drop-shadow-xl"><BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={120} /></div>)}
                   <InputField icon={<UserIcon />} placeholder="Username" value={username || ""} readOnly={isSavedDevice} disabled={isLocked && !isSavedDevice} onChange={(e: any) => { if (isSavedDevice || isLocked) return; if (!hasTyped) setHasTyped(true); setUsername(e.target.value.slice(0, 20)); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('username')} onBlur={() => setFocusedField(null)} className={inputInset} style={(isSavedDevice || isLocked) ? existingStyle : usernameStyle} autoComplete="off" />
                   <InputField icon={<LockIcon />} placeholder={isSavedDevice ? "PIN Tersimpan" : "PIN (6 angka)"} type={showPin ? "text" : "password"} readOnly={isSavedDevice} disabled={isLocked && !isSavedDevice} value={pin || ""} onChange={(e: any) => { if (isSavedDevice || isLocked) return; const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPin(val); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('pin')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} disabled={isLocked && !isSavedDevice} className="focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={inputInset} style={(isSavedDevice || isLocked) ? existingStyle : pinStyle} maxLength={6} />
+                  
                   {(isSavedDevice || isLocked) && (
                     <div className={`w-full text-xs p-4 border rounded-3xl mb-4 font-normal text-center whitespace-pre-line leading-relaxed min-h-[65px] flex items-center justify-center ${inputInset}`} style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)", color: "var(--foreground-heading)" }}>
                       <span className="w-full block drop-shadow-sm"><span>{visiblePrefix}</span><span className="font-extrabold italic">{visibleName}</span><span>{visibleSuffix}</span>{!isNoteTypingDone && <span className="animate-pulse ml-0.5">|</span>}</span>
                     </div>
                   )}
+
+                  {/* CENTANG SIMPAN NAMA DAN PIN UNTUK LOGIN */}
+                  {(!isSavedDevice && !isLocked) && (
+                    <div className="flex items-center justify-start w-full mb-3 px-2 select-none">
+                      <input type="checkbox" id="rememberLogin" className="w-3.5 h-3.5 cursor-pointer rounded-sm accent-[var(--accent)]" checked={rememberCredentials} onChange={(e) => setRememberCredentials(e.target.checked)} />
+                      <label htmlFor="rememberLogin" className="text-[11px] font-medium ml-2 select-none leading-none opacity-90 cursor-pointer" style={{ color: "var(--foreground-heading)" }}>Simpan nama dan PIN</label>
+                    </div>
+                  )}
+
                   {(!isLocked || isSavedDevice) && (<button onClick={handleUserLoginWrapper} className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer mt-1 shadow-md ${validationMsg ? "animate-pulse" : ""}`} style={buttonStyleObj}>{buttonText}</button>)}
                 </div>
               </motion.div>
