@@ -114,7 +114,6 @@ export default function Home() {
     }
   };
 
-  // LOGOUT DENGAN MENJAGA DATA KREDENSIAL LOKAL AGAR TERKUNCI OTOMATIS
   const handleLogout = async () => {
     await supabase.auth.signOut();
     localStorage.removeItem("is_auth");
@@ -126,7 +125,6 @@ export default function Home() {
   const fetchData = useCallback(async () => {
     if (!auth.isAuth) return;
 
-    // Cek integritas akun user
     if (auth.user && auth.user !== "Admin●ipix.my.id") {
       const savedPin = localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
       const { data: currentProfile } = await supabase
@@ -424,7 +422,6 @@ export default function Home() {
     chk();
   }, [pathname]);
 
-  // Realtime Listener untuk mendeteksi perubahan profil oleh admin
   useEffect(() => {
     if (!mounted || !auth.isAuth) return;
     fetchData();
@@ -643,8 +640,9 @@ export default function Home() {
         .highlight-active { animation: highlightGlow 1.8s ease-in-out forwards !important; }
       ` }} />
       
+      {/* OVERLAY FORM LOGIN: Tanpa pb-16 agar fullscreen penuh */}
       {!auth.isAuth && (
-        <div className="absolute inset-0 z-[40] flex flex-col pointer-events-none pb-16">
+        <div className="absolute inset-0 z-[40] flex flex-col pointer-events-none pb-0">
           <div className="pointer-events-auto flex-1 flex flex-col">
             <Login activeTab={ui.tab} username={auth.user} setUsername={handleUsernameChange} pin={auth.pin} setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))} umur={auth.umur} setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))} berat={auth.berat} setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))} adminPass={auth.adminPass} setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))} handleUserLogin={async (isLoginMode?: boolean) => {
               const inputName = auth.user.trim(); if (!inputName || isCensored(inputName)) return { error: true };
@@ -803,7 +801,12 @@ export default function Home() {
         </div>
       )}
 
-      <div className="relative z-[999] w-full shrink-0 bg-transparent"><BottomNav /></div>
+      {/* NAVBAR: HANYA DITAMPILKAN JIKA BERHASIL LOGIN */}
+      {auth.isAuth && (
+        <div className="relative z-[999] w-full shrink-0 bg-transparent">
+          <BottomNav />
+        </div>
+      )}
     </div>
   );
 }
