@@ -33,9 +33,6 @@ export default function Home() {
   const [usersInfo, setUsersInfo] = useState({ status: {} as Record<string, any>, blockedList: [] as any[], privUsers: [] as any[], selPriv: null as string | null });
   const [censor, setCensor] = useState({ words: [] as string[], newWord: "" });
   const [input, setInput] = useState({ text: "", sending: false, blink: false, image: null as string | null, uploadingImage: false });
-  
-  // STATE DETEKSI USER TERSIMPAN / SUDAH PERNAH REGISTER
-  const [isSavedDeviceState, setIsSavedDeviceState] = useState(false);
 
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false, title: "", message: "", confirmText: "Ya, Lanjutkan", cancelText: "Batal", type: "danger", onConfirm: () => {},
@@ -119,9 +116,9 @@ export default function Home() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem("is_auth");
+    localStorage.clear();
     sessionStorage.clear();
-    setAuth({ isAuth: false, isExist: false, user: auth.user, adminEmail: "", adminPass: "", pin: auth.pin, umur: "", berat: "" }); 
+    setAuth({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" }); 
     window.location.reload();
   };
 
@@ -129,7 +126,7 @@ export default function Home() {
     if (!auth.isAuth) return;
 
     if (auth.user && auth.user !== "Admin●ipix.my.id") {
-      const savedPin = localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
+      const savedPin = localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
       const { data: currentProfile } = await supabase
         .from("profiles")
         .select("username, pin")
@@ -390,40 +387,22 @@ export default function Home() {
   useEffect(() => {
     const chk = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      let savedUsername = localStorage.getItem("active_username") || localStorage.getItem("username");
-      const savedPin = localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || "";
-      const isAuthLocal = localStorage.getItem("is_auth") === "true";
-
-      if (savedUsername && savedPin) {
-        setIsSavedDeviceState(true);
-      } else {
-        setIsSavedDeviceState(false);
-      }
+      let savedUsername = localStorage.getItem("active_username") || localStorage.getItem("username") || sessionStorage.getItem("active_username") || sessionStorage.getItem("username");
+      const savedPin = localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || sessionStorage.getItem("saved_pin") || sessionStorage.getItem("pin") || "";
+      const isAuthLocal = localStorage.getItem("is_auth") === "true" || sessionStorage.getItem("is_auth") === "true";
 
       if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
         const { data: pD } = await supabase.from("profiles").select("username, pin, umur, berat").ilike("username", savedUsername).maybeSingle();
         if (pD?.username) {
-          if (pD.username !== savedUsername) { localStorage.setItem("username", pD.username); localStorage.setItem("active_username", pD.username); savedUsername = pD.username; }
           const activePin = pD.pin || savedPin;
-          if (activePin) { localStorage.setItem("saved_pin", activePin); localStorage.setItem("user_pin", activePin); localStorage.setItem("pin", activePin); }
-          setAuth((p) => ({ ...p, isExist: true, user: savedUsername || "", pin: activePin, umur: pD.umur || "", berat: pD.berat || "" }));
-        } else {
-          if (savedPin) {
-            const { data: pPin } = await supabase.from("profiles").select("username, pin, umur, berat").eq("pin", savedPin).maybeSingle();
-            if (pPin?.username) {
-              localStorage.setItem("username", pPin.username); localStorage.setItem("active_username", pPin.username);
-              setAuth((p) => ({ ...p, isExist: true, user: pPin.username || "", pin: pPin.pin || savedPin, umur: pPin.umur || "", berat: pPin.berat || "" }));
-            } else {
-              localStorage.removeItem("active_username"); localStorage.removeItem("username"); localStorage.removeItem("user_pin"); localStorage.removeItem("saved_pin"); localStorage.removeItem("pin"); localStorage.removeItem("is_auth");
-              setAuth((p) => ({ ...p, user: "", pin: "" }));
-              setIsSavedDeviceState(false);
-            }
-          } else setAuth((p) => ({ ...p, user: savedUsername || "", pin: savedPin }));
+          setAuth((p) => ({ ...p, isExist: true, user: pD.username, pin: activePin, umur: pD.umur || "", berat: pD.berat || "" }));
         }
       }
+
       const isAdmin = pathname?.endsWith("/admin") || window.location.hash === "#admin";
       setUi((p) => ({ ...p, tab: isAdmin ? "admin" : (localStorage.getItem("active_tab") as "user" | "admin") || "user" }));
-      if (session || (isAuthLocal && savedUsername === "Admin●ipix.my.id") || (isAuthLocal && savedPin)) {
+      
+      if (session || (isAuthLocal && savedUsername === "Admin●ipix.my.id") || (isAuthLocal && savedUsername)) {
         const currentAdmin = savedUsername === "Admin●ipix.my.id" || session;
         setAuth((p) => ({ ...p, isAuth: true, user: currentAdmin ? "Admin●ipix.my.id" : savedUsername || p.user }));
         if (currentAdmin) setUi((p) => ({ ...p, tab: "admin" }));
@@ -441,8 +420,8 @@ export default function Home() {
     const profileChangeListener = supabase.channel('public:profiles_update').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, async (payload) => {
       if (auth.user === "Admin●ipix.my.id") return;
 
-      const savedPin = localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
-      const savedUser = localStorage.getItem("username") || localStorage.getItem("active_username") || auth.user;
+      const savedPin = localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
+      const savedUser = localStorage.getItem("username") || localStorage.getItem("active_username") || sessionStorage.getItem("active_username") || auth.user;
 
       const newRecord = payload.new;
       const isMyUsername = newRecord.username?.toLowerCase() === savedUser?.toLowerCase();
@@ -457,7 +436,6 @@ export default function Home() {
           sessionStorage.clear();
           await supabase.auth.signOut();
           setAuth({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" });
-          setIsSavedDeviceState(false);
           alert("Username atau PIN Anda telah diubah oleh Admin. Silakan masuk kembali dengan data baru.");
           window.location.reload();
         }
@@ -652,30 +630,56 @@ export default function Home() {
         .highlight-active { animation: highlightGlow 1.8s ease-in-out forwards !important; }
       ` }} />
       
-      {/* FORM LOGIN / REGISTER OVERLAY */}
+      {/* OVERLAY LOGIN - Z-INDEX DISET Z-[80000] SUPAYA DI BAWAH BOTTOMNAV */}
       {!auth.isAuth && (
-        <Login activeTab={ui.tab} username={auth.user} setUsername={handleUsernameChange} pin={auth.pin} setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))} umur={auth.umur} setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))} berat={auth.berat} setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))} adminPass={auth.adminPass} setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))} handleUserLogin={async (isLoginMode?: boolean) => {
-          const inputName = auth.user.trim(); if (!inputName || isCensored(inputName)) return { error: true };
-          const plainPin = auth.pin || localStorage.getItem("saved_pin") || localStorage.getItem("pin") || ""; if (!plainPin) return { error: true };
-          try {
-            const { data: existUser } = await supabase.from("profiles").select("username, pin, email, umur, berat").ilike("username", inputName).maybeSingle();
-            const finalUsername = existUser ? existUser.username : inputName.toLowerCase();
-            if (isLoginMode) {
-              if (!existUser || existUser.pin !== plainPin) return { error: true };
-              localStorage.setItem("active_username", finalUsername); localStorage.setItem("username", finalUsername); localStorage.setItem("saved_pin", plainPin); localStorage.setItem("user_pin", plainPin); localStorage.setItem("pin", plainPin); localStorage.setItem("is_auth", "true"); localStorage.setItem("active_tab", "user");
-              setTimeout(() => { setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, umur: existUser.umur || "", berat: existUser.berat || "", pin: "" })); }, 3000); return true;
-            }
-            if (existUser && existUser.pin !== plainPin) return { error: true };
-            let finalEmail = "user@ipix.fun"; if (existUser?.email) { finalEmail = existUser.email; } else { const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true }); const nextId = (count || 0) + 1; finalEmail = `user${nextId}@ipix.fun`; }
-            const { error: upsertError } = await supabase.from("profiles").upsert({ email: finalEmail, username: finalUsername, user_browser: navigator.userAgent, pin: plainPin, umur: auth.umur, berat: auth.berat }, { onConflict: "username" });
-            if (upsertError) return { error: true };
-            localStorage.setItem("active_username", finalUsername); localStorage.setItem("username", finalUsername); localStorage.setItem("saved_pin", plainPin); localStorage.setItem("user_pin", finalUsername); localStorage.setItem("pin", plainPin); localStorage.setItem("is_auth", "true"); localStorage.setItem("active_tab", "user");
-            setTimeout(() => { setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: "" })); }, 3000); return true;
-          } catch (e) { return { error: true }; }
-        }} handleAdminLogin={async () => {
-          const { error } = await supabase.auth.signInWithPassword({ email: auth.adminEmail, password: auth.adminPass });
-          if (error) alert("Gagal"); else { setAuth((p) => ({ ...p, isAuth: true, user: "Admin●ipix.my.id" })); setUi((p) => ({ ...p, tab: "admin" })); localStorage.setItem("active_username", "Admin●ipix.my.id"); localStorage.setItem("username", "Admin●ipix.my.id"); localStorage.setItem("is_auth", "true"); localStorage.setItem("active_tab", "admin"); }
-        }} />
+        <div className="fixed inset-0 z-[80000] flex items-center justify-center bg-black/60 pointer-events-auto">
+          <Login activeTab={ui.tab} username={auth.user} setUsername={handleUsernameChange} pin={auth.pin} setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))} umur={auth.umur} setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))} berat={auth.berat} setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))} adminPass={auth.adminPass} setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))} handleUserLogin={async (isLoginMode?: boolean, rememberMe?: boolean) => {
+            const inputName = auth.user.trim(); if (!inputName || isCensored(inputName)) return { error: true };
+            const plainPin = auth.pin || (typeof window !== "undefined" ? (localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || "") : ""); 
+            if (!plainPin || plainPin.length !== 6) return { error: true };
+            
+            try {
+              const { data: existUser } = await supabase.from("profiles").select("username, pin, email, umur, berat").ilike("username", inputName).maybeSingle();
+              const finalUsername = existUser ? existUser.username : inputName.toLowerCase();
+              
+              if (isLoginMode) {
+                if (!existUser || existUser.pin !== plainPin) return { error: true };
+                
+                const storage = rememberMe ? localStorage : sessionStorage;
+                storage.setItem("active_username", finalUsername); 
+                storage.setItem("username", finalUsername); 
+                storage.setItem("saved_pin", plainPin); 
+                storage.setItem("user_pin", plainPin); 
+                storage.setItem("pin", plainPin); 
+                storage.setItem("is_auth", "true"); 
+                storage.setItem("active_tab", "user");
+
+                setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, umur: existUser.umur || "", berat: existUser.berat || "", pin: plainPin })); 
+                return true;
+              }
+
+              if (existUser && existUser.pin !== plainPin) return { error: true };
+              let finalEmail = "user@ipix.fun"; if (existUser?.email) { finalEmail = existUser.email; } else { const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true }); const nextId = (count || 0) + 1; finalEmail = `user${nextId}@ipix.fun`; }
+              const { error: upsertError } = await supabase.from("profiles").upsert({ email: finalEmail, username: finalUsername, user_browser: navigator.userAgent, pin: plainPin, umur: auth.umur, berat: auth.berat }, { onConflict: "username" });
+              if (upsertError) return { error: true };
+
+              const storage = rememberMe ? localStorage : sessionStorage;
+              storage.setItem("active_username", finalUsername); 
+              storage.setItem("username", finalUsername); 
+              storage.setItem("saved_pin", plainPin); 
+              storage.setItem("user_pin", plainPin); 
+              storage.setItem("pin", plainPin); 
+              storage.setItem("is_auth", "true"); 
+              storage.setItem("active_tab", "user");
+
+              setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: plainPin })); 
+              return true;
+            } catch (e) { return { error: true }; }
+          }} handleAdminLogin={async () => {
+            const { error } = await supabase.auth.signInWithPassword({ email: auth.adminEmail, password: auth.adminPass });
+            if (error) alert("Gagal login admin"); else { setAuth((p) => ({ ...p, isAuth: true, user: "Admin●ipix.my.id" })); setUi((p) => ({ ...p, tab: "admin" })); localStorage.setItem("active_username", "Admin●ipix.my.id"); localStorage.setItem("username", "Admin●ipix.my.id"); localStorage.setItem("is_auth", "true"); localStorage.setItem("active_tab", "admin"); }
+          }} />
+        </div>
       )}
       
       <Head auth={auth} ui={ui} adminStat={adminStat} onlineUsers={onlineUsers} currentHash={currentHash} getFmt={getFmt} handleLogout={handleLogout} onBlockMgr={() => window.open(`${window.location.pathname}#block`, "_blank")} onTrashMgr={dbActions.emptyTrash} adminPinnedMsg={adminPinnedMsg} userPinnedMsg={userPinnedMsg} onEditPinned={dbActions.editPinned} onScrollToMsg={scrollMsg} />
@@ -694,7 +698,7 @@ export default function Home() {
       
       {/* POPUP CONFIRMATION MODAL */}
       {confirmModal.isOpen && (
-        <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn select-none" onClick={() => setConfirmModal((p) => ({ ...p, isOpen: false }))}>
+        <div className="fixed inset-0 z-[10000] bg-black/80 flex items-center justify-center p-4 animate-fadeIn select-none" onClick={() => setConfirmModal((p) => ({ ...p, isOpen: false }))}>
           <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center text-center gap-4 animate-scaleUp" onClick={(e) => e.stopPropagation()}>
             <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 text-2xl shadow-inner">⚠️</div>
             <div className="flex flex-col gap-1.5">
@@ -711,7 +715,7 @@ export default function Home() {
 
       {/* POPUP PROMPT INPUT MODAL */}
       {promptModal.isOpen && (
-        <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn select-none" onClick={() => setPromptModal((p) => ({ ...p, isOpen: false }))}>
+        <div className="fixed inset-0 z-[10000] bg-black/80 flex items-center justify-center p-4 animate-fadeIn select-none" onClick={() => setPromptModal((p) => ({ ...p, isOpen: false }))}>
           <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 animate-scaleUp text-white" onClick={(e) => e.stopPropagation()}>
             <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xl shadow-inner">📌</div>
             <h3 className="text-sm font-bold text-slate-200 tracking-wide">{promptModal.title}</h3>
@@ -735,7 +739,7 @@ export default function Home() {
       )}
 
       {galleryModal && (
-        <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn" onClick={() => setGalleryModal(null)}>
+        <div className="fixed inset-0 z-[300] bg-black/80 flex items-center justify-center p-4 animate-fadeIn" onClick={() => setGalleryModal(null)}>
           <div className="w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl p-4 shadow-2xl flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
               <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">Galeri @{galleryModal.username.split("●")[0]} <span className="text-[10px] bg-amber-500/20 px-2 py-0.5 rounded-full text-amber-300 font-mono">{galleryModal.msgs.length} foto</span></span>
@@ -745,7 +749,7 @@ export default function Home() {
               {galleryModal.msgs.map((imgMsg) => (
                 <div key={imgMsg.id} onClick={() => { setGalleryModal(null); scrollMsg(imgMsg.id); }} className="aspect-square relative group cursor-pointer rounded-xl overflow-hidden border border-slate-700 hover:border-amber-400 transition-all active:scale-95 bg-black/40 shadow-sm">
                   <img src={imgMsg.image_url} alt="Gallery item" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-[9px] text-white font-bold text-center p-1 backdrop-blur-[1px]">
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-[9px] text-white font-bold text-center p-1">
                     <span>Lompat ke Chat</span>
                     <span className="text-[8px] text-amber-300 font-mono mt-0.5">{getFmt.time(imgMsg.created_at)}</span>
                   </div>
@@ -761,7 +765,7 @@ export default function Home() {
       )}
 
       {auth.isAuth && interact.popup && interact.popup.popupMode === "text_only" && (
-        <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
+        <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
           <div className="w-full max-w-md rounded-2xl shadow-2xl p-4 relative max-h-[80vh] flex flex-col border-t-4" style={{ backgroundColor: "var(--background)", borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={() => setInteract((p) => ({ ...p, popup: null }))} className="absolute top-3 right-3 rounded-full w-7 h-7 flex items-center justify-center font-bold active:scale-95 border text-xs" style={{ backgroundColor: "var(--background)", color: "var(--foreground)", borderColor: "var(--card-border)" }}>×</button>
             <div className="flex items-center gap-2 border-b pb-2 mb-3" style={{ borderColor: "var(--card-border)" }}>
@@ -776,7 +780,7 @@ export default function Home() {
       )}
 
       {auth.isAuth && interact.popup && (interact.popup.popupMode === "full" || !interact.popup.popupMode) && !interact.popup.pesan?.startsWith("___DELETED") && (
-        <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
+        <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
           <div className="w-full max-w-lg rounded-2xl shadow-2xl p-4 relative max-h-[90vh] flex flex-col border-t-4" style={{ backgroundColor: "var(--background)", borderColor: "var(--accent)" }} onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={() => setInteract((p) => ({ ...p, popup: null }))} className="absolute top-3 right-3 rounded-full w-7 h-7 flex items-center justify-center font-bold active:scale-95 border text-xs" style={{ backgroundColor: "var(--background)", color: "var(--foreground)", borderColor: "var(--card-border)" }}>×</button>
             <div className="flex items-center gap-2 border-b pb-2 mb-3" style={{ borderColor: "var(--card-border)" }}>
@@ -809,12 +813,10 @@ export default function Home() {
         </div>
       )}
 
-      {/* NAVBAR: TAMPIL SAAT BELUM REGISTER ATAU SUDAH BERHASIL MASUK CHAT */}
-      {(auth.isAuth || !isSavedDeviceState) && (
-        <div className="relative z-[999] w-full shrink-0 bg-transparent">
-          <BottomNav />
-        </div>
-      )}
+      {/* BOTTOM NAV CONTAINER DENGAN Z-[100000] */}
+      <div className="relative z-[100000] w-full shrink-0 bg-transparent pointer-events-auto">
+        <BottomNav isAuth={auth.isAuth} handleLogout={handleLogout} />
+      </div>
     </div>
   );
 }

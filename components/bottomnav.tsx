@@ -3,7 +3,12 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export default function BottomNav() {
+interface BottomNavProps {
+  isAuth?: boolean;
+  handleLogout?: () => void;
+}
+
+export default function BottomNav({ isAuth, handleLogout }: BottomNavProps) {
   const pathname = usePathname();
 
   const links = [
@@ -44,15 +49,14 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-2xl transition-colors duration-300 pb-[env(safe-area-inset-bottom)]"
+      className="fixed bottom-0 left-0 right-0 z-[100000] border-t backdrop-blur-2xl transition-colors duration-300 pb-[env(safe-area-inset-bottom)] pointer-events-auto"
       style={{
         backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)",
         borderColor: "color-mix(in srgb, var(--accent) 20%, var(--card-border, transparent))",
       }}
     >
-      <div className="max-w-2xl mx-auto h-14 sm:h-[62px] flex items-center px-1 sm:px-1.5">
-        {/* Navigation Items */}
-        <div className="w-full grid grid-cols-4 relative z-10">
+      <div className="max-w-2xl mx-auto h-14 sm:h-[62px] flex items-center px-1 sm:px-1.5 relative z-[100001]">
+        <div className="w-full grid grid-cols-4 relative z-[100002]">
           {links.map((link) => {
             const isActive = pathname === link.href;
 
@@ -60,10 +64,13 @@ export default function BottomNav() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="flex flex-col items-center justify-center h-12 sm:h-[50px] rounded-xl transition-all duration-200 select-none active:scale-95 touch-manipulation group min-w-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                className="flex flex-col items-center justify-center h-12 sm:h-[50px] rounded-xl transition-all duration-200 select-none active:scale-95 touch-manipulation group min-w-0 cursor-pointer pointer-events-auto relative z-[100003]"
               >
                 <div
-                  className={`transition-all duration-300 flex items-center justify-center shrink-0 ${
+                  className={`transition-all duration-300 flex items-center justify-center shrink-0 pointer-events-none ${
                     isActive
                       ? "scale-125 -translate-y-0.5"
                       : "opacity-50 group-hover:opacity-80 scale-100"
@@ -87,7 +94,7 @@ export default function BottomNav() {
                 </div>
 
                 <span
-                  className={`text-[9px] sm:text-[10px] font-bold tracking-wide transition-all duration-300 mt-0.5 truncate max-w-full px-1 ${
+                  className={`text-[9px] sm:text-[10px] font-bold tracking-wide transition-all duration-300 mt-0.5 truncate max-w-full px-1 pointer-events-none ${
                     isActive ? "opacity-100" : "opacity-50 group-hover:opacity-80"
                   }`}
                   style={{
