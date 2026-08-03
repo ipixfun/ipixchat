@@ -263,7 +263,7 @@ export function ImagePopupModal({ popupMsg, onClose, onPin }: { popupMsg: any; o
         />
       </div>
 
-      {/* PANEL KONTROL BAWAH (SEMATAN, UNDUH, RESOLUSI + UKURAN FILE, ZOOM, RESET & TUTUP) */}
+      {/* PANEL KONTROL BAWAH */}
       <div className="z-10 w-full max-w-md flex flex-col items-center gap-2 pb-2" onClick={(e) => e.stopPropagation()}>
         <div className="w-full flex items-center justify-center gap-2 flex-wrap bg-slate-900/90 border border-slate-800 p-2 rounded-2xl backdrop-blur-md shadow-2xl">
           {/* 1. PILL SEMATAN (PIN) */}
@@ -361,7 +361,7 @@ export function MessageItem({
   m, colType, isMinimized, activeTab, isAdminOnline, adminOfflineTime, userStatus,
   activeMenuId, setActiveMenuId, swipingId, setSwipingId, handleTag, handleReply,
   deleteMsg, copyToClipboard, handleEditLimit, editMsg, blockUser, setPopupMsg,
-  handleLongPress, approveImage, applyCensor, scrollToMessage, formatMessageTime, authUser, handlePin,
+  handleLongPress, applyCensor, scrollToMessage, formatMessageTime, authUser, handlePin,
   onOpenGallery, userImagesCount
 }: any) {
   const [swipeDelta, setSwipeDelta] = useState(0);
@@ -499,14 +499,9 @@ export function MessageItem({
     }, 100);
   };
 
-  /* ========================================================================
-     KONDISI PESAN DIHAPUS (BERDASARKAN TYPE: GAMBAR / GAMBAR & TEKS / TEKS)
-     + LOGIKA HAPUS DATABASE ADMIN DIGABUNG KELOGO '✕'
-     ======================================================================== */
   if (m.pesan && m.pesan.startsWith("___DELETED")) {
     const isDeletedByAdmin = m.deleted_by_admin === true;
     
-    // PENENTUAN TEKS NOTIFIKASI DIHAPUS
     let deletedNoticeText = "🚫 Dihapus";
     if (m.pesan === "___DELETED_IMAGE___") {
       deletedNoticeText = "🚫 Gambar Dihapus";
@@ -517,7 +512,6 @@ export function MessageItem({
     return (
       <div id={`msg-${m.id}`} className="relative w-full mb-2 z-10 group">
         <div className="bg-white/10 backdrop-blur-md border rounded-xl p-2.5 flex flex-col w-full shadow-sm relative" style={{ borderColor: "var(--card-border)", backgroundColor: "var(--card-bg)" }}>
-          {/* TOMBOL LOGO '✕' ADMIN: SEKALIGUS JADI ACTION HAPUS PERMANEN DARI DATABASE */}
           {activeTab === "admin" && (
             <button 
               type="button"
@@ -567,7 +561,6 @@ export function MessageItem({
       const [_, user, quotedText, replyText] = match;
       const tagColor = user.toLowerCase() === "admin" ? "text-red-400 font-bold" : (authUser && user.toLowerCase() === authUser.split("●")[0].toLowerCase()) ? "text-blue-400 font-bold" : "text-emerald-400 font-bold";
       
-      // Bersihkan tag #id dari kutipan agar tampilan pesan tetap rapi
       const cleanQuotedDisplay = applyCensor(quotedText).replace(/\s*#\d+$/, "");
 
       return (

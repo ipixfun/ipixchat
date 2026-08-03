@@ -239,9 +239,6 @@ export default function Home() {
       dbActions.editMsg(m);
     },
 
-    /* ========================================================================
-       LOGIKA HAPUS PESAN: DETEKSI JENIS KONTEN (GAMBAR / GAMBAR & TEKS / TEKS)
-       ======================================================================== */
     delMsg: async (m: any, isSwipe = false) => {
       const isAlreadyDeleted = m.pesan && m.pesan.startsWith("___DELETED");
       const confirmMsg = isAlreadyDeleted 
@@ -252,7 +249,6 @@ export default function Home() {
       
       if (!confirm(confirmMsg)) return;
 
-      // Cek kandungan awal pesan sebelum dihapus
       const hasImage = !!m.image_url;
       const hasText = !!(m.pesan && m.pesan.trim() !== "" && !m.pesan.startsWith("___DELETED"));
 
@@ -314,7 +310,6 @@ export default function Home() {
       }
     },
     rmWrd: async (w: string) => { const { error } = await supabase.from("blocked_words").delete().eq("word", w); if (error) alert("Gagal menghapus kata terlarang."); fetchData(); },
-    approveImg: async (id: number) => { await supabase.from("messages").update({ is_approved: true }).eq("id", id); fetchData(); },
     
     togglePin: async (msg: any) => {
       try {
@@ -358,7 +353,6 @@ export default function Home() {
             username: "Admin●ipix.my.id", 
             pesan: nt.trim(), 
             is_pinned: true, 
-            is_approved: true,
             is_private: true,
             private_with: recipientUsername,
             user_browser: navigator.userAgent
@@ -520,7 +514,6 @@ export default function Home() {
       return;
     }
 
-    // KUTIPAN BALASAN PESAN
     if (interact.replyTo) { 
       const qText = interact.replyTo.pesan?.trim();
       const hasImg = !!interact.replyTo.image_url;
@@ -540,7 +533,6 @@ export default function Home() {
       username: auth.user, 
       pesan: txt, 
       image_url: input.image, 
-      is_approved: true, 
       user_browser: navigator.userAgent,
       is_private: true,
       private_with: recipientUsername
@@ -610,10 +602,8 @@ export default function Home() {
                 blockUser={dbActions.blkUser} 
                 setPopupMsg={(m: any) => setInteract((p) => ({ ...p, popup: m }))} 
                 handleLongPress={(m: any) => setInteract((p) => ({ ...p, popup: m }))} 
-                approveImage={dbActions.approveImg} 
                 applyCensor={applyCensor} 
                 scrollToMessage={(t: string, userTag?: string) => { 
-                  // DETEKSI TAG ID DALAM BALASAN GAMBAR
                   const idMatch = t.match(/#(\d+)/);
                   if (idMatch) {
                     const targetId = Number(idMatch[1]);
