@@ -91,16 +91,12 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const [displayedCharCount, setDisplayedCharCount] = useState(0); const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
   const [placeholderText, setPlaceholderText] = useState(""); 
   
-  // DEFAULT MODE: JIKA BELUM PERNAH REGISTER, TAMPILKAN MODE REGISTER (isLoginMode = false)
   const [isLoginMode, setIsLoginMode] = useState(false);
   const [isUsernameAgreed, setIsUsernameAgreed] = useState(false); const [validationMsg, setValidationMsg] = useState("");
   const [showPin, setShowPin] = useState(false); const [showWelcomePill, setShowWelcomePill] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false); const [isSavedDevice, setIsSavedDevice] = useState(false);
   const [hasTyped, setHasTyped] = useState(false); const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
-  const rememberCredentials = true;
-
-  // LOGIKA DETEKSI USER TERSIMPAN / BELUM PERNAH REGISTER
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem('username') || localStorage.getItem('active_username');
@@ -110,10 +106,10 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
         setUsername(savedUser);
         setPin(savedPin);
         setIsSavedDevice(true);
-        setIsLoginMode(true); // User terdaftar -> Form Login
+        setIsLoginMode(true);
       } else {
         setIsSavedDevice(false);
-        setIsLoginMode(false); // User belum register -> Form Register
+        setIsLoginMode(false);
       }
     } catch (e) {
       setIsSavedDevice(false);
@@ -217,41 +213,41 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const gpuStyle = { transform: 'translateZ(0)', backfaceVisibility: 'hidden' as const, WebkitBackfaceVisibility: 'hidden' as const };
 
   return (
-    <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6">
+    <div className="fixed inset-0 flex justify-center items-center bg-transparent z-50 overflow-hidden font-sans sm:p-6 pointer-events-auto">
       {showFireworks && <FireworksCanvas theme={theme} />}
       <AnimatePresence>
         {showWelcomePill && (
-          <motion.div initial={{ opacity: 0, y: -40, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20, scale: 0.9 }} className="fixed top-8 z-[10000] px-6 py-3 rounded-full font-black text-xs sm:text-sm border shadow-2xl flex items-center gap-2 backdrop-blur-xl animate-bounce" style={{ backgroundColor: "color-mix(in srgb, var(--card-bg) 90%, var(--accent))", borderColor: "var(--accent)", color: "var(--foreground-heading)", boxShadow: "0 0 25px var(--accent-glow), inset 0 0 10px var(--accent-glow)" }}>
+          <motion.div initial={{ opacity: 0, y: -40, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20, scale: 0.9 }} className="fixed top-8 z-[10000] px-6 py-3 rounded-full font-black text-xs sm:text-sm border shadow-2xl flex items-center gap-2 backdrop-blur-xl animate-bounce pointer-events-auto" style={{ backgroundColor: "color-mix(in srgb, var(--card-bg) 90%, var(--accent))", borderColor: "var(--accent)", color: "var(--foreground-heading)", boxShadow: "0 0 25px var(--accent-glow), inset 0 0 10px var(--accent-glow)" }}>
             <span>✨</span><span>Selamat Datang {username ? `${username} ` : ''}Sayang!</span><span>✨</span>
           </motion.div>
         )}
       </AnimatePresence>
-      <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-visible flex flex-col z-10" style={{ contain: 'layout style' }}>
+      <div className="relative w-full h-[100dvh] sm:h-[820px] sm:max-h-[95vh] sm:max-w-[420px] bg-transparent sm:rounded-[2.5rem] overflow-visible flex flex-col z-10 pointer-events-auto" style={{ contain: 'layout style' }}>
         {activeTab === 'user' ? (
           <>
-            <motion.div initial={false} animate={{ y: isLoginMode ? '0%' : '185.7%' }} transition={PANEL_TRANSITION} className={`absolute left-0 right-0 top-0 h-[35%] z-20 flex flex-col items-center justify-center p-4 overflow-hidden border ${glassBox} ${isLoginMode ? 'rounded-b-[2.5rem]' : 'rounded-t-[2.5rem]'}`} style={{ ...gpuStyle, willChange: 'transform', backgroundColor: "color-mix(in srgb, var(--card-bg) 85%, var(--background))", borderColor: "var(--card-border)", color: "var(--foreground)" }}>
+            <motion.div initial={false} animate={{ y: isLoginMode ? '0%' : '185.7%' }} transition={PANEL_TRANSITION} className={`absolute left-0 right-0 top-0 h-[35%] z-20 flex flex-col items-center justify-center p-4 overflow-hidden border pointer-events-auto ${glassBox} ${isLoginMode ? 'rounded-b-[2.5rem]' : 'rounded-t-[2.5rem]'}`} style={{ ...gpuStyle, willChange: 'transform', backgroundColor: "color-mix(in srgb, var(--card-bg) 85%, var(--background))", borderColor: "var(--card-border)", color: "var(--foreground)" }}>
               {isSavedDevice || isLocked ? null : (
                 <div className="relative w-full h-full flex items-center justify-center drop-shadow-md">
-                  <motion.div initial={false} animate={{ opacity: isLoginMode ? 1 : 0 }} transition={CONTENT_TRANSITION} className="absolute flex flex-col items-center justify-center text-center w-full px-6" style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}>
+                  <motion.div initial={false} animate={{ opacity: isLoginMode ? 1 : 0 }} transition={CONTENT_TRANSITION} className="absolute flex flex-col items-center justify-center text-center w-full px-6 pointer-events-auto" style={{ pointerEvents: isLoginMode ? 'auto' : 'none' }}>
                     <p className="text-xs font-extrabold uppercase tracking-widest mb-3 opacity-90" style={{ color: "var(--foreground-heading)" }}>Belum Punya Akun?</p>
-                    <button onClick={() => { setIsLoginMode(false); setValidationMsg(""); }} className="w-[85%] py-2.5 rounded-full font-extrabold text-xs transition-all active:scale-95 tracking-wider shadow-md" style={{ backgroundColor: "var(--accent)", color: "var(--background)", boxShadow: "0 0 15px var(--accent-glow)" }}>Register</button>
+                    <button type="button" onClick={() => { setIsLoginMode(false); setValidationMsg(""); }} className="w-[85%] py-2.5 rounded-full font-extrabold text-xs transition-all active:scale-95 tracking-wider shadow-md cursor-pointer pointer-events-auto" style={{ backgroundColor: "var(--accent)", color: "var(--background)", boxShadow: "0 0 15px var(--accent-glow)" }}>Register</button>
                   </motion.div>
-                  <motion.div initial={false} animate={{ opacity: !isLoginMode ? 1 : 0 }} transition={CONTENT_TRANSITION} className="absolute flex flex-col items-center justify-center text-center w-full px-6" style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}>
+                  <motion.div initial={false} animate={{ opacity: !isLoginMode ? 1 : 0 }} transition={CONTENT_TRANSITION} className="absolute flex flex-col items-center justify-center text-center w-full px-6 pointer-events-auto" style={{ pointerEvents: !isLoginMode ? 'auto' : 'none' }}>
                     <p className="text-xs font-extrabold uppercase tracking-widest mb-3 opacity-90" style={{ color: "var(--foreground-heading)" }}>Sudah Punya Akun?</p>
-                    <button onClick={() => { setIsLoginMode(true); setValidationMsg(""); }} className="w-[85%] py-2.5 rounded-full font-extrabold text-xs transition-all active:scale-95 tracking-wider shadow-md" style={{ backgroundColor: "var(--accent)", color: "var(--background)", boxShadow: "0 0 15px var(--accent-glow)" }}>Login</button>
+                    <button type="button" onClick={() => { setIsLoginMode(true); setValidationMsg(""); }} className="w-[85%] py-2.5 rounded-full font-extrabold text-xs transition-all active:scale-95 tracking-wider shadow-md cursor-pointer pointer-events-auto" style={{ backgroundColor: "var(--accent)", color: "var(--background)", boxShadow: "0 0 15px var(--accent-glow)" }}>Login</button>
                   </motion.div>
                 </div>
               )}
             </motion.div>
-            <div className="absolute inset-0 z-10 w-full h-full">
+            <div className="absolute inset-0 z-10 w-full h-full pointer-events-none">
               {/* REGISTER FORM */}
-              <motion.div initial={false} animate={{ opacity: !isLoginMode ? 1 : 0, y: !isLoginMode ? '0%' : '8%' }} transition={FORM_TRANSITION} className="absolute top-4 sm:top-6 w-full h-[65%] px-4 sm:px-6 pt-16 sm:pt-20 pb-2 flex flex-col items-center justify-center overflow-y-auto [&::-webkit-scrollbar]:hidden" style={{ pointerEvents: !isLoginMode ? 'auto' : 'none', ...gpuStyle, willChange: 'transform, opacity' }}>
-                <div className={`relative w-full rounded-[2.5rem] p-6 sm:p-8 flex flex-col items-center border ${glassBox}`} style={{ backgroundColor: "color-mix(in srgb, var(--background) 90%, transparent)", borderColor: "var(--card-border)" }}>
+              <motion.div initial={false} animate={{ opacity: !isLoginMode ? 1 : 0, y: !isLoginMode ? '0%' : '8%' }} transition={FORM_TRANSITION} className="absolute top-4 sm:top-6 w-full h-[65%] px-4 sm:px-6 pt-16 sm:pt-20 pb-2 flex flex-col items-center justify-center overflow-y-auto [&::-webkit-scrollbar]:hidden pointer-events-auto" style={{ pointerEvents: !isLoginMode ? 'auto' : 'none', ...gpuStyle, willChange: 'transform, opacity' }}>
+                <div className={`relative w-full rounded-[2.5rem] p-6 sm:p-8 flex flex-col items-center border pointer-events-auto ${glassBox}`} style={{ backgroundColor: "color-mix(in srgb, var(--background) 90%, transparent)", borderColor: "var(--card-border)" }}>
                   {(!isSavedDevice && !isLocked) && !isLoginMode && (
                     <div className="absolute -top-16 sm:-top-20 z-30 pointer-events-none drop-shadow-xl"><BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={120} /></div>
                   )}
                   <InputField icon={<UserIcon />} placeholder={placeholderText || "Username"} value={username || ""} disabled={isLocked} readOnly={isLocked} onChange={(e: any) => { if (isLocked) return; if (!hasTyped) setHasTyped(true); setUsername(e.target.value.slice(0, 20)); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('username')} onBlur={() => setFocusedField(null)} className={inputInset} style={isLocked ? existingStyle : usernameStyle} autoComplete="off" />
-                  <InputField icon={<LockIcon />} placeholder="Buat PIN (6 angka)" type={showPin ? "text" : "password"} inputMode="numeric" value={pin || ""} disabled={isLocked} readOnly={isLocked} onChange={(e: any) => { if (isLocked) return; const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPin(val); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('pin')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} disabled={isLocked} className="focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={inputInset} style={isLocked ? existingStyle : pinStyle} maxLength={6} />
+                  <InputField icon={<LockIcon />} placeholder="Buat PIN (6 angka)" type={showPin ? "text" : "password"} inputMode="numeric" value={pin || ""} disabled={isLocked} readOnly={isLocked} onChange={(e: any) => { if (isLocked) return; const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPin(val); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('pin')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} disabled={isLocked} className="focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={inputInset} style={isLocked ? existingStyle : pinStyle} maxLength={6} />
                   <div className="flex gap-3 w-full">
                     <SelectField icon={<CalendarIcon />} placeholder="Umur" options={["25+", "30+", "35+", "40+", "45+"]} value={umur} disabled={isLocked} onChange={(e: any) => { setUmur(e.target.value); if (validationMsg) setValidationMsg(""); }} className={inputInset} style={isLocked ? existingStyle : umurStyle} />
                     <SelectField icon={<ScaleIcon />} placeholder="Berat" options={["70+", "80+", "90+", "100+"]} value={berat} disabled={isLocked} onChange={(e: any) => { setBerat(e.target.value); if (validationMsg) setValidationMsg(""); }} className={inputInset} style={isLocked ? existingStyle : beratStyle} />
@@ -263,18 +259,18 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                     <label htmlFor="agree" className={`text-[11px] font-light italic ml-2 select-none leading-none opacity-80 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`} style={{ color: "var(--foreground)" }}>*Mengikuti aturan di dalam chat</label>
                   </div>
 
-                  {!isLocked && (<button onClick={handleUserLoginWrapper} className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer shadow-md ${validationMsg ? "animate-pulse" : ""}`} style={buttonStyleObj}>{buttonText}</button>)}
+                  {!isLocked && (<button type="button" onClick={handleUserLoginWrapper} className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer shadow-md pointer-events-auto ${validationMsg ? "animate-pulse" : ""}`} style={buttonStyleObj}>{buttonText}</button>)}
                 </div>
               </motion.div>
 
               {/* LOGIN FORM */}
-              <motion.div initial={false} animate={{ opacity: isLoginMode ? 1 : 0, y: isLoginMode ? '0%' : '-8%' }} transition={FORM_TRANSITION} className="absolute bottom-0 w-full h-[65%] px-4 sm:px-6 pt-16 sm:pt-20 pb-4 flex flex-col items-center justify-center overflow-y-auto [&::-webkit-scrollbar]:hidden" style={{ pointerEvents: isLoginMode ? 'auto' : 'none', ...gpuStyle, willChange: 'transform, opacity' }}>
-                <div className={`relative w-full rounded-[2.5rem] p-6 sm:p-8 flex flex-col items-center border ${glassBox}`} style={{ backgroundColor: "color-mix(in srgb, var(--background) 90%, transparent)", borderColor: "var(--card-border)" }}>
+              <motion.div initial={false} animate={{ opacity: isLoginMode ? 1 : 0, y: isLoginMode ? '0%' : '-8%' }} transition={FORM_TRANSITION} className="absolute bottom-0 w-full h-[65%] px-4 sm:px-6 pt-16 sm:pt-20 pb-4 flex flex-col items-center justify-center overflow-y-auto [&::-webkit-scrollbar]:hidden pointer-events-auto" style={{ pointerEvents: isLoginMode ? 'auto' : 'none', ...gpuStyle, willChange: 'transform, opacity' }}>
+                <div className={`relative w-full rounded-[2.5rem] p-6 sm:p-8 flex flex-col items-center border pointer-events-auto ${glassBox}`} style={{ backgroundColor: "color-mix(in srgb, var(--background) 90%, transparent)", borderColor: "var(--card-border)" }}>
                   {isLoginMode && (<div className="absolute -top-16 sm:-top-20 z-30 pointer-events-none drop-shadow-xl"><BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={120} /></div>)}
                   
                   <InputField icon={<UserIcon />} placeholder="Username" value={username || ""} readOnly={isSavedDevice || isLocked} disabled={isSavedDevice || isLocked} onChange={(e: any) => { if (isSavedDevice || isLocked) return; if (!hasTyped) setHasTyped(true); setUsername(e.target.value.slice(0, 20)); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('username')} onBlur={() => setFocusedField(null)} className={inputInset} style={(isSavedDevice || isLocked) ? existingStyle : usernameStyle} autoComplete="off" />
                   
-                  <InputField icon={<LockIcon />} placeholder={isSavedDevice ? "PIN Tersimpan" : "PIN (6 angka)"} type={showPin ? "text" : "password"} readOnly={isSavedDevice || isLocked} disabled={isSavedDevice || isLocked} value={pin || ""} onChange={(e: any) => { if (isSavedDevice || isLocked) return; const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPin(val); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('pin')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} disabled={isLocked} className="focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={inputInset} style={(isSavedDevice || isLocked) ? existingStyle : pinStyle} maxLength={6} />
+                  <InputField icon={<LockIcon />} placeholder={isSavedDevice ? "PIN Tersimpan" : "PIN (6 angka)"} type={showPin ? "text" : "password"} readOnly={isSavedDevice || isLocked} disabled={isSavedDevice || isLocked} value={pin || ""} onChange={(e: any) => { if (isSavedDevice || isLocked) return; const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPin(val); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('pin')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} disabled={isLocked} className="focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={inputInset} style={(isSavedDevice || isLocked) ? existingStyle : pinStyle} maxLength={6} />
                   
                   {(isSavedDevice || isLocked) && (
                     <div className={`w-full text-xs p-4 border rounded-3xl mb-3 font-normal text-center whitespace-pre-line leading-relaxed min-h-[65px] flex flex-col items-center justify-center ${inputInset}`} style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)", color: "var(--foreground-heading)" }}>
@@ -291,18 +287,18 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                     </div>
                   )}
 
-                  {(!isLocked || isSavedDevice) && (<button onClick={handleUserLoginWrapper} className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer mt-1 shadow-md ${validationMsg ? "animate-pulse" : ""}`} style={buttonStyleObj}>{buttonText}</button>)}
+                  {(!isLocked || isSavedDevice) && (<button type="button" onClick={handleUserLoginWrapper} className={`w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer mt-1 shadow-md pointer-events-auto ${validationMsg ? "animate-pulse" : ""}`} style={buttonStyleObj}>{buttonText}</button>)}
                 </div>
               </motion.div>
             </div>
           </>
         ) : (
-          <div className="absolute inset-0 z-10 w-full h-full px-4 sm:px-6 pt-20 pb-6 flex flex-col items-center justify-center bg-transparent">
-             <div className={`relative w-full rounded-[2.5rem] p-6 sm:p-8 flex flex-col items-center border ${glassBox}`} style={{ backgroundColor: "color-mix(in srgb, var(--background) 90%, transparent)", borderColor: "var(--card-border)" }}>
+          <div className="absolute inset-0 z-10 w-full h-full px-4 sm:px-6 pt-20 pb-6 flex flex-col items-center justify-center bg-transparent pointer-events-auto">
+             <div className={`relative w-full rounded-[2.5rem] p-6 sm:p-8 flex flex-col items-center border pointer-events-auto ${glassBox}`} style={{ backgroundColor: "color-mix(in srgb, var(--background) 90%, transparent)", borderColor: "var(--card-border)" }}>
               <div className="absolute -top-16 sm:-top-20 z-30 pointer-events-none drop-shadow-xl"><BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={120} /></div>
               <InputField icon={<MailIcon />} placeholder="Email Admin" value={adminEmail || ""} onChange={(e: any) => setAdminEmail(e.target.value)} onFocus={() => setFocusedField('adminEmail')} onBlur={() => setFocusedField(null)} className={inputInset} style={normalInputStyle} autoComplete="off" />
-              <InputField icon={<LockIcon />} placeholder="Password Admin" type={showPin ? "text" : "password"} style={normalInputStyle} value={adminPass || ""} onChange={(e: any) => setAdminPass(e.target.value)} onFocus={() => setFocusedField('adminPass')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} className="focus:outline-none">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={`${inputInset} mb-6`} />
-              <button onClick={handleAdminLoginWrapper} className="w-full py-3.5 mt-2 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] shadow-md" style={{ backgroundColor: "var(--accent)", color: "var(--background)", boxShadow: "0 0 15px var(--accent-glow)" }}>Masuk Admin</button>
+              <InputField icon={<LockIcon />} placeholder="Password Admin" type={showPin ? "text" : "password"} style={normalInputStyle} value={adminPass || ""} onChange={(e: any) => setAdminPass(e.target.value)} onFocus={() => setFocusedField('adminPass')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} className="focus:outline-none cursor-pointer">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={`${inputInset} mb-6`} />
+              <button type="button" onClick={handleAdminLoginWrapper} className="w-full py-3.5 mt-2 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] shadow-md cursor-pointer pointer-events-auto" style={{ backgroundColor: "var(--accent)", color: "var(--background)", boxShadow: "0 0 15px var(--accent-glow)" }}>Masuk Admin</button>
             </div>
           </div>
         )}
