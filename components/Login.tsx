@@ -95,7 +95,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const [showFireworks, setShowFireworks] = useState(false); const [isSavedDevice, setIsSavedDevice] = useState(false);
   const [hasTyped, setHasTyped] = useState(false); const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
-  // STATE UNTUK CENTANG "SIMPAN NAMA DAN PIN"
   const [rememberCredentials, setRememberCredentials] = useState(true);
 
   useEffect(() => {
@@ -274,14 +273,13 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                   {isLoginMode && (<div className="absolute -top-16 sm:-top-20 z-30 pointer-events-none drop-shadow-xl"><BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={120} /></div>)}
                   
                   <InputField icon={<UserIcon />} placeholder="Username" value={username || ""} readOnly={isSavedDevice || isLocked} disabled={isSavedDevice || isLocked} onChange={(e: any) => { if (isSavedDevice || isLocked) return; if (!hasTyped) setHasTyped(true); setUsername(e.target.value.slice(0, 20)); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('username')} onBlur={() => setFocusedField(null)} className={inputInset} style={(isSavedDevice || isLocked) ? existingStyle : usernameStyle} autoComplete="off" />
-                  <InputField icon={<LockIcon />} placeholder={isSavedDevice ? "PIN Tersimpan" : "PIN (6 angka)"} type={showPin ? "text" : "password"} readOnly={isSavedDevice || isLocked} disabled={isSavedDevice || isLocked} value={pin || ""} onChange={(e: any) => { if (isSavedDevice || isLocked) return; const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPin(val); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('pin')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} disabled={isSavedDevice || isLocked} className="focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={inputInset} style={(isSavedDevice || isLocked) ? existingStyle : pinStyle} maxLength={6} />
+                  
+                  {/* INPUT PIN - MENGAKTIFKAN TOMBOL EYE ICON MESKIPUN DALAM MODE SAVED DEVICE */}
+                  <InputField icon={<LockIcon />} placeholder={isSavedDevice ? "PIN Tersimpan" : "PIN (6 angka)"} type={showPin ? "text" : "password"} readOnly={isSavedDevice || isLocked} disabled={isSavedDevice || isLocked} value={pin || ""} onChange={(e: any) => { if (isSavedDevice || isLocked) return; const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPin(val); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('pin')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} disabled={isLocked} className="focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={inputInset} style={(isSavedDevice || isLocked) ? existingStyle : pinStyle} maxLength={6} />
                   
                   {(isSavedDevice || isLocked) && (
                     <div className={`w-full text-xs p-4 border rounded-3xl mb-3 font-normal text-center whitespace-pre-line leading-relaxed min-h-[65px] flex flex-col items-center justify-center ${inputInset}`} style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)", color: "var(--foreground-heading)" }}>
                       <span className="w-full block drop-shadow-sm"><span>{visiblePrefix}</span><span className="font-extrabold italic">{visibleName}</span><span>{visibleSuffix}</span>{!isNoteTypingDone && <span className="animate-pulse ml-0.5">|</span>}</span>
-                      {isSavedDevice && (
-                        <button type="button" onClick={handleResetSavedDevice} className="mt-2 text-[11px] font-bold underline opacity-80 hover:opacity-100 transition-opacity cursor-pointer text-blue-400">Ganti / Input Nama & PIN Baru</button>
-                      )}
                     </div>
                   )}
 
