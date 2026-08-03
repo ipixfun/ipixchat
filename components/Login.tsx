@@ -95,23 +95,25 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const [showFireworks, setShowFireworks] = useState(false); const [isSavedDevice, setIsSavedDevice] = useState(false);
   const [hasTyped, setHasTyped] = useState(false); const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
-  // FEATURE LOGIN OTOMATIS SELALU DI-SET 'TRUE'
-  const rememberCredentials = true;
-
+  // 1. PENGECEKAN DATA LOGING/TERSIMPAN DI LOCALSTORAGE
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem('username') || localStorage.getItem('active_username');
       const savedPin = localStorage.getItem('user_pin') || localStorage.getItem('pin') || localStorage.getItem('saved_pin');
-      if (username && savedUser && username !== savedUser) {
-        setIsSavedDevice(false); localStorage.removeItem('username'); localStorage.removeItem('user_pin');
-        localStorage.removeItem('pin'); localStorage.removeItem('active_username'); localStorage.removeItem('saved_pin'); return;
-      }
+      
+      // PERBAIKAN: Hanya aktifkan mode tersimpan jika KEDUANYA (User & PIN) benar-benar ada di localStorage
       if (savedUser && savedPin) {
-        if (!username) setUsername(savedUser); if (!pin) setPin(savedPin);
-        setIsSavedDevice(true); setIsLoginMode(true);
-      } else if (isExistingUser && !hasTyped) setIsSavedDevice(true);
-    } catch (e) {}
-  }, [username, isExistingUser, hasTyped, setPin, setUsername]);
+        if (!username) setUsername(savedUser);
+        if (!pin) setPin(savedPin);
+        setIsSavedDevice(true);
+        setIsLoginMode(true);
+      } else {
+        setIsSavedDevice(false);
+      }
+    } catch (e) {
+      setIsSavedDevice(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (isSavedDevice) return;
@@ -171,25 +173,17 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
         return setValidationMsg("Username atau PIN telah diubah sayang");
       }
       
+      // 2. OTOMATIS SIMPAN KREDENSIAL BARU
       try { 
-        if (rememberCredentials) {
-          localStorage.setItem('username', username); 
-          localStorage.setItem('active_username', username); 
-          localStorage.setItem('user_pin', pin); 
-          localStorage.setItem('saved_pin', pin); 
-          localStorage.setItem('pin', pin); 
-          localStorage.setItem('is_auth', 'true'); 
-          setIsSavedDevice(true);
-        } else {
-          localStorage.removeItem('username');
-          localStorage.removeItem('user_pin');
-          localStorage.removeItem('saved_pin');
-          localStorage.removeItem('pin');
-          localStorage.setItem('active_username', username);
-          localStorage.setItem('is_auth', 'true');
-          setIsSavedDevice(false);
-        }
+        localStorage.setItem('username', username); 
+        localStorage.setItem('active_username', username); 
+        localStorage.setItem('user_pin', pin); 
+        localStorage.setItem('saved_pin', pin); 
+        localStorage.setItem('pin', pin); 
+        localStorage.setItem('is_auth', 'true'); 
+        setIsSavedDevice(true);
       } catch (e) {}
+
       setShowWelcomePill(true); setShowFireworks(true); await new Promise((resolve) => setTimeout(resolve, 3000));
     } catch (err) { 
       if (isSavedDevice) handleResetSavedDevice();
@@ -283,8 +277,8 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                     </div>
                   )}
 
-                  {/* TEKS STATIS LOGIN OTOMATIS (KOTAK CEKLIS DISEMBUNYIKAN & LOGIN OTOMATIS SELALU AKTIF) */}
-                  {(isLoginMode && isExistingUser && !isSavedDevice && !isLocked) && (
+                  {/* 3. TEKS STATIS LOGIN OTOMATIS */}
+                  {(isLoginMode && !isSavedDevice && !isLocked) && (
                     <div className="flex items-center justify-start w-full mb-3 px-2 select-none">
                       <span className="text-[11px] font-medium opacity-80" style={{ color: "var(--foreground-heading)" }}>
                         *Login otomatis
