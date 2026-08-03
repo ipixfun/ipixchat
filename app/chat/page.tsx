@@ -401,17 +401,30 @@ export default function Home() {
     chk();
   }, [pathname]);
 
+  // REALTIME LISTENER UNTUK MONITORING EDIT NAMA ATAU PIN -> AUTO LOGOUT USER YANG BERSANGKUTAN
   useEffect(() => {
     if (!mounted || !auth.isAuth) return;
     fetchData();
     if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
     
     const profileChangeListener = supabase.channel('public:profiles_update').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
-      const oldRecord = payload.old; const newRecord = payload.new; const currentSaved = localStorage.getItem("username") || localStorage.getItem("active_username");
-      if (currentSaved === oldRecord.username || auth.user === oldRecord.username) {
-        localStorage.setItem("username", newRecord.username); localStorage.setItem("active_username", newRecord.username);
-        if (newRecord.pin) { localStorage.setItem("saved_pin", newRecord.pin); localStorage.setItem("user_pin", newRecord.pin); localStorage.setItem("pin", newRecord.pin); }
-        setAuth((prev) => ({ ...prev, user: newRecord.username || "", pin: newRecord.pin || prev.pin }));
+      const oldRecord = payload.old; 
+      const newRecord = payload.new; 
+      const currentSaved = localStorage.getItem("username") || localStorage.getItem("active_username");
+      
+      if ((currentSaved === oldRecord?.username || auth.user === oldRecord?.username || currentSaved === newRecord?.username) && auth.user !== "Admin●ipix.my.id") {
+        localStorage.removeItem("active_username");
+        localStorage.removeItem("username");
+        localStorage.removeItem("saved_pin");
+        localStorage.removeItem("user_pin");
+        localStorage.removeItem("pin");
+        localStorage.removeItem("is_auth");
+        sessionStorage.clear();
+        
+        supabase.auth.signOut();
+        setAuth({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" });
+        
+        alert("Username atau PIN akun Anda telah diperbarui oleh Admin. Silakan masuk kembali dengan data baru Anda.");
       }
     }).subscribe();
     
@@ -663,7 +676,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* POPUP PROMPT INPUT MODAL MODERN (UNTUK PAGE.TSX) */}
+      {/* POPUP PROMPT INPUT MODAL MODERN */}
       {promptModal.isOpen && (
         <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn select-none" onClick={() => setPromptModal((p) => ({ ...p, isOpen: false }))}>
           <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 animate-scaleUp text-white" onClick={(e) => e.stopPropagation()}>
