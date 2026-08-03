@@ -12,6 +12,7 @@ const MailIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColo
 const EyeIcon = () => (<svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>);
 const EyeOffIcon = () => (<svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>);
 
+// KEMBANG API DENGAN WARNA SESUAI TEMA DYNAMIS
 const FireworksCanvas = ({ theme }: { theme?: any }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   useEffect(() => {
@@ -19,12 +20,18 @@ const FireworksCanvas = ({ theme }: { theme?: any }) => {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    // Ambil warna CSS variabel dari tema aktif
     const styles = getComputedStyle(document.documentElement);
     const accent = styles.getPropertyValue('--accent').trim() || '#3b82f6';
-    const fg = styles.getPropertyValue('--foreground-heading').trim() || '#ffffff';
-    const themeColors = [accent, accent, fg, '#ffffff'];
+    const accentGlow = styles.getPropertyValue('--accent-glow').trim() || accent;
+    const fgHeading = styles.getPropertyValue('--foreground-heading').trim() || '#ffffff';
+    const fgText = styles.getPropertyValue('--foreground').trim() || '#ffffff';
+
+    const themeColors = [accent, accentGlow, fgHeading, fgText, '#ffffff'];
     let animationId: number;
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+
     class Particle {
       x: number; y: number; vx: number; vy: number; color: string; size: number; alpha: number; decay: number;
       constructor(x: number, y: number) {
@@ -58,7 +65,7 @@ const FireworksCanvas = ({ theme }: { theme?: any }) => {
     window.addEventListener('resize', handleResize);
     return () => { cancelAnimationFrame(animationId); window.removeEventListener('resize', handleResize); };
   }, [theme]);
-  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-[9999]" />;
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-[9999999]" />;
 };
 
 const InputField = ({ icon, suffix, readOnly, className, style, type = "text", disabled, ...props }: any) => (
@@ -86,43 +93,36 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const totalNoteLength = prefixText.length + currentUserName.length + suffixText.length;
   const [displayedCharCount, setDisplayedCharCount] = useState(0); const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
   const [placeholderText, setPlaceholderText] = useState(""); 
-  
-  const [isLoginMode, setIsLoginMode] = useState(true); // Default true (Mode Login)
-  const [hasLoggedInBefore, setHasLoggedInBefore] = useState(false); // Penanda pernah login/register
+
+  const [isLoginMode, setIsLoginMode] = useState(true); 
+  const [hasLoggedInBefore, setHasLoggedInBefore] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isUsernameAgreed, setIsUsernameAgreed] = useState(false); const [validationMsg, setValidationMsg] = useState("");
   const [showPin, setShowPin] = useState(false); const [showWelcomePill, setShowWelcomePill] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false); const [isSavedDevice, setIsSavedDevice] = useState(false);
   const [hasTyped, setHasTyped] = useState(false); const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
-  useEffect(() => {
-    if (isExistingUser) {
-      setIsLoginMode(true);
-      setHasLoggedInBefore(true);
-    }
-  }, [isExistingUser]);
-
-  // Cek apakah pernah login/register di perangkat ini
+  // Cek data tersimpan di LocalStorage saat komponen pertama kali dirender
   useEffect(() => {
     try {
-      const savedUser = localStorage.getItem('username') || localStorage.getItem('active_username');
-      const savedPin = localStorage.getItem('user_pin') || localStorage.getItem('pin') || localStorage.getItem('saved_pin');
-      const everLoggedIn = localStorage.getItem('has_ever_logged_in') === 'true';
-      
-      if (savedUser || everLoggedIn) {
+      const remUser = localStorage.getItem('remembered_username') || localStorage.getItem('username') || localStorage.getItem('active_username');
+      const remPin = localStorage.getItem('remembered_pin') || localStorage.getItem('user_pin') || localStorage.getItem('pin') || localStorage.getItem('saved_pin');
+      const hideReg = localStorage.getItem('hide_register') === 'true' || localStorage.getItem('has_ever_logged_in') === 'true';
+
+      if (hideReg || isExistingUser) {
         setHasLoggedInBefore(true);
-        setIsLoginMode(true); // Paksa ke mode login
-      } else {
-        setIsLoginMode(false); // Kalau baru pertama kali buka web, default ke Register
       }
 
-      if (savedUser && savedPin) {
-        setUsername(savedUser);
-        setPin(savedPin);
+      // Auto-fill Username dan PIN jika sebelumnya tersimpan
+      if (remUser) setUsername(remUser);
+      if (remPin) setPin(remPin);
+
+      if (remUser && remPin) {
         setIsSavedDevice(true);
       }
     } catch (e) {}
-  }, []);
+    setIsLoginMode(true);
+  }, [isExistingUser, setUsername, setPin]);
 
   useEffect(() => {
     if (isSavedDevice) return;
@@ -152,6 +152,8 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const handleResetSavedDevice = () => {
     setIsSavedDevice(false);
     try {
+      localStorage.removeItem('remembered_username');
+      localStorage.removeItem('remembered_pin');
       localStorage.removeItem('username');
       localStorage.removeItem('user_pin');
       localStorage.removeItem('saved_pin');
@@ -175,20 +177,36 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
     }
     setValidationMsg("");
     try {
+      // SET BENDERA PEMICU UNTUK MENYEMBUNYIKAN REGISTER
+      localStorage.setItem('hide_register', 'true');
+      localStorage.setItem('has_ever_logged_in', 'true');
+      setHasLoggedInBefore(true);
+
+      // JIKA CENTANG SIMPAN DIKUTIP, SIMPAN USERNAME & PIN
+      if (rememberMe) {
+        localStorage.setItem('remembered_username', username.trim().toLowerCase());
+        localStorage.setItem('remembered_pin', pin);
+      }
+
+      // TAMPILKAN KEMBANG API & SPLASH WELCOME
+      setShowWelcomePill(true); 
+      setShowFireworks(true);
+
+      // JEDA ANIMASI WELCOME & FIREWORKS
+      await new Promise((resolve) => setTimeout(resolve, 2200));
+
       const result = await handleUserLogin(isLoginMode, rememberMe);
       if (!result || result === false || result.error) {
+        setShowWelcomePill(false);
+        setShowFireworks(false);
         if (isSavedDevice) {
           handleResetSavedDevice();
         }
         return setValidationMsg("Username atau PIN salah/diubah");
       }
-      
-      // Simpan tanda bahwa user ini sudah pernah login/register di HP ini
-      localStorage.setItem('has_ever_logged_in', 'true');
-      setHasLoggedInBefore(true);
-
-      setShowWelcomePill(true); setShowFireworks(true);
     } catch (err) { 
+      setShowWelcomePill(false);
+      setShowFireworks(false);
       if (isSavedDevice) handleResetSavedDevice();
       setValidationMsg("Username atau PIN telah diubah sayang"); 
     }
@@ -215,12 +233,15 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   else if (isFormValid) { buttonStyleObj = { backgroundColor: "var(--accent)", color: "var(--background)", boxShadow: "0 0 20px var(--accent-glow)" }; buttonText = isLoginMode ? "Masuk Sekarang" : "Gabung Sekarang"; }
   else { buttonStyleObj = { backgroundColor: "var(--card-bg)", color: "var(--foreground-heading)", border: "1px solid var(--card-border)" }; buttonText = isLoginMode ? "Login" : "Register"; }
 
+  // SEMBUNYIKAN TOTAL KANAN-KIRI TAB REGISTER BILA SUDAH PERNAH LOGIN ATAU TOMBOL KELUAR DIKLIK
+  const shouldHideRegisterTab = hasLoggedInBefore || isExistingUser || isSavedDevice;
+
   return (
     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-transparent px-4 pb-16 overflow-y-auto pointer-events-auto">
       {showFireworks && <FireworksCanvas theme={theme} />}
       <AnimatePresence>
         {showWelcomePill && (
-          <motion.div initial={{ opacity: 0, y: -40, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20, scale: 0.9 }} className="fixed top-8 z-[10000] px-6 py-3 rounded-full font-black text-xs sm:text-sm border shadow-2xl flex items-center gap-2 pointer-events-auto animate-bounce" style={{ backgroundColor: "color-mix(in srgb, var(--card-bg) 95%, var(--accent))", borderColor: "var(--accent)", color: "var(--foreground-heading)", boxShadow: "0 0 25px var(--accent-glow), inset 0 0 10px var(--accent-glow)" }}>
+          <motion.div initial={{ opacity: 0, y: -40, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20, scale: 0.9 }} className="fixed top-8 z-[10000000] px-6 py-3 rounded-full font-black text-xs sm:text-sm border shadow-2xl flex items-center gap-2 pointer-events-auto animate-bounce" style={{ backgroundColor: "color-mix(in srgb, var(--card-bg) 95%, var(--accent))", borderColor: "var(--accent)", color: "var(--foreground-heading)", boxShadow: "0 0 25px var(--accent-glow), inset 0 0 10px var(--accent-glow)" }}>
             <span>✨</span><span>Selamat Datang {username ? `${username} ` : ''}Sayang!</span><span>✨</span>
           </motion.div>
         )}
@@ -230,8 +251,8 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
         {activeTab === 'user' ? (
           <div className={`relative w-full rounded-[2.5rem] p-5 sm:p-6 flex flex-col items-center border ${glassBox}`} style={{ backgroundColor: "var(--background)", borderColor: "var(--card-border)" }}>
             
-            {/* TAB SWITCHER LOGIN / REGISTER - HANYA MUNCUL KALO BELUM PERNAH LOGIN & BUKAN SAVED DEVICE */}
-            {!isSavedDevice && !isLocked && !isExistingUser && !hasLoggedInBefore && (
+            {/* SWITCHER REGISTER HANYA DI TAMPILKAN JIKA BELUM PERNAH LOGIN */}
+            {!shouldHideRegisterTab && (
               <div className="w-full flex rounded-full p-1 mb-4 border relative z-30 pointer-events-auto" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" }}>
                 <button type="button" onClick={() => { setIsLoginMode(false); setValidationMsg(""); }} className={`flex-1 py-2 rounded-full text-xs font-bold transition-all cursor-pointer relative z-40 ${!isLoginMode ? 'shadow-md' : 'opacity-60'}`} style={!isLoginMode ? { backgroundColor: "var(--accent)", color: "var(--background)" } : { color: "var(--foreground-heading)" }}>Register</button>
                 <button type="button" onClick={() => { setIsLoginMode(true); setValidationMsg(""); }} className={`flex-1 py-2 rounded-full text-xs font-bold transition-all cursor-pointer relative z-40 ${isLoginMode ? 'shadow-md' : 'opacity-60'}`} style={isLoginMode ? { backgroundColor: "var(--accent)", color: "var(--background)" } : { color: "var(--foreground-heading)" }}>Login</button>
@@ -249,8 +270,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
               
               <InputField icon={<LockIcon />} placeholder={isSavedDevice ? "PIN Tersimpan" : (isLoginMode ? "PIN (6 angka)" : "Buat PIN (6 angka)")} type={showPin ? "text" : "password"} inputMode="numeric" value={pin || ""} disabled={isLocked || isSavedDevice} readOnly={isLocked || isSavedDevice} onChange={(e: any) => { if (isLocked || isSavedDevice) return; const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPin(val); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('pin')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} disabled={isLocked && !isSavedDevice} className="focus:outline-none cursor-pointer">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={inputInset} style={(isLocked || isSavedDevice) ? existingStyle : pinStyle} maxLength={6} />
               
-              {/* FIELD KHUSUS REGISTER (UMUR & BERAT) - DISAMBUNGKAN HANYA JIKA BUKAN MODE LOGIN */}
-              {!isLoginMode && !isSavedDevice && !isExistingUser && !hasLoggedInBefore && (
+              {!isLoginMode && !shouldHideRegisterTab && (
                 <div className="flex gap-2.5 w-full">
                   <SelectField icon={<CalendarIcon />} placeholder="Umur" options={["25+", "30+", "35+", "40+", "45+"]} value={umur} disabled={isLocked} onChange={(e: any) => { setUmur(e.target.value); if (validationMsg) setValidationMsg(""); }} className={inputInset} style={isLocked ? existingStyle : umurStyle} />
                   <SelectField icon={<ScaleIcon />} placeholder="Berat" options={["70+", "80+", "90+", "100+"]} value={berat} disabled={isLocked} onChange={(e: any) => { setBerat(e.target.value); if (validationMsg) setValidationMsg(""); }} className={inputInset} style={isLocked ? existingStyle : beratStyle} />
@@ -263,7 +283,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                 </div>
               )}
 
-              {!isLoginMode && !isSavedDevice && !isExistingUser && !hasLoggedInBefore && (
+              {!isLoginMode && !shouldHideRegisterTab && (
                 <div className="flex items-center justify-start w-full mb-3 px-1 select-none">
                   <input type="checkbox" id="agree" disabled={isLocked} className="w-3.5 h-3.5 cursor-pointer rounded-sm accent-[var(--accent)]" checked={isUsernameAgreed} onChange={(e) => { setIsUsernameAgreed(e.target.checked); if (validationMsg) setValidationMsg(""); }} />
                   <label htmlFor="agree" className="text-[11px] font-light italic ml-2 select-none leading-none opacity-80 cursor-pointer" style={{ color: "var(--foreground)" }}>*Mengikuti aturan di dalam chat</label>

@@ -116,9 +116,32 @@ export default function Home() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+
+    // SIMPAN DATA USERNAME & PIN TERINGAT SEBELUM DI-CLEAR
+    const remUser = localStorage.getItem("remembered_username");
+    const remPin = localStorage.getItem("remembered_pin");
+
     localStorage.clear();
     sessionStorage.clear();
-    setAuth({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" }); 
+
+    // KUNCI PERMANEN REGISTER SUPAYA TERSEMBUNYI
+    localStorage.setItem("hide_register", "true");
+    localStorage.setItem("has_ever_logged_in", "true");
+
+    if (remUser) localStorage.setItem("remembered_username", remUser);
+    if (remPin) localStorage.setItem("remembered_pin", remPin);
+
+    setAuth({ 
+      isAuth: false, 
+      isExist: false, 
+      user: remUser || "", 
+      adminEmail: "", 
+      adminPass: "", 
+      pin: remPin || "", 
+      umur: "", 
+      berat: "" 
+    });
+
     window.location.reload();
   };
 
@@ -126,7 +149,7 @@ export default function Home() {
     if (!auth.isAuth) return;
 
     if (auth.user && auth.user !== "Admin●ipix.my.id") {
-      const savedPin = localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
+      const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
       const { data: currentProfile } = await supabase
         .from("profiles")
         .select("username, pin")
@@ -387,8 +410,8 @@ export default function Home() {
   useEffect(() => {
     const chk = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      let savedUsername = localStorage.getItem("active_username") || localStorage.getItem("username") || sessionStorage.getItem("active_username") || sessionStorage.getItem("username");
-      const savedPin = localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || sessionStorage.getItem("saved_pin") || sessionStorage.getItem("pin") || "";
+      let savedUsername = localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username") || sessionStorage.getItem("active_username") || sessionStorage.getItem("username");
+      const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || sessionStorage.getItem("saved_pin") || sessionStorage.getItem("pin") || "";
       const isAuthLocal = localStorage.getItem("is_auth") === "true" || sessionStorage.getItem("is_auth") === "true";
 
       if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
@@ -396,7 +419,11 @@ export default function Home() {
         if (pD?.username) {
           const activePin = pD.pin || savedPin;
           setAuth((p) => ({ ...p, isExist: true, user: pD.username, pin: activePin, umur: pD.umur || "", berat: pD.berat || "" }));
+        } else {
+          setAuth((p) => ({ ...p, user: savedUsername, pin: savedPin }));
         }
+      } else if (savedUsername) {
+        setAuth((p) => ({ ...p, user: savedUsername, pin: savedPin }));
       }
 
       const isAdmin = pathname?.endsWith("/admin") || window.location.hash === "#admin";
@@ -404,7 +431,7 @@ export default function Home() {
       
       if (session || (isAuthLocal && savedUsername === "Admin●ipix.my.id") || (isAuthLocal && savedUsername)) {
         const currentAdmin = savedUsername === "Admin●ipix.my.id" || session;
-        setAuth((p) => ({ ...p, isAuth: true, user: currentAdmin ? "Admin●ipix.my.id" : savedUsername || p.user }));
+        setAuth((p) => ({ ...p, isAuth: true, user: currentAdmin ? "Admin●ipix.my.id" : savedUsername || p.user, pin: savedPin }));
         if (currentAdmin) setUi((p) => ({ ...p, tab: "admin" }));
       }
       setMounted(true);
@@ -420,8 +447,8 @@ export default function Home() {
     const profileChangeListener = supabase.channel('public:profiles_update').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, async (payload) => {
       if (auth.user === "Admin●ipix.my.id") return;
 
-      const savedPin = localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
-      const savedUser = localStorage.getItem("username") || localStorage.getItem("active_username") || sessionStorage.getItem("active_username") || auth.user;
+      const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
+      const savedUser = localStorage.getItem("remembered_username") || localStorage.getItem("username") || localStorage.getItem("active_username") || sessionStorage.getItem("active_username") || auth.user;
 
       const newRecord = payload.new;
       const isMyUsername = newRecord.username?.toLowerCase() === savedUser?.toLowerCase();
@@ -630,12 +657,12 @@ export default function Home() {
         .highlight-active { animation: highlightGlow 1.8s ease-in-out forwards !important; }
       ` }} />
       
-      {/* OVERLAY LOGIN - Z-INDEX DISET Z-[80000] SUPAYA DI BAWAH BOTTOMNAV */}
+      {/* OVERLAY LOGIN - Z-INDEX Z-[80000] */}
       {!auth.isAuth && (
         <div className="fixed inset-0 z-[80000] flex items-center justify-center bg-black/60 pointer-events-auto">
           <Login activeTab={ui.tab} username={auth.user} setUsername={handleUsernameChange} pin={auth.pin} setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))} umur={auth.umur} setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))} berat={auth.berat} setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))} adminPass={auth.adminPass} setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))} handleUserLogin={async (isLoginMode?: boolean, rememberMe?: boolean) => {
             const inputName = auth.user.trim(); if (!inputName || isCensored(inputName)) return { error: true };
-            const plainPin = auth.pin || (typeof window !== "undefined" ? (localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || "") : ""); 
+            const plainPin = auth.pin || (typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || "") : ""); 
             if (!plainPin || plainPin.length !== 6) return { error: true };
             
             try {
@@ -654,6 +681,13 @@ export default function Home() {
                 storage.setItem("is_auth", "true"); 
                 storage.setItem("active_tab", "user");
 
+                localStorage.setItem("hide_register", "true");
+                localStorage.setItem("has_ever_logged_in", "true");
+                if (rememberMe) {
+                  localStorage.setItem("remembered_username", finalUsername);
+                  localStorage.setItem("remembered_pin", plainPin);
+                }
+
                 setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, umur: existUser.umur || "", berat: existUser.berat || "", pin: plainPin })); 
                 return true;
               }
@@ -671,6 +705,13 @@ export default function Home() {
               storage.setItem("pin", plainPin); 
               storage.setItem("is_auth", "true"); 
               storage.setItem("active_tab", "user");
+
+              localStorage.setItem("hide_register", "true");
+              localStorage.setItem("has_ever_logged_in", "true");
+              if (rememberMe) {
+                localStorage.setItem("remembered_username", finalUsername);
+                localStorage.setItem("remembered_pin", plainPin);
+              }
 
               setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: plainPin })); 
               return true;
@@ -813,7 +854,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* BOTTOM NAV CONTAINER DENGAN Z-[100000] */}
+      {/* BOTTOM NAV CONTAINER */}
       <div className="relative z-[100000] w-full shrink-0 bg-transparent pointer-events-auto">
         <BottomNav isAuth={auth.isAuth} handleLogout={handleLogout} />
       </div>
