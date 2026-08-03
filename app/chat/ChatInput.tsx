@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { supabase } from "../lib/supabaseClient";
 
 const EMOJIS = [
   { char: "😊", anim: "anim-pulse-soft" },
@@ -47,6 +48,8 @@ export default function ChatInput({
   handleImageUpload,
   scrollMsg,
   sendMsg,
+  handleLogout,
+  isCredentialsChanged: externalIsCredentialsChanged,
 }: {
   input: any;
   setInput: any;
@@ -62,9 +65,53 @@ export default function ChatInput({
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   scrollMsg: (id: number) => void;
   sendMsg: (e: React.FormEvent) => void;
+  handleLogout?: () => void;
+  isCredentialsChanged?: boolean;
 }) {
 
   const [showEmoji, setShowEmoji] = useState(false);
+  const [isCredentialsChanged, setIsCredentialsChanged] = useState(false);
+
+  // Sync prop eksternal jika ada
+  useEffect(() => {
+    if (externalIsCredentialsChanged) {
+      setIsCredentialsChanged(true);
+    }
+  }, [externalIsCredentialsChanged]);
+
+  // Realtime Listener untuk mendeteksi perubahan nama atau PIN user oleh Admin
+  useEffect(() => {
+    if (!auth?.user || auth.user === "Admin●ipix.my.id") return;
+
+    const channel = supabase
+      .channel(`profile_input_lock_${auth.user}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles" },
+        (payload: any) => {
+          const oldUser = payload.old?.username;
+          const newUser = payload.new?.username;
+          const oldPin = payload.old?.pin;
+          const newPin = payload.new?.pin;
+
+          const currentActiveUser = localStorage.getItem("username") || localStorage.getItem("active_username") || auth.user;
+
+          if (
+            (oldUser && oldUser.toLowerCase() === currentActiveUser.toLowerCase()) ||
+            (newUser && newUser.toLowerCase() === currentActiveUser.toLowerCase())
+          ) {
+            if (oldUser !== newUser || oldPin !== newPin) {
+              setIsCredentialsChanged(true);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [auth?.user]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.visualViewport) return;
@@ -92,15 +139,33 @@ export default function ChatInput({
     };
   }, [setUi]);
 
+  const triggerLogoutAndReload = () => {
+    localStorage.removeItem("is_auth");
+    localStorage.removeItem("active_username");
+    localStorage.removeItem("username");
+    localStorage.removeItem("user_pin");
+    localStorage.removeItem("saved_pin");
+    localStorage.removeItem("pin");
+    localStorage.removeItem("active_tab");
+    sessionStorage.clear();
+
+    if (handleLogout) {
+      handleLogout();
+    } else {
+      window.location.reload();
+    }
+  };
+
+  const isInputDisabled = isBlocked || (ui.tab === "admin" && !usersInfo.selPriv) || isCredentialsChanged;
+
   const addEmoji = (emoji: string) => {
-    if (isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)) return;
+    if (isInputDisabled) return;
     
     setInput((p: any) => ({
       ...p,
       text: (p.text || "") + emoji,
     }));
 
-    // Menjaga agar fokus tetap di area input teks dan keyboard tidak tertutup
     setTimeout(() => {
       const inputEl = document.getElementById("chat-input") as HTMLTextAreaElement;
       if (inputEl) {
@@ -111,6 +176,10 @@ export default function ChatInput({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isCredentialsChanged) {
+      triggerLogoutAndReload();
+      return;
+    }
     setShowEmoji(false);
     sendMsg(e);
   };
@@ -201,9 +270,9 @@ export default function ChatInput({
                       <button
                         key={idx}
                         type="button"
-                        onMouseDown={(e) => e.preventDefault()} // Mencegah hilangnya fokus dari input
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => addEmoji(item.char)}
-                        disabled={isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)}
+                        disabled={isInputDisabled}
                         className="inline-block text-xl sm:text-2xl hover:scale-125 active:scale-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed select-none shrink-0 p-0.5"
                         title="Tambah emoji"
                       >
@@ -215,6 +284,8 @@ export default function ChatInput({
                   </div>
                 ) : isBlocked ? (
                   "Anda telah diblokir."
+                ) : isCredentialsChanged ? (
+                  <span className="text-red-400 font-bold">⚠️ Nama/PIN telah diubah Admin. Silakan Login ulang!</span>
                 ) : ui.tab === "admin" && !usersInfo.selPriv ? (
                   "Pilih obrolan di atas"
                 ) : (
@@ -224,15 +295,14 @@ export default function ChatInput({
 
               <button
                 type="button"
-                onMouseDown={(e) => e.preventDefault()} // Mencegah hilangnya fokus dari input
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   setShowEmoji((prev) => !prev);
-                  // Memastikan input kembali fokus
                   const inputEl = document.getElementById("chat-input");
                   if (inputEl) inputEl.focus();
                 }}
-                disabled={isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)}
-                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] transition-all active:scale-90 flex items-center justify-center shrink-0 ${showEmoji ? "text-[var(--accent)] border-[var(--accent)] bg-white/10" : styles.uploadIcon} ${(ui.tab === "admin" && !usersInfo.selPriv) || isBlocked ? "opacity-30 pointer-events-none" : ""}`}
+                disabled={isInputDisabled}
+                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] transition-all active:scale-90 flex items-center justify-center shrink-0 ${showEmoji ? "text-[var(--accent)] border-[var(--accent)] bg-white/10" : styles.uploadIcon} ${isInputDisabled ? "opacity-30 pointer-events-none" : ""}`}
                 title="Pilih Emoji"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 sm:w-6 sm:h-6">
@@ -241,8 +311,8 @@ export default function ChatInput({
               </button>
 
               <div className="relative shrink-0 flex items-center justify-center">
-                <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isBlocked || input.uploadingImage || input.image !== null} />
-                <label htmlFor="image-upload" className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] cursor-pointer transition-colors flex items-center justify-center ${(ui.tab === "admin" && !usersInfo.selPriv) || input.image !== null || isBlocked ? "opacity-30 pointer-events-none" : styles.uploadIcon}`}>
+                <input type="file" id="image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isInputDisabled || input.uploadingImage || input.image !== null} />
+                <label htmlFor="image-upload" className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg border border-[var(--card-border)] bg-[var(--card-bg)] cursor-pointer transition-colors flex items-center justify-center ${isInputDisabled || input.image !== null ? "opacity-30 pointer-events-none" : styles.uploadIcon}`}>
                   {input.uploadingImage ? (
                     <svg className="animate-spin w-5 h-5 sm:w-6 sm:h-6 text-[var(--accent)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -284,7 +354,8 @@ export default function ChatInput({
                       type="button"
                       id="btn-refresh-delete"
                       onClick={() => {
-                        if (hasInputReady || interact?.editingMsg) {
+                        // Jika ada draft teks/edit yang belum dikirim & nama belum diubah, bersihkan input
+                        if ((hasInputReady || interact?.editingMsg) && !isCredentialsChanged) {
                           setInput((p: any) => ({
                             ...p,
                             text: "",
@@ -293,12 +364,13 @@ export default function ChatInput({
                           }));
                           setInteract((p: any) => ({ ...p, replyTo: null, editingMsg: null }));
                         } else {
-                          window.location.reload();
+                          // REFRESH MEMICU LOGOUT DAN KEMBALI KE FORM LOGIN
+                          triggerLogoutAndReload();
                         }
                       }}
-                      className={`w-full h-full rounded-lg font-black tracking-wider text-[8px] sm:text-[9px] border shadow-xs active:scale-95 transition-all flex items-center justify-center select-none uppercase ${hasInputReady || interact?.editingMsg ? styles.cancelBtn : styles.refreshBtn}`}
+                      className={`w-full h-full rounded-lg font-black tracking-wider text-[8px] sm:text-[9px] border shadow-xs active:scale-95 transition-all flex items-center justify-center select-none uppercase ${(hasInputReady || interact?.editingMsg) && !isCredentialsChanged ? styles.cancelBtn : styles.refreshBtn}`}
                     >
-                      {hasInputReady || interact?.editingMsg ? "BATAL" : "REFRESH"}
+                      {(hasInputReady || interact?.editingMsg) && !isCredentialsChanged ? "BATAL" : "REFRESH"}
                     </button>
                   )
                 )}
@@ -322,9 +394,10 @@ export default function ChatInput({
                       setUi((p: any) => ({ ...p, inputFocus: false }));
                     }, 150);
                   }}
-                  className={`w-full border p-2 sm:p-2.5 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm resize-none focus:outline-none min-h-[42px] sm:min-h-[48px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${input.blink ? styles.inputBlink : styles.input} ${(ui.tab === "admin" && !usersInfo.selPriv) || isBlocked ? "opacity-30 cursor-not-allowed" : ""}`}
-                  value={input.text}
+                  className={`w-full border p-2 sm:p-2.5 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm resize-none focus:outline-none min-h-[42px] sm:min-h-[48px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${input.blink ? styles.inputBlink : styles.input} ${isInputDisabled ? "opacity-30 cursor-not-allowed select-none" : ""}`}
+                  value={isCredentialsChanged ? "" : input.text}
                   onChange={(e) => {
+                    if (isCredentialsChanged) return;
                     setInput((p: any) => ({ ...p, text: e.target.value }));
                     e.target.style.height = "auto";
                     e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`;
@@ -335,18 +408,27 @@ export default function ChatInput({
                       handleSubmit(e as any);
                     }
                   }}
-                  placeholder={isBlocked ? "Akun Anda diblokir..." : (ui.tab === "admin" && !usersInfo.selPriv ? "Pilih user..." : "Ketik pesan...")}
+                  placeholder={
+                    isBlocked 
+                      ? "Akun Anda diblokir..." 
+                      : isCredentialsChanged 
+                      ? "Nama/PIN Anda telah diubah. Silakan Login ulang!" 
+                      : ui.tab === "admin" && !usersInfo.selPriv 
+                      ? "Pilih user..." 
+                      : "Ketik pesan..."
+                  }
                   maxLength={200}
                   rows={1}
-                  disabled={input.sending || isBlocked || (ui.tab === "admin" && !usersInfo.selPriv)}
+                  readOnly={isCredentialsChanged}
+                  disabled={input.sending || isInputDisabled}
                 />
-                <div className={`absolute right-3 bottom-1.5 text-[9px] font-mono select-none bg-black/20 px-1 rounded ${styles.counter}`}>{200 - input.text.length}</div>
+                <div className={`absolute right-3 bottom-1.5 text-[9px] font-mono select-none bg-black/20 px-1 rounded ${styles.counter}`}>{200 - (input.text?.length || 0)}</div>
               </div>
 
               <button 
                 type="submit" 
-                disabled={isBlocked || input.sending || (!input.text.trim() && !input.image) || (ui.tab === "admin" && !usersInfo.selPriv)} 
-                className={`shrink-0 w-[80px] sm:w-[100px] rounded-xl font-bold text-[11px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${ui.tab === "admin" && !usersInfo.selPriv ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}
+                disabled={isInputDisabled || input.sending || (!input.text.trim() && !input.image)} 
+                className={`shrink-0 w-[80px] sm:w-[100px] rounded-xl font-bold text-[11px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${isInputDisabled ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}
               >
                 {input.sending ? "..." : (interact?.editingMsg ? "Simpan" : "Kirim")}
               </button>
