@@ -21,7 +21,6 @@ const FireworksCanvas = ({ theme }: { theme?: any }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Ambil warna CSS variabel dari tema aktif
     const styles = getComputedStyle(document.documentElement);
     const accent = styles.getPropertyValue('--accent').trim() || '#3b82f6';
     const accentGlow = styles.getPropertyValue('--accent-glow').trim() || accent;
@@ -96,13 +95,11 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
 
   const [isLoginMode, setIsLoginMode] = useState(true); 
   const [hasLoggedInBefore, setHasLoggedInBefore] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [isUsernameAgreed, setIsUsernameAgreed] = useState(false); const [validationMsg, setValidationMsg] = useState("");
   const [showPin, setShowPin] = useState(false); const [showWelcomePill, setShowWelcomePill] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false); const [isSavedDevice, setIsSavedDevice] = useState(false);
   const [hasTyped, setHasTyped] = useState(false); const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
-  // Cek data tersimpan di LocalStorage saat komponen pertama kali dirender
   useEffect(() => {
     try {
       const remUser = localStorage.getItem('remembered_username') || localStorage.getItem('username') || localStorage.getItem('active_username');
@@ -113,7 +110,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
         setHasLoggedInBefore(true);
       }
 
-      // Auto-fill Username dan PIN jika sebelumnya tersimpan
       if (remUser) setUsername(remUser);
       if (remPin) setPin(remPin);
 
@@ -122,7 +118,8 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
       }
     } catch (e) {}
     setIsLoginMode(true);
-  }, [isExistingUser, setUsername, setPin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (isSavedDevice) return;
@@ -177,25 +174,21 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
     }
     setValidationMsg("");
     try {
-      // SET BENDERA PEMICU UNTUK MENYEMBUNYIKAN REGISTER
       localStorage.setItem('hide_register', 'true');
       localStorage.setItem('has_ever_logged_in', 'true');
       setHasLoggedInBefore(true);
 
-      // JIKA CENTANG SIMPAN DIKUTIP, SIMPAN USERNAME & PIN
-      if (rememberMe) {
-        localStorage.setItem('remembered_username', username.trim().toLowerCase());
-        localStorage.setItem('remembered_pin', pin);
-      }
+      // OTOMATIS SELALU SIMPAN USERNAME & PIN
+      localStorage.setItem('remembered_username', username.trim().toLowerCase());
+      localStorage.setItem('remembered_pin', pin);
 
-      // TAMPILKAN KEMBANG API & SPLASH WELCOME
       setShowWelcomePill(true); 
       setShowFireworks(true);
 
-      // JEDA ANIMASI WELCOME & FIREWORKS
       await new Promise((resolve) => setTimeout(resolve, 2200));
 
-      const result = await handleUserLogin(isLoginMode, rememberMe);
+      // DIKIRIM 'true' OTOMATIS DI PARAMETER REMEMBERME
+      const result = await handleUserLogin(isLoginMode, true);
       if (!result || result === false || result.error) {
         setShowWelcomePill(false);
         setShowFireworks(false);
@@ -233,7 +226,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   else if (isFormValid) { buttonStyleObj = { backgroundColor: "var(--accent)", color: "var(--background)", boxShadow: "0 0 20px var(--accent-glow)" }; buttonText = isLoginMode ? "Masuk Sekarang" : "Gabung Sekarang"; }
   else { buttonStyleObj = { backgroundColor: "var(--card-bg)", color: "var(--foreground-heading)", border: "1px solid var(--card-border)" }; buttonText = isLoginMode ? "Login" : "Register"; }
 
-  // SEMBUNYIKAN TOTAL KANAN-KIRI TAB REGISTER BILA SUDAH PERNAH LOGIN ATAU TOMBOL KELUAR DIKLIK
   const shouldHideRegisterTab = hasLoggedInBefore || isExistingUser || isSavedDevice;
 
   return (
@@ -251,11 +243,33 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
         {activeTab === 'user' ? (
           <div className={`relative w-full rounded-[2.5rem] p-5 sm:p-6 flex flex-col items-center border ${glassBox}`} style={{ backgroundColor: "var(--background)", borderColor: "var(--card-border)" }}>
             
-            {/* SWITCHER REGISTER HANYA DI TAMPILKAN JIKA BELUM PERNAH LOGIN */}
+            {/* SWITCHER REGISTER / LOGIN */}
             {!shouldHideRegisterTab && (
-              <div className="w-full flex rounded-full p-1 mb-4 border relative z-30 pointer-events-auto" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" }}>
-                <button type="button" onClick={() => { setIsLoginMode(false); setValidationMsg(""); }} className={`flex-1 py-2 rounded-full text-xs font-bold transition-all cursor-pointer relative z-40 ${!isLoginMode ? 'shadow-md' : 'opacity-60'}`} style={!isLoginMode ? { backgroundColor: "var(--accent)", color: "var(--background)" } : { color: "var(--foreground-heading)" }}>Register</button>
-                <button type="button" onClick={() => { setIsLoginMode(true); setValidationMsg(""); }} className={`flex-1 py-2 rounded-full text-xs font-bold transition-all cursor-pointer relative z-40 ${isLoginMode ? 'shadow-md' : 'opacity-60'}`} style={isLoginMode ? { backgroundColor: "var(--accent)", color: "var(--background)" } : { color: "var(--foreground-heading)" }}>Login</button>
+              <div className="w-full flex rounded-full p-1 mb-4 border relative z-50 pointer-events-auto cursor-pointer" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+                <button 
+                  type="button" 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setIsLoginMode(false); 
+                    setValidationMsg(""); 
+                  }} 
+                  className={`flex-1 py-2 rounded-full text-xs font-bold transition-all cursor-pointer relative z-50 ${!isLoginMode ? 'shadow-md' : 'opacity-60'}`} 
+                  style={!isLoginMode ? { backgroundColor: "var(--accent)", color: "var(--background)" } : { color: "var(--foreground-heading)" }}
+                >
+                  Register
+                </button>
+                <button 
+                  type="button" 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setIsLoginMode(true); 
+                    setValidationMsg(""); 
+                  }} 
+                  className={`flex-1 py-2 rounded-full text-xs font-bold transition-all cursor-pointer relative z-50 ${isLoginMode ? 'shadow-md' : 'opacity-60'}`} 
+                  style={isLoginMode ? { backgroundColor: "var(--accent)", color: "var(--background)" } : { color: "var(--foreground-heading)" }}
+                >
+                  Login
+                </button>
               </div>
             )}
 
@@ -287,14 +301,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                 <div className="flex items-center justify-start w-full mb-3 px-1 select-none">
                   <input type="checkbox" id="agree" disabled={isLocked} className="w-3.5 h-3.5 cursor-pointer rounded-sm accent-[var(--accent)]" checked={isUsernameAgreed} onChange={(e) => { setIsUsernameAgreed(e.target.checked); if (validationMsg) setValidationMsg(""); }} />
                   <label htmlFor="agree" className="text-[11px] font-light italic ml-2 select-none leading-none opacity-80 cursor-pointer" style={{ color: "var(--foreground)" }}>*Mengikuti aturan di dalam chat</label>
-                </div>
-              )}
-
-              {/* CEKLIS SIMPAN USERNAME DAN PIN */}
-              {isLoginMode && !isSavedDevice && (
-                <div className="flex items-center justify-start w-full mb-3 px-1 select-none">
-                  <input type="checkbox" id="rememberMe" className="w-3.5 h-3.5 cursor-pointer rounded-sm accent-[var(--accent)]" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
-                  <label htmlFor="rememberMe" className="text-[11px] font-light ml-2 select-none leading-none opacity-80 cursor-pointer" style={{ color: "var(--foreground-heading)" }}>Simpan username dan pin</label>
                 </div>
               )}
 
