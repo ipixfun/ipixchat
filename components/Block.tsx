@@ -6,8 +6,8 @@ export default function Block({
   blockedList,
   unblock,
   blockedWords,
-  newWord,         // <-- Diperbaiki agar cocok dengan Home.tsx
-  setNewWord,      // <-- Diperbaiki agar cocok dengan Home.tsx
+  newWord,
+  setNewWord,
   addBlockedWord,
   removeBlockedWord,
   formatMessageTime

@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
@@ -184,7 +185,7 @@ export default function Home() {
                 umur: userProfile?.umur || "",
                 berat: userProfile?.berat || "",
                 totalUserMsgs: userMsgTotal[m.username] || 0,
-                totalAdminMsgs: adminMsgTotal[m.chat_with] || 0,
+                totalAdminMsgs: adminMsgTotal[m.username] || 0,
                 last_message: m.pesan 
               }); 
             } 
@@ -291,18 +292,61 @@ export default function Home() {
       const targetUsername = arg2 || arg1;
       if (confirm(`Blokir user ${targetUsername}?`)) { await supabase.from("blocked_users").insert([{ username: targetUsername }]); fetchData(); }
     },
+
+    // 1. DELETE ALL CHAT (MEMPERSAPU BERSIH ISI CHAT ADMIN & USER TERSEBUT)
     deleteAllUserMsgs: async (targetUsername: string) => {
-      if (confirm(`Yakin ingin HAPUS SEMUA PESAN dari user ${targetUsername}? Tindakan ini tidak bisa dibatalkan.`)) {
-        const { error } = await supabase.from("messages").delete().eq("username", targetUsername);
+      if (confirm(`Yakin ingin HAPUS SEMUA PESAN dengan ${targetUsername}? Semua obrolan user & admin akan terhapus permanen.`)) {
+        const { error } = await supabase
+          .from("messages")
+          .delete()
+          .or(`username.eq.${targetUsername},chat_with.eq.${targetUsername}`);
+
         if (error) {
-          alert("Gagal menghapus pesan user.");
+          alert("Gagal menghapus riwayat chat.");
           console.error(error);
         } else {
-          alert(`Semua pesan dari ${targetUsername} berhasil dihapus.`);
+          alert(`Semua riwayat chat dengan ${targetUsername} berhasil dihapus!`);
           fetchData();
         }
       }
     },
+
+    // 2. UPDATE PIN USER DI TABEL PROFILES
+    updatePin: async (targetUsername: string, newPin: string) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ pin: newPin })
+        .ilike("username", targetUsername);
+
+      if (error) {
+        alert("Gagal memperbarui PIN user.");
+        console.error(error);
+      } else {
+        alert(`PIN untuk ${targetUsername} berhasil diubah menjadi: ${newPin}`);
+        fetchData();
+      }
+    },
+
+    // 3. UPDATE USERNAME USER DI TABEL PROFILES & MESSAGES
+    updateUsername: async (oldUsername: string, newUsername: string) => {
+      const { error: profileErr } = await supabase
+        .from("profiles")
+        .update({ username: newUsername })
+        .ilike("username", oldUsername);
+
+      if (profileErr) {
+        alert("Gagal mengubah username di profiles.");
+        console.error(profileErr);
+        return;
+      }
+
+      await supabase.from("messages").update({ username: newUsername }).eq("username", oldUsername);
+      await supabase.from("messages").update({ chat_with: newUsername }).eq("chat_with", oldUsername);
+
+      alert(`Username berhasil diubah dari ${oldUsername} menjadi ${newUsername}!`);
+      fetchData();
+    },
+
     addWrd: async () => {
       if (censor.newWord.trim()) {
         const { error } = await supabase.from("blocked_words").insert([{ word: censor.newWord.trim().toLowerCase() }]);
@@ -769,6 +813,8 @@ export default function Home() {
             setSelPriv={(u: string) => setUsersInfo((p) => ({ ...p, selPriv: u }))}
             onBlockUser={dbActions.blkUser}
             onDeleteAllMsgs={dbActions.deleteAllUserMsgs}
+            onUpdatePin={dbActions.updatePin}
+            onUpdateUsername={dbActions.updateUsername}
           />
         )}
       </div>

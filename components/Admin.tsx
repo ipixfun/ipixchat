@@ -6,7 +6,7 @@ interface AdminProps {
   privateUsers: any[];
   setSelectedPrivateUser: (username: string) => void;
   formatMessageTime: (time: any) => string;
-  onDeleteAllMsgs?: (username: string, isPrivate: boolean) => void;
+  onDeleteAllMsgs?: (username: string) => void;
   onUpdatePin?: (username: string, newPin: string) => void;
   onUpdateUsername?: (oldUsername: string, newUsername: string) => void;
 }
@@ -19,10 +19,8 @@ export default function Admin({
   onUpdatePin,
   onUpdateUsername
 }: AdminProps) {
-  // Simpan batas bawah (baseline) dari total pesan pas terakhir kali admin klik
   const [readBaselines, setReadBaselines] = useState<Record<string, number>>({});
 
-  // Effect untuk menangani penambahan pesan baru atau setelah "Delete All"
   useEffect(() => {
     setReadBaselines((prev) => {
       let hasChanges = false;
@@ -56,7 +54,7 @@ export default function Admin({
     const currentPin = user.pin || "";
     const newPin = prompt(`Edit PIN untuk user (${user.username}):`, currentPin);
     
-    if (newPin !== null && newPin.trim() !== currentPin) {
+    if (newPin !== null && newPin.trim() !== "" && newPin.trim() !== currentPin) {
       onUpdatePin && onUpdatePin(user.username, newPin.trim());
     }
   };
@@ -120,7 +118,7 @@ export default function Admin({
               </div>
             </div>
 
-            {/* BARIS TENGAH: Pesan Terakhir (Kiri) & Umur/Berat (Kanan Tengah Dinamis) */}
+            {/* BARIS TENGAH: Pesan Terakhir & Umur/Berat */}
             <div className="flex justify-between items-center w-full gap-2 my-0.5">
               <div className={`text-xs font-medium truncate flex-1 min-w-0 ${hasUnread ? 'text-emerald-600 font-semibold' : 'text-gray-500'}`}>
                 {user.last_message === "___DELETED___" 
@@ -128,7 +126,6 @@ export default function Admin({
                   : user.last_message || "Mengirim Gambar"}
               </div>
 
-              {/* Umur & Berat di posisi kanan tengah (di atas counter badge) */}
               {(user.umur || user.berat) && (
                 <div className="flex gap-1.5 shrink-0 justify-end items-center">
                   {user.umur && (
@@ -148,7 +145,7 @@ export default function Admin({
             {/* BARIS BAWAH: Action Buttons (PIN & Delete All) + Total Pesan Badges */}
             <div className="flex justify-between items-end pt-2 border-t border-gray-100 w-full gap-2">
               <div className="flex gap-1.5 items-center">
-                {/* Pill PIN (Editable) menggantikan Block User */}
+                {/* Pill PIN (Editable) */}
                 <button
                   onClick={(e) => handleEditPin(e, user)}
                   className="bg-amber-50 hover:bg-amber-500 text-amber-700 hover:text-white text-[9px] font-black px-2 py-1 rounded shadow-sm border border-amber-200 hover:border-amber-500 transition-colors uppercase tracking-wider flex items-center gap-1"
@@ -161,7 +158,7 @@ export default function Admin({
                 <button
                   onClick={(e) => { 
                     e.stopPropagation(); 
-                    onDeleteAllMsgs && onDeleteAllMsgs(user.username, true); 
+                    onDeleteAllMsgs && onDeleteAllMsgs(user.username); 
                   }}
                   className="bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white text-[9px] font-black px-2 py-1 rounded shadow-sm border border-orange-200 hover:border-orange-600 transition-colors uppercase tracking-wider"
                 >
@@ -169,7 +166,7 @@ export default function Admin({
                 </button>
               </div>
 
-              {/* Jumlah Pesan Admin & User */}
+              {/* Badges Jumlah Pesan */}
               <div className="flex gap-1.5 items-center shrink-0">
                 {hasUnread ? (
                   <span className="bg-emerald-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap animate-pulse">
