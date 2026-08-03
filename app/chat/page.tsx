@@ -127,13 +127,13 @@ export default function Home() {
       const [{ data: bD }, { data: bW }, { data: prD }] = await Promise.all([
         supabase.from("blocked_users").select("*"), 
         supabase.from("blocked_words").select("word"),
-        supabase.from("messages").select("*").or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},private_with.eq.${auth.user}` : usersInfo.selPriv ? `username.eq.${usersInfo.selPriv},private_with.eq.${usersInfo.selPriv}` : "id.gt.0").order("created_at", { ascending: false }).limit(100),
+        supabase.from("messages").select("*").or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},chat_with.eq.${auth.user}` : usersInfo.selPriv ? `username.eq.${usersInfo.selPriv},chat_with.eq.${usersInfo.selPriv}` : "id.gt.0").order("created_at", { ascending: false }).limit(100),
       ]);
       if (bW) setCensor((p) => ({ ...p, words: bW.map((w) => w.word) }));
       if (auth.user && bD?.some((b) => b.username === auth.user)) return window.location.replace("https://ipix.my.id/chat");
       
       if (auth.isAuth) {
-        const { count: privC } = await supabase.from("messages").select("*", { count: "exact", head: true }).or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},private_with.eq.${auth.user}` : `id.gt.0`);
+        const { count: privC } = await supabase.from("messages").select("*", { count: "exact", head: true }).or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},chat_with.eq.${auth.user}` : `id.gt.0`);
         setCounts({ ...counts, priv: privC || 0 });
       }
       
@@ -151,7 +151,7 @@ export default function Home() {
       setUsersInfo((p) => ({ ...p, status: sMap, blockedList: bD || [] }));
       
       if (ui.tab === "admin" && !usersInfo.selPriv) {
-        const { data: aP } = await supabase.from("messages").select("username, private_with, created_at, pesan").order("created_at", { ascending: false }).limit(500);
+        const { data: aP } = await supabase.from("messages").select("username, chat_with, created_at, pesan").order("created_at", { ascending: false }).limit(500);
         
         if (aP) {
           const uMap = new Map(); 
@@ -168,8 +168,8 @@ export default function Home() {
             if (m.username !== "Admin●ipix.my.id") { 
               c[m.username] = (c[m.username] || 0) + 1; 
               userMsgTotal[m.username] = (userMsgTotal[m.username] || 0) + 1; 
-            } else if (m.private_with) {
-              adminMsgTotal[m.private_with] = (adminMsgTotal[m.private_with] || 0) + 1;
+            } else if (m.chat_with) {
+              adminMsgTotal[m.chat_with] = (adminMsgTotal[m.chat_with] || 0) + 1;
             }
           });
 
@@ -184,7 +184,7 @@ export default function Home() {
                 umur: userProfile?.umur || "",
                 berat: userProfile?.berat || "",
                 totalUserMsgs: userMsgTotal[m.username] || 0,
-                totalAdminMsgs: adminMsgTotal[m.username] || 0,
+                totalAdminMsgs: adminMsgTotal[m.chat_with] || 0,
                 last_message: m.pesan 
               }); 
             } 
@@ -353,8 +353,7 @@ export default function Home() {
             username: "Admin●ipix.my.id", 
             pesan: nt.trim(), 
             is_pinned: true, 
-            is_private: true,
-            private_with: recipientUsername,
+            chat_with: recipientUsername,
             user_browser: navigator.userAgent
           }]);
         }
@@ -534,8 +533,7 @@ export default function Home() {
       pesan: txt, 
       image_url: input.image, 
       user_browser: navigator.userAgent,
-      is_private: true,
-      private_with: recipientUsername
+      chat_with: recipientUsername
     }]);
     
     if (!insertError) { try { await fetch("/api/send-push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientUsername: recipientUsername, senderUsername: auth.user, title: `Pesan baru dari ${auth.user.split("●")[0]}`, body: txt || (input.image ? "📷 Mengirim Gambar" : "Pesan baru") }) }); } catch (err) {} }
