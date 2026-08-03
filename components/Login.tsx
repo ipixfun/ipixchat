@@ -95,7 +95,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const [showFireworks, setShowFireworks] = useState(false); const [isSavedDevice, setIsSavedDevice] = useState(false);
   const [hasTyped, setHasTyped] = useState(false); const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
-  // OTOMATIS TERSIMPAN (SANGAT AKTIF)
+  // FEATURE LOGIN OTOMATIS SELALU DI-SET 'TRUE'
   const rememberCredentials = true;
 
   useEffect(() => {
@@ -283,10 +283,12 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                     </div>
                   )}
 
-                  {/* TEKS STATIS LOGIN OTOMATIS (TOGGLE CEKLIS DISEMBUNYIKAN) */}
+                  {/* TEKS STATIS LOGIN OTOMATIS (KOTAK CEKLIS DISEMBUNYIKAN & LOGIN OTOMATIS SELALU AKTIF) */}
                   {(isLoginMode && isExistingUser && !isSavedDevice && !isLocked) && (
                     <div className="flex items-center justify-start w-full mb-3 px-2 select-none">
-                      <span className="text-[11px] font-medium opacity-80" style={{ color: "var(--foreground-heading)" }}>*Login otomatis</span>
+                      <span className="text-[11px] font-medium opacity-80" style={{ color: "var(--foreground-heading)" }}>
+                        *Login otomatis
+                      </span>
                     </div>
                   )}
 
