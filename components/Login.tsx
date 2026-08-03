@@ -89,7 +89,10 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const prefixText = "Welcome back, "; const currentUserName = username || "User"; const suffixText = ".\nUbah nama atau PIN hubungi admin di chat.";
   const totalNoteLength = prefixText.length + currentUserName.length + suffixText.length;
   const [displayedCharCount, setDisplayedCharCount] = useState(0); const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
-  const [placeholderText, setPlaceholderText] = useState(""); const [isLoginMode, setIsLoginMode] = useState(true);
+  const [placeholderText, setPlaceholderText] = useState(""); 
+  
+  // DEFAULT MODE: JIKA BELUM PERNAH REGISTER, TAMPILKAN MODE REGISTER (isLoginMode = false)
+  const [isLoginMode, setIsLoginMode] = useState(false);
   const [isUsernameAgreed, setIsUsernameAgreed] = useState(false); const [validationMsg, setValidationMsg] = useState("");
   const [showPin, setShowPin] = useState(false); const [showWelcomePill, setShowWelcomePill] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false); const [isSavedDevice, setIsSavedDevice] = useState(false);
@@ -97,7 +100,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
 
   const rememberCredentials = true;
 
-  // PENGECEKAN DATA KREDENSIAL TERSIMPAN DI LOCALSTORAGE
+  // LOGIKA DETEKSI USER TERSIMPAN / BELUM PERNAH REGISTER
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem('username') || localStorage.getItem('active_username');
@@ -107,12 +110,14 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
         setUsername(savedUser);
         setPin(savedPin);
         setIsSavedDevice(true);
-        setIsLoginMode(true);
+        setIsLoginMode(true); // User terdaftar -> Form Login
       } else {
         setIsSavedDevice(false);
+        setIsLoginMode(false); // User belum register -> Form Register
       }
     } catch (e) {
       setIsSavedDevice(false);
+      setIsLoginMode(false);
     }
   }, [setUsername, setPin]);
 

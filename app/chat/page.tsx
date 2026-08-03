@@ -34,6 +34,9 @@ export default function Home() {
   const [censor, setCensor] = useState({ words: [] as string[], newWord: "" });
   const [input, setInput] = useState({ text: "", sending: false, blink: false, image: null as string | null, uploadingImage: false });
   
+  // STATE DETEKSI USER TERSIMPAN / SUDAH PERNAH EDIT
+  const [isSavedDeviceState, setIsSavedDeviceState] = useState(false);
+
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false, title: "", message: "", confirmText: "Ya, Lanjutkan", cancelText: "Batal", type: "danger", onConfirm: () => {},
   });
@@ -390,6 +393,13 @@ export default function Home() {
       let savedUsername = localStorage.getItem("active_username") || localStorage.getItem("username");
       const savedPin = localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || "";
       const isAuthLocal = localStorage.getItem("is_auth") === "true";
+
+      if (savedUsername && savedPin) {
+        setIsSavedDeviceState(true);
+      } else {
+        setIsSavedDeviceState(false);
+      }
+
       if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
         const { data: pD } = await supabase.from("profiles").select("username, pin, umur, berat").ilike("username", savedUsername).maybeSingle();
         if (pD?.username) {
@@ -406,6 +416,7 @@ export default function Home() {
             } else {
               localStorage.removeItem("active_username"); localStorage.removeItem("username"); localStorage.removeItem("user_pin"); localStorage.removeItem("saved_pin"); localStorage.removeItem("pin"); localStorage.removeItem("is_auth");
               setAuth((p) => ({ ...p, user: "", pin: "" }));
+              setIsSavedDeviceState(false);
             }
           } else setAuth((p) => ({ ...p, user: savedUsername || "", pin: savedPin }));
         }
@@ -446,6 +457,7 @@ export default function Home() {
           sessionStorage.clear();
           await supabase.auth.signOut();
           setAuth({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" });
+          setIsSavedDeviceState(false);
           alert("Username atau PIN Anda telah diubah oleh Admin. Silakan masuk kembali dengan data baru.");
           window.location.reload();
         }
@@ -640,9 +652,9 @@ export default function Home() {
         .highlight-active { animation: highlightGlow 1.8s ease-in-out forwards !important; }
       ` }} />
       
-      {/* OVERLAY FORM LOGIN: Tanpa pb-16 agar fullscreen penuh */}
+      {/* FORM LOGIN / REGISTER OVERLAY */}
       {!auth.isAuth && (
-        <div className="absolute inset-0 z-[40] flex flex-col pointer-events-none pb-0">
+        <div className={`absolute inset-0 z-[40] flex flex-col pointer-events-none ${isSavedDeviceState ? 'pb-0' : 'pb-16'}`}>
           <div className="pointer-events-auto flex-1 flex flex-col">
             <Login activeTab={ui.tab} username={auth.user} setUsername={handleUsernameChange} pin={auth.pin} setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))} umur={auth.umur} setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))} berat={auth.berat} setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))} adminPass={auth.adminPass} setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))} handleUserLogin={async (isLoginMode?: boolean) => {
               const inputName = auth.user.trim(); if (!inputName || isCensored(inputName)) return { error: true };
@@ -801,8 +813,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* NAVBAR: HANYA DITAMPILKAN JIKA BERHASIL LOGIN */}
-      {auth.isAuth && (
+      {/* BOTTOM NAV: TAMPIL JIKA USER BELUM REGISTER ATAU SUDAH BERHASIL LOGIN */}
+      {(auth.isAuth || !isSavedDeviceState) && (
         <div className="relative z-[999] w-full shrink-0 bg-transparent">
           <BottomNav />
         </div>
