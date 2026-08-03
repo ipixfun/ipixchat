@@ -48,7 +48,6 @@ export default function ChatInput({
   handleImageUpload,
   scrollMsg,
   sendMsg,
-  handleLogout,
   isCredentialsChanged: externalIsCredentialsChanged,
 }: {
   input: any;
@@ -139,23 +138,6 @@ export default function ChatInput({
     };
   }, [setUi]);
 
-  const triggerLogoutAndReload = () => {
-    localStorage.removeItem("is_auth");
-    localStorage.removeItem("active_username");
-    localStorage.removeItem("username");
-    localStorage.removeItem("user_pin");
-    localStorage.removeItem("saved_pin");
-    localStorage.removeItem("pin");
-    localStorage.removeItem("active_tab");
-    sessionStorage.clear();
-
-    if (handleLogout) {
-      handleLogout();
-    } else {
-      window.location.reload();
-    }
-  };
-
   const isInputDisabled = isBlocked || (ui.tab === "admin" && !usersInfo.selPriv) || isCredentialsChanged;
 
   const addEmoji = (emoji: string) => {
@@ -176,10 +158,7 @@ export default function ChatInput({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isCredentialsChanged) {
-      triggerLogoutAndReload();
-      return;
-    }
+    if (isCredentialsChanged) return;
     setShowEmoji(false);
     sendMsg(e);
   };
@@ -285,7 +264,7 @@ export default function ChatInput({
                 ) : isBlocked ? (
                   "Anda telah diblokir."
                 ) : isCredentialsChanged ? (
-                  <span className="text-red-400 font-bold">⚠️ Nama/PIN telah diubah Admin. Silakan Login ulang!</span>
+                  <span className="text-red-400 font-bold">⚠️ Nama/PIN Anda telah diubah oleh Admin.</span>
                 ) : ui.tab === "admin" && !usersInfo.selPriv ? (
                   "Pilih obrolan di atas"
                 ) : (
@@ -354,8 +333,8 @@ export default function ChatInput({
                       type="button"
                       id="btn-refresh-delete"
                       onClick={() => {
-                        // Jika ada draft teks/edit yang belum dikirim & nama belum diubah, bersihkan input
-                        if ((hasInputReady || interact?.editingMsg) && !isCredentialsChanged) {
+                        // Jika ada draft teks/edit yang belum dikirim, bersihkan input
+                        if (hasInputReady || interact?.editingMsg) {
                           setInput((p: any) => ({
                             ...p,
                             text: "",
@@ -364,13 +343,13 @@ export default function ChatInput({
                           }));
                           setInteract((p: any) => ({ ...p, replyTo: null, editingMsg: null }));
                         } else {
-                          // REFRESH MEMICU LOGOUT DAN KEMBALI KE FORM LOGIN
-                          triggerLogoutAndReload();
+                          // REFRESH BIASA (RELOAD HALAMAN TANPA LOGOUT)
+                          window.location.reload();
                         }
                       }}
-                      className={`w-full h-full rounded-lg font-black tracking-wider text-[8px] sm:text-[9px] border shadow-xs active:scale-95 transition-all flex items-center justify-center select-none uppercase ${(hasInputReady || interact?.editingMsg) && !isCredentialsChanged ? styles.cancelBtn : styles.refreshBtn}`}
+                      className={`w-full h-full rounded-lg font-black tracking-wider text-[8px] sm:text-[9px] border shadow-xs active:scale-95 transition-all flex items-center justify-center select-none uppercase ${hasInputReady || interact?.editingMsg ? styles.cancelBtn : styles.refreshBtn}`}
                     >
-                      {(hasInputReady || interact?.editingMsg) && !isCredentialsChanged ? "BATAL" : "REFRESH"}
+                      {hasInputReady || interact?.editingMsg ? "BATAL" : "REFRESH"}
                     </button>
                   )
                 )}
@@ -412,7 +391,7 @@ export default function ChatInput({
                     isBlocked 
                       ? "Akun Anda diblokir..." 
                       : isCredentialsChanged 
-                      ? "Nama/PIN Anda telah diubah. Silakan Login ulang!" 
+                      ? "Nama/PIN Anda telah diubah oleh Admin." 
                       : ui.tab === "admin" && !usersInfo.selPriv 
                       ? "Pilih user..." 
                       : "Ketik pesan..."
