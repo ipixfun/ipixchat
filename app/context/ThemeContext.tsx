@@ -10,7 +10,7 @@ export const AVAILABLE_THEMES = [
   "ivory-lime",
   "gunmetal-platinum",
   "charcoal-ecru",
-  "lime-charcoal",
+  "black-neon",
   "cyber-neon",
   "custom",
 ] as const;

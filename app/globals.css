@@ -70,17 +70,17 @@
   --card-border: rgba(255, 159, 28, 0.2);
 }
 
-/* 06. Ivory + Lime + Charcoal (Light Theme - Gambar 2) */
+/* 06. Ivory White + Lime Accent (Clean Light Theme) */
 .theme-ivory-lime {
-  --background: #fcfdfa;
+  --background: #FFFFFF;
   --background-gradient-start: #FFFFFF;
-  --background-gradient-end: #E1F2AE;
-  --foreground: #384223;
-  --foreground-heading: #000000;
-  --accent: #C7F33C; 
-  --accent-glow: rgba(199, 243, 60, 0.4);
-  --card-bg: rgba(0, 0, 0, 0.05);
-  --card-border: rgba(0, 0, 0, 0.12);
+  --background-gradient-end: #F4F4F5;
+  --foreground: #3F3F46;
+  --foreground-heading: #09090B;
+  --accent: #84CC16; 
+  --accent-glow: rgba(132, 204, 22, 0.35);
+  --card-bg: rgba(0, 0, 0, 0.03);
+  --card-border: rgba(0, 0, 0, 0.1);
 }
 
 /* 07. Gunmetal + French Gray + Platinum (Muted Dark) */
@@ -109,17 +109,17 @@
   --card-border: rgba(216, 151, 60, 0.25);
 }
 
-/* 09. Lime + Charcoal + Slate Gray (Modern Dark - Gambar 1) */
-.theme-lime-charcoal {
-  --background: #181818;
-  --background-gradient-start: #383838;
-  --background-gradient-end: #242424;
-  --foreground: #484C5E;
-  --foreground-heading: #FBFBFB;
-  --accent: #6cff0a;
-  --accent-glow: rgba(234, 251, 93, 0.35);
-  --card-bg: rgba(234, 251, 93, 0.08);
-  --card-border: rgba(234, 251, 93, 0.2);
+/* 09. Black + Neon Green (High Contrast Dark Theme) */
+.theme-black-neon {
+  --background: #000000;
+  --background-gradient-start: #121212;
+  --background-gradient-end: #000000;
+  --foreground: #A1A1AA;
+  --foreground-heading: #EAFB5D;
+  --accent: #EAFB5D;
+  --accent-glow: rgba(234, 251, 93, 0.4);
+  --card-bg: rgba(234, 251, 93, 0.06);
+  --card-border: rgba(234, 251, 93, 0.22);
 }
 
 /* 10. Cyber Charcoal + Neon Purple + Lime (Cyberpunk) */

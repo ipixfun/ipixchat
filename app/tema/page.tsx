@@ -16,10 +16,10 @@ const themes: ThemeItem[] = [
   { id: "emerald-cream", name: "Emerald Cream", preview: "from-emerald-200 to-amber-100" },
   { id: "teal-coral", name: "Teal Coral", preview: "from-orange-100 to-teal-200" },
   { id: "sea-citrus", name: "Sea Citrus", preview: "from-cyan-200 to-teal-100" },
-  { id: "ivory-lime", name: "Ivory Lime", preview: "from-stone-100 to-lime-100" },
+  { id: "ivory-lime", name: "Ivory Lime", preview: "from-stone-100 to-lime-300" },
   { id: "gunmetal-platinum", name: "Gunmetal Platinum", preview: "from-slate-600 to-slate-800" },
   { id: "charcoal-ecru", name: "Charcoal Ecru", preview: "from-stone-700 to-stone-900" },
-  { id: "lime-charcoal", name: "Lime Charcoal", preview: "from-slate-700 to-neutral-800" },
+  { id: "black-neon", name: "Black Neon", preview: "from-black to-lime-400" },
   { id: "cyber-neon", name: "Cyber Neon", preview: "from-zinc-800 to-zinc-950" },
 ];
 
