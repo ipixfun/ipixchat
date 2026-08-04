@@ -251,41 +251,56 @@ export default function Home() {
     editLmt: async (m: any) => { dbActions.editMsg(m); },
     deleteImageOnly: async (m: any) => {
       if (!m.image_url) return;
+
+      if (auth.user !== "Admin●ipix.my.id") {
+        alert("Hanya Admin yang diizinkan untuk menghapus gambar!");
+        return;
+      }
+
       setConfirmModal({
         isOpen: true,
         type: "danger",
-        title: "Hapus Gambar Saja",
+        title: "Hapus Gambar Saja (Admin)",
         message: "Gambar akan dihapus permanen dari server Cloudinary dan pesan. Lanjutkan?",
         confirmText: "Hapus Gambar",
         cancelText: "Batal",
         onConfirm: async () => {
           try {
-            await fetch("/api/delete-image", {
+            const res = await fetch("/api/delete-image", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ imageUrl: m.image_url }),
+              body: JSON.stringify({ 
+                imageUrl: m.image_url,
+                username: auth.user 
+              }),
             });
+
+            const data = await res.json();
+            if (!res.ok) {
+              alert(data.error || "Gagal menghapus gambar dari Cloudinary.");
+              setConfirmModal((p) => ({ ...p, isOpen: false }));
+              return;
+            }
           } catch (err) {
             console.error("Gagal menghapus gambar dari Cloudinary:", err);
           }
 
           const hasText = m.pesan && m.pesan.trim() !== "" && !m.pesan.startsWith("___DELETED");
           const newPesanTag = hasText ? m.pesan : "___DELETED_IMAGE___";
-          const isUserAdmin = auth.user === "Admin●ipix.my.id";
 
           const { error } = await supabase
             .from("messages")
             .update({
               image_url: null,
               pesan: newPesanTag,
-              deleted_by_admin: isUserAdmin,
+              deleted_by_admin: true,
             })
             .eq("id", m.id);
 
           if (error) {
             alert("Gagal memperbarui status pesan di database.");
           } else {
-            updateMsgLocal(m.id, newPesanTag, m.is_edited, m.edited_by, null, isUserAdmin);
+            updateMsgLocal(m.id, newPesanTag, m.is_edited, m.edited_by, null, true);
           }
 
           fetchData();
@@ -301,12 +316,15 @@ export default function Home() {
         onConfirm: async () => {
           const hasImage = !!m.image_url; const hasText = !!(m.pesan && m.pesan.trim() !== "" && !m.pesan.startsWith("___DELETED"));
           
-          if (hasImage) {
+          if (hasImage && auth.user === "Admin●ipix.my.id") {
             try {
               await fetch("/api/delete-image", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ imageUrl: m.image_url }),
+                body: JSON.stringify({ 
+                  imageUrl: m.image_url,
+                  username: auth.user 
+                }),
               });
             } catch (err) {
               console.error("Gagal menghapus gambar dari Cloudinary:", err);
@@ -357,17 +375,19 @@ export default function Home() {
       setConfirmModal({
         isOpen: true, type: "danger", title: "Hapus Semua Pesan", message: `Yakin ingin HAPUS SEMUA PESAN dengan ${targetUsername}? Semua obrolan user & admin akan terhapus permanen.`, confirmText: "Hapus Permanen", cancelText: "Batal",
         onConfirm: async () => {
-          const { data: targetMsgs } = await supabase.from("messages").select("image_url").or(`username.eq.${targetUsername},chat_with.eq.${targetUsername}`).not("image_url", "is", null);
-          if (targetMsgs && targetMsgs.length > 0) {
-            for (const item of targetMsgs) {
-              if (item.image_url) {
-                try {
-                  await fetch("/api/delete-image", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ imageUrl: item.image_url }),
-                  });
-                } catch (err) {}
+          if (auth.user === "Admin●ipix.my.id") {
+            const { data: targetMsgs } = await supabase.from("messages").select("image_url").or(`username.eq.${targetUsername},chat_with.eq.${targetUsername}`).not("image_url", "is", null);
+            if (targetMsgs && targetMsgs.length > 0) {
+              for (const item of targetMsgs) {
+                if (item.image_url) {
+                  try {
+                    await fetch("/api/delete-image", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ imageUrl: item.image_url, username: auth.user }),
+                    });
+                  } catch (err) {}
+                }
               }
             }
           }
@@ -765,6 +785,7 @@ export default function Home() {
           formatMessageTime={getFmt.time} 
           onPin={dbActions.togglePin} 
           onDeleteImage={dbActions.deleteImageOnly}
+          authUser={auth.user}
         />
       )}
       {auth.isAuth && interact.popup && interact.popup.popupMode === "text_only" && (
@@ -807,7 +828,10 @@ export default function Home() {
               {interact.popup.image_url && (
                 <>
                   <button type="button" onClick={async (e) => { e.stopPropagation(); try { const response = await fetch(interact.popup.image_url); const blob = await response.blob(); const url = window.URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `ipix_image_${interact.popup.id}.jpg`; document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url); } catch (err) { window.open(interact.popup.image_url, "_blank"); } }} className="px-2.5 py-1 bg-teal-500/15 hover:bg-teal-500/25 text-teal-400 border border-teal-500/30 text-[10px] font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0">Unduh</button>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); const popupMsg = interact.popup; setInteract((p) => ({ ...p, popup: null })); dbActions.deleteImageOnly(popupMsg); }} className="px-2.5 py-1 bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/40 text-[10px] font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0">Hapus Gambar</button>
+                  {/* TOMBOL HAPUS GAMBAR DI FULL ACTION - HANYA UNTUK ADMIN */}
+                  {auth.user === "Admin●ipix.my.id" && (
+                    <button type="button" onClick={(e) => { e.stopPropagation(); const popupMsg = interact.popup; setInteract((p) => ({ ...p, popup: null })); dbActions.deleteImageOnly(popupMsg); }} className="px-2.5 py-1 bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/40 text-[10px] font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0">Hapus Gambar</button>
+                  )}
                 </>
               )}
               {((interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id") || ui.tab === "admin") && (

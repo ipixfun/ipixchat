@@ -115,20 +115,22 @@ export function PinnedMessage({
 }
 
 /* ========================================================================
-   POPUP MODAL GAMBAR DENGAN TOMBOL HAPUS GAMBAR & CLOSE (X)
+   POPUP MODAL GAMBAR DENGAN TOMBOL HAPUS GAMBAR (ADMIN ONLY) & CLOSE (X)
    ======================================================================== */
 export function ImagePopupModal({ 
   popupMsg, 
   onClose, 
   formatMessageTime, 
   onPin,
-  onDeleteImage
+  onDeleteImage,
+  authUser
 }: { 
   popupMsg: any; 
   onClose: () => void; 
   formatMessageTime?: (t: any) => string; 
   onPin?: (msg: any) => void;
   onDeleteImage?: (msg: any) => void;
+  authUser?: string;
 }) {
   if (!popupMsg || !popupMsg.image_url) return null;
 
@@ -319,8 +321,8 @@ export function ImagePopupModal({
             </button>
           )}
 
-          {/* TOMBOL HAPUS GAMBAR */}
-          {onDeleteImage && (
+          {/* TOMBOL HAPUS GAMBAR - HANYA UNTUK ADMIN */}
+          {onDeleteImage && authUser === "Admin●ipix.my.id" && (
             <button
               type="button"
               onClick={(e) => {

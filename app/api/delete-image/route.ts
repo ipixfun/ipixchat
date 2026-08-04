@@ -13,11 +13,8 @@ function getPublicIdFromUrl(url: string) {
     if (splitUrl.length < 2) return null;
 
     let pathAfterUpload = splitUrl[1];
-
-    // Hapus versi jika ada (contoh: 'v1712345678/')
     pathAfterUpload = pathAfterUpload.replace(/^v\d+\//, "");
 
-    // Hapus ekstensi file (.png, .jpg, dll)
     const lastDotIndex = pathAfterUpload.lastIndexOf(".");
     if (lastDotIndex !== -1) {
       pathAfterUpload = pathAfterUpload.substring(0, lastDotIndex);
@@ -31,7 +28,15 @@ function getPublicIdFromUrl(url: string) {
 
 export async function POST(request: Request) {
   try {
-    const { imageUrl } = await request.json();
+    const { imageUrl, username } = await request.json();
+
+    // Proteksi Server: Hanya admin yang boleh melanjutkan
+    if (username !== "Admin●ipix.my.id") {
+      return NextResponse.json(
+        { error: "Akses ditolak. Hanya admin yang dapat menghapus gambar." },
+        { status: 403 }
+      );
+    }
 
     if (!imageUrl) {
       return NextResponse.json({ error: "Image URL required" }, { status: 400 });
@@ -44,7 +49,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid Cloudinary URL" }, { status: 400 });
     }
 
-    // PAKSA PURGE CACHE DENGAN invalidate: true
     const result = await cloudinary.uploader.destroy(publicId, {
       invalidate: true,
     });
