@@ -335,12 +335,13 @@ export default function TemaPage() {
     setIsCustomWaveEnabled(e.target.checked);
   };
 
+  // TIMING DIPANJANGKAN MENJADI 4.2 DETIK (4200ms)
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setShowToast(true);
     setTimeout(() => {
       setShowToast(false);
-    }, 2800);
+    }, 4200);
   };
 
   const handleApplyCustom = () => {
