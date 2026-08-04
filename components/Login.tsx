@@ -22,14 +22,12 @@ const FireworksCanvas = ({ theme }: { theme?: any }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // AMBIL WARNA MURNI TEMA AKTIF DARI CSS VARIABLES DOKUMEN
     const styles = getComputedStyle(document.documentElement);
     const accent = styles.getPropertyValue('--accent').trim() || '#3b82f6';
     const accentGlow = styles.getPropertyValue('--accent-glow').trim() || accent;
     const fgHeading = styles.getPropertyValue('--foreground-heading').trim() || '#ffffff';
     const fgText = styles.getPropertyValue('--foreground').trim() || '#ffffff';
 
-    // ARRAY WARNA HARUS MURNI KOMBINASI TEMA TERSEBUT & SHADE TERANGNYA
     const themeColors = [
       accent,
       accentGlow,
@@ -51,7 +49,6 @@ const FireworksCanvas = ({ theme }: { theme?: any }) => {
         const speed = Math.random() * 11 + 3;
         this.vx = Math.cos(angle) * speed; 
         this.vy = Math.sin(angle) * speed;
-        // Pilih acak hanya dari warna tema
         this.color = themeColors[Math.floor(Math.random() * themeColors.length)];
         this.size = Math.random() * 4 + 2; 
         this.alpha = 1; 
@@ -198,7 +195,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   
   const activeTypingLength = focusedField === 'username' ? (username?.length || 0) : focusedField === 'adminEmail' ? (adminEmail?.length || 0) : (focusedField === 'pin' && showPin) ? (pin?.length || 0) : (focusedField === 'adminPass' && showPin) ? (adminPass?.length || 0) : 0;
   
-  // LOGIKA ARAH MATA BERUANG
   let bearEyeX = 0;
   if (isSavedDevice || isLocked) {
     bearEyeX = 0; 
@@ -331,13 +327,11 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
         }
       `}</style>
 
-      {/* CANVAS KEMBANG API DENGAN WARNA SESUAI TEMA */}
       {showFireworks && <FireworksCanvas theme={theme} />}
 
       <div className="relative w-full max-w-[380px] my-auto flex flex-col items-center pointer-events-auto">
         {activeTab === 'user' ? (
           <>
-            {/* MASCOT BERUANG */}
             <div className="relative -mb-5 z-30 pointer-events-none flex justify-center w-full">
               <div 
                 className="absolute inset-0 flex justify-center"
@@ -376,7 +370,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
               </motion.div>
             </div>
 
-            {/* BINGKAI PEMBUNGKUS KOTAK UTAMA */}
             <div 
               className="relative w-full rounded-[2.2rem] p-[1.5px] transition-all duration-300 shadow-[0_12px_36px_rgba(0,0,0,0.7)]"
               style={{ backgroundColor: brightestThemeColor }}
@@ -385,7 +378,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                 className="w-full rounded-[2.1rem] pt-9 p-5 sm:p-6 flex flex-col items-center"
                 style={{ backgroundColor: "var(--background)" }}
               >
-                {/* SWITCHER REGISTER / LOGIN */}
                 {!shouldHideRegisterTab && (
                   <div className="w-full flex rounded-full p-1 mb-4 border relative z-50 pointer-events-auto cursor-pointer" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" }}>
                     <button 
@@ -415,7 +407,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                   </div>
                 )}
 
-                {/* FORM INPUT CONTAINER */}
                 <div className="w-full flex flex-col items-center relative z-20 pointer-events-auto">
                   <InputField icon={<UserIcon />} placeholder={isLoginMode || isSavedDevice ? "Username" : (placeholderText || "Username")} value={username || ""} disabled={isLocked || isSavedDevice} readOnly={isLocked || isSavedDevice} onChange={(e: any) => { if (isLocked || isSavedDevice) return; if (!hasTyped) setHasTyped(true); setUsername(e.target.value.slice(0, 20)); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('username')} onBlur={() => setFocusedField(null)} className={inputInset} style={(isLocked || isSavedDevice) ? existingStyle : usernameStyle} autoComplete="off" />
                   
@@ -441,7 +432,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                     </div>
                   )}
 
-                  {/* TOMBOL SUBMIT */}
                   <button 
                     type="button" 
                     onClick={handleUserLoginWrapper} 
@@ -451,7 +441,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                     {buttonText}
                   </button>
 
-                  {/* UCAPAN SELAMAT DATANG */}
                   <AnimatePresence>
                     {showWelcomePill && (
                       <motion.div 

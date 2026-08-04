@@ -127,16 +127,28 @@ export default function Home() {
   };
 
   const fetchData = useCallback(async () => {
-    const savedUser = typeof window !== "undefined" ? (localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username")) : "";
+    const savedUser = typeof window !== "undefined" ? (localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username") || sessionStorage.getItem("active_username")) : "";
+    const savedPin = typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || sessionStorage.getItem("saved_pin")) : "";
     const targetUser = auth.user || savedUser;
+
     if (!auth.isAuth || !targetUser) return;
+
     try {
       if (targetUser !== "Admin●ipix.my.id") {
-        const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || auth.pin;
         const cleanTargetUser = targetUser.split("●")[0];
         const { data: profileCheck } = await supabase.from("profiles").select("username, pin").ilike("username", cleanTargetUser).maybeSingle();
-        if (profileCheck) { if (savedPin && profileCheck.pin !== savedPin) { triggerAdminChangeNotice(profileCheck.username); return; } } else { triggerAdminChangeNotice(); return; }
+        if (profileCheck) {
+          const currentValidPin = auth.pin || savedPin;
+          if (currentValidPin && profileCheck.pin !== currentValidPin) {
+            triggerAdminChangeNotice(profileCheck.username);
+            return;
+          }
+        } else {
+          triggerAdminChangeNotice();
+          return;
+        }
       }
+
       const isAdminTab = ui.tab === "admin";
       let queryFilter = isAdminTab ? (usersInfo.selPriv ? `username.ilike.${usersInfo.selPriv},chat_with.ilike.${usersInfo.selPriv}` : "id.gt.0") : `username.ilike.${targetUser},chat_with.ilike.${targetUser}`;
       const [{ data: bD }, { data: bW }, { data: prD }] = await Promise.all([
@@ -481,7 +493,8 @@ export default function Home() {
                     storage.setItem("active_username", finalUsername); storage.setItem("username", finalUsername); storage.setItem("saved_pin", plainPin); storage.setItem("user_pin", plainPin); storage.setItem("pin", plainPin); storage.setItem("is_auth", "true"); storage.setItem("active_tab", "user");
                     localStorage.setItem("hide_register", "true"); localStorage.setItem("has_ever_logged_in", "true");
                     if (rememberMe) { localStorage.setItem("remembered_username", finalUsername); localStorage.setItem("remembered_pin", plainPin); }
-                    setTimeout(() => { setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, umur: existUser.umur || "", berat: existUser.berat || "", pin: plainPin })); }, 1800);
+                    
+                    setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, umur: existUser.umur || "", berat: existUser.berat || "", pin: plainPin }));
                     return true;
                   }
                   if (existUser && existUser.pin !== plainPin) return { error: true };
@@ -492,7 +505,8 @@ export default function Home() {
                   storage.setItem("active_username", finalUsername); storage.setItem("username", finalUsername); storage.setItem("saved_pin", plainPin); storage.setItem("user_pin", plainPin); storage.setItem("pin", plainPin); storage.setItem("is_auth", "true"); storage.setItem("active_tab", "user");
                   localStorage.setItem("hide_register", "true"); localStorage.setItem("has_ever_logged_in", "true");
                   if (rememberMe) { localStorage.setItem("remembered_username", finalUsername); localStorage.setItem("remembered_pin", plainPin); }
-                  setTimeout(() => { setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: plainPin })); }, 1800);
+                  
+                  setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: plainPin }));
                   return true;
                 } catch (e) { return { error: true }; }
               }} handleAdminLogin={async () => {
