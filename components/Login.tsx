@@ -6,7 +6,7 @@ import BearMascot from './BearMascot';
 
 const UserIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>);
 const LockIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>);
-const CalendarIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>);
+const CalendarIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 00-2 2z" /></svg>);
 const ScaleIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>);
 const MailIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>);
 const EyeIcon = () => (<svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>);
@@ -164,7 +164,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   };
 
   const handleUserLoginWrapper = async () => {
-    // RESET EFEK SEBELUM CEK
     setShowWelcomePill(false); 
     setShowFireworks(false);
 
@@ -178,10 +177,8 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
     setValidationMsg("");
 
     try {
-      // 1. EKSEKUSI CEK LOGIN KE DATABASE DULU!
       const result = await handleUserLogin(isLoginMode, true);
 
-      // JIKA USERNAME / PIN SALAH / GAGAL -> KEMBANG API & GREETING DILARANG MUNCUL!
       if (!result || result === false || (typeof result === 'object' && result.error)) {
         setShowWelcomePill(false);
         setShowFireworks(false);
@@ -191,7 +188,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
         return setValidationMsg("Username atau PIN salah/diubah");
       }
 
-      // 2. JIKA LOGIN BENAR-BENAR BERHASIL:
       localStorage.setItem('hide_register', 'true');
       localStorage.setItem('has_ever_logged_in', 'true');
       setHasLoggedInBefore(true);
@@ -199,7 +195,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
       localStorage.setItem('remembered_username', username.trim().toLowerCase());
       localStorage.setItem('remembered_pin', pin);
 
-      // SEKARANG BARU TAMPILKAN KEMBANG API & GREETING!
       setShowWelcomePill(true); 
       setShowFireworks(true);
 
@@ -216,7 +211,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const handleAdminLoginWrapper = async () => { try { const result = await handleAdminLogin(); if (result === false || (result && result.error)) return; } catch (err) {} };
 
   const inputInset = 'shadow-[inset_0_4px_8px_rgba(0,0,0,0.25)]'; 
-  const glassBox = 'shadow-[0_8px_32px_rgba(0,0,0,0.8)] border';
+  const glassBox = 'shadow-[0_8px_32px_rgba(0,0,0,0.8)]';
   
   const normalInputStyle = { backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" };
   const validInputStyle = { backgroundColor: "color-mix(in srgb, var(--accent) 15%, transparent)", borderColor: "var(--accent)" };
@@ -227,34 +222,88 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const umurStyle = getInputStyle(Boolean(validationMsg && !umur)); const beratStyle = getInputStyle(Boolean(validationMsg && !berat));
   const existingStyle = { backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)", opacity: 0.75 };
 
-  let buttonStyleObj: React.CSSProperties = {}; let buttonText = "";
-  if (isSavedDevice && !isLocked) { buttonStyleObj = { backgroundColor: "var(--accent)", color: "var(--background)", boxShadow: "0 0 15px var(--accent-glow)" }; buttonText = "Masuk Chat"; }
-  else if (isLocked && !isSavedDevice) { buttonStyleObj = { display: "none" }; }
-  else if (validationMsg) { buttonStyleObj = { backgroundColor: "#ef4444", color: "#ffffff", boxShadow: "0 0 15px rgba(239, 68, 68, 0.5)" }; buttonText = validationMsg; }
-  else if (isFormValid) { buttonStyleObj = { backgroundColor: "var(--accent)", color: "var(--background)", boxShadow: "0 0 20px var(--accent-glow)" }; buttonText = isLoginMode ? "Masuk Sekarang" : "Gabung Sekarang"; }
-  else { buttonStyleObj = { backgroundColor: "var(--card-bg)", color: "var(--foreground-heading)", border: "1px solid var(--card-border)" }; buttonText = isLoginMode ? "Login" : "Register"; }
+  // STYLE 3D CEMBUNG WARNA TERANG + COLOR SHIFT UNTUK TOMBOL BAWAH (SELALU AKTIF)
+  const active3dSubmitStyle: React.CSSProperties = {
+    background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 40%, #ffffff) 0%, color-mix(in srgb, var(--accent) 85%, #ffffff) 50%, var(--accent) 100%)",
+    backgroundSize: "200% 200%",
+    animation: "convexColorShift 3s ease infinite alternate",
+    boxShadow: "inset 0 3px 4px rgba(255, 255, 255, 0.95), inset 0 -3px 5px rgba(0, 0, 0, 0.35), 0 6px 14px rgba(0,0,0,0.3)",
+    color: "#0f172a",
+    border: "1px solid color-mix(in srgb, var(--accent) 60%, #ffffff)"
+  };
+
+  let buttonStyleObj: React.CSSProperties = active3dSubmitStyle; 
+  let buttonText = isLoginMode ? "Login" : "Register";
+
+  if (isSavedDevice && !isLocked) { 
+    buttonStyleObj = active3dSubmitStyle; 
+    buttonText = "Masuk Chat"; 
+  }
+  else if (isLocked && !isSavedDevice) { 
+    buttonStyleObj = { display: "none" }; 
+  }
+  else if (validationMsg) { 
+    buttonStyleObj = { 
+      background: "linear-gradient(135deg, #f87171 0%, #ef4444 100%)", 
+      boxShadow: "inset 0 2px 3px rgba(255, 255, 255, 0.6), inset 0 -2px 4px rgba(0, 0, 0, 0.4)",
+      color: "#ffffff" 
+    }; 
+    buttonText = validationMsg; 
+  }
+  else if (isFormValid) { 
+    buttonStyleObj = active3dSubmitStyle; 
+    buttonText = isLoginMode ? "Masuk Sekarang" : "Gabung Sekarang"; 
+  }
 
   const shouldHideRegisterTab = hasLoggedInBefore || isExistingUser || isSavedDevice;
 
   return (
     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-transparent px-4 pb-16 overflow-y-auto pointer-events-auto">
+      {/* KEYFRAMES ANIMASI WARNA TANPA GLOW */}
+      <style>{`
+        @keyframes convexColorShift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+      `}</style>
+
       {showFireworks && <FireworksCanvas theme={theme} />}
 
       <div className="relative w-full max-w-[380px] my-auto flex flex-col items-center pointer-events-auto">
         {activeTab === 'user' ? (
           <>
-            {/* BEAR MASCOT DIPINDAH KE LUAR KOTAK UTAMA (PADA TEPI ATAS MEMEGANG KOTAK) */}
-            <div className="relative -mb-7 z-30 pointer-events-none drop-shadow-xl flex justify-center">
-              <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={100} />
+            {/* CONTAINER MASCOT: BORDER HANYA DI KEPALA & WARNA MENGIKUTI WARNA KOTAK */}
+            <div className="relative -mb-7 z-30 pointer-events-none flex justify-center w-full">
+              {/* Layer Outline Kepala (Di-clip bagian bawahnya agar tangan bersih tanpa border) */}
+              <div 
+                className="absolute inset-0 flex justify-center"
+                style={{
+                  clipPath: 'inset(-20px -20px 28px -20px)',
+                  filter: `
+                    drop-shadow(3px 0 0 var(--background))
+                    drop-shadow(-3px 0 0 var(--background))
+                    drop-shadow(0 -3px 0 var(--background))
+                    drop-shadow(2px -2px 0 var(--background))
+                    drop-shadow(-2px -2px 0 var(--background))
+                  `
+                }}
+              >
+                <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={100} />
+              </div>
+
+              {/* Layer Mascot Utama */}
+              <div className="relative z-10 flex justify-center">
+                <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={100} />
+              </div>
             </div>
 
-            {/* KOTAK UTAMA DENGAN BORDER TIPIS COKLAT BERUANG (#794123) */}
+            {/* KOTAK UTAMA */}
             <div 
               className={`relative w-full rounded-[2.5rem] pt-9 p-5 sm:p-6 flex flex-col items-center ${glassBox}`} 
               style={{ 
                 backgroundColor: "var(--background)", 
-                borderColor: "#794123", 
-                borderWidth: "1.5px" 
+                border: "none"
               }}
             >
               {/* SWITCHER REGISTER / LOGIN */}
@@ -313,9 +362,17 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                   </div>
                 )}
 
-                <button type="button" onClick={handleUserLoginWrapper} className={`w-full py-2.5 sm:py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] cursor-pointer mt-1 shadow-md pointer-events-auto relative z-40 ${validationMsg ? "animate-pulse" : ""}`} style={buttonStyleObj}>{buttonText}</button>
+                {/* TOMBOL BAWAH WARNA TEMA TERANG 3D CEMBUNG */}
+                <button 
+                  type="button" 
+                  onClick={handleUserLoginWrapper} 
+                  className={`w-full py-2.5 sm:py-3 rounded-full font-black tracking-wider transition-all active:scale-[0.98] cursor-pointer mt-1 pointer-events-auto relative z-40 ${validationMsg ? "animate-pulse" : ""}`} 
+                  style={buttonStyleObj}
+                >
+                  {buttonText}
+                </button>
 
-                {/* UCAPAN SELAMAT DATANG (SEKARANG HANYA MUNCUL JIKA VERIFIKASI LOGIN SUKSES) */}
+                {/* UCAPAN SELAMAT DATANG */}
                 <AnimatePresence>
                   {showWelcomePill && (
                     <motion.div 
@@ -325,7 +382,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                       className="w-full text-center mt-4 px-2 py-2.5 rounded-2xl font-black text-base sm:text-lg border pointer-events-auto"
                       style={{ 
                         backgroundColor: "var(--card-bg)", 
-                        borderColor: "#794123", 
+                        borderColor: "var(--accent)", 
                         color: "var(--foreground-heading)"
                       }}
                     >
@@ -338,20 +395,36 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
           </>
         ) : (
           <>
-            <div className="relative -mb-7 z-30 pointer-events-none drop-shadow-xl flex justify-center">
-              <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={100} />
+            <div className="relative -mb-7 z-30 pointer-events-none flex justify-center w-full">
+              <div 
+                className="absolute inset-0 flex justify-center"
+                style={{
+                  clipPath: 'inset(-20px -20px 28px -20px)',
+                  filter: `
+                    drop-shadow(3px 0 0 var(--background))
+                    drop-shadow(-3px 0 0 var(--background))
+                    drop-shadow(0 -3px 0 var(--background))
+                    drop-shadow(2px -2px 0 var(--background))
+                    drop-shadow(-2px -2px 0 var(--background))
+                  `
+                }}
+              >
+                <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={100} />
+              </div>
+              <div className="relative z-10 flex justify-center">
+                <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={100} />
+              </div>
             </div>
             <div 
-              className={`relative w-full rounded-[2.5rem] pt-9 p-6 flex flex-col items-center border ${glassBox}`} 
+              className={`relative w-full rounded-[2.5rem] pt-9 p-6 flex flex-col items-center ${glassBox}`} 
               style={{ 
                 backgroundColor: "var(--background)", 
-                borderColor: "#794123", 
-                borderWidth: "1.5px" 
+                border: "none"
               }}
             >
               <InputField icon={<MailIcon />} placeholder="Email Admin" value={adminEmail || ""} onChange={(e: any) => setAdminEmail(e.target.value)} onFocus={() => setFocusedField('adminEmail')} onBlur={() => setFocusedField(null)} className={inputInset} style={normalInputStyle} autoComplete="off" />
               <InputField icon={<LockIcon />} placeholder="Password Admin" type={showPin ? "text" : "password"} style={normalInputStyle} value={adminPass || ""} onChange={(e: any) => setAdminPass(e.target.value)} onFocus={() => setFocusedField('adminPass')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} className="focus:outline-none cursor-pointer">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={`${inputInset} mb-4`} />
-              <button type="button" onClick={handleAdminLoginWrapper} className="w-full py-3 rounded-full font-extrabold tracking-wider transition-all active:scale-[0.98] shadow-md cursor-pointer pointer-events-auto relative z-40" style={{ backgroundColor: "var(--accent)", color: "var(--background)", boxShadow: "0 0 15px var(--accent-glow)" }}>Masuk Admin</button>
+              <button type="button" onClick={handleAdminLoginWrapper} className="w-full py-3 rounded-full font-black tracking-wider transition-all active:scale-[0.98] cursor-pointer pointer-events-auto relative z-40" style={active3dSubmitStyle}>Masuk Admin</button>
             </div>
           </>
         )}
