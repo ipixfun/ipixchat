@@ -264,7 +264,9 @@ export default function TemaPage() {
   const [isWaveCollapsed, setIsWaveCollapsed] = useState<boolean>(true);
   const [isChatCollapsed, setIsChatCollapsed] = useState<boolean>(true);
 
-  const [isApplied, setIsApplied] = useState<boolean>(false);
+  // Dynamic Toast Popup state
+  const [showToast, setShowToast] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string>("Tema Berhasil Diterapkan!");
 
   useEffect(() => {
     setIsMounted(true);
@@ -339,6 +341,14 @@ export default function TemaPage() {
     setIsCustomWaveEnabled(e.target.checked);
   };
 
+  const triggerToast = (msg: string) => {
+    setToastMessage(msg);
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 2800);
+  };
+
   const handleApplyCustom = () => {
     localStorage.setItem("global_enable_custom_ui", isCustomUiEnabled.toString());
     localStorage.setItem("global_enable_custom_chat", isCustomChatEnabled.toString());
@@ -375,8 +385,7 @@ export default function TemaPage() {
 
     window.dispatchEvent(new Event("globalColorChanged"));
 
-    setIsApplied(true);
-    setTimeout(() => setIsApplied(false), 2000);
+    triggerToast("Tema Berhasil Diterapkan!");
   };
 
   if (!isMounted) {
@@ -397,7 +406,33 @@ export default function TemaPage() {
         .animate-wave-letter {
           animation: waveLetter 1.2s ease-in-out infinite;
         }
+        @keyframes toastPopIn {
+          0% { transform: translate(-50%, -100%) scale(0.85); opacity: 0; }
+          60% { transform: translate(-50%, 8px) scale(1.02); opacity: 1; }
+          100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+        }
+        .animate-toast-pop {
+          animation: toastPopIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
       `}</style>
+
+      {/* POP-UP DINAMIS TEMA SUDAH DITERAPKAN */}
+      {showToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-toast-pop flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-xl border border-[var(--accent)] bg-[color-mix(in_srgb,var(--card-bg)_90%,transparent)] text-[var(--foreground-heading)] min-w-[280px] max-w-[90vw]">
+          <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 font-extrabold text-xs shadow-inner">
+            ✓
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs font-bold tracking-wide leading-tight truncate">
+              {toastMessage}
+            </span>
+            <span className="text-[10px] opacity-70 leading-tight truncate mt-0.5" style={{ color: "var(--foreground)" }}>
+              Perubahan tata warna & tema berhasil disimpan.
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px] transition-colors duration-300 bg-[var(--background)] text-[var(--foreground)]">
         
         <div className="sticky top-0 z-20 p-3 sm:p-4 backdrop-blur-xl border-b transition-colors duration-300 bg-[color-mix(in_srgb,var(--background)_80%,transparent)] border-[var(--card-border)]">
@@ -687,13 +722,9 @@ export default function TemaPage() {
                 <button
                   disabled={!isLoggedIn}
                   onClick={handleApplyCustom}
-                  className={`w-full py-3 rounded-lg font-bold text-[11px] sm:text-xs transition-all active:scale-95 flex items-center justify-center gap-2 tracking-wide ${
-                    isApplied
-                      ? "bg-emerald-500 text-black border-emerald-400 scale-[0.99]"
-                      : "bg-[var(--accent)] text-[var(--background)] hover:opacity-90 shadow-md"
-                  }`}
+                  className="w-full py-3 rounded-lg font-bold text-[11px] sm:text-xs transition-all active:scale-95 flex items-center justify-center gap-2 tracking-wide bg-[var(--accent)] text-[var(--background)] hover:opacity-90 shadow-md"
                 >
-                  {isApplied ? "✓ Tema Berhasil Diterapkan" : "Terapkan Tema"}
+                  Terapkan Tema
                 </button>
               </div>
 
@@ -743,6 +774,7 @@ export default function TemaPage() {
                       setIsThemeCollapsed(true);
                       setIsChatCollapsed(true);
                       setIsWaveCollapsed(true);
+                      triggerToast(`Preset "${t.name}" Diterapkan!`);
                     }}
                     className={`p-2.5 rounded-lg border transition-all duration-300 cursor-pointer flex items-center justify-between gap-2 ${
                       isActive ? "shadow-sm" : "hover:opacity-90"
