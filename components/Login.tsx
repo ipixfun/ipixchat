@@ -144,8 +144,11 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   
   const activeTypingLength = focusedField === 'username' ? (username?.length || 0) : focusedField === 'adminEmail' ? (adminEmail?.length || 0) : (focusedField === 'pin' && showPin) ? (pin?.length || 0) : (focusedField === 'adminPass' && showPin) ? (adminPass?.length || 0) : 0;
   
+  // LOGIKA ARAH MATA BERUANG (PANDANGAN KERAP DIBUAT LURUS SAAT LOGIN OTOMATIS)
   let bearEyeX = 0;
-  if (focusedField) {
+  if (isSavedDevice || isLocked) {
+    bearEyeX = 0; // Pandangan lurus ke depan saat login otomatis/terkunci
+  } else if (focusedField) {
     bearEyeX = Math.sin(activeTypingLength * 0.9);
   } else {
     bearEyeX = isLoginMode ? 2.5 : -2.5;
@@ -297,8 +300,8 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
               >
                 <motion.div 
                   animate={{ 
-                    rotate: isLoginMode ? 3 : -3, 
-                    x: isLoginMode ? 2 : -2 
+                    rotate: isSavedDevice ? 0 : (isLoginMode ? 3 : -3), 
+                    x: isSavedDevice ? 0 : (isLoginMode ? 2 : -2) 
                   }} 
                   transition={{ type: "spring", stiffness: 220, damping: 14 }}
                 >
@@ -310,8 +313,8 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
               <motion.div 
                 className="relative z-10 flex justify-center"
                 animate={{ 
-                  rotate: isLoginMode ? 3 : -3, 
-                  x: isLoginMode ? 2 : -2 
+                  rotate: isSavedDevice ? 0 : (isLoginMode ? 3 : -3), 
+                  x: isSavedDevice ? 0 : (isLoginMode ? 2 : -2) 
                 }}
                 transition={{ 
                   rotate: { type: "spring", stiffness: 220, damping: 14 },

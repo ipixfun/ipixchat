@@ -117,14 +117,12 @@ export default function Home() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
 
-    // SIMPAN DATA USERNAME & PIN TERINGAT SEBELUM DI-CLEAR
     const remUser = localStorage.getItem("remembered_username");
     const remPin = localStorage.getItem("remembered_pin");
 
     localStorage.clear();
     sessionStorage.clear();
 
-    // KUNCI PERMANEN REGISTER SUPAYA TERSEMBUNYI
     localStorage.setItem("hide_register", "true");
     localStorage.setItem("has_ever_logged_in", "true");
 
@@ -145,15 +143,19 @@ export default function Home() {
     window.location.reload();
   };
 
+  // FETCH DATA PERBAIKAN: Menjaga filter query tetap valid saat awal muat ulang/refresh
   const fetchData = useCallback(async () => {
-    if (!auth.isAuth) return;
+    const activeUser = auth.user || (typeof window !== "undefined" ? (localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username")) : "");
+    if (!auth.isAuth && !activeUser) return;
 
-    if (auth.user && auth.user !== "Admin●ipix.my.id") {
+    const targetUser = auth.user || activeUser;
+
+    if (targetUser && targetUser !== "Admin●ipix.my.id") {
       const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
       const { data: currentProfile } = await supabase
         .from("profiles")
         .select("username, pin")
-        .ilike("username", auth.user)
+        .ilike("username", targetUser)
         .maybeSingle();
 
       if (!currentProfile || (savedPin && currentProfile.pin !== savedPin)) {
@@ -167,18 +169,19 @@ export default function Home() {
     }
 
     try {
+      const isAdminTab = ui.tab === "admin";
+      const queryFilter = isAdminTab 
+        ? (usersInfo.selPriv ? `username.eq.${usersInfo.selPriv},chat_with.eq.${usersInfo.selPriv}` : "id.gt.0")
+        : `username.eq.${targetUser},chat_with.eq.${targetUser}`;
+
       const [{ data: bD }, { data: bW }, { data: prD }] = await Promise.all([
         supabase.from("blocked_users").select("*"), 
         supabase.from("blocked_words").select("word"),
-        supabase.from("messages").select("*").or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},chat_with.eq.${auth.user}` : usersInfo.selPriv ? `username.eq.${usersInfo.selPriv},chat_with.eq.${usersInfo.selPriv}` : "id.gt.0").order("created_at", { ascending: false }).limit(100),
+        supabase.from("messages").select("*").or(queryFilter).order("created_at", { ascending: false }).limit(100),
       ]);
+
       if (bW) setCensor((p) => ({ ...p, words: bW.map((w) => w.word) }));
-      if (auth.user && bD?.some((b) => b.username === auth.user)) return window.location.replace("https://ipix.my.id/chat");
-      
-      if (auth.isAuth) {
-        const { count: privC } = await supabase.from("messages").select("*", { count: "exact", head: true }).or(ui.tab === "user" && auth.user ? `username.eq.${auth.user},chat_with.eq.${auth.user}` : `id.gt.0`);
-        setCounts({ ...counts, priv: privC || 0 });
-      }
+      if (targetUser && bD?.some((b) => b.username === targetUser)) return window.location.replace("https://ipix.my.id/chat");
       
       const vPriv = (prD || []).reverse().filter((m) => !bD?.map((b) => b.username).includes(m.username));
       setMsgs({ all: vPriv, pub: [], priv: vPriv });
@@ -193,7 +196,7 @@ export default function Home() {
       vPriv.forEach((m) => { if (m.username !== "Admin●ipix.my.id") { const t = new Date(m.created_at).getTime(); sMap[m.username] = { lastActive: t, online: Date.now() - t < 300000, offlineTime: getFmt.ago(new Date(t)) }; } });
       setUsersInfo((p) => ({ ...p, status: sMap, blockedList: bD || [] }));
       
-      if (ui.tab === "admin" && !usersInfo.selPriv) {
+      if (isAdminTab && !usersInfo.selPriv) {
         const { data: aP } = await supabase.from("messages").select("username, chat_with, created_at, pesan").order("created_at", { ascending: false }).limit(500);
         
         if (aP) {
@@ -220,7 +223,7 @@ export default function Home() {
             if (m.username !== "Admin●ipix.my.id" && !uMap.has(m.username)) { 
               const userProfile = profileMap.get(m.username.toLowerCase());
               uMap.set(m.username, { 
-                ...m, last_active: m.created_at, count: ui.tab === "admin" ? 0 : (c[m.username] || 0), 
+                ...m, last_active: m.created_at, count: isAdminTab ? 0 : (c[m.username] || 0), 
                 pin: userProfile?.pin || "", umur: userProfile?.umur || "", berat: userProfile?.berat || "",
                 totalUserMsgs: userMsgTotal[m.username] || 0, totalAdminMsgs: adminMsgTotal[m.username] || 0, last_message: m.pesan 
               }); 
@@ -407,23 +410,24 @@ export default function Home() {
     }
   };
 
+  // PEMERIKSAAN AUTHENTIKASI INITIAL
   useEffect(() => {
     const chk = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       let savedUsername = localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username") || sessionStorage.getItem("active_username") || sessionStorage.getItem("username");
-      const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || sessionStorage.getItem("saved_pin") || sessionStorage.getItem("pin") || "";
+      const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || "";
       const isAuthLocal = localStorage.getItem("is_auth") === "true" || sessionStorage.getItem("is_auth") === "true";
 
       if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
         const { data: pD } = await supabase.from("profiles").select("username, pin, umur, berat").ilike("username", savedUsername).maybeSingle();
         if (pD?.username) {
           const activePin = pD.pin || savedPin;
-          setAuth((p) => ({ ...p, isExist: true, user: pD.username, pin: activePin, umur: pD.umur || "", berat: pD.berat || "" }));
+          setAuth((p) => ({ ...p, isAuth: true, isExist: true, user: pD.username, pin: activePin, umur: pD.umur || "", berat: pD.berat || "" }));
         } else {
-          setAuth((p) => ({ ...p, user: savedUsername, pin: savedPin }));
+          setAuth((p) => ({ ...p, isAuth: isAuthLocal, user: savedUsername, pin: savedPin }));
         }
       } else if (savedUsername) {
-        setAuth((p) => ({ ...p, user: savedUsername, pin: savedPin }));
+        setAuth((p) => ({ ...p, isAuth: isAuthLocal, user: savedUsername, pin: savedPin }));
       }
 
       const isAdmin = pathname?.endsWith("/admin") || window.location.hash === "#admin";
@@ -440,7 +444,7 @@ export default function Home() {
   }, [pathname]);
 
   useEffect(() => {
-    if (!mounted || !auth.isAuth) return;
+    if (!mounted) return;
     fetchData();
     if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
     
@@ -469,7 +473,7 @@ export default function Home() {
       }
     }).subscribe();
     
-    const messageSubscription = supabase.channel("public:messages").on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => { fetchData(); }).subscribe();
+    const messageSubscription = supabase.channel("public:messages").on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => { fetchData(); }).subscribe();
     return () => { supabase.removeChannel(messageSubscription); supabase.removeChannel(profileChangeListener); };
   }, [mounted, auth.isAuth, auth.user, fetchData]);
 
