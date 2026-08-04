@@ -144,6 +144,37 @@ export default function Home() {
     window.location.reload();
   };
 
+  // FORCE LOGOUT SECARA REALTIME SAAT PIN / USERNAME DIUBAH ADMIN
+  const forceLogoutDueToAdminChange = useCallback(async (newUsername?: string) => {
+    localStorage.removeItem("is_auth");
+    sessionStorage.removeItem("is_auth");
+    localStorage.removeItem("remembered_pin");
+    localStorage.removeItem("saved_pin");
+    localStorage.removeItem("user_pin");
+    localStorage.removeItem("pin");
+
+    if (newUsername) {
+      localStorage.setItem("remembered_username", newUsername);
+      localStorage.setItem("username", newUsername);
+      localStorage.setItem("active_username", newUsername);
+    }
+
+    await supabase.auth.signOut();
+
+    setAuth({
+      isAuth: false,
+      isExist: true,
+      user: newUsername || auth.user || "",
+      adminEmail: "",
+      adminPass: "",
+      pin: "",
+      umur: "",
+      berat: "",
+    });
+
+    alert("⚠️ AKSES DITOLAK / DIUBAH!\n\nUsername atau PIN Anda telah diubah oleh Admin. Silakan masuk kembali menggunakan PIN baru Anda.");
+  }, [auth.user]);
+
   const fetchData = useCallback(async () => {
     const savedUser = typeof window !== "undefined" 
       ? (localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username"))
@@ -359,7 +390,12 @@ export default function Home() {
 
     updatePin: async (targetUsername: string, newPin: string) => {
       const { error } = await supabase.from("profiles").update({ pin: newPin }).ilike("username", targetUsername);
-      if (error) { alert("Gagal memperbarui PIN user."); console.error(error); } else { fetchData(); }
+      if (error) { 
+        alert("Gagal memperbarui PIN user."); 
+      } else { 
+        alert(`PIN ${targetUsername} berhasil diubah ke ${newPin}! User akan otomatis dikeluarkan.`);
+        fetchData(); 
+      }
     },
 
     updateUsername: async (oldUsername: string, newUsername: string) => {
@@ -442,59 +478,59 @@ export default function Home() {
     chk();
   }, [pathname]);
 
-  // REALTIME LISTENER SUPABASE DENGAN AUTO LOGOUT & REDIRECT KE LOGIN JIKA PROFILE (USERNAME / PIN) DIUBAH ADMIN
+  // SYSTEM SANGAT KETAT: VERIFIKASI DUAL SECURITY (AUTO CHECK + REALTIME LISTEN)
   useEffect(() => {
     if (!mounted) return;
     fetchData();
+
+    // LAPIS 1: AUTO CHECK TIAP DIPANNGGIL / DIBUKA
+    const verifyUserSession = async () => {
+      if (!auth.isAuth || auth.user === "Admin●ipix.my.id") return;
+
+      const savedUsername = localStorage.getItem("remembered_username") || localStorage.getItem("username") || localStorage.getItem("active_username");
+      const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
+
+      if (savedUsername) {
+        const { data: currentProfile } = await supabase
+          .from("profiles")
+          .select("username, pin")
+          .ilike("username", savedUsername)
+          .maybeSingle();
+
+        if (currentProfile && savedPin && currentProfile.pin !== savedPin) {
+          forceLogoutDueToAdminChange(currentProfile.username);
+        }
+      }
+    };
+
+    verifyUserSession();
 
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
 
+    // LAPIS 2: REALTIME EVENT BROADCAST SEMENTARA DI DALAM ROOM CHAT
     const profileChangeListener = supabase
-      .channel("public:profiles_update")
+      .channel("public:profiles_update_channel")
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "profiles" },
-        async (payload) => {
+        { event: "*", schema: "public", table: "profiles" },
+        async (payload: any) => {
           if (!auth.isAuth || auth.user === "Admin●ipix.my.id") return;
 
-          const newRecord = payload.new;
-          const savedUsername = localStorage.getItem("remembered_username") || localStorage.getItem("username") || localStorage.getItem("active_username");
+          const savedUsername = (localStorage.getItem("remembered_username") || localStorage.getItem("username") || auth.user || "").toLowerCase();
           const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
 
-          if (
-            newRecord.username?.toLowerCase() === savedUsername?.toLowerCase() ||
-            (newRecord.id && payload.old?.username?.toLowerCase() === savedUsername?.toLowerCase())
-          ) {
-            if (newRecord.pin !== savedPin || newRecord.username.toLowerCase() !== savedUsername?.toLowerCase()) {
-              localStorage.removeItem("is_auth");
-              sessionStorage.removeItem("is_auth");
-              localStorage.removeItem("remembered_pin");
-              localStorage.removeItem("saved_pin");
-              localStorage.removeItem("user_pin");
-              localStorage.removeItem("pin");
+          const newRec = payload.new;
+          const oldRec = payload.old;
 
-              if (newRecord.username) {
-                localStorage.setItem("remembered_username", newRecord.username);
-                localStorage.setItem("username", newRecord.username);
-                localStorage.setItem("active_username", newRecord.username);
-              }
+          const isTargetUser = 
+            (newRec && newRec.username?.toLowerCase() === savedUsername) ||
+            (oldRec && oldRec.username?.toLowerCase() === savedUsername);
 
-              await supabase.auth.signOut();
-
-              setAuth({
-                isAuth: false,
-                isExist: true,
-                user: newRecord.username || savedUsername || "",
-                adminEmail: "",
-                adminPass: "",
-                pin: "",
-                umur: "",
-                berat: "",
-              });
-
-              alert("⚠️ Akun Anda telah diperbarui oleh Admin!\nPIN atau Username Anda telah diubah. Silakan masuk kembali dengan data baru Anda.");
+          if (isTargetUser && newRec) {
+            if (newRec.pin !== savedPin || newRec.username.toLowerCase() !== savedUsername) {
+              forceLogoutDueToAdminChange(newRec.username);
             }
           }
         }
@@ -502,17 +538,17 @@ export default function Home() {
       .subscribe();
 
     const messageSubscription = supabase
-      .channel("public:messages")
+      .channel("public:messages_channel")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
         fetchData();
       })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(messageSubscription);
       supabase.removeChannel(profileChangeListener);
+      supabase.removeChannel(messageSubscription);
     };
-  }, [mounted, auth.isAuth, auth.user, fetchData]);
+  }, [mounted, auth.isAuth, auth.user, fetchData, forceLogoutDueToAdminChange]);
 
   useEffect(() => {
     if (!mounted || !auth.isAuth || !auth.user) return;
