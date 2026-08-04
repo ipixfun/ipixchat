@@ -6,9 +6,9 @@ import BearMascot from './BearMascot';
 
 const UserIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>);
 const LockIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>);
-const CalendarIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 00-2 2z" /></svg>);
+const CalendarIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>);
 const ScaleIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>);
-const MailIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>);
+const MailIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2 z" /></svg>);
 const EyeIcon = () => (<svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>);
 const EyeOffIcon = () => (<svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>);
 
@@ -98,7 +98,8 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const [isUsernameAgreed, setIsUsernameAgreed] = useState(false); const [validationMsg, setValidationMsg] = useState("");
   const [showPin, setShowPin] = useState(false); const [showWelcomePill, setShowWelcomePill] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false); const [isSavedDevice, setIsSavedDevice] = useState(false);
-  const [hasTyped, setHasTyped] = useState(false); const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
+  const [hasTyped, setHasTyped] = useState(false); 
+  const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
   useEffect(() => {
     try {
@@ -140,8 +141,16 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const visibleName = displayedCharCount > pLen ? currentUserName.slice(0, Math.max(0, displayedCharCount - pLen)) : "";
   const visibleSuffix = displayedCharCount > pLen + uLen ? suffixText.slice(0, Math.max(0, displayedCharCount - pLen - uLen)) : "";
   const isFormValid = isSavedDevice ? (username?.trim().length > 0 && pin?.length === 6) : (isLoginMode ? (username?.trim().length > 0 && pin?.length === 6) : (username?.trim().length > 0 && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed));
+  
   const activeTypingLength = focusedField === 'username' ? (username?.length || 0) : focusedField === 'adminEmail' ? (adminEmail?.length || 0) : (focusedField === 'pin' && showPin) ? (pin?.length || 0) : (focusedField === 'adminPass' && showPin) ? (adminPass?.length || 0) : 0;
-  const bearEyeX = focusedField ? Math.sin(activeTypingLength * 0.9) : 0;
+  
+  let bearEyeX = 0;
+  if (focusedField) {
+    bearEyeX = Math.sin(activeTypingLength * 0.9);
+  } else {
+    bearEyeX = isLoginMode ? 2.5 : -2.5;
+  }
+
   const isBearCovering = (isSavedDevice || isLocked) ? !showPin : (focusedField === 'pin' || focusedField === 'adminPass') && !showPin;
   const isTyping = !(isSavedDevice || isLocked) && focusedField !== null && !isBearCovering;
   const isLove = isTyping && (focusedField === 'username' || focusedField === 'adminEmail');
@@ -211,7 +220,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const handleAdminLoginWrapper = async () => { try { const result = await handleAdminLogin(); if (result === false || (result && result.error)) return; } catch (err) {} };
 
   const inputInset = 'shadow-[inset_0_4px_8px_rgba(0,0,0,0.25)]'; 
-  const glassBox = 'shadow-[0_8px_32px_rgba(0,0,0,0.8)]';
   
   const normalInputStyle = { backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" };
   const validInputStyle = { backgroundColor: "color-mix(in srgb, var(--accent) 15%, transparent)", borderColor: "var(--accent)" };
@@ -222,14 +230,15 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const umurStyle = getInputStyle(Boolean(validationMsg && !umur)); const beratStyle = getInputStyle(Boolean(validationMsg && !berat));
   const existingStyle = { backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)", opacity: 0.75 };
 
-  // STYLE 3D CEMBUNG WARNA TERANG + COLOR SHIFT UNTUK TOMBOL BAWAH (SELALU AKTIF)
+  const brightestThemeColor = "color-mix(in srgb, var(--accent) 45%, #ffffff)";
+
   const active3dSubmitStyle: React.CSSProperties = {
     background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 40%, #ffffff) 0%, color-mix(in srgb, var(--accent) 85%, #ffffff) 50%, var(--accent) 100%)",
     backgroundSize: "200% 200%",
     animation: "convexColorShift 3s ease infinite alternate",
     boxShadow: "inset 0 3px 4px rgba(255, 255, 255, 0.95), inset 0 -3px 5px rgba(0, 0, 0, 0.35), 0 6px 14px rgba(0,0,0,0.3)",
     color: "#0f172a",
-    border: "1px solid color-mix(in srgb, var(--accent) 60%, #ffffff)"
+    border: `1px solid ${brightestThemeColor}`
   };
 
   let buttonStyleObj: React.CSSProperties = active3dSubmitStyle; 
@@ -259,7 +268,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
 
   return (
     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-transparent px-4 pb-16 overflow-y-auto pointer-events-auto">
-      {/* KEYFRAMES ANIMASI WARNA TANPA GLOW */}
       <style>{`
         @keyframes convexColorShift {
           0% { background-position: 0% 50%; }
@@ -273,158 +281,173 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
       <div className="relative w-full max-w-[380px] my-auto flex flex-col items-center pointer-events-auto">
         {activeTab === 'user' ? (
           <>
-            {/* CONTAINER MASCOT: BORDER HANYA DI KEPALA & WARNA MENGIKUTI WARNA KOTAK */}
-            <div className="relative -mb-7 z-30 pointer-events-none flex justify-center w-full">
-              {/* Layer Outline Kepala (Di-clip bagian bawahnya agar tangan bersih tanpa border) */}
+            {/* MASCOT BERUANG DENGAN MARGIN RAPAT & SILUET OUTLINE JAUH LEBIH TIPIS */}
+            <div className="relative -mb-5 z-30 pointer-events-none flex justify-center w-full">
+              {/* SILUET OUTLINE SANGAT TIPIS & PRESISI (DI-CLIP AGAR PAS DI KEPALA) */}
               <div 
                 className="absolute inset-0 flex justify-center"
                 style={{
-                  clipPath: 'inset(-20px -20px 28px -20px)',
+                  clipPath: 'inset(0px 0px 24px 0px)',
                   filter: `
-                    drop-shadow(3px 0 0 var(--background))
-                    drop-shadow(-3px 0 0 var(--background))
-                    drop-shadow(0 -3px 0 var(--background))
-                    drop-shadow(2px -2px 0 var(--background))
-                    drop-shadow(-2px -2px 0 var(--background))
+                    drop-shadow(1px 0 0 ${brightestThemeColor})
+                    drop-shadow(-1px 0 0 ${brightestThemeColor})
+                    drop-shadow(0 -1px 0 ${brightestThemeColor})
                   `
                 }}
               >
-                <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={100} />
+                <motion.div 
+                  animate={{ 
+                    rotate: isLoginMode ? 3 : -3, 
+                    x: isLoginMode ? 2 : -2 
+                  }} 
+                  transition={{ type: "spring", stiffness: 220, damping: 14 }}
+                >
+                  <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={100} />
+                </motion.div>
               </div>
 
-              {/* Layer Mascot Utama */}
-              <div className="relative z-10 flex justify-center">
+              {/* MASCOT UTAMA */}
+              <motion.div 
+                className="relative z-10 flex justify-center"
+                animate={{ 
+                  rotate: isLoginMode ? 3 : -3, 
+                  x: isLoginMode ? 2 : -2 
+                }}
+                transition={{ 
+                  rotate: { type: "spring", stiffness: 220, damping: 14 },
+                  x: { type: "spring", stiffness: 220, damping: 14 }
+                }}
+              >
                 <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={100} />
-              </div>
+              </motion.div>
             </div>
 
-            {/* KOTAK UTAMA */}
+            {/* BINGKAI PEMBUNGKUS KOTAK UTAMA */}
             <div 
-              className={`relative w-full rounded-[2.5rem] pt-9 p-5 sm:p-6 flex flex-col items-center ${glassBox}`} 
-              style={{ 
-                backgroundColor: "var(--background)", 
-                border: "none"
-              }}
+              className="relative w-full rounded-[2.6rem] p-[2px] transition-all duration-300 shadow-[0_12px_36px_rgba(0,0,0,0.7)]"
+              style={{ backgroundColor: brightestThemeColor }}
             >
-              {/* SWITCHER REGISTER / LOGIN */}
-              {!shouldHideRegisterTab && (
-                <div className="w-full flex rounded-full p-1 mb-4 border relative z-50 pointer-events-auto cursor-pointer" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" }}>
-                  <button 
-                    type="button" 
-                    onClick={(e) => { 
-                      e.stopPropagation(); 
-                      setIsLoginMode(false); 
-                      setValidationMsg(""); 
-                    }} 
-                    className={`flex-1 py-2 rounded-full text-xs font-bold transition-all cursor-pointer relative z-50 ${!isLoginMode ? 'shadow-md' : 'opacity-60'}`} 
-                    style={!isLoginMode ? { backgroundColor: "var(--accent)", color: "var(--background)" } : { color: "var(--foreground-heading)" }}
-                  >
-                    Register
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={(e) => { 
-                      e.stopPropagation(); 
-                      setIsLoginMode(true); 
-                      setValidationMsg(""); 
-                    }} 
-                    className={`flex-1 py-2 rounded-full text-xs font-bold transition-all cursor-pointer relative z-50 ${isLoginMode ? 'shadow-md' : 'opacity-60'}`} 
-                    style={isLoginMode ? { backgroundColor: "var(--accent)", color: "var(--background)" } : { color: "var(--foreground-heading)" }}
-                  >
-                    Login
-                  </button>
-                </div>
-              )}
-
-              {/* FORM INPUT CONTAINER */}
-              <div className="w-full flex flex-col items-center relative z-20 pointer-events-auto">
-                <InputField icon={<UserIcon />} placeholder={isLoginMode || isSavedDevice ? "Username" : (placeholderText || "Username")} value={username || ""} disabled={isLocked || isSavedDevice} readOnly={isLocked || isSavedDevice} onChange={(e: any) => { if (isLocked || isSavedDevice) return; if (!hasTyped) setHasTyped(true); setUsername(e.target.value.slice(0, 20)); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('username')} onBlur={() => setFocusedField(null)} className={inputInset} style={(isLocked || isSavedDevice) ? existingStyle : usernameStyle} autoComplete="off" />
-                
-                <InputField icon={<LockIcon />} placeholder={isSavedDevice ? "PIN Tersimpan" : (isLoginMode ? "PIN (6 angka)" : "Buat PIN (6 angka)")} type={showPin ? "text" : "password"} inputMode="numeric" value={pin || ""} disabled={isLocked || isSavedDevice} readOnly={isLocked || isSavedDevice} onChange={(e: any) => { if (isLocked || isSavedDevice) return; const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPin(val); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('pin')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} disabled={isLocked && !isSavedDevice} className="focus:outline-none cursor-pointer">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={inputInset} style={(isLocked || isSavedDevice) ? existingStyle : pinStyle} maxLength={6} />
-                
-                {!isLoginMode && !shouldHideRegisterTab && (
-                  <div className="flex gap-2.5 w-full">
-                    <SelectField icon={<CalendarIcon />} placeholder="Umur" options={["25+", "30+", "35+", "40+", "45+"]} value={umur} disabled={isLocked} onChange={(e: any) => { setUmur(e.target.value); if (validationMsg) setValidationMsg(""); }} className={inputInset} style={isLocked ? existingStyle : umurStyle} />
-                    <SelectField icon={<ScaleIcon />} placeholder="Berat" options={["70+", "80+", "90+", "100+"]} value={berat} disabled={isLocked} onChange={(e: any) => { setBerat(e.target.value); if (validationMsg) setValidationMsg(""); }} className={inputInset} style={isLocked ? existingStyle : beratStyle} />
-                  </div>
-                )}
-
-                {(isSavedDevice || isLocked) && (
-                  <div className={`w-full text-xs p-3.5 border rounded-2xl mb-2.5 font-normal text-center whitespace-pre-line leading-relaxed min-h-[55px] flex flex-col items-center justify-center ${inputInset}`} style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)", color: "var(--foreground-heading)" }}>
-                    <span className="w-full block drop-shadow-sm"><span>{visiblePrefix}</span><span className="font-extrabold italic">{visibleName}</span><span>{visibleSuffix}</span>{!isNoteTypingDone && <span className="animate-pulse ml-0.5">|</span>}</span>
-                  </div>
-                )}
-
-                {!isLoginMode && !shouldHideRegisterTab && (
-                  <div className="flex items-center justify-start w-full mb-3 px-1 select-none">
-                    <input type="checkbox" id="agree" disabled={isLocked} className="w-3.5 h-3.5 cursor-pointer rounded-sm accent-[var(--accent)]" checked={isUsernameAgreed} onChange={(e) => { setIsUsernameAgreed(e.target.checked); if (validationMsg) setValidationMsg(""); }} />
-                    <label htmlFor="agree" className="text-[11px] font-light italic ml-2 select-none leading-none opacity-80 cursor-pointer" style={{ color: "var(--foreground)" }}>*Mengikuti aturan di dalam chat</label>
-                  </div>
-                )}
-
-                {/* TOMBOL BAWAH WARNA TEMA TERANG 3D CEMBUNG */}
-                <button 
-                  type="button" 
-                  onClick={handleUserLoginWrapper} 
-                  className={`w-full py-2.5 sm:py-3 rounded-full font-black tracking-wider transition-all active:scale-[0.98] cursor-pointer mt-1 pointer-events-auto relative z-40 ${validationMsg ? "animate-pulse" : ""}`} 
-                  style={buttonStyleObj}
-                >
-                  {buttonText}
-                </button>
-
-                {/* UCAPAN SELAMAT DATANG */}
-                <AnimatePresence>
-                  {showWelcomePill && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                      animate={{ opacity: 1, y: 0, scale: 1 }} 
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }} 
-                      className="w-full text-center mt-4 px-2 py-2.5 rounded-2xl font-black text-base sm:text-lg border pointer-events-auto"
-                      style={{ 
-                        backgroundColor: "var(--card-bg)", 
-                        borderColor: "var(--accent)", 
-                        color: "var(--foreground-heading)"
-                      }}
+              <div 
+                className="w-full rounded-[2.4rem] pt-9 p-5 sm:p-6 flex flex-col items-center"
+                style={{ backgroundColor: "var(--background)" }}
+              >
+                {/* SWITCHER REGISTER / LOGIN */}
+                {!shouldHideRegisterTab && (
+                  <div className="w-full flex rounded-full p-1 mb-4 border relative z-50 pointer-events-auto cursor-pointer" style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+                    <button 
+                      type="button" 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setIsLoginMode(false); 
+                        setValidationMsg(""); 
+                      }} 
+                      className={`flex-1 py-2 rounded-full text-xs font-bold transition-all cursor-pointer relative z-50 ${!isLoginMode ? 'shadow-md' : 'opacity-60'}`} 
+                      style={!isLoginMode ? { backgroundColor: "var(--accent)", color: "var(--background)" } : { color: "var(--foreground-heading)" }}
                     >
-                      Selamat Datang {username ? `${username} ` : ''}Sayang!
-                    </motion.div>
+                      Register
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setIsLoginMode(true); 
+                        setValidationMsg(""); 
+                      }} 
+                      className={`flex-1 py-2 rounded-full text-xs font-bold transition-all cursor-pointer relative z-50 ${isLoginMode ? 'shadow-md' : 'opacity-60'}`} 
+                      style={isLoginMode ? { backgroundColor: "var(--accent)", color: "var(--background)" } : { color: "var(--foreground-heading)" }}
+                    >
+                      Login
+                    </button>
+                  </div>
+                )}
+
+                {/* FORM INPUT CONTAINER */}
+                <div className="w-full flex flex-col items-center relative z-20 pointer-events-auto">
+                  <InputField icon={<UserIcon />} placeholder={isLoginMode || isSavedDevice ? "Username" : (placeholderText || "Username")} value={username || ""} disabled={isLocked || isSavedDevice} readOnly={isLocked || isSavedDevice} onChange={(e: any) => { if (isLocked || isSavedDevice) return; if (!hasTyped) setHasTyped(true); setUsername(e.target.value.slice(0, 20)); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('username')} onBlur={() => setFocusedField(null)} className={inputInset} style={(isLocked || isSavedDevice) ? existingStyle : usernameStyle} autoComplete="off" />
+                  
+                  <InputField icon={<LockIcon />} placeholder={isSavedDevice ? "PIN Tersimpan" : (isLoginMode ? "PIN (6 angka)" : "Buat PIN (6 angka)")} type={showPin ? "text" : "password"} inputMode="numeric" value={pin || ""} disabled={isLocked || isSavedDevice} readOnly={isLocked || isSavedDevice} onChange={(e: any) => { if (isLocked || isSavedDevice) return; const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPin(val); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('pin')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} disabled={isLocked && !isSavedDevice} className="focus:outline-none cursor-pointer">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={inputInset} style={(isLocked || isSavedDevice) ? existingStyle : pinStyle} maxLength={6} />
+                  
+                  {!isLoginMode && !shouldHideRegisterTab && (
+                    <div className="flex gap-2.5 w-full">
+                      <SelectField icon={<CalendarIcon />} placeholder="Umur" options={["25+", "30+", "35+", "40+", "45+"]} value={umur} disabled={isLocked} onChange={(e: any) => { setUmur(e.target.value); if (validationMsg) setValidationMsg(""); }} className={inputInset} style={isLocked ? existingStyle : umurStyle} />
+                      <SelectField icon={<ScaleIcon />} placeholder="Berat" options={["70+", "80+", "90+", "100+"]} value={berat} disabled={isLocked} onChange={(e: any) => { setBerat(e.target.value); if (validationMsg) setValidationMsg(""); }} className={inputInset} style={isLocked ? existingStyle : beratStyle} />
+                    </div>
                   )}
-                </AnimatePresence>
+
+                  {(isSavedDevice || isLocked) && (
+                    <div className={`w-full text-xs p-3.5 border rounded-2xl mb-2.5 font-normal text-center whitespace-pre-line leading-relaxed min-h-[55px] flex flex-col items-center justify-center ${inputInset}`} style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)", color: "var(--foreground-heading)" }}>
+                      <span className="w-full block drop-shadow-sm"><span>{visiblePrefix}</span><span className="font-extrabold italic">{visibleName}</span><span>{visibleSuffix}</span>{!isNoteTypingDone && <span className="animate-pulse ml-0.5">|</span>}</span>
+                    </div>
+                  )}
+
+                  {!isLoginMode && !shouldHideRegisterTab && (
+                    <div className="flex items-center justify-start w-full mb-3 px-1 select-none">
+                      <input type="checkbox" id="agree" disabled={isLocked} className="w-3.5 h-3.5 cursor-pointer rounded-sm accent-[var(--accent)]" checked={isUsernameAgreed} onChange={(e) => { setIsUsernameAgreed(e.target.checked); if (validationMsg) setValidationMsg(""); }} />
+                      <label htmlFor="agree" className="text-[11px] font-light italic ml-2 select-none leading-none opacity-80 cursor-pointer" style={{ color: "var(--foreground)" }}>*Mengikuti aturan di dalam chat</label>
+                    </div>
+                  )}
+
+                  {/* TOMBOL BAWAH WARNA TEMA TERANG 3D CEMBUNG */}
+                  <button 
+                    type="button" 
+                    onClick={handleUserLoginWrapper} 
+                    className={`w-full py-2.5 sm:py-3 rounded-full font-black tracking-wider transition-all active:scale-[0.98] cursor-pointer mt-1 pointer-events-auto relative z-40 ${validationMsg ? "animate-pulse" : ""}`} 
+                    style={buttonStyleObj}
+                  >
+                    {buttonText}
+                  </button>
+
+                  {/* UCAPAN SELAMAT DATANG */}
+                  <AnimatePresence>
+                    {showWelcomePill && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+                        animate={{ opacity: 1, y: 0, scale: 1 }} 
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }} 
+                        className="w-full text-center mt-4 px-2 py-2.5 rounded-2xl font-black text-base sm:text-lg border pointer-events-auto"
+                        style={{ 
+                          backgroundColor: "var(--card-bg)", 
+                          borderColor: "var(--accent)", 
+                          color: "var(--foreground-heading)"
+                        }}
+                      >
+                        Selamat Datang {username ? `${username} ` : ''}Sayang!
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
           </>
         ) : (
           <>
-            <div className="relative -mb-7 z-30 pointer-events-none flex justify-center w-full">
-              <div 
-                className="absolute inset-0 flex justify-center"
-                style={{
-                  clipPath: 'inset(-20px -20px 28px -20px)',
-                  filter: `
-                    drop-shadow(3px 0 0 var(--background))
-                    drop-shadow(-3px 0 0 var(--background))
-                    drop-shadow(0 -3px 0 var(--background))
-                    drop-shadow(2px -2px 0 var(--background))
-                    drop-shadow(-2px -2px 0 var(--background))
-                  `
-                }}
-              >
-                <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={100} />
-              </div>
+            <div 
+              className="relative -mb-5 z-30 pointer-events-none flex justify-center w-full"
+              style={{
+                filter: `
+                  drop-shadow(1px 0 0 ${brightestThemeColor})
+                  drop-shadow(-1px 0 0 ${brightestThemeColor})
+                  drop-shadow(0 -1px 0 ${brightestThemeColor})
+                `
+              }}
+            >
               <div className="relative z-10 flex justify-center">
                 <BearMascot eyeX={bearEyeX} isCovering={isBearCovering} isLove={isLove} isTyping={isTyping} size={100} />
               </div>
             </div>
+
             <div 
-              className={`relative w-full rounded-[2.5rem] pt-9 p-6 flex flex-col items-center ${glassBox}`} 
-              style={{ 
-                backgroundColor: "var(--background)", 
-                border: "none"
-              }}
+              className="relative w-full rounded-[2.6rem] p-[2px] transition-all duration-300 shadow-[0_12px_36px_rgba(0,0,0,0.7)]"
+              style={{ backgroundColor: brightestThemeColor }}
             >
-              <InputField icon={<MailIcon />} placeholder="Email Admin" value={adminEmail || ""} onChange={(e: any) => setAdminEmail(e.target.value)} onFocus={() => setFocusedField('adminEmail')} onBlur={() => setFocusedField(null)} className={inputInset} style={normalInputStyle} autoComplete="off" />
-              <InputField icon={<LockIcon />} placeholder="Password Admin" type={showPin ? "text" : "password"} style={normalInputStyle} value={adminPass || ""} onChange={(e: any) => setAdminPass(e.target.value)} onFocus={() => setFocusedField('adminPass')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} className="focus:outline-none cursor-pointer">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={`${inputInset} mb-4`} />
-              <button type="button" onClick={handleAdminLoginWrapper} className="w-full py-3 rounded-full font-black tracking-wider transition-all active:scale-[0.98] cursor-pointer pointer-events-auto relative z-40" style={active3dSubmitStyle}>Masuk Admin</button>
+              <div 
+                className="w-full rounded-[2.4rem] pt-9 p-6 flex flex-col items-center" 
+                style={{ backgroundColor: "var(--background)" }}
+              >
+                <InputField icon={<MailIcon />} placeholder="Email Admin" value={adminEmail || ""} onChange={(e: any) => setAdminEmail(e.target.value)} onFocus={() => setFocusedField('adminEmail')} onBlur={() => setFocusedField(null)} className={inputInset} style={normalInputStyle} autoComplete="off" />
+                <InputField icon={<LockIcon />} placeholder="Password Admin" type={showPin ? "text" : "password"} style={normalInputStyle} value={adminPass || ""} onChange={(e: any) => setAdminPass(e.target.value)} onFocus={() => setFocusedField('adminPass')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} className="focus:outline-none cursor-pointer">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={`${inputInset} mb-4`} />
+                <button type="button" onClick={handleAdminLoginWrapper} className="w-full py-3 rounded-full font-black tracking-wider transition-all active:scale-[0.98] cursor-pointer pointer-events-auto relative z-40" style={active3dSubmitStyle}>Masuk Admin</button>
+              </div>
             </div>
           </>
         )}
