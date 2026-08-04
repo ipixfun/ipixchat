@@ -7,10 +7,10 @@ export const AVAILABLE_THEMES = [
   "emerald-cream",
   "teal-coral",
   "sea-citrus",
-  "raisin-sunset",
+  "ivory-lime",
   "gunmetal-platinum",
   "charcoal-ecru",
-  "charcoal-sage",
+  "lime-charcoal",
   "cyber-neon",
   "custom",
 ] as const;
