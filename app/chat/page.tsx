@@ -127,38 +127,26 @@ export default function Home() {
   };
 
   const fetchData = useCallback(async () => {
-    const savedUser = typeof window !== "undefined" 
-      ? (localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username") || sessionStorage.getItem("active_username")) 
-      : "";
-    const savedPin = typeof window !== "undefined" 
-      ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || sessionStorage.getItem("saved_pin")) 
-      : "";
+    const currentUsername = auth.user || (typeof window !== "undefined" ? localStorage.getItem("active_username") || localStorage.getItem("remembered_username") : "");
+    const currentPin = auth.pin || (typeof window !== "undefined" ? localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") : "");
 
-    const targetUser = auth.user || savedUser;
-
-    if (!auth.isAuth || !targetUser) return;
+    if (!auth.isAuth || !currentUsername || !currentPin || currentPin.length !== 6) return;
 
     try {
-      if (targetUser !== "Admin●ipix.my.id") {
-        const cleanTargetUser = targetUser.split("●")[0];
+      if (currentUsername !== "Admin●ipix.my.id") {
+        const cleanTargetUser = currentUsername.split("●")[0].trim();
         const { data: profileCheck } = await supabase.from("profiles").select("username, pin").ilike("username", cleanTargetUser).maybeSingle();
 
         if (profileCheck) {
-          const currentValidPin = auth.pin || savedPin;
-
-          // HANYA COCOKKAN JIKA PIN MEMANG ADA DAN VALiD 6 ANGKA
-          if (currentValidPin && currentValidPin.length === 6 && profileCheck.pin !== currentValidPin) {
+          if (profileCheck.pin && profileCheck.pin !== currentPin) {
             triggerAdminChangeNotice(profileCheck.username);
             return;
           }
-        } else {
-          triggerAdminChangeNotice();
-          return;
         }
       }
 
       const isAdminTab = ui.tab === "admin";
-      let queryFilter = isAdminTab ? (usersInfo.selPriv ? `username.ilike.${usersInfo.selPriv},chat_with.ilike.${usersInfo.selPriv}` : "id.gt.0") : `username.ilike.${targetUser},chat_with.ilike.${targetUser}`;
+      let queryFilter = isAdminTab ? (usersInfo.selPriv ? `username.ilike.${usersInfo.selPriv},chat_with.ilike.${usersInfo.selPriv}` : "id.gt.0") : `username.ilike.${currentUsername},chat_with.ilike.${currentUsername}`;
       const [{ data: bD }, { data: bW }, { data: prD }] = await Promise.all([
         supabase.from("blocked_users").select("*"), supabase.from("blocked_words").select("word"), supabase.from("messages").select("*").or(queryFilter).order("created_at", { ascending: false }).limit(100),
       ]);
@@ -171,18 +159,6 @@ export default function Home() {
         const sMap: Record<string, any> = {};
         vPriv.forEach((m) => { if (!m.username?.toLowerCase().includes("admin")) { const t = new Date(m.created_at).getTime(); sMap[m.username] = { lastActive: t, online: Date.now() - t < 300000, offlineTime: getFmt.ago(new Date(t)) }; } });
         setUsersInfo((p) => ({ ...p, status: sMap, blockedList: bD || [] }));
-      }
-      if (isAdminTab && !usersInfo.selPriv) {
-        const { data: aP } = await supabase.from("messages").select("username, chat_with, created_at, pesan").order("created_at", { ascending: false }).limit(500);
-        if (aP) {
-          const uMap = new Map(), c: Record<string, number> = {}, userMsgTotal: Record<string, number> = {}, adminMsgTotal: Record<string, number> = {};
-          const uniqueUsernames = Array.from(new Set(aP.map((m: any) => m.username).filter((u: string) => !u?.toLowerCase().includes("admin"))));
-          const { data: profilesData } = await supabase.from("profiles").select("username, pin, umur, berat").in("username", uniqueUsernames);
-          const profileMap = new Map(profilesData?.map((p: any) => [p.username.toLowerCase(), { pin: p.pin, umur: p.umur, berat: p.berat }]) || []);
-          aP.forEach((m) => { if (!m.username?.toLowerCase().includes("admin")) { c[m.username] = (c[m.username] || 0) + 1; userMsgTotal[m.username] = (userMsgTotal[m.username] || 0) + 1; } else if (m.chat_with) { adminMsgTotal[m.chat_with] = (adminMsgTotal[m.chat_with] || 0) + 1; } });
-          aP.forEach((m: any) => { if (!m.username?.toLowerCase().includes("admin") && !uMap.has(m.username)) { const userProfile = profileMap.get(m.username.toLowerCase()); uMap.set(m.username, { ...m, last_active: m.created_at, count: isAdminTab ? 0 : (c[m.username] || 0), pin: userProfile?.pin || "", umur: userProfile?.umur || "", berat: userProfile?.berat || "", totalUserMsgs: userMsgTotal[m.username] || 0, totalAdminMsgs: adminMsgTotal[m.username] || 0, last_message: m.pesan }); } });
-          setUsersInfo((p) => ({ ...p, privUsers: Array.from(uMap.values()) }));
-        }
       }
     } catch (e) { console.error("Gagal fetch data:", e); }
   }, [ui.tab, usersInfo.selPriv, auth.user, auth.isAuth, auth.pin, getFmt, triggerAdminChangeNotice]);
@@ -353,14 +329,25 @@ export default function Home() {
   useEffect(() => {
     if (!mounted) return;
     fetchData();
-    const messageSubscription = supabase.channel("public:messages_realtime_channel").on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload: any) => {
-      const newMsg = payload.new;
-      if (newMsg?.pesan?.startsWith("___KICK_SIGNAL___")) {
-        const myUsername = (localStorage.getItem("remembered_username") || localStorage.getItem("username") || auth.user || "").toLowerCase(), parts = newMsg.pesan.split(":");
-        if (parts[1]?.toLowerCase() === myUsername) { triggerAdminChangeNotice(parts[2] === "NEWNAME" ? parts[3] : undefined); return; }
-      }
-      fetchData();
-    }).subscribe();
+
+    const messageSubscription = supabase
+      .channel("public:messages_realtime_channel")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload: any) => {
+        const newMsg = payload.new;
+        if (newMsg?.pesan?.startsWith("___KICK_SIGNAL___")) {
+          const myUsername = (auth.user || localStorage.getItem("remembered_username") || "").toLowerCase().split("●")[0].trim();
+          const parts = newMsg.pesan.split(":");
+          const targetKickUser = parts[1]?.toLowerCase().trim();
+
+          if (myUsername && targetKickUser === myUsername) {
+            triggerAdminChangeNotice(parts[2] === "NEWNAME" ? parts[3] : undefined);
+            return;
+          }
+        }
+        fetchData();
+      })
+      .subscribe();
+
     return () => { supabase.removeChannel(messageSubscription); };
   }, [mounted, auth.user, fetchData, triggerAdminChangeNotice]);
 
@@ -502,7 +489,10 @@ export default function Home() {
                     localStorage.setItem("hide_register", "true"); localStorage.setItem("has_ever_logged_in", "true");
                     if (rememberMe) { localStorage.setItem("remembered_username", finalUsername); localStorage.setItem("remembered_pin", plainPin); }
                     
-                    setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, umur: existUser.umur || "", berat: existUser.berat || "", pin: plainPin }));
+                    // JEDA 2.2 DETIK AGAR KEMBANG API TERLIHAT DAHULU
+                    setTimeout(() => {
+                      setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, umur: existUser.umur || "", berat: existUser.berat || "", pin: plainPin }));
+                    }, 2200);
                     return true;
                   }
                   if (existUser && existUser.pin !== plainPin) return { error: true };
@@ -514,7 +504,10 @@ export default function Home() {
                   localStorage.setItem("hide_register", "true"); localStorage.setItem("has_ever_logged_in", "true");
                   if (rememberMe) { localStorage.setItem("remembered_username", finalUsername); localStorage.setItem("remembered_pin", plainPin); }
                   
-                  setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: plainPin }));
+                  // JEDA 2.2 DETIK AGAR KEMBANG API TERLIHAT DAHULU
+                  setTimeout(() => {
+                    setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: plainPin }));
+                  }, 2200);
                   return true;
                 } catch (e) { return { error: true }; }
               }} handleAdminLogin={async () => {

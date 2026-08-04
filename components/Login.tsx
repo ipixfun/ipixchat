@@ -25,7 +25,6 @@ const FireworksCanvas = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // AMBIL WARNA TEMA SECARA DINAMIS DARI ROOT CSS
     const styles = getComputedStyle(document.documentElement);
     const accent = styles.getPropertyValue('--accent').trim() || '#eab308';
     const accentGlow = styles.getPropertyValue('--accent-glow').trim() || accent;
@@ -149,6 +148,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const [isUsernameAgreed, setIsUsernameAgreed] = useState(false); const [validationMsg, setValidationMsg] = useState("");
   const [showPin, setShowPin] = useState(false); const [showWelcomePill, setShowWelcomePill] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false); const [isSavedDevice, setIsSavedDevice] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [hasTyped, setHasTyped] = useState(false); 
   const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
@@ -225,6 +225,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   };
 
   const handleUserLoginWrapper = async () => {
+    if (isLoading) return;
     setShowWelcomePill(false); 
     setShowFireworks(false);
 
@@ -236,28 +237,26 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
       if (!isUsernameAgreed) return setValidationMsg("Ceklist dulu sayang");
     }
     setValidationMsg("");
+    setIsLoading(true);
 
     try {
-      // 1. UPDATE BROWSER STORAGE INSTAN DAHULU UNTUK MEMECAH RACE CONDITION
+      // SIMPAN KE STORAGE INSTAN
       localStorage.setItem('remembered_username', username.trim().toLowerCase());
       localStorage.setItem('remembered_pin', pin);
       localStorage.setItem('saved_pin', pin);
       localStorage.setItem('user_pin', pin);
       localStorage.setItem('pin', pin);
 
-      // 2. EKSEKUSI FUNGSI LOGIN
+      // PROSES LOGIN KE SUPABASE DAHULU (BELUM NYALAKAN KEMBANG API)
       const result = await handleUserLogin(isLoginMode, true);
 
       if (!result || result === false || (typeof result === 'object' && result.error)) {
-        setShowWelcomePill(false);
-        setShowFireworks(false);
-        if (isSavedDevice) {
-          handleResetSavedDevice();
-        }
+        setIsLoading(false);
+        if (isSavedDevice) handleResetSavedDevice();
         return setValidationMsg("Username atau PIN salah/diubah");
       }
 
-      // 3. JIKA BERHASIL, BARU NYALAKAN KEMBANG API & UCAPAN SELAMAT DATANG
+      // KETIKA LOGIN BERHASIL -> BARU NYALAKAN KEMBANG API & UCAPAN
       setShowWelcomePill(true); 
       setShowFireworks(true);
 
@@ -266,8 +265,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
       setHasLoggedInBefore(true);
 
     } catch (err) { 
-      setShowWelcomePill(false);
-      setShowFireworks(false);
+      setIsLoading(false);
       if (isSavedDevice) handleResetSavedDevice();
       setValidationMsg("Username atau PIN telah diubah sayang"); 
     }
@@ -300,7 +298,9 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   let buttonStyleObj: React.CSSProperties = active3dSubmitStyle; 
   let buttonText = isLoginMode ? "Login" : "Register";
 
-  if (isSavedDevice && !isLocked) { 
+  if (isLoading) {
+    buttonText = "Memproses...";
+  } else if (isSavedDevice && !isLocked) { 
     buttonStyleObj = active3dSubmitStyle; 
     buttonText = "Masuk Chat"; 
   }
