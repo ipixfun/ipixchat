@@ -23,7 +23,6 @@ const themes: ThemeItem[] = [
   { id: "cyber-neon", name: "Cyber Neon", preview: "from-zinc-800 to-zinc-950" },
 ];
 
-// Toggle Kotak Rounded Dinamis (Sesuaikan Tema)
 const CompactToggle = ({ 
   label, checked, onChange, disabled, activeColor = "bg-[var(--accent)]"
 }: { 
@@ -61,7 +60,6 @@ const CompactToggle = ({
   </label>
 );
 
-// Tombol Pemilih Arah Ombak
 const DirectionSelector = ({
   direction,
   onChange,
@@ -229,7 +227,6 @@ export default function TemaPage() {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loadingAuth, setLoadingAuth] = useState<boolean>(true);
 
-  // Draft Kustomisasi Warna
   const [draftCustomColors, setDraftCustomColors] = useState<{ bg: string; accent: string; text: string; wave1: string; wave2: string; wave3: string }>({
     bg: "#121212",
     accent: "#10b981",
@@ -250,7 +247,6 @@ export default function TemaPage() {
   const [isWaveDisabled, setIsWaveDisabled] = useState<boolean>(false);
   const [isCustomWaveEnabled, setIsCustomWaveEnabled] = useState<boolean>(false);
 
-  // Draft Layer Wave & Arah
   const [l1Show, setL1Show] = useState<boolean>(true);
   const [l2Show, setL2Show] = useState<boolean>(true);
   const [l3Show, setL3Show] = useState<boolean>(true);
@@ -259,12 +255,10 @@ export default function TemaPage() {
   const [l2Dir, setL2Dir] = useState<"left" | "right">("left");
   const [l3Dir, setL3Dir] = useState<"left" | "right">("right");
 
-  // Collapse / Minimize
   const [isThemeCollapsed, setIsThemeCollapsed] = useState<boolean>(true);
   const [isWaveCollapsed, setIsWaveCollapsed] = useState<boolean>(true);
   const [isChatCollapsed, setIsChatCollapsed] = useState<boolean>(true);
 
-  // Dynamic Toast Popup state
   const [showToast, setShowToast] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>("Tema Berhasil Diterapkan!");
 
@@ -407,28 +401,30 @@ export default function TemaPage() {
           animation: waveLetter 1.2s ease-in-out infinite;
         }
         @keyframes toastPopIn {
-          0% { transform: translate(-50%, -100%) scale(0.85); opacity: 0; }
-          60% { transform: translate(-50%, 8px) scale(1.02); opacity: 1; }
-          100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+          0% { transform: translateY(-20px) scale(0.92); opacity: 0; }
+          60% { transform: translateY(4px) scale(1.02); opacity: 1; }
+          100% { transform: translateY(0) scale(1); opacity: 1; }
         }
         .animate-toast-pop {
-          animation: toastPopIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: toastPopIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
       `}</style>
 
-      {/* POP-UP DINAMIS TEMA SUDAH DITERAPKAN */}
+      {/* POP-UP DINAMIS TENTU PRESISI DI TENGAH */}
       {showToast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-toast-pop flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-xl border border-[var(--accent)] bg-[color-mix(in_srgb,var(--card-bg)_90%,transparent)] text-[var(--foreground-heading)] min-w-[280px] max-w-[90vw]">
-          <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 font-extrabold text-xs shadow-inner">
-            ✓
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-xs font-bold tracking-wide leading-tight truncate">
-              {toastMessage}
-            </span>
-            <span className="text-[10px] opacity-70 leading-tight truncate mt-0.5" style={{ color: "var(--foreground)" }}>
-              Perubahan tata warna & tema berhasil disimpan.
-            </span>
+        <div className="fixed top-4 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
+          <div className="pointer-events-auto animate-toast-pop flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-xl border border-[var(--accent)] bg-[color-mix(in_srgb,var(--card-bg)_92%,transparent)] text-[var(--foreground-heading)] w-full max-w-xs sm:max-w-sm">
+            <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 font-extrabold text-xs shadow-inner">
+              ✓
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-bold tracking-wide leading-tight truncate">
+                {toastMessage}
+              </span>
+              <span className="text-[10px] opacity-70 leading-tight truncate mt-0.5" style={{ color: "var(--foreground)" }}>
+                Perubahan tata warna & tema berhasil disimpan.
+              </span>
+            </div>
           </div>
         </div>
       )}
