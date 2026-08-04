@@ -43,7 +43,7 @@ export default function Home() {
     isOpen: false, title: "", defaultValue: "", onConfirm: (val: string) => {},
   });
 
-  // STATE MODAL NOTIFIKASI PERUBAHAN NAMA / PIN OLEH ADMIN (BEBAS LOGOUT OTOMATIS)
+  // STATE MODAL NOTIFIKASI PERUBAHAN NAMA / PIN OLEH ADMIN
   const [adminNoticeModal, setAdminNoticeModal] = useState<{
     isOpen: boolean;
     message: string;
@@ -154,16 +154,19 @@ export default function Home() {
     window.location.reload();
   };
 
-  // FUNGSI NOTIFIKASI DIUBAH ADMIN (TANPA AUTO LOGOUT INSTAN MEMBUAT CRASH)
+  // FUNGSI MEMUNCULKAN POPUP PEMBERITAHUAN
   const triggerAdminChangeNotice = useCallback((newUsername?: string) => {
-    setAdminNoticeModal({
-      isOpen: true,
-      message: "Nama atau PIN Anda telah diubah oleh Admin. Silakan klik tombol di bawah untuk kembali ke halaman Login.",
-      newUsername
+    setAdminNoticeModal((prev) => {
+      if (prev.isOpen) return prev; // Cegah membuka modal berulang-ulang
+      return {
+        isOpen: true,
+        message: "Nama atau PIN Anda telah diubah oleh Admin. Silakan klik tombol di bawah untuk kembali ke halaman Login.",
+        newUsername
+      };
     });
   }, []);
 
-  // DI-RUN OLEH USER SECARA MANUAL VIA TOMBOL DI MODAL NOTIFIKASI
+  // MENANGANI LOGOUT MANUAL SETELAH POPUP DITEKAN
   const handleConfirmAdminChangeLogout = async () => {
     const newUsername = adminNoticeModal.newUsername;
 
@@ -206,6 +209,28 @@ export default function Home() {
     if (!targetUser) return;
 
     try {
+      // PROSES VERIFIKASI AKUN PERUBAHAN ADMIN (AMAN & BEBAS CRASH)
+      if (auth.isAuth && targetUser !== "Admin●ipix.my.id") {
+        const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || auth.pin;
+        const cleanTargetUser = targetUser.split("●")[0];
+
+        const { data: profileCheck } = await supabase
+          .from("profiles")
+          .select("username, pin")
+          .ilike("username", cleanTargetUser)
+          .maybeSingle();
+
+        if (profileCheck) {
+          if (savedPin && profileCheck.pin !== savedPin) {
+            triggerAdminChangeNotice(profileCheck.username);
+            return;
+          }
+        } else {
+          triggerAdminChangeNotice();
+          return;
+        }
+      }
+
       const isAdminTab = ui.tab === "admin";
       let queryFilter = "";
 
@@ -293,7 +318,7 @@ export default function Home() {
     } catch (e) {
       console.error("Gagal fetch data:", e);
     }
-  }, [ui.tab, usersInfo.selPriv, auth.user, getFmt]);
+  }, [ui.tab, usersInfo.selPriv, auth.user, auth.isAuth, auth.pin, getFmt, triggerAdminChangeNotice]);
 
   const handleUsernameChange = async (enteredName: string) => {
     const trimmed = enteredName.slice(0, 20); setAuth((p) => ({ ...p, user: trimmed }));
@@ -414,14 +439,13 @@ export default function Home() {
       if (error) { 
         alert("Gagal memperbarui PIN user."); 
       } else { 
-        // Trigger pemberitahuan saja (bebas auto logout 3 detik)
         await supabase.from("messages").insert([{
           username: "Admin●ipix.my.id",
           pesan: `___KICK_SIGNAL___:${targetUsername}:${newPin}`,
           chat_with: targetUsername,
           user_browser: navigator.userAgent
         }]);
-        alert(`PIN ${targetUsername} berhasil diubah ke ${newPin}! Notifikasi telah dikirim ke user.`);
+        alert(`PIN ${targetUsername} berhasil diubah ke ${newPin}!`);
         fetchData(); 
       }
     },
@@ -513,6 +537,15 @@ export default function Home() {
     };
     chk();
   }, [pathname]);
+
+  // INTERVAL PEMERIKSAAN BERKALA PERBAIKAN DATA (5 DETIK AMAN DENGAN FETCHDATA)
+  useEffect(() => {
+    if (!mounted || !auth.isAuth || auth.user === "Admin●ipix.my.id") return;
+    const checkInterval = setInterval(() => {
+      fetchData();
+    }, 5000);
+    return () => clearInterval(checkInterval);
+  }, [mounted, auth.isAuth, auth.user, fetchData]);
 
   // SUBSCRIPTION REALTIME KICK SIGNAL DARI ADMIN
   useEffect(() => {
@@ -883,9 +916,9 @@ export default function Home() {
         </div>
       )}
 
-      {/* POPUP MODAL PEMBERITAHUAN NAMA/PIN DIUBAH ADMIN */}
+      {/* POPUP MODAL PEMBERITAHUAN NAMA/PIN DIUBAH ADMIN (DIPASANG Z-INDEX SANGAT TINGGI Z-[999999]) */}
       {adminNoticeModal.isOpen && (
-        <div className="fixed inset-0 z-[20000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn select-none">
+        <div className="fixed inset-0 z-[999999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn select-none">
           <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center text-center gap-4 animate-scaleUp">
             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-2xl shadow-inner">
               🔒
