@@ -70,17 +70,17 @@
   --card-border: rgba(255, 159, 28, 0.2);
 }
 
-/* 06. Raisin Black + Buff + Sunset (Warm Dark) */
-.theme-raisin-sunset {
-  --background: #272727;
-  --background-gradient-start: #3B3B3B;
-  --background-gradient-end: #272727;
-  --foreground: #D4AA7D;
-  --foreground-heading: #EFD09E;
-  --accent: #5a5959; 
-  --accent-glow: rgba(239, 208, 158, 0.3);
-  --card-bg: rgba(239, 208, 158, 0.08);
-  --card-border: rgba(239, 208, 158, 0.2);
+/* 06. Ivory + Lime + Charcoal (Light Theme - Gambar 2) */
+.theme-ivory-lime {
+  --background: #E1F2AE;
+  --background-gradient-start: #FFFFFF;
+  --background-gradient-end: #E1F2AE;
+  --foreground: #384223;
+  --foreground-heading: #000000;
+  --accent: #C7F33C; 
+  --accent-glow: rgba(199, 243, 60, 0.4);
+  --card-bg: rgba(0, 0, 0, 0.05);
+  --card-border: rgba(0, 0, 0, 0.12);
 }
 
 /* 07. Gunmetal + French Gray + Platinum (Muted Dark) */
@@ -109,17 +109,17 @@
   --card-border: rgba(216, 151, 60, 0.25);
 }
 
-/* 09. Charcoal + Sage + Soft Beige (Natural Dark) */
-.theme-charcoal-sage {
-  --background: #2E2E2E;
-  --background-gradient-start: #424242;
-  --background-gradient-end: #2E2E2E;
-  --foreground: #F3EFE6;
-  --foreground-heading: #FFFFFF;
-  --accent: #B5CBB7;
-  --accent-glow: rgba(181, 203, 183, 0.3);
-  --card-bg: rgba(181, 203, 183, 0.08);
-  --card-border: rgba(181, 203, 183, 0.2);
+/* 09. Lime + Charcoal + Slate Gray (Modern Dark - Gambar 1) */
+.theme-lime-charcoal {
+  --background: #242424;
+  --background-gradient-start: #383838;
+  --background-gradient-end: #242424;
+  --foreground: #484C5E;
+  --foreground-heading: #FBFBFB;
+  --accent: #EAFB5D;
+  --accent-glow: rgba(234, 251, 93, 0.35);
+  --card-bg: rgba(234, 251, 93, 0.08);
+  --card-border: rgba(234, 251, 93, 0.2);
 }
 
 /* 10. Cyber Charcoal + Neon Purple + Lime (Cyberpunk) */
