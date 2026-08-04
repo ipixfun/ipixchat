@@ -230,9 +230,8 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime, onPin }:
   return (
     <div 
       className="fixed inset-0 z-[99999] bg-black/90 backdrop-blur-md flex flex-col items-center justify-between p-3 sm:p-4 select-none animate-fadeIn"
-      onClick={onClose} // KLIK AREA KOSONG APA PUN DI BACKDROP UNTUK CLOSE
+      onClick={onClose}
     >
-      {/* HEADER ATAS DENGAN TOMBOL CLOSE (X) KANAN ATAS */}
       <div className="w-full max-w-4xl flex items-center justify-between z-20 pt-1 pb-2" onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-col">
           <span className="text-xs font-extrabold text-amber-400 drop-shadow">
@@ -245,7 +244,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime, onPin }:
           )}
         </div>
 
-        {/* TOMBOL CLOSE (X) MONCOL DI POJOK KANAN ATAS */}
         <button
           type="button"
           onClick={(e) => {
@@ -259,7 +257,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime, onPin }:
         </button>
       </div>
 
-      {/* AREA GAMBAR ZOOMABLE */}
       <div 
         className="w-full flex-1 max-w-4xl my-auto overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing relative"
         onClick={(e) => e.stopPropagation()}
@@ -290,10 +287,8 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime, onPin }:
         />
       </div>
 
-      {/* PANEL KONTROL BAWAH */}
       <div className="z-20 w-full max-w-md flex flex-col items-center gap-2 pb-1" onClick={(e) => e.stopPropagation()}>
         <div className="w-full flex items-center justify-center gap-2 flex-wrap bg-slate-900/90 border border-slate-800 p-2 rounded-2xl backdrop-blur-md shadow-2xl">
-          {/* 1. PILL SEMATAN (PIN) */}
           {onPin && (
             <button 
               type="button" 
@@ -312,7 +307,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime, onPin }:
             </button>
           )}
 
-          {/* 2. UNDUH */}
           <button 
             type="button" 
             onClick={handleDownload}
@@ -326,7 +320,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime, onPin }:
             Unduh
           </button>
 
-          {/* 3. RESOLUSI & UKURAN FILE */}
           <span className="px-2.5 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 text-[11px] font-mono font-semibold rounded-xl shrink-0 flex items-center gap-1.5">
             <span>{resolution}</span>
             {fileSize && (
@@ -337,7 +330,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime, onPin }:
             )}
           </span>
 
-          {/* 4. ZOOM CONTROLS */}
           <div className="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700 shrink-0">
             <button 
               type="button" 
@@ -358,7 +350,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime, onPin }:
             </button>
           </div>
 
-          {/* 5. RESET */}
           <button 
             type="button" 
             onClick={handleResetZoom} 
@@ -368,7 +359,6 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime, onPin }:
           </button>
         </div>
 
-        {/* 6. TOMBOL CLOSE DI BAWAH PANEL */}
         <button 
           type="button" 
           onClick={onClose}

@@ -43,6 +43,16 @@ export default function Home() {
     isOpen: false, title: "", defaultValue: "", onConfirm: (val: string) => {},
   });
 
+  // STATE MODAL NOTIFIKASI PERUBAHAN NAMA / PIN OLEH ADMIN (BEBAS LOGOUT OTOMATIS)
+  const [adminNoticeModal, setAdminNoticeModal] = useState<{
+    isOpen: boolean;
+    message: string;
+    newUsername?: string;
+  }>({
+    isOpen: false,
+    message: "",
+  });
+
   const [interact, setInteract] = useState({ 
     replyTo: null as any, activeMenu: null as number | null, popup: null as any, swipeId: null as number | null, editingMsg: null as any 
   });
@@ -144,8 +154,19 @@ export default function Home() {
     window.location.reload();
   };
 
-  // FUNGSI TENDANG USER KETIKA PIN / USERNAME DIUBAH ADMIN
-  const forceLogoutDueToAdminChange = useCallback(async (newUsername?: string) => {
+  // FUNGSI NOTIFIKASI DIUBAH ADMIN (TANPA AUTO LOGOUT INSTAN MEMBUAT CRASH)
+  const triggerAdminChangeNotice = useCallback((newUsername?: string) => {
+    setAdminNoticeModal({
+      isOpen: true,
+      message: "Nama atau PIN Anda telah diubah oleh Admin. Silakan klik tombol di bawah untuk kembali ke halaman Login.",
+      newUsername
+    });
+  }, []);
+
+  // DI-RUN OLEH USER SECARA MANUAL VIA TOMBOL DI MODAL NOTIFIKASI
+  const handleConfirmAdminChangeLogout = async () => {
+    const newUsername = adminNoticeModal.newUsername;
+
     localStorage.removeItem("is_auth");
     sessionStorage.removeItem("is_auth");
     localStorage.removeItem("remembered_pin");
@@ -172,8 +193,8 @@ export default function Home() {
       berat: "",
     });
 
-    alert("⚠️ KELUAR OTOMATIS!\n\nUsername atau PIN Anda telah diubah oleh Admin. Silakan masuk kembali dengan data PIN baru.");
-  }, [auth.user]);
+    setAdminNoticeModal({ isOpen: false, message: "" });
+  };
 
   const fetchData = useCallback(async () => {
     const savedUser = typeof window !== "undefined" 
@@ -393,14 +414,14 @@ export default function Home() {
       if (error) { 
         alert("Gagal memperbarui PIN user."); 
       } else { 
-        // Bikin trigger pemberitahuan otomatis ke room chat agar HP target menendang user instan!
+        // Trigger pemberitahuan saja (bebas auto logout 3 detik)
         await supabase.from("messages").insert([{
           username: "Admin●ipix.my.id",
           pesan: `___KICK_SIGNAL___:${targetUsername}:${newPin}`,
           chat_with: targetUsername,
           user_browser: navigator.userAgent
         }]);
-        alert(`PIN ${targetUsername} berhasil diubah ke ${newPin}! User telah ditendang keluar.`);
+        alert(`PIN ${targetUsername} berhasil diubah ke ${newPin}! Notifikasi telah dikirim ke user.`);
         fetchData(); 
       }
     },
@@ -493,34 +514,7 @@ export default function Home() {
     chk();
   }, [pathname]);
 
-  // SISTEM HEARTBEAT POLLING (PASTI MEMPAN): TIAP 3 DETIK PIN DI-CEK SAMA DATABASE
-  useEffect(() => {
-    if (!mounted || !auth.isAuth || auth.user === "Admin●ipix.my.id") return;
-
-    const interval = setInterval(async () => {
-      const savedUsername = localStorage.getItem("remembered_username") || localStorage.getItem("username") || auth.user;
-      const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
-
-      if (savedUsername) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("username, pin")
-          .ilike("username", savedUsername)
-          .maybeSingle();
-
-        // JIKA PIN DI DB SUDAH TIDAK SAMA / USERNAME DIGANTI -> TENDANG SEGERA!
-        if (profile && savedPin && profile.pin !== savedPin) {
-          forceLogoutDueToAdminChange(profile.username);
-        } else if (!profile) {
-          forceLogoutDueToAdminChange();
-        }
-      }
-    }, 3000); // Check tiap 3 detik
-
-    return () => clearInterval(interval);
-  }, [mounted, auth.isAuth, auth.user, forceLogoutDueToAdminChange]);
-
-  // LISTEN KICK SIGNAL DARI SUPABASE MESSAGE REALTIME
+  // SUBSCRIPTION REALTIME KICK SIGNAL DARI ADMIN
   useEffect(() => {
     if (!mounted) return;
     fetchData();
@@ -536,7 +530,7 @@ export default function Home() {
 
           if (targetUser === myUsername) {
             const newName = parts[2] === "NEWNAME" ? parts[3] : undefined;
-            forceLogoutDueToAdminChange(newName);
+            triggerAdminChangeNotice(newName);
             return;
           }
         }
@@ -547,7 +541,7 @@ export default function Home() {
     return () => {
       supabase.removeChannel(messageSubscription);
     };
-  }, [mounted, auth.user, fetchData, forceLogoutDueToAdminChange]);
+  }, [mounted, auth.user, fetchData, triggerAdminChangeNotice]);
 
   useEffect(() => {
     if (!mounted || !auth.isAuth || !auth.user) return;
@@ -659,7 +653,6 @@ export default function Home() {
   const hasInputReady = input.text.trim().length > 0 || input.image !== null;
   const onlineUsers = Object.entries(usersInfo.status).filter(([_, data]) => data.online).map(([username]) => username);
   
-  // SANITASI KICK SIGNAL AGAR TIDAK MUNCUL DI LIST CHAT
   const currentMsgs = msgs.priv.filter((m) => !m.pesan?.startsWith("___KICK_SIGNAL___")); 
   const adminPinnedMsg = currentMsgs.find((m) => m.is_pinned && !m.pesan?.startsWith("___DELETED") && m.username === "Admin●ipix.my.id");
   const userPinnedMsg = currentMsgs.find((m) => m.is_pinned && !m.pesan?.startsWith("___DELETED") && m.username !== "Admin●ipix.my.id");
@@ -736,7 +729,7 @@ export default function Home() {
         .highlight-active { animation: highlightGlow 1.8s ease-in-out forwards !important; }
       ` }} />
       
-      {/* OVERLAY LOGIN - TRANSISI SMOOTH */}
+      {/* OVERLAY LOGIN */}
       <AnimatePresence mode="wait">
         {!auth.isAuth && (
           <motion.div 
@@ -886,6 +879,32 @@ export default function Home() {
               <button type="button" onClick={() => setPromptModal((p) => ({ ...p, isOpen: false }))} className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold rounded-xl transition-all active:scale-95 border border-slate-700">Batal</button>
               <button type="button" onClick={() => { promptModal.onConfirm(promptModal.defaultValue); setPromptModal((p) => ({ ...p, isOpen: false })); }} className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-600/30 transition-all active:scale-95 border border-blue-500/50">OK</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL PEMBERITAHUAN NAMA/PIN DIUBAH ADMIN */}
+      {adminNoticeModal.isOpen && (
+        <div className="fixed inset-0 z-[20000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn select-none">
+          <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center text-center gap-4 animate-scaleUp">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-2xl shadow-inner">
+              🔒
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <h3 className="text-base font-bold text-white tracking-wide">
+                Pemberitahuan Akun
+              </h3>
+              <p className="text-xs text-slate-300 font-medium leading-relaxed">
+                {adminNoticeModal.message}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleConfirmAdminChangeLogout}
+              className="w-full mt-2 py-3 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all active:scale-95 border border-amber-400/50 cursor-pointer"
+            >
+              Ke Halaman Login ➔
+            </button>
           </div>
         </div>
       )}
