@@ -70,7 +70,7 @@
   --card-border: rgba(255, 159, 28, 0.2);
 }
 
-/* 06. Ivory Lime (Latar Putih, Teks Gelap Kontras) */
+/* 06. Ivory Lime */
 .theme-ivory-lime {
   --background: #FFFFFF;
   --background-gradient-start: #FFFFFF;
@@ -109,7 +109,7 @@
   --card-border: rgba(216, 151, 60, 0.25);
 }
 
-/* 09. Ipix Neon (Hijau Icon Lime Vibrant) */
+/* 09. Ipix Neon */
 .theme-ipix-neon {
   --background: #050505;
   --background-gradient-start: #121212;
@@ -122,17 +122,17 @@
   --card-border: rgba(199, 243, 60, 0.25);
 }
 
-/* 10. Cyber Neon (Hijau Cyberpunk Neon #00FF9D) */
-.theme-cyber-neon {
-  --background: #0D0E15;
-  --background-gradient-start: #06060A;
-  --background-gradient-end: #0D0E15;
-  --foreground: #94A3B8;
-  --foreground-heading: #00FF9D;
-  --accent: #7F56FF;
-  --accent-glow: rgba(0, 255, 157, 0.4);
-  --card-bg: rgba(127, 86, 255, 0.08);
-  --card-border: rgba(0, 255, 157, 0.3);
+/* 10. Red Purple */
+.theme-red-purple {
+  --background: #110414;
+  --background-gradient-start: #230829;
+  --background-gradient-end: #0B020D;
+  --foreground: #A799B7;
+  --foreground-heading: #F43F5E;
+  --accent: #A855F7;
+  --accent-glow: rgba(168, 85, 247, 0.4);
+  --card-bg: rgba(168, 85, 247, 0.08);
+  --card-border: rgba(244, 63, 94, 0.25);
 }
 
 /* ============================================
