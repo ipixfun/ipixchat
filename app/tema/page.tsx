@@ -19,8 +19,8 @@ const themes: ThemeItem[] = [
   { id: "ivory-lime", name: "Ivory Lime", preview: "from-stone-100 to-lime-300" },
   { id: "gunmetal-platinum", name: "Gunmetal Platinum", preview: "from-slate-600 to-slate-800" },
   { id: "charcoal-ecru", name: "Charcoal Ecru", preview: "from-stone-700 to-stone-900" },
-  { id: "black-neon", name: "Black Neon", preview: "from-black to-lime-400" },
-  { id: "cyber-neon", name: "Cyber Neon", preview: "from-zinc-800 to-zinc-950" },
+  { id: "ipix-neon", name: "Ipix Neon", preview: "from-black to-lime-300" },
+  { id: "cyber-neon", name: "Cyber Neon", preview: "from-zinc-900 to-emerald-400" },
 ];
 
 const CompactToggle = ({ 

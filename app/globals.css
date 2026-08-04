@@ -4,7 +4,7 @@
    🎨 THEME VARIABLES (10 DYNAMIC MODELS)
    ============================================ */
 
-/* 01. Monochrome Dark (Black, Dark Gray, Soft Gray) */
+/* 01. Monochrome Dark */
 :root,
 .theme-dark {
   --background: #09090b;
@@ -18,7 +18,7 @@
   --card-border: rgba(255, 255, 255, 0.1);
 }
 
-/* 02. Navy + White + Electric Blue */
+/* 02. Navy Electric */
 .theme-navy-electric {
   --background: #0F172A;
   --background-gradient-start: #1e293b;
@@ -31,7 +31,7 @@
   --card-border: rgba(59, 130, 246, 0.2);
 }
 
-/* 03. Emerald + Mint + Cream (Light Theme) */
+/* 03. Emerald Cream */
 .theme-emerald-cream {
   --background: #FFF8E7;
   --background-gradient-start: #FFFFFF;
@@ -44,7 +44,7 @@
   --card-border: rgba(16, 185, 129, 0.2);
 }
 
-/* 04. Teal + Coral + Sand (Soft/Warm Light) */
+/* 04. Teal Coral */
 .theme-teal-coral {
   --background: #F5E6CA;
   --background-gradient-start: #fdf5e6;
@@ -57,7 +57,7 @@
   --card-border: rgba(255, 127, 80, 0.2);
 }
 
-/* 05. Mint + Sea Green + Orange (Vibrant Light) */
+/* 05. Sea Citrus */
 .theme-sea-citrus {
   --background: #CBF3F0;
   --background-gradient-start: #E6FAFC;
@@ -70,7 +70,7 @@
   --card-border: rgba(255, 159, 28, 0.2);
 }
 
-/* 06. Ivory White + Lime Accent (Clean Light Theme) */
+/* 06. Ivory Lime (Latar Putih, Teks Gelap Kontras) */
 .theme-ivory-lime {
   --background: #FFFFFF;
   --background-gradient-start: #FFFFFF;
@@ -83,7 +83,7 @@
   --card-border: rgba(0, 0, 0, 0.1);
 }
 
-/* 07. Gunmetal + French Gray + Platinum (Muted Dark) */
+/* 07. Gunmetal Platinum */
 .theme-gunmetal-platinum {
   --background: #2D3142;
   --background-gradient-start: #3F445B;
@@ -96,7 +96,7 @@
   --card-border: rgba(216, 213, 219, 0.15);
 }
 
-/* 08. Charcoal + Ecru + Butterscotch (Earthy Dark) */
+/* 08. Charcoal Ecru */
 .theme-charcoal-ecru {
   --background: #273E47;
   --background-gradient-start: #355460;
@@ -109,30 +109,30 @@
   --card-border: rgba(216, 151, 60, 0.25);
 }
 
-/* 09. Black + Neon Green (High Contrast Dark Theme) */
-.theme-black-neon {
-  --background: #000000;
+/* 09. Ipix Neon (Hijau Icon Lime Vibrant) */
+.theme-ipix-neon {
+  --background: #050505;
   --background-gradient-start: #121212;
-  --background-gradient-end: #000000;
+  --background-gradient-end: #050505;
   --foreground: #A1A1AA;
-  --foreground-heading: #EAFB5D;
-  --accent: #EAFB5D;
-  --accent-glow: rgba(234, 251, 93, 0.4);
-  --card-bg: rgba(234, 251, 93, 0.06);
-  --card-border: rgba(234, 251, 93, 0.22);
+  --foreground-heading: #C7F33C;
+  --accent: #C7F33C;
+  --accent-glow: rgba(199, 243, 60, 0.4);
+  --card-bg: rgba(199, 243, 60, 0.07);
+  --card-border: rgba(199, 243, 60, 0.25);
 }
 
-/* 10. Cyber Charcoal + Neon Purple + Lime (Cyberpunk) */
+/* 10. Cyber Neon (Hijau Cyberpunk Neon #00FF9D) */
 .theme-cyber-neon {
-  --background: #1E1F22;
-  --background-gradient-start: #060606;
-  --background-gradient-end: #1f2022;
-  --foreground: #A1A1AA;
-  --foreground-heading: #46fa0a;
+  --background: #0D0E15;
+  --background-gradient-start: #06060A;
+  --background-gradient-end: #0D0E15;
+  --foreground: #94A3B8;
+  --foreground-heading: #00FF9D;
   --accent: #7F56FF;
-  --accent-glow: rgba(127, 86, 255, 0.4);
-  --card-bg: rgba(56, 56, 57, 0.1);
-  --card-border: rgba(15, 224, 39, 0.25);
+  --accent-glow: rgba(0, 255, 157, 0.4);
+  --card-bg: rgba(127, 86, 255, 0.08);
+  --card-border: rgba(0, 255, 157, 0.3);
 }
 
 /* ============================================
