@@ -1,24 +1,31 @@
-// app/api/delete-image/route.ts
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "bjamo8ld",
-  api_key: process.env.CLOUDINARY_API_KEY,      // Masukkan di file .env.local
-  api_secret: process.env.CLOUDINARY_API_SECRET, // Masukkan di file .env.local
+  api_key: process.env.CLOUDINARY_API_KEY,      // Harus ada di .env.local
+  api_secret: process.env.CLOUDINARY_API_SECRET, // Harus ada di .env.local
 });
 
-// Fungsi untuk mengekstrak public_id dari Cloudinary URL
 function getPublicIdFromUrl(url: string) {
   try {
+    // 1. Ambil bagian setelah '/upload/'
     const splitUrl = url.split("/upload/");
     if (splitUrl.length < 2) return null;
-    const pathAfterUpload = splitUrl[1];
-    // Menghapus versi (v1234567/) jika ada
-    const cleanPath = pathAfterUpload.replace(/^v\d+\//, "");
-    // Menghapus ekstensi file (.jpg, .png, dll)
-    const publicId = cleanPath.substring(0, cleanPath.lastIndexOf("."));
-    return publicId;
+
+    let pathAfterUpload = splitUrl[1];
+
+    // 2. Hapus nomor versi jika ada (contoh: 'v1712345678/')
+    pathAfterUpload = pathAfterUpload.replace(/^v\d+\//, "");
+
+    // 3. Hapus ekstensi file di akhir (.png, .jpg, .webp, dll)
+    const lastDotIndex = pathAfterUpload.lastIndexOf(".");
+    if (lastDotIndex !== -1) {
+      pathAfterUpload = pathAfterUpload.substring(0, lastDotIndex);
+    }
+
+    // decodeURIComponent agar karakter khusus di URL ter-decode dengan benar
+    return decodeURIComponent(pathAfterUpload);
   } catch (err) {
     return null;
   }
@@ -33,18 +40,27 @@ export async function POST(request: Request) {
     }
 
     const publicId = getPublicIdFromUrl(imageUrl);
+    console.log("--> Ekstraksi Public ID untuk dihapus:", publicId);
+
     if (!publicId) {
       return NextResponse.json({ error: "Invalid Cloudinary URL" }, { status: 400 });
     }
 
-    // Panggil Cloudinary API untuk hapus gambar
+    // Jalankan perintah hapus ke API Cloudinary
     const result = await cloudinary.uploader.destroy(publicId);
+    console.log("--> Hasil Cloudinary destroy:", result);
+
+    if (result.result !== "ok") {
+      // Jika ternyata gambar bertipe 'raw' atau 'video', coba invalidate/destroy dengan resource_type
+      const rawResult = await cloudinary.uploader.destroy(publicId, { invalidate: true });
+      return NextResponse.json({ success: true, result: rawResult });
+    }
 
     return NextResponse.json({ success: true, result });
   } catch (error: any) {
     console.error("Cloudinary Delete Error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to delete image from Cloudinary" },
+      { error: error.message || "Failed to delete image" },
       { status: 500 }
     );
   }
