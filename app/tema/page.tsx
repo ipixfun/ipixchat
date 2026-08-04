@@ -16,10 +16,10 @@ const themes: ThemeItem[] = [
   { id: "emerald-cream", name: "Emerald Cream", preview: "from-emerald-200 to-amber-100" },
   { id: "teal-coral", name: "Teal Coral", preview: "from-orange-100 to-teal-200" },
   { id: "sea-citrus", name: "Sea Citrus", preview: "from-cyan-200 to-teal-100" },
-  { id: "raisin-sunset", name: "Raisin Sunset", preview: "from-neutral-700 to-neutral-900" },
+  { id: "ivory-lime", name: "Ivory Lime", preview: "from-stone-100 to-lime-100" },
   { id: "gunmetal-platinum", name: "Gunmetal Platinum", preview: "from-slate-600 to-slate-800" },
   { id: "charcoal-ecru", name: "Charcoal Ecru", preview: "from-stone-700 to-stone-900" },
-  { id: "charcoal-sage", name: "Charcoal Sage", preview: "from-zinc-700 to-zinc-900" },
+  { id: "lime-charcoal", name: "Lime Charcoal", preview: "from-slate-700 to-neutral-800" },
   { id: "cyber-neon", name: "Cyber Neon", preview: "from-zinc-800 to-zinc-950" },
 ];
 
@@ -335,7 +335,6 @@ export default function TemaPage() {
     setIsCustomWaveEnabled(e.target.checked);
   };
 
-  // TIMING DIPANJANGKAN MENJADI 4.2 DETIK (4200ms)
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setShowToast(true);
