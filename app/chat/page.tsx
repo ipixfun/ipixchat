@@ -144,7 +144,7 @@ export default function Home() {
     window.location.reload();
   };
 
-  // FORCE LOGOUT SECARA REALTIME SAAT PIN / USERNAME DIUBAH ADMIN
+  // FUNGSI TENDANG USER KETIKA PIN / USERNAME DIUBAH ADMIN
   const forceLogoutDueToAdminChange = useCallback(async (newUsername?: string) => {
     localStorage.removeItem("is_auth");
     sessionStorage.removeItem("is_auth");
@@ -172,7 +172,7 @@ export default function Home() {
       berat: "",
     });
 
-    alert("⚠️ AKSES DITOLAK / DIUBAH!\n\nUsername atau PIN Anda telah diubah oleh Admin. Silakan masuk kembali menggunakan PIN baru Anda.");
+    alert("⚠️ KELUAR OTOMATIS!\n\nUsername atau PIN Anda telah diubah oleh Admin. Silakan masuk kembali dengan data PIN baru.");
   }, [auth.user]);
 
   const fetchData = useCallback(async () => {
@@ -393,7 +393,14 @@ export default function Home() {
       if (error) { 
         alert("Gagal memperbarui PIN user."); 
       } else { 
-        alert(`PIN ${targetUsername} berhasil diubah ke ${newPin}! User akan otomatis dikeluarkan.`);
+        // Bikin trigger pemberitahuan otomatis ke room chat agar HP target menendang user instan!
+        await supabase.from("messages").insert([{
+          username: "Admin●ipix.my.id",
+          pesan: `___KICK_SIGNAL___:${targetUsername}:${newPin}`,
+          chat_with: targetUsername,
+          user_browser: navigator.userAgent
+        }]);
+        alert(`PIN ${targetUsername} berhasil diubah ke ${newPin}! User telah ditendang keluar.`);
         fetchData(); 
       }
     },
@@ -401,6 +408,14 @@ export default function Home() {
     updateUsername: async (oldUsername: string, newUsername: string) => {
       const { error: profileErr } = await supabase.from("profiles").update({ username: newUsername }).ilike("username", oldUsername);
       if (profileErr) { alert("Gagal mengubah username."); console.error(profileErr); return; }
+      
+      await supabase.from("messages").insert([{
+        username: "Admin●ipix.my.id",
+        pesan: `___KICK_SIGNAL___:${oldUsername}:NEWNAME:${newUsername}`,
+        chat_with: oldUsername,
+        user_browser: navigator.userAgent
+      }]);
+
       await supabase.from("messages").update({ username: newUsername }).eq("username", oldUsername);
       await supabase.from("messages").update({ chat_with: newUsername }).eq("chat_with", oldUsername);
       fetchData();
@@ -478,77 +493,61 @@ export default function Home() {
     chk();
   }, [pathname]);
 
-  // SYSTEM SANGAT KETAT: VERIFIKASI DUAL SECURITY (AUTO CHECK + REALTIME LISTEN)
+  // SISTEM HEARTBEAT POLLING (PASTI MEMPAN): TIAP 3 DETIK PIN DI-CEK SAMA DATABASE
   useEffect(() => {
-    if (!mounted) return;
-    fetchData();
+    if (!mounted || !auth.isAuth || auth.user === "Admin●ipix.my.id") return;
 
-    // LAPIS 1: AUTO CHECK TIAP DIPANNGGIL / DIBUKA
-    const verifyUserSession = async () => {
-      if (!auth.isAuth || auth.user === "Admin●ipix.my.id") return;
-
-      const savedUsername = localStorage.getItem("remembered_username") || localStorage.getItem("username") || localStorage.getItem("active_username");
+    const interval = setInterval(async () => {
+      const savedUsername = localStorage.getItem("remembered_username") || localStorage.getItem("username") || auth.user;
       const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
 
       if (savedUsername) {
-        const { data: currentProfile } = await supabase
+        const { data: profile } = await supabase
           .from("profiles")
           .select("username, pin")
           .ilike("username", savedUsername)
           .maybeSingle();
 
-        if (currentProfile && savedPin && currentProfile.pin !== savedPin) {
-          forceLogoutDueToAdminChange(currentProfile.username);
+        // JIKA PIN DI DB SUDAH TIDAK SAMA / USERNAME DIGANTI -> TENDANG SEGERA!
+        if (profile && savedPin && profile.pin !== savedPin) {
+          forceLogoutDueToAdminChange(profile.username);
+        } else if (!profile) {
+          forceLogoutDueToAdminChange();
         }
       }
-    };
+    }, 3000); // Check tiap 3 detik
 
-    verifyUserSession();
+    return () => clearInterval(interval);
+  }, [mounted, auth.isAuth, auth.user, forceLogoutDueToAdminChange]);
 
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-
-    // LAPIS 2: REALTIME EVENT BROADCAST SEMENTARA DI DALAM ROOM CHAT
-    const profileChangeListener = supabase
-      .channel("public:profiles_update_channel")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "profiles" },
-        async (payload: any) => {
-          if (!auth.isAuth || auth.user === "Admin●ipix.my.id") return;
-
-          const savedUsername = (localStorage.getItem("remembered_username") || localStorage.getItem("username") || auth.user || "").toLowerCase();
-          const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
-
-          const newRec = payload.new;
-          const oldRec = payload.old;
-
-          const isTargetUser = 
-            (newRec && newRec.username?.toLowerCase() === savedUsername) ||
-            (oldRec && oldRec.username?.toLowerCase() === savedUsername);
-
-          if (isTargetUser && newRec) {
-            if (newRec.pin !== savedPin || newRec.username.toLowerCase() !== savedUsername) {
-              forceLogoutDueToAdminChange(newRec.username);
-            }
-          }
-        }
-      )
-      .subscribe();
+  // LISTEN KICK SIGNAL DARI SUPABASE MESSAGE REALTIME
+  useEffect(() => {
+    if (!mounted) return;
+    fetchData();
 
     const messageSubscription = supabase
-      .channel("public:messages_channel")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
+      .channel("public:messages_realtime_channel")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload: any) => {
+        const newMsg = payload.new;
+        if (newMsg && newMsg.pesan && newMsg.pesan.startsWith("___KICK_SIGNAL___")) {
+          const myUsername = (localStorage.getItem("remembered_username") || localStorage.getItem("username") || auth.user || "").toLowerCase();
+          const parts = newMsg.pesan.split(":");
+          const targetUser = parts[1]?.toLowerCase();
+
+          if (targetUser === myUsername) {
+            const newName = parts[2] === "NEWNAME" ? parts[3] : undefined;
+            forceLogoutDueToAdminChange(newName);
+            return;
+          }
+        }
         fetchData();
       })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(profileChangeListener);
       supabase.removeChannel(messageSubscription);
     };
-  }, [mounted, auth.isAuth, auth.user, fetchData, forceLogoutDueToAdminChange]);
+  }, [mounted, auth.user, fetchData, forceLogoutDueToAdminChange]);
 
   useEffect(() => {
     if (!mounted || !auth.isAuth || !auth.user) return;
@@ -659,7 +658,9 @@ export default function Home() {
 
   const hasInputReady = input.text.trim().length > 0 || input.image !== null;
   const onlineUsers = Object.entries(usersInfo.status).filter(([_, data]) => data.online).map(([username]) => username);
-  const currentMsgs = msgs.priv; 
+  
+  // SANITASI KICK SIGNAL AGAR TIDAK MUNCUL DI LIST CHAT
+  const currentMsgs = msgs.priv.filter((m) => !m.pesan?.startsWith("___KICK_SIGNAL___")); 
   const adminPinnedMsg = currentMsgs.find((m) => m.is_pinned && !m.pesan?.startsWith("___DELETED") && m.username === "Admin●ipix.my.id");
   const userPinnedMsg = currentMsgs.find((m) => m.is_pinned && !m.pesan?.startsWith("___DELETED") && m.username !== "Admin●ipix.my.id");
   const shouldShowPinned = auth.isAuth && currentHash !== "#block" && (ui.tab === "user" || (ui.tab === "admin" && usersInfo.selPriv !== null));
@@ -672,10 +673,11 @@ export default function Home() {
 
   const renderMsgs = (arr: any[], colType: any) => {
     if (!auth.isAuth) return null;
-    const messageContent = arr.length === 0 ? (
+    const filteredArr = arr.filter((m) => !m.pesan?.startsWith("___KICK_SIGNAL___"));
+    const messageContent = filteredArr.length === 0 ? (
       <div className="text-center opacity-60 italic mt-10 text-[10px]">Belum ada pesan.</div>
     ) : (
-      arr.map((m, idx) => {
+      filteredArr.map((m, idx) => {
         const isMine = m.username === auth.user; 
         const maxWidthClass = "max-w-[85%] md:max-w-[75%]";
         const userImagesCount = msgs.priv.filter((x) => x.username === m.username && x.image_url && !x.pesan?.startsWith("___DELETED")).length;
@@ -734,7 +736,7 @@ export default function Home() {
         .highlight-active { animation: highlightGlow 1.8s ease-in-out forwards !important; }
       ` }} />
       
-      {/* OVERLAY LOGIN - DIBUNGKUS ANIMATEPRESENCE & MOTION.DIV UNTUK TRANSISI HALUS TANPA GLITCH */}
+      {/* OVERLAY LOGIN - TRANSISI SMOOTH */}
       <AnimatePresence mode="wait">
         {!auth.isAuth && (
           <motion.div 
