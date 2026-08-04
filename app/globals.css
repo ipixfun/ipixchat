@@ -16,6 +16,9 @@
   --accent-glow: rgba(228, 228, 231, 0.25);
   --card-bg: rgba(255, 255, 255, 0.04);
   --card-border: rgba(255, 255, 255, 0.1);
+  --wave1: #18181b;
+  --wave2: #27272a;
+  --wave3: #52525b;
 }
 
 /* 02. Navy Electric */
@@ -29,6 +32,9 @@
   --accent-glow: rgba(59, 130, 246, 0.3);
   --card-bg: rgba(59, 130, 246, 0.08);
   --card-border: rgba(59, 130, 246, 0.2);
+  --wave1: #1e293b;
+  --wave2: #2563eb;
+  --wave3: #60a5fa;
 }
 
 /* 03. Emerald Cream */
@@ -42,6 +48,9 @@
   --accent-glow: rgba(16, 185, 129, 0.3);
   --card-bg: rgba(16, 185, 129, 0.08);
   --card-border: rgba(16, 185, 129, 0.2);
+  --wave1: #d1fae5;
+  --wave2: #34d399;
+  --wave3: #10b981;
 }
 
 /* 04. Teal Coral */
@@ -55,6 +64,9 @@
   --accent-glow: rgba(255, 127, 80, 0.3);
   --card-bg: rgba(255, 127, 80, 0.08);
   --card-border: rgba(255, 127, 80, 0.2);
+  --wave1: #ccfbf1;
+  --wave2: #2dd4bf;
+  --wave3: #ff7f50;
 }
 
 /* 05. Sea Citrus */
@@ -68,6 +80,9 @@
   --accent-glow: rgba(255, 159, 28, 0.3);
   --card-bg: rgba(255, 159, 28, 0.08);
   --card-border: rgba(255, 159, 28, 0.2);
+  --wave1: #99f6e4;
+  --wave2: #2ec4b6;
+  --wave3: #ff9f1c;
 }
 
 /* 06. Ivory Lime */
@@ -81,6 +96,9 @@
   --accent-glow: rgba(132, 204, 22, 0.35);
   --card-bg: rgba(0, 0, 0, 0.03);
   --card-border: rgba(0, 0, 0, 0.1);
+  --wave1: #ecfccb;
+  --wave2: #a3e635;
+  --wave3: #84cc16;
 }
 
 /* 07. Gunmetal Platinum */
@@ -94,6 +112,9 @@
   --accent-glow: rgba(216, 213, 219, 0.3);
   --card-bg: rgba(216, 213, 219, 0.05);
   --card-border: rgba(216, 213, 219, 0.15);
+  --wave1: #3f445b;
+  --wave2: #6c757d;
+  --wave3: #d8d5db;
 }
 
 /* 08. Charcoal Ecru */
@@ -107,9 +128,12 @@
   --accent-glow: rgba(216, 151, 60, 0.3);
   --card-bg: rgba(216, 151, 60, 0.1);
   --card-border: rgba(216, 151, 60, 0.25);
+  --wave1: #355460;
+  --wave2: #d8c99b;
+  --wave3: #d8973c;
 }
 
-/* 09. Ipix Neon */
+/* 09. Ipix Neon (Layer Depan Warna Terang Neon Lime) */
 .theme-ipix-neon {
   --background: #050505;
   --background-gradient-start: #121212;
@@ -120,9 +144,12 @@
   --accent-glow: rgba(199, 243, 60, 0.4);
   --card-bg: rgba(199, 243, 60, 0.07);
   --card-border: rgba(199, 243, 60, 0.25);
+  --wave1: #1a2600;
+  --wave2: #5c7a00;
+  --wave3: #EAFB5D; /* Depan Terang Neon Lime */
 }
 
-/* 10. Red Purple */
+/* 10. Red Purple (Layer Depan Warna Terang Bright Red/Rose) */
 .theme-red-purple {
   --background: #110414;
   --background-gradient-start: #230829;
@@ -133,6 +160,9 @@
   --accent-glow: rgba(168, 85, 247, 0.4);
   --card-bg: rgba(168, 85, 247, 0.08);
   --card-border: rgba(244, 63, 94, 0.25);
+  --wave1: #2d0b36;
+  --wave2: #7e22ce;
+  --wave3: #FF2A7A; /* Depan Terang Bright Neon Red/Pink */
 }
 
 /* ============================================

@@ -85,6 +85,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.style.setProperty("--foreground", `${customColors.text}b3`);
       root.style.setProperty("--card-bg", `${customColors.accent}1a`);
       root.style.setProperty("--card-border", `${customColors.accent}33`);
+      root.style.setProperty("--wave1", customColors.wave1);
+      root.style.setProperty("--wave2", customColors.wave2);
+      root.style.setProperty("--wave3", customColors.wave3);
     } else {
       document.documentElement.removeAttribute("style");
       document.documentElement.classList.add(`theme-${theme}`);
