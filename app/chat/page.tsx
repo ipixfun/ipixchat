@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabaseClient";
 import Login from "../../components/Login";
 import Block from "../../components/Block";
@@ -651,79 +652,103 @@ export default function Home() {
         .highlight-active { animation: highlightGlow 1.8s ease-in-out forwards !important; }
       ` }} />
       
-      {/* OVERLAY LOGIN - Z-INDEX Z-[80000] */}
-      {!auth.isAuth && (
-        <div className="fixed inset-0 z-[80000] flex items-center justify-center bg-black/60 pointer-events-auto">
-          <Login activeTab={ui.tab} username={auth.user} setUsername={handleUsernameChange} pin={auth.pin} setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))} umur={auth.umur} setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))} berat={auth.berat} setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))} adminPass={auth.adminPass} setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))} handleUserLogin={async (isLoginMode?: boolean, rememberMe?: boolean) => {
-            const inputName = auth.user.trim(); if (!inputName || isCensored(inputName)) return { error: true };
-            const plainPin = auth.pin || (typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || "") : ""); 
-            if (!plainPin || plainPin.length !== 6) return { error: true };
-            
-            try {
-              const { data: existUser } = await supabase.from("profiles").select("username, pin, email, umur, berat").ilike("username", inputName).maybeSingle();
-              const finalUsername = existUser ? existUser.username : inputName.toLowerCase();
-              
-              if (isLoginMode) {
-                if (!existUser || existUser.pin !== plainPin) return { error: true };
+      {/* OVERLAY LOGIN - DIBUNGKUS ANIMATEPRESENCE & MOTION.DIV UNTUK TRANSISI HALUS TANPA GLITCH */}
+      <AnimatePresence mode="wait">
+        {!auth.isAuth && (
+          <motion.div 
+            key="login-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 0.95, filter: "blur(4px)" }}
+            transition={{ duration: 0.35, ease: "easeInOut" }}
+            className="fixed inset-0 z-[80000] flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto"
+          >
+            <Login 
+              activeTab={ui.tab} 
+              username={auth.user} 
+              setUsername={handleUsernameChange} 
+              pin={auth.pin} 
+              setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))} 
+              umur={auth.umur} 
+              setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))} 
+              berat={auth.berat} 
+              setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))} 
+              isExistingUser={auth.isExist} 
+              adminEmail={auth.adminEmail} 
+              setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))} 
+              adminPass={auth.adminPass} 
+              setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))} 
+              handleUserLogin={async (isLoginMode?: boolean, rememberMe?: boolean) => {
+                const inputName = auth.user.trim(); if (!inputName || isCensored(inputName)) return { error: true };
+                const plainPin = auth.pin || (typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || "") : ""); 
+                if (!plainPin || plainPin.length !== 6) return { error: true };
                 
-                const storage = rememberMe ? localStorage : sessionStorage;
-                storage.setItem("active_username", finalUsername); 
-                storage.setItem("username", finalUsername); 
-                storage.setItem("saved_pin", plainPin); 
-                storage.setItem("user_pin", plainPin); 
-                storage.setItem("pin", plainPin); 
-                storage.setItem("is_auth", "true"); 
-                storage.setItem("active_tab", "user");
+                try {
+                  const { data: existUser } = await supabase.from("profiles").select("username, pin, email, umur, berat").ilike("username", inputName).maybeSingle();
+                  const finalUsername = existUser ? existUser.username : inputName.toLowerCase();
+                  
+                  if (isLoginMode) {
+                    if (!existUser || existUser.pin !== plainPin) return { error: true };
+                    
+                    const storage = rememberMe ? localStorage : sessionStorage;
+                    storage.setItem("active_username", finalUsername); 
+                    storage.setItem("username", finalUsername); 
+                    storage.setItem("saved_pin", plainPin); 
+                    storage.setItem("user_pin", plainPin); 
+                    storage.setItem("pin", plainPin); 
+                    storage.setItem("is_auth", "true"); 
+                    storage.setItem("active_tab", "user");
 
-                localStorage.setItem("hide_register", "true");
-                localStorage.setItem("has_ever_logged_in", "true");
-                if (rememberMe) {
-                  localStorage.setItem("remembered_username", finalUsername);
-                  localStorage.setItem("remembered_pin", plainPin);
-                }
+                    localStorage.setItem("hide_register", "true");
+                    localStorage.setItem("has_ever_logged_in", "true");
+                    if (rememberMe) {
+                      localStorage.setItem("remembered_username", finalUsername);
+                      localStorage.setItem("remembered_pin", plainPin);
+                    }
 
-                // DIBERI JEDA 2.2 DETIK SUPAYA KEMBANG API & GREETING TAMPIL DULU
-                setTimeout(() => {
-                  setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, umur: existUser.umur || "", berat: existUser.berat || "", pin: plainPin })); 
-                }, 2200);
+                    setTimeout(() => {
+                      setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, umur: existUser.umur || "", berat: existUser.berat || "", pin: plainPin })); 
+                    }, 1800);
 
-                return true;
-              }
+                    return true;
+                  }
 
-              if (existUser && existUser.pin !== plainPin) return { error: true };
-              let finalEmail = "user@ipix.fun"; if (existUser?.email) { finalEmail = existUser.email; } else { const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true }); const nextId = (count || 0) + 1; finalEmail = `user${nextId}@ipix.fun`; }
-              const { error: upsertError } = await supabase.from("profiles").upsert({ email: finalEmail, username: finalUsername, user_browser: navigator.userAgent, pin: plainPin, umur: auth.umur, berat: auth.berat }, { onConflict: "username" });
-              if (upsertError) return { error: true };
+                  if (existUser && existUser.pin !== plainPin) return { error: true };
+                  let finalEmail = "user@ipix.fun"; if (existUser?.email) { finalEmail = existUser.email; } else { const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true }); const nextId = (count || 0) + 1; finalEmail = `user${nextId}@ipix.fun`; }
+                  const { error: upsertError } = await supabase.from("profiles").upsert({ email: finalEmail, username: finalUsername, user_browser: navigator.userAgent, pin: plainPin, umur: auth.umur, berat: auth.berat }, { onConflict: "username" });
+                  if (upsertError) return { error: true };
 
-              const storage = rememberMe ? localStorage : sessionStorage;
-              storage.setItem("active_username", finalUsername); 
-              storage.setItem("username", finalUsername); 
-              storage.setItem("saved_pin", plainPin); 
-              storage.setItem("user_pin", plainPin); 
-              storage.setItem("pin", plainPin); 
-              storage.setItem("is_auth", "true"); 
-              storage.setItem("active_tab", "user");
+                  const storage = rememberMe ? localStorage : sessionStorage;
+                  storage.setItem("active_username", finalUsername); 
+                  storage.setItem("username", finalUsername); 
+                  storage.setItem("saved_pin", plainPin); 
+                  storage.setItem("user_pin", plainPin); 
+                  storage.setItem("pin", plainPin); 
+                  storage.setItem("is_auth", "true"); 
+                  storage.setItem("active_tab", "user");
 
-              localStorage.setItem("hide_register", "true");
-              localStorage.setItem("has_ever_logged_in", "true");
-              if (rememberMe) {
-                localStorage.setItem("remembered_username", finalUsername);
-                localStorage.setItem("remembered_pin", plainPin);
-              }
+                  localStorage.setItem("hide_register", "true");
+                  localStorage.setItem("has_ever_logged_in", "true");
+                  if (rememberMe) {
+                    localStorage.setItem("remembered_username", finalUsername);
+                    localStorage.setItem("remembered_pin", plainPin);
+                  }
 
-              // DIBERI JEDA 2.2 DETIK JUGA UNTUK REGISTER
-              setTimeout(() => {
-                setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: plainPin })); 
-              }, 2200);
+                  setTimeout(() => {
+                    setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: plainPin })); 
+                  }, 1800);
 
-              return true;
-            } catch (e) { return { error: true }; }
-          }} handleAdminLogin={async () => {
-            const { error } = await supabase.auth.signInWithPassword({ email: auth.adminEmail, password: auth.adminPass });
-            if (error) alert("Gagal login admin"); else { setAuth((p) => ({ ...p, isAuth: true, user: "Admin●ipix.my.id" })); setUi((p) => ({ ...p, tab: "admin" })); localStorage.setItem("active_username", "Admin●ipix.my.id"); localStorage.setItem("username", "Admin●ipix.my.id"); localStorage.setItem("is_auth", "true"); localStorage.setItem("active_tab", "admin"); }
-          }} />
-        </div>
-      )}
+                  return true;
+                } catch (e) { return { error: true }; }
+              }} 
+              handleAdminLogin={async () => {
+                const { error } = await supabase.auth.signInWithPassword({ email: auth.adminEmail, password: auth.adminPass });
+                if (error) alert("Gagal login admin"); else { setAuth((p) => ({ ...p, isAuth: true, user: "Admin●ipix.my.id" })); setUi((p) => ({ ...p, tab: "admin" })); localStorage.setItem("active_username", "Admin●ipix.my.id"); localStorage.setItem("username", "Admin●ipix.my.id"); localStorage.setItem("is_auth", "true"); localStorage.setItem("active_tab", "admin"); }
+              }} 
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       <Head auth={auth} ui={ui} adminStat={adminStat} onlineUsers={onlineUsers} currentHash={currentHash} getFmt={getFmt} handleLogout={handleLogout} onBlockMgr={() => window.open(`${window.location.pathname}#block`, "_blank")} onTrashMgr={dbActions.emptyTrash} adminPinnedMsg={adminPinnedMsg} userPinnedMsg={userPinnedMsg} onEditPinned={dbActions.editPinned} onScrollToMsg={scrollMsg} />
 
