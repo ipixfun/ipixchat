@@ -13,16 +13,66 @@ const hexToRgb = (hex: string) => {
 };
 
 const THEME_WAVES: Record<string, { layer1: string; layer2: string; layer3: string; glow: string }> = {
-  "dark": { layer1: "45, 45, 50", layer2: "161, 161, 170", layer3: "228, 228, 231", glow: "drop-shadow(0 0 15px rgba(228,228,231,0.2))" },
-  "navy-electric": { layer1: "15, 23, 42", layer2: "59, 130, 246", layer3: "148, 163, 184", glow: "drop-shadow(0 0 15px rgba(59,130,246,0.4))" },
-  "emerald-cream": { layer1: "6, 95, 70", layer2: "16, 185, 129", layer3: "167, 243, 208", glow: "drop-shadow(0 0 15px rgba(16,185,129,0.4))" },
-  "teal-coral": { layer1: "15, 118, 110", layer2: "255, 127, 80", layer3: "245, 230, 202", glow: "drop-shadow(0 0 15px rgba(255,127,80,0.4))" },
-  "sea-citrus": { layer1: "26, 117, 109", layer2: "46, 196, 182", layer3: "255, 159, 28", glow: "drop-shadow(0 0 15px rgba(255,159,28,0.4))" },
-  "raisin-sunset": { layer1: "39, 39, 39", layer2: "212, 170, 125", layer3: "239, 208, 158", glow: "drop-shadow(0 0 15px rgba(239,208,158,0.3))" },
-  "gunmetal-platinum": { layer1: "45, 49, 66", layer2: "173, 172, 181", layer3: "216, 213, 219", glow: "drop-shadow(0 0 15px rgba(216,213,219,0.3))" },
-  "charcoal-ecru": { layer1: "39, 62, 71", layer2: "216, 201, 155", layer3: "216, 151, 60", glow: "drop-shadow(0 0 15px rgba(216,151,60,0.3))" },
-  "charcoal-sage": { layer1: "46, 46, 46", layer2: "181, 203, 183", layer3: "243, 239, 230", glow: "drop-shadow(0 0 15px rgba(181,203,183,0.3))" },
-  "cyber-neon": { layer1: "127, 86, 255", layer2: "128, 255, 86", layer3: "43, 45, 49", glow: "drop-shadow(0 0 15px rgba(127,86,255,0.5))" }
+  "dark": { 
+    layer1: "24, 24, 27", 
+    layer2: "39, 39, 42", 
+    layer3: "82, 82, 91", 
+    glow: "drop-shadow(0 0 15px rgba(228,228,231,0.2))" 
+  },
+  "navy-electric": { 
+    layer1: "30, 41, 59", 
+    layer2: "37, 99, 235", 
+    layer3: "96, 165, 250", 
+    glow: "drop-shadow(0 0 15px rgba(59,130,246,0.4))" 
+  },
+  "emerald-cream": { 
+    layer1: "209, 250, 229", 
+    layer2: "52, 211, 153", 
+    layer3: "16, 185, 129", 
+    glow: "drop-shadow(0 0 15px rgba(16,185,129,0.4))" 
+  },
+  "teal-coral": { 
+    layer1: "204, 251, 241", 
+    layer2: "45, 212, 191", 
+    layer3: "255, 127, 80", 
+    glow: "drop-shadow(0 0 15px rgba(255,127,80,0.4))" 
+  },
+  "sea-citrus": { 
+    layer1: "153, 246, 228", 
+    layer2: "46, 196, 182", 
+    layer3: "255, 159, 28", 
+    glow: "drop-shadow(0 0 15px rgba(255,159,28,0.4))" 
+  },
+  "ivory-lime": { 
+    layer1: "236, 252, 203", 
+    layer2: "163, 230, 53", 
+    layer3: "132, 204, 22", 
+    glow: "drop-shadow(0 0 15px rgba(132,204,22,0.35))" 
+  },
+  "gunmetal-platinum": { 
+    layer1: "63, 68, 91", 
+    layer2: "108, 117, 125", 
+    layer3: "216, 213, 219", 
+    glow: "drop-shadow(0 0 15px rgba(216,213,219,0.3))" 
+  },
+  "charcoal-ecru": { 
+    layer1: "53, 84, 96", 
+    layer2: "216, 201, 155", 
+    layer3: "216, 151, 60", 
+    glow: "drop-shadow(0 0 15px rgba(216,151,60,0.3))" 
+  },
+  "ipix-neon": { 
+    layer1: "26, 38, 0", 
+    layer2: "92, 122, 0", 
+    layer3: "234, 251, 93", /* Depan Terang Neon Lime */
+    glow: "drop-shadow(0 0 15px rgba(199,243,60,0.5))" 
+  },
+  "red-purple": { 
+    layer1: "45, 11, 54", 
+    layer2: "126, 34, 206", 
+    layer3: "255, 42, 122", /* Depan Terang Bright Red/Pink */
+    glow: "drop-shadow(0 0 15px rgba(244,63,94,0.5))" 
+  }
 };
 
 const FluidBottom = () => {
