@@ -249,6 +249,50 @@ export default function Home() {
       }, 100);
     },
     editLmt: async (m: any) => { dbActions.editMsg(m); },
+    deleteImageOnly: async (m: any) => {
+      if (!m.image_url) return;
+      setConfirmModal({
+        isOpen: true,
+        type: "danger",
+        title: "Hapus Gambar Saja",
+        message: "Gambar akan dihapus permanen dari server Cloudinary dan pesan. Lanjutkan?",
+        confirmText: "Hapus Gambar",
+        cancelText: "Batal",
+        onConfirm: async () => {
+          try {
+            await fetch("/api/delete-image", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ imageUrl: m.image_url }),
+            });
+          } catch (err) {
+            console.error("Gagal menghapus gambar dari Cloudinary:", err);
+          }
+
+          const hasText = m.pesan && m.pesan.trim() !== "" && !m.pesan.startsWith("___DELETED");
+          const newPesanTag = hasText ? m.pesan : "___DELETED_IMAGE___";
+          const isUserAdmin = auth.user === "Admin●ipix.my.id";
+
+          const { error } = await supabase
+            .from("messages")
+            .update({
+              image_url: null,
+              pesan: newPesanTag,
+              deleted_by_admin: isUserAdmin,
+            })
+            .eq("id", m.id);
+
+          if (error) {
+            alert("Gagal memperbarui status pesan di database.");
+          } else {
+            updateMsgLocal(m.id, newPesanTag, m.is_edited, m.edited_by, null, isUserAdmin);
+          }
+
+          fetchData();
+          setConfirmModal((p) => ({ ...p, isOpen: false }));
+        },
+      });
+    },
     delMsg: async (m: any, isSwipe = false) => {
       const isAlreadyDeleted = m.pesan && m.pesan.startsWith("___DELETED");
       const confirmMsg = isAlreadyDeleted ? "Hapus permanen pesan ini dari database?" : isSwipe ? "Pindahkan pesan ini ke tong sampah?" : "Pindahkan pesan ini ke tong sampah?";
@@ -256,6 +300,19 @@ export default function Home() {
         isOpen: true, type: "danger", title: isAlreadyDeleted ? "Hapus Permanen" : "Pindahkan ke Sampah", message: confirmMsg, confirmText: "Hapus", cancelText: "Batal",
         onConfirm: async () => {
           const hasImage = !!m.image_url; const hasText = !!(m.pesan && m.pesan.trim() !== "" && !m.pesan.startsWith("___DELETED"));
+          
+          if (hasImage) {
+            try {
+              await fetch("/api/delete-image", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ imageUrl: m.image_url }),
+              });
+            } catch (err) {
+              console.error("Gagal menghapus gambar dari Cloudinary:", err);
+            }
+          }
+
           let deletedTag = "___DELETED___";
           if (hasImage && hasText) deletedTag = "___DELETED_BOTH___";
           else if (hasImage) deletedTag = "___DELETED_IMAGE___";
@@ -300,6 +357,21 @@ export default function Home() {
       setConfirmModal({
         isOpen: true, type: "danger", title: "Hapus Semua Pesan", message: `Yakin ingin HAPUS SEMUA PESAN dengan ${targetUsername}? Semua obrolan user & admin akan terhapus permanen.`, confirmText: "Hapus Permanen", cancelText: "Batal",
         onConfirm: async () => {
+          const { data: targetMsgs } = await supabase.from("messages").select("image_url").or(`username.eq.${targetUsername},chat_with.eq.${targetUsername}`).not("image_url", "is", null);
+          if (targetMsgs && targetMsgs.length > 0) {
+            for (const item of targetMsgs) {
+              if (item.image_url) {
+                try {
+                  await fetch("/api/delete-image", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ imageUrl: item.image_url }),
+                  });
+                } catch (err) {}
+              }
+            }
+          }
+
           const { error } = await supabase.from("messages").delete().or(`username.eq.${targetUsername},chat_with.eq.${targetUsername}`);
           if (error) { alert("Gagal menghapus riwayat chat."); console.error(error); } else { fetchData(); }
           setConfirmModal((p) => ({ ...p, isOpen: false }));
@@ -687,7 +759,13 @@ export default function Home() {
         </div>
       )}
       {auth.isAuth && interact.popup && interact.popup.popupMode === "image_only" && (
-        <ImagePopupModal popupMsg={interact.popup} onClose={() => setInteract((p) => ({ ...p, popup: null }))} formatMessageTime={getFmt.time} onPin={dbActions.togglePin} />
+        <ImagePopupModal 
+          popupMsg={interact.popup} 
+          onClose={() => setInteract((p) => ({ ...p, popup: null }))} 
+          formatMessageTime={getFmt.time} 
+          onPin={dbActions.togglePin} 
+          onDeleteImage={dbActions.deleteImageOnly}
+        />
       )}
       {auth.isAuth && interact.popup && interact.popup.popupMode === "text_only" && (
         <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4" onClick={() => setInteract((p) => ({ ...p, popup: null }))}>
@@ -727,7 +805,10 @@ export default function Home() {
                 <button type="button" onClick={(e) => { e.stopPropagation(); const popupMsg = interact.popup; setInteract((p) => ({ ...p, popup: null })); if (ui.tab === "admin") dbActions.editMsg(popupMsg); else dbActions.editLmt(popupMsg); }} className="px-2.5 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0">Edit</button>
               )}
               {interact.popup.image_url && (
-                <button type="button" onClick={async (e) => { e.stopPropagation(); try { const response = await fetch(interact.popup.image_url); const blob = await response.blob(); const url = window.URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `ipix_image_${interact.popup.id}.jpg`; document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url); } catch (err) { window.open(interact.popup.image_url, "_blank"); } }} className="px-2.5 py-1 bg-teal-500/15 hover:bg-teal-500/25 text-teal-400 border border-teal-500/30 text-[10px] font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0">Unduh</button>
+                <>
+                  <button type="button" onClick={async (e) => { e.stopPropagation(); try { const response = await fetch(interact.popup.image_url); const blob = await response.blob(); const url = window.URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `ipix_image_${interact.popup.id}.jpg`; document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url); } catch (err) { window.open(interact.popup.image_url, "_blank"); } }} className="px-2.5 py-1 bg-teal-500/15 hover:bg-teal-500/25 text-teal-400 border border-teal-500/30 text-[10px] font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0">Unduh</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); const popupMsg = interact.popup; setInteract((p) => ({ ...p, popup: null })); dbActions.deleteImageOnly(popupMsg); }} className="px-2.5 py-1 bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/40 text-[10px] font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0">Hapus Gambar</button>
+                </>
               )}
               {((interact.popup.username === auth.user && interact.popup.username !== "Admin●ipix.my.id") || ui.tab === "admin") && (
                 <button type="button" onClick={(e) => { e.stopPropagation(); const popupMsg = interact.popup; setInteract((p) => ({ ...p, popup: null })); dbActions.delMsg(popupMsg, false); }} className="px-2.5 py-1 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 text-[10px] font-bold rounded-full shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0">Hapus</button>

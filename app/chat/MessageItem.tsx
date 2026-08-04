@@ -115,9 +115,21 @@ export function PinnedMessage({
 }
 
 /* ========================================================================
-   POPUP MODAL GAMBAR DENGAN TOMBOL CLOSE (X) DI POJOK KANAN ATAS
+   POPUP MODAL GAMBAR DENGAN TOMBOL HAPUS GAMBAR & CLOSE (X)
    ======================================================================== */
-export function ImagePopupModal({ popupMsg, onClose, formatMessageTime, onPin }: { popupMsg: any; onClose: () => void; formatMessageTime?: (t: any) => string; onPin?: (msg: any) => void }) {
+export function ImagePopupModal({ 
+  popupMsg, 
+  onClose, 
+  formatMessageTime, 
+  onPin,
+  onDeleteImage
+}: { 
+  popupMsg: any; 
+  onClose: () => void; 
+  formatMessageTime?: (t: any) => string; 
+  onPin?: (msg: any) => void;
+  onDeleteImage?: (msg: any) => void;
+}) {
   if (!popupMsg || !popupMsg.image_url) return null;
 
   const [scale, setScale] = useState(1);
@@ -304,6 +316,25 @@ export function ImagePopupModal({ popupMsg, onClose, formatMessageTime, onPin }:
                 <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 1 1 1z" />
               </svg>
               {popupMsg.is_pinned ? "Lepas Pin" : "Sematkan"}
+            </button>
+          )}
+
+          {/* TOMBOL HAPUS GAMBAR */}
+          {onDeleteImage && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteImage(popupMsg);
+                onClose();
+              }}
+              className="px-3 py-1.5 bg-red-600/30 hover:bg-red-600/50 text-red-300 border border-red-500/50 text-xs font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1 shrink-0 cursor-pointer"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+              Hapus Gambar
             </button>
           )}
 
