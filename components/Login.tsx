@@ -12,8 +12,8 @@ const MailIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColo
 const EyeIcon = () => (<svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>);
 const EyeOffIcon = () => (<svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>);
 
-// FIREWORKS DENGAN WARNA 100% SESUAI TEMA DYNAMIS DARI ROOT CSS
-const FireworksCanvas = ({ theme }: { theme?: any }) => {
+// FIREWORKS CANVAS
+const FireworksCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -22,98 +22,85 @@ const FireworksCanvas = ({ theme }: { theme?: any }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const styles = getComputedStyle(document.documentElement);
-    const accent = styles.getPropertyValue('--accent').trim() || '#3b82f6';
-    const accentGlow = styles.getPropertyValue('--accent-glow').trim() || accent;
-    const fgHeading = styles.getPropertyValue('--foreground-heading').trim() || '#ffffff';
-    const fgText = styles.getPropertyValue('--foreground').trim() || '#ffffff';
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    const themeColors = [
-      accent,
-      accentGlow,
-      `color-mix(in srgb, ${accent} 70%, #ffffff)`,
-      `color-mix(in srgb, ${accentGlow} 40%, #ffffff)`,
-      fgHeading,
-      fgText
-    ];
+    // Fallback warna cerah yang pasti kelihatan
+    const themeColors = ['#f59e0b', '#ec4899', '#3b82f6', '#10b981', '#8b5cf6', '#ffffff', '#fef08a'];
 
     let animationId: number;
-    canvas.width = window.innerWidth; 
-    canvas.height = window.innerHeight;
 
     class Particle {
       x: number; y: number; vx: number; vy: number; color: string; size: number; alpha: number; decay: number;
       constructor(x: number, y: number) {
         this.x = x; this.y = y;
-        const angle = Math.random() * Math.PI * 2; 
-        const speed = Math.random() * 11 + 3;
-        this.vx = Math.cos(angle) * speed; 
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 10 + 4;
+        this.vx = Math.cos(angle) * speed;
         this.vy = Math.sin(angle) * speed;
         this.color = themeColors[Math.floor(Math.random() * themeColors.length)];
-        this.size = Math.random() * 4 + 2; 
-        this.alpha = 1; 
-        this.decay = Math.random() * 0.008 + 0.004;
+        this.size = Math.random() * 4 + 3;
+        this.alpha = 1;
+        this.decay = Math.random() * 0.01 + 0.005;
       }
-      update() { 
-        this.x += this.vx; 
-        this.y += this.vy; 
-        this.vy += 0.06; 
-        this.vx *= 0.98; 
-        this.vy *= 0.98; 
-        this.alpha -= this.decay; 
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.08;
+        this.vx *= 0.98;
+        this.vy *= 0.98;
+        this.alpha -= this.decay;
       }
       draw(context: CanvasRenderingContext2D) {
-        context.save(); 
-        context.globalAlpha = Math.max(0, this.alpha); 
+        context.save();
+        context.globalAlpha = Math.max(0, this.alpha);
         context.beginPath();
         context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        context.fillStyle = this.color; 
-        context.shadowColor = this.color; 
-        context.shadowBlur = 14;
-        context.fill(); 
+        context.fillStyle = this.color;
+        context.shadowColor = this.color;
+        context.shadowBlur = 12;
+        context.fill();
         context.restore();
       }
     }
 
     let particles: Particle[] = [];
-    const createBurst = (x: number, y: number) => { 
-      for (let i = 0; i < 65; i++) particles.push(new Particle(x, y)); 
+    const createBurst = (x: number, y: number) => {
+      for (let i = 0; i < 70; i++) particles.push(new Particle(x, y));
     };
 
-    createBurst(canvas.width / 2, canvas.height / 3); 
-    createBurst(canvas.width / 3, canvas.height / 2.5); 
+    // Ledakan awal
+    createBurst(canvas.width / 2, canvas.height / 3);
+    createBurst(canvas.width / 3, canvas.height / 2.5);
     createBurst((canvas.width / 3) * 2, canvas.height / 2.5);
 
-    let frame = 0; 
-    const maxFrames = 200;
+    let frame = 0;
     const render = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (frame % 10 === 0 && frame < maxFrames) {
+      if (frame % 12 === 0 && frame < 150) {
         createBurst(
-          Math.random() * (canvas.width * 0.8) + canvas.width * 0.1, 
+          Math.random() * (canvas.width * 0.8) + canvas.width * 0.1,
           Math.random() * (canvas.height * 0.5) + canvas.height * 0.1
         );
       }
       frame++;
-      particles.forEach((p, index) => { 
-        p.update(); 
-        p.draw(ctx); 
-        if (p.alpha <= 0) particles.splice(index, 1); 
+      particles.forEach((p, index) => {
+        p.update();
+        p.draw(ctx);
+        if (p.alpha <= 0) particles.splice(index, 1);
       });
-      if (particles.length > 0 || frame < maxFrames) {
-        animationId = requestAnimationFrame(render);
-      }
+      animationId = requestAnimationFrame(render);
     };
     render();
 
-    const handleResize = () => { 
-      if (!canvas) return; 
-      canvas.width = window.innerWidth; 
-      canvas.height = window.innerHeight; 
+    const handleResize = () => {
+      if (!canvas) return;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
     };
     window.addEventListener('resize', handleResize);
     return () => { cancelAnimationFrame(animationId); window.removeEventListener('resize', handleResize); };
-  }, [theme]);
+  }, []);
 
   return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-[999999]" />;
 };
@@ -170,7 +157,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
       }
     } catch (e) {}
     setIsLoginMode(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -238,34 +224,39 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
     }
     setValidationMsg("");
 
-    try {
-      const result = await handleUserLogin(isLoginMode, true);
+    // NYALAKAN KEMBANG API & UCAPAN DULUAN
+    setShowWelcomePill(true); 
+    setShowFireworks(true);
 
-      if (!result || result === false || (typeof result === 'object' && result.error)) {
+    // DIBERI DELAY 1.6 DETIK SEBELUM SINKRONISASI KE PAGE TSX 
+    // SUPAYA KEMBANG API TERLIHAT
+    setTimeout(async () => {
+      try {
+        const result = await handleUserLogin(isLoginMode, true);
+
+        if (!result || result === false || (typeof result === 'object' && result.error)) {
+          setShowWelcomePill(false);
+          setShowFireworks(false);
+          if (isSavedDevice) {
+            handleResetSavedDevice();
+          }
+          return setValidationMsg("Username atau PIN salah/diubah");
+        }
+
+        localStorage.setItem('hide_register', 'true');
+        localStorage.setItem('has_ever_logged_in', 'true');
+        setHasLoggedInBefore(true);
+
+        localStorage.setItem('remembered_username', username.trim().toLowerCase());
+        localStorage.setItem('remembered_pin', pin);
+
+      } catch (err) { 
         setShowWelcomePill(false);
         setShowFireworks(false);
-        if (isSavedDevice) {
-          handleResetSavedDevice();
-        }
-        return setValidationMsg("Username atau PIN salah/diubah");
+        if (isSavedDevice) handleResetSavedDevice();
+        setValidationMsg("Username atau PIN telah diubah sayang"); 
       }
-
-      localStorage.setItem('hide_register', 'true');
-      localStorage.setItem('has_ever_logged_in', 'true');
-      setHasLoggedInBefore(true);
-
-      localStorage.setItem('remembered_username', username.trim().toLowerCase());
-      localStorage.setItem('remembered_pin', pin);
-
-      setShowWelcomePill(true); 
-      setShowFireworks(true);
-
-    } catch (err) { 
-      setShowWelcomePill(false);
-      setShowFireworks(false);
-      if (isSavedDevice) handleResetSavedDevice();
-      setValidationMsg("Username atau PIN telah diubah sayang"); 
-    }
+    }, 1600);
   };
 
   const handleAdminLoginWrapper = async () => { try { const result = await handleAdminLogin(); if (result === false || (result && result.error)) return; } catch (err) {} };
@@ -327,7 +318,8 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
         }
       `}</style>
 
-      {showFireworks && <FireworksCanvas theme={theme} />}
+      {/* KEMBANG API DI-RENDER DI ATAS OVERLAY */}
+      {showFireworks && <FireworksCanvas />}
 
       <div className="relative w-full max-w-[380px] my-auto flex flex-col items-center pointer-events-auto">
         {activeTab === 'user' ? (
