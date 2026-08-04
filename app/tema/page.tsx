@@ -328,7 +328,10 @@ export default function TemaPage() {
   };
 
   const handleWaveToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsWaveDisabled(!e.target.checked);
+    const disabledState = !e.target.checked;
+    setIsWaveDisabled(disabledState);
+    localStorage.setItem("global_disable_wave", disabledState.toString());
+    window.dispatchEvent(new Event("globalColorChanged"));
   };
 
   const handleCustomWaveToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -613,7 +616,6 @@ export default function TemaPage() {
                       </h4>
                     )}
                     <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                      <CompactToggle label={!isWaveDisabled ? "Tampilkan Wave" : "Sembunyikan Wave"} checked={!isWaveDisabled} onChange={handleWaveToggle} disabled={!isLoggedIn} />
                       <CompactToggle label={isCustomWaveEnabled ? "Warna Kustom" : "Warna Bawaan"} checked={isCustomWaveEnabled} onChange={handleCustomWaveToggle} disabled={!isLoggedIn || isWaveDisabled} />
                     </div>
                   </div>
@@ -755,9 +757,17 @@ export default function TemaPage() {
           </div>
 
           <div>
-            <h3 className="font-semibold text-[13px] mb-3 px-1" style={{ color: "var(--foreground-heading)" }}>
-              Preset Tema Cepat
-            </h3>
+            <div className="flex items-center justify-between mb-3 px-1 gap-2">
+              <h3 className="font-semibold text-[13px]" style={{ color: "var(--foreground-heading)" }}>
+                Preset Tema Cepat
+              </h3>
+              <CompactToggle
+                label={!isWaveDisabled ? "Tampilkan Wave" : "Sembunyikan Wave"}
+                checked={!isWaveDisabled}
+                onChange={handleWaveToggle}
+                disabled={!isLoggedIn}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-2 sm:gap-3">
               {themes.map((t: ThemeItem) => {
                 const isActive = activeThemeId === t.id;
