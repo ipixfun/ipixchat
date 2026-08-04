@@ -132,10 +132,10 @@ export default function Home() {
     setAuth({ 
       isAuth: false, 
       isExist: false, 
-      user: remUser || "", 
+      user: "", 
       adminEmail: "", 
       adminPass: "", 
-      pin: remPin || "", 
+      pin: "", 
       umur: "", 
       berat: "" 
     });
@@ -143,59 +143,64 @@ export default function Home() {
     window.location.reload();
   };
 
-  // FETCH DATA PERBAIKAN: Menjaga filter query tetap valid saat awal muat ulang/refresh
   const fetchData = useCallback(async () => {
-    const activeUser = auth.user || (typeof window !== "undefined" ? (localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username")) : "");
-    if (!auth.isAuth && !activeUser) return;
+    const savedUser = typeof window !== "undefined" 
+      ? (localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username"))
+      : "";
+    
+    const targetUser = auth.user || savedUser;
 
-    const targetUser = auth.user || activeUser;
-
-    if (targetUser && targetUser !== "Admin●ipix.my.id") {
-      const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
-      const { data: currentProfile } = await supabase
-        .from("profiles")
-        .select("username, pin")
-        .ilike("username", targetUser)
-        .maybeSingle();
-
-      if (!currentProfile || (savedPin && currentProfile.pin !== savedPin)) {
-        localStorage.clear(); sessionStorage.clear();
-        await supabase.auth.signOut();
-        setAuth({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" });
-        alert("Username atau PIN Anda telah diubah oleh Admin. Silakan login kembali.");
-        window.location.reload();
-        return;
-      }
-    }
+    if (!targetUser) return;
 
     try {
       const isAdminTab = ui.tab === "admin";
-      const queryFilter = isAdminTab 
-        ? (usersInfo.selPriv ? `username.eq.${usersInfo.selPriv},chat_with.eq.${usersInfo.selPriv}` : "id.gt.0")
-        : `username.eq.${targetUser},chat_with.eq.${targetUser}`;
+      let queryFilter = "";
+
+      if (isAdminTab) {
+        const selUser = usersInfo.selPriv;
+        queryFilter = selUser 
+          ? `username.ilike.${selUser},chat_with.ilike.${selUser}` 
+          : "id.gt.0";
+      } else {
+        queryFilter = `username.ilike.${targetUser},chat_with.ilike.${targetUser}`;
+      }
 
       const [{ data: bD }, { data: bW }, { data: prD }] = await Promise.all([
         supabase.from("blocked_users").select("*"), 
         supabase.from("blocked_words").select("word"),
-        supabase.from("messages").select("*").or(queryFilter).order("created_at", { ascending: false }).limit(100),
+        supabase.from("messages")
+          .select("*")
+          .or(queryFilter)
+          .order("created_at", { ascending: false })
+          .limit(100),
       ]);
 
       if (bW) setCensor((p) => ({ ...p, words: bW.map((w) => w.word) }));
-      if (targetUser && bD?.some((b) => b.username === targetUser)) return window.location.replace("https://ipix.my.id/chat");
-      
-      const vPriv = (prD || []).reverse().filter((m) => !bD?.map((b) => b.username).includes(m.username));
-      setMsgs({ all: vPriv, pub: [], priv: vPriv });
-      
-      const lAdmin = vPriv.filter((m) => m.username === "Admin●ipix.my.id").pop();
-      if (lAdmin) {
-        const adminTime = new Date(lAdmin.created_at).getTime();
-        setAdminStat({ online: Date.now() - adminTime < 300000, offlineTime: getFmt.ago(new Date(adminTime)), lastActive: adminTime });
+
+      if (prD) {
+        const vPriv = prD.reverse().filter((m) => !bD?.map((b) => b.username).includes(m.username));
+        setMsgs({ all: vPriv, pub: [], priv: vPriv });
+
+        const lAdmin = vPriv.filter((m) => m.username?.toLowerCase().includes("admin")).pop();
+        if (lAdmin) {
+          const adminTime = new Date(lAdmin.created_at).getTime();
+          setAdminStat({ 
+            online: Date.now() - adminTime < 300000, 
+            offlineTime: getFmt.ago(new Date(adminTime)), 
+            lastActive: adminTime 
+          });
+        }
+
+        const sMap: Record<string, any> = {};
+        vPriv.forEach((m) => { 
+          if (!m.username?.toLowerCase().includes("admin")) { 
+            const t = new Date(m.created_at).getTime(); 
+            sMap[m.username] = { lastActive: t, online: Date.now() - t < 300000, offlineTime: getFmt.ago(new Date(t)) }; 
+          } 
+        });
+        setUsersInfo((p) => ({ ...p, status: sMap, blockedList: bD || [] }));
       }
-      
-      const sMap: Record<string, any> = {};
-      vPriv.forEach((m) => { if (m.username !== "Admin●ipix.my.id") { const t = new Date(m.created_at).getTime(); sMap[m.username] = { lastActive: t, online: Date.now() - t < 300000, offlineTime: getFmt.ago(new Date(t)) }; } });
-      setUsersInfo((p) => ({ ...p, status: sMap, blockedList: bD || [] }));
-      
+
       if (isAdminTab && !usersInfo.selPriv) {
         const { data: aP } = await supabase.from("messages").select("username, chat_with, created_at, pesan").order("created_at", { ascending: false }).limit(500);
         
@@ -205,13 +210,13 @@ export default function Home() {
           const userMsgTotal: Record<string, number> = {};
           const adminMsgTotal: Record<string, number> = {};
           
-          const uniqueUsernames = Array.from(new Set(aP.map((m: any) => m.username).filter((u: string) => u !== "Admin●ipix.my.id")));
+          const uniqueUsernames = Array.from(new Set(aP.map((m: any) => m.username).filter((u: string) => !u?.toLowerCase().includes("admin"))));
           
           const { data: profilesData } = await supabase.from("profiles").select("username, pin, umur, berat").in("username", uniqueUsernames);
           const profileMap = new Map(profilesData?.map((p: any) => [p.username.toLowerCase(), { pin: p.pin, umur: p.umur, berat: p.berat }]) || []);
 
           aP.forEach((m) => { 
-            if (m.username !== "Admin●ipix.my.id") { 
+            if (!m.username?.toLowerCase().includes("admin")) { 
               c[m.username] = (c[m.username] || 0) + 1; 
               userMsgTotal[m.username] = (userMsgTotal[m.username] || 0) + 1; 
             } else if (m.chat_with) {
@@ -220,7 +225,7 @@ export default function Home() {
           });
 
           aP.forEach((m: any) => { 
-            if (m.username !== "Admin●ipix.my.id" && !uMap.has(m.username)) { 
+            if (!m.username?.toLowerCase().includes("admin") && !uMap.has(m.username)) { 
               const userProfile = profileMap.get(m.username.toLowerCase());
               uMap.set(m.username, { 
                 ...m, last_active: m.created_at, count: isAdminTab ? 0 : (c[m.username] || 0), 
@@ -232,8 +237,10 @@ export default function Home() {
           setUsersInfo((p) => ({ ...p, privUsers: Array.from(uMap.values()) }));
         }
       }
-    } catch (e) {}
-  }, [ui.tab, usersInfo.selPriv, auth.isAuth, auth.user, getFmt]);
+    } catch (e) {
+      console.error("Gagal fetch data:", e);
+    }
+  }, [ui.tab, usersInfo.selPriv, auth.user, getFmt]);
 
   const handleUsernameChange = async (enteredName: string) => {
     const trimmed = enteredName.slice(0, 20); setAuth((p) => ({ ...p, user: trimmed }));
@@ -410,7 +417,6 @@ export default function Home() {
     }
   };
 
-  // PEMERIKSAAN AUTHENTIKASI INITIAL
   useEffect(() => {
     const chk = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -418,26 +424,18 @@ export default function Home() {
       const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || "";
       const isAuthLocal = localStorage.getItem("is_auth") === "true" || sessionStorage.getItem("is_auth") === "true";
 
-      if (savedUsername && savedUsername !== "Admin●ipix.my.id") {
-        const { data: pD } = await supabase.from("profiles").select("username, pin, umur, berat").ilike("username", savedUsername).maybeSingle();
-        if (pD?.username) {
-          const activePin = pD.pin || savedPin;
-          setAuth((p) => ({ ...p, isAuth: true, isExist: true, user: pD.username, pin: activePin, umur: pD.umur || "", berat: pD.berat || "" }));
-        } else {
-          setAuth((p) => ({ ...p, isAuth: isAuthLocal, user: savedUsername, pin: savedPin }));
-        }
-      } else if (savedUsername) {
-        setAuth((p) => ({ ...p, isAuth: isAuthLocal, user: savedUsername, pin: savedPin }));
-      }
-
       const isAdmin = pathname?.endsWith("/admin") || window.location.hash === "#admin";
       setUi((p) => ({ ...p, tab: isAdmin ? "admin" : (localStorage.getItem("active_tab") as "user" | "admin") || "user" }));
-      
-      if (session || (isAuthLocal && savedUsername === "Admin●ipix.my.id") || (isAuthLocal && savedUsername)) {
-        const currentAdmin = savedUsername === "Admin●ipix.my.id" || session;
-        setAuth((p) => ({ ...p, isAuth: true, user: currentAdmin ? "Admin●ipix.my.id" : savedUsername || p.user, pin: savedPin }));
-        if (currentAdmin) setUi((p) => ({ ...p, tab: "admin" }));
+
+      if (session || (isAuthLocal && savedUsername === "Admin●ipix.my.id")) {
+        setAuth((p) => ({ ...p, isAuth: true, user: "Admin●ipix.my.id", pin: savedPin }));
+        setUi((p) => ({ ...p, tab: "admin" }));
+      } else if (isAuthLocal && savedUsername) {
+        setAuth((p) => ({ ...p, isAuth: true, user: savedUsername, pin: savedPin }));
+      } else {
+        setAuth((p) => ({ ...p, isAuth: false, user: "", pin: "" }));
       }
+      
       setMounted(true);
     };
     chk();
@@ -449,20 +447,12 @@ export default function Home() {
     if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
     
     const profileChangeListener = supabase.channel('public:profiles_update').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, async (payload) => {
-      if (auth.user === "Admin●ipix.my.id") return;
-
-      const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
-      const savedUser = localStorage.getItem("remembered_username") || localStorage.getItem("username") || localStorage.getItem("active_username") || sessionStorage.getItem("active_username") || auth.user;
+      if (!auth.isAuth || auth.user === "Admin●ipix.my.id") return;
 
       const newRecord = payload.new;
-      const isMyUsername = newRecord.username?.toLowerCase() === savedUser?.toLowerCase();
-      const isMyPin = savedPin && newRecord.pin === savedPin;
-
-      if (isMyUsername || isMyPin) {
-        const usernameChanged = newRecord.username?.toLowerCase() !== auth.user?.toLowerCase();
-        const pinChanged = savedPin && newRecord.pin !== savedPin;
-
-        if (usernameChanged || pinChanged) {
+      if (newRecord.username?.toLowerCase() === auth.user?.toLowerCase()) {
+        const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
+        if (savedPin && newRecord.pin !== savedPin) {
           localStorage.clear();
           sessionStorage.clear();
           await supabase.auth.signOut();
@@ -692,7 +682,11 @@ export default function Home() {
                   localStorage.setItem("remembered_pin", plainPin);
                 }
 
-                setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, umur: existUser.umur || "", berat: existUser.berat || "", pin: plainPin })); 
+                // DIBERI JEDA 2.2 DETIK SUPAYA KEMBANG API & GREETING TAMPIL DULU
+                setTimeout(() => {
+                  setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, umur: existUser.umur || "", berat: existUser.berat || "", pin: plainPin })); 
+                }, 2200);
+
                 return true;
               }
 
@@ -717,7 +711,11 @@ export default function Home() {
                 localStorage.setItem("remembered_pin", plainPin);
               }
 
-              setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: plainPin })); 
+              // DIBERI JEDA 2.2 DETIK JUGA UNTUK REGISTER
+              setTimeout(() => {
+                setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: plainPin })); 
+              }, 2200);
+
               return true;
             } catch (e) { return { error: true }; }
           }} handleAdminLogin={async () => {
