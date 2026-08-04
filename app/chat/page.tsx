@@ -127,8 +127,13 @@ export default function Home() {
   };
 
   const fetchData = useCallback(async () => {
-    const savedUser = typeof window !== "undefined" ? (localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username") || sessionStorage.getItem("active_username")) : "";
-    const savedPin = typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || sessionStorage.getItem("saved_pin")) : "";
+    const savedUser = typeof window !== "undefined" 
+      ? (localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username") || sessionStorage.getItem("active_username")) 
+      : "";
+    const savedPin = typeof window !== "undefined" 
+      ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || sessionStorage.getItem("saved_pin")) 
+      : "";
+
     const targetUser = auth.user || savedUser;
 
     if (!auth.isAuth || !targetUser) return;
@@ -137,9 +142,12 @@ export default function Home() {
       if (targetUser !== "Admin●ipix.my.id") {
         const cleanTargetUser = targetUser.split("●")[0];
         const { data: profileCheck } = await supabase.from("profiles").select("username, pin").ilike("username", cleanTargetUser).maybeSingle();
+
         if (profileCheck) {
           const currentValidPin = auth.pin || savedPin;
-          if (currentValidPin && profileCheck.pin !== currentValidPin) {
+
+          // HANYA COCOKKAN JIKA PIN MEMANG ADA DAN VALiD 6 ANGKA
+          if (currentValidPin && currentValidPin.length === 6 && profileCheck.pin !== currentValidPin) {
             triggerAdminChangeNotice(profileCheck.username);
             return;
           }
