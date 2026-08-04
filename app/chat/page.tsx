@@ -442,30 +442,76 @@ export default function Home() {
     chk();
   }, [pathname]);
 
+  // REALTIME LISTENER SUPABASE DENGAN AUTO LOGOUT & REDIRECT KE LOGIN JIKA PROFILE (USERNAME / PIN) DIUBAH ADMIN
   useEffect(() => {
     if (!mounted) return;
     fetchData();
-    if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
-    
-    const profileChangeListener = supabase.channel('public:profiles_update').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, async (payload) => {
-      if (!auth.isAuth || auth.user === "Admin●ipix.my.id") return;
 
-      const newRecord = payload.new;
-      if (newRecord.username?.toLowerCase() === auth.user?.toLowerCase()) {
-        const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
-        if (savedPin && newRecord.pin !== savedPin) {
-          localStorage.clear();
-          sessionStorage.clear();
-          await supabase.auth.signOut();
-          setAuth({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" });
-          alert("Username atau PIN Anda telah diubah oleh Admin. Silakan masuk kembali dengan data baru.");
-          window.location.reload();
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
+    const profileChangeListener = supabase
+      .channel("public:profiles_update")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles" },
+        async (payload) => {
+          if (!auth.isAuth || auth.user === "Admin●ipix.my.id") return;
+
+          const newRecord = payload.new;
+          const savedUsername = localStorage.getItem("remembered_username") || localStorage.getItem("username") || localStorage.getItem("active_username");
+          const savedPin = localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin");
+
+          if (
+            newRecord.username?.toLowerCase() === savedUsername?.toLowerCase() ||
+            (newRecord.id && payload.old?.username?.toLowerCase() === savedUsername?.toLowerCase())
+          ) {
+            if (newRecord.pin !== savedPin || newRecord.username.toLowerCase() !== savedUsername?.toLowerCase()) {
+              localStorage.removeItem("is_auth");
+              sessionStorage.removeItem("is_auth");
+              localStorage.removeItem("remembered_pin");
+              localStorage.removeItem("saved_pin");
+              localStorage.removeItem("user_pin");
+              localStorage.removeItem("pin");
+
+              if (newRecord.username) {
+                localStorage.setItem("remembered_username", newRecord.username);
+                localStorage.setItem("username", newRecord.username);
+                localStorage.setItem("active_username", newRecord.username);
+              }
+
+              await supabase.auth.signOut();
+
+              setAuth({
+                isAuth: false,
+                isExist: true,
+                user: newRecord.username || savedUsername || "",
+                adminEmail: "",
+                adminPass: "",
+                pin: "",
+                umur: "",
+                berat: "",
+              });
+
+              alert("⚠️ Akun Anda telah diperbarui oleh Admin!\nPIN atau Username Anda telah diubah. Silakan masuk kembali dengan data baru Anda.");
+            }
+          }
         }
-      }
-    }).subscribe();
-    
-    const messageSubscription = supabase.channel("public:messages").on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => { fetchData(); }).subscribe();
-    return () => { supabase.removeChannel(messageSubscription); supabase.removeChannel(profileChangeListener); };
+      )
+      .subscribe();
+
+    const messageSubscription = supabase
+      .channel("public:messages")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(messageSubscription);
+      supabase.removeChannel(profileChangeListener);
+    };
   }, [mounted, auth.isAuth, auth.user, fetchData]);
 
   useEffect(() => {
