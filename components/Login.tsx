@@ -12,7 +12,7 @@ const MailIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColo
 const EyeIcon = () => (<svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>);
 const EyeOffIcon = () => (<svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>);
 
-// FIREWORKS CANVAS
+// FIREWORKS CANVAS DENGAN WARNA 100% SESUAI TEMA DYNAMIS CSS
 const FireworksCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -25,8 +25,23 @@ const FireworksCanvas = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // Fallback warna cerah yang pasti kelihatan
-    const themeColors = ['#f59e0b', '#ec4899', '#3b82f6', '#10b981', '#8b5cf6', '#ffffff', '#fef08a'];
+    // BACA WARNA TEMA DARI ROOT CSS VARIABLE SECARA DINAMIS
+    const styles = getComputedStyle(document.documentElement);
+    const accent = styles.getPropertyValue('--accent').trim() || '#eab308';
+    const accentGlow = styles.getPropertyValue('--accent-glow').trim() || accent;
+    const fgHeading = styles.getPropertyValue('--foreground-heading').trim() || '#ffffff';
+    const fgText = styles.getPropertyValue('--foreground').trim() || '#ffffff';
+
+    // VARIASI SHADE WARNA HANYA BERDASARKAN WARNA TEMA AKTIF
+    const themeColors = [
+      accent,
+      accentGlow,
+      `color-mix(in srgb, ${accent} 80%, #ffffff)`,
+      `color-mix(in srgb, ${accent} 50%, #ffffff)`,
+      `color-mix(in srgb, ${accentGlow} 60%, #ffffff)`,
+      fgHeading,
+      fgText
+    ];
 
     let animationId: number;
 
@@ -35,18 +50,18 @@ const FireworksCanvas = () => {
       constructor(x: number, y: number) {
         this.x = x; this.y = y;
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 10 + 4;
+        const speed = Math.random() * 11 + 3;
         this.vx = Math.cos(angle) * speed;
         this.vy = Math.sin(angle) * speed;
         this.color = themeColors[Math.floor(Math.random() * themeColors.length)];
-        this.size = Math.random() * 4 + 3;
+        this.size = Math.random() * 4 + 2.5;
         this.alpha = 1;
-        this.decay = Math.random() * 0.01 + 0.005;
+        this.decay = Math.random() * 0.009 + 0.004;
       }
       update() {
         this.x += this.vx;
         this.y += this.vy;
-        this.vy += 0.08;
+        this.vy += 0.07;
         this.vx *= 0.98;
         this.vy *= 0.98;
         this.alpha -= this.decay;
@@ -58,7 +73,7 @@ const FireworksCanvas = () => {
         context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         context.fillStyle = this.color;
         context.shadowColor = this.color;
-        context.shadowBlur = 12;
+        context.shadowBlur = 14;
         context.fill();
         context.restore();
       }
@@ -66,10 +81,10 @@ const FireworksCanvas = () => {
 
     let particles: Particle[] = [];
     const createBurst = (x: number, y: number) => {
-      for (let i = 0; i < 70; i++) particles.push(new Particle(x, y));
+      for (let i = 0; i < 65; i++) particles.push(new Particle(x, y));
     };
 
-    // Ledakan awal
+    // Burst utama
     createBurst(canvas.width / 2, canvas.height / 3);
     createBurst(canvas.width / 3, canvas.height / 2.5);
     createBurst((canvas.width / 3) * 2, canvas.height / 2.5);
@@ -77,7 +92,7 @@ const FireworksCanvas = () => {
     let frame = 0;
     const render = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (frame % 12 === 0 && frame < 150) {
+      if (frame % 10 === 0 && frame < 160) {
         createBurst(
           Math.random() * (canvas.width * 0.8) + canvas.width * 0.1,
           Math.random() * (canvas.height * 0.5) + canvas.height * 0.1
@@ -224,12 +239,11 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
     }
     setValidationMsg("");
 
-    // NYALAKAN KEMBANG API & UCAPAN DULUAN
+    // NYALAKAN KEMBANG API & UCAPAN
     setShowWelcomePill(true); 
     setShowFireworks(true);
 
-    // DIBERI DELAY 1.6 DETIK SEBELUM SINKRONISASI KE PAGE TSX 
-    // SUPAYA KEMBANG API TERLIHAT
+    // DIBERI DELAY 1.6 DETIK UNTUK EFEK ANIMASI KEMBANG API DULUAN
     setTimeout(async () => {
       try {
         const result = await handleUserLogin(isLoginMode, true);
@@ -318,7 +332,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
         }
       `}</style>
 
-      {/* KEMBANG API DI-RENDER DI ATAS OVERLAY */}
+      {/* RENDER KEMBANG API */}
       {showFireworks && <FireworksCanvas />}
 
       <div className="relative w-full max-w-[380px] my-auto flex flex-col items-center pointer-events-auto">
