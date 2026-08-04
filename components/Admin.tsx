@@ -118,7 +118,7 @@ export default function Admin({
   };
 
   return (
-    <div className="flex flex-col min-h-full p-3 gap-4 pb-20">
+    <div className="flex flex-col min-h-full p-3 gap-4 relative pb-44">
       {/* LIST KARTU USER */}
       <div className="space-y-3 flex-1">
         {privateUsers.map((user: any, index: number) => {
@@ -172,8 +172,8 @@ export default function Admin({
         })}
       </div>
 
-      {/* KOLOM KONTROL PUTIH (REFRESH + DROPDOWN USER RESPONSIP) */}
-      <div className="bg-white p-3.5 rounded-2xl border border-gray-200 shadow-xl flex flex-col gap-2.5 mt-auto">
+      {/* KOLOM KONTROL PUTIH (LOCKED FIX / FROZEN DI ATAS NAVBAR BOTTOM) */}
+      <div className="fixed bottom-[65px] left-3 right-3 z-40 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-gray-200 shadow-2xl flex flex-col gap-2.5">
         <div className="flex justify-between items-center">
           <span className="text-xs font-bold text-gray-500">Pilih obrolan di atas</span>
           <button
