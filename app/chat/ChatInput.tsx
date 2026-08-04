@@ -71,14 +71,12 @@ export default function ChatInput({
   const [showEmoji, setShowEmoji] = useState(false);
   const [isCredentialsChanged, setIsCredentialsChanged] = useState(false);
 
-  // Sync prop eksternal jika ada
   useEffect(() => {
     if (externalIsCredentialsChanged) {
       setIsCredentialsChanged(true);
     }
   }, [externalIsCredentialsChanged]);
 
-  // Realtime Listener untuk mendeteksi perubahan nama atau PIN user oleh Admin
   useEffect(() => {
     if (!auth?.user || auth.user === "Admin●ipix.my.id") return;
 
@@ -138,7 +136,14 @@ export default function ChatInput({
     };
   }, [setUi]);
 
-  const isInputDisabled = isBlocked || (ui.tab === "admin" && !usersInfo.selPriv) || isCredentialsChanged;
+  const selectedUser = usersInfo?.selPriv || usersInfo?.selectedUser;
+
+  // RULE LOGIKA 2: SEMBUNYIKAN CHAT INPUT KETIKA DI TAB ADMIN DAN BELUM MEMILIH USER
+  if (ui?.tab === "admin" && !selectedUser) {
+    return null;
+  }
+
+  const isInputDisabled = isBlocked || isCredentialsChanged;
 
   const addEmoji = (emoji: string) => {
     if (isInputDisabled) return;
@@ -265,8 +270,6 @@ export default function ChatInput({
                   "Anda telah diblokir."
                 ) : isCredentialsChanged ? (
                   <span className="text-red-400 font-bold">⚠️ Nama/PIN Anda telah diubah oleh Admin.</span>
-                ) : ui.tab === "admin" && !usersInfo.selPriv ? (
-                  "Pilih obrolan di atas"
                 ) : (
                   "*bijaklah dalam berinteraksi"
                 )}
@@ -333,7 +336,6 @@ export default function ChatInput({
                       type="button"
                       id="btn-refresh-delete"
                       onClick={() => {
-                        // Jika ada draft teks/edit yang belum dikirim, bersihkan input
                         if (hasInputReady || interact?.editingMsg) {
                           setInput((p: any) => ({
                             ...p,
@@ -343,7 +345,6 @@ export default function ChatInput({
                           }));
                           setInteract((p: any) => ({ ...p, replyTo: null, editingMsg: null }));
                         } else {
-                          // REFRESH BIASA (RELOAD HALAMAN TANPA LOGOUT)
                           window.location.reload();
                         }
                       }}
@@ -392,8 +393,6 @@ export default function ChatInput({
                       ? "Akun Anda diblokir..." 
                       : isCredentialsChanged 
                       ? "Nama/PIN Anda telah diubah oleh Admin." 
-                      : ui.tab === "admin" && !usersInfo.selPriv 
-                      ? "Pilih user..." 
                       : "Ketik pesan..."
                   }
                   maxLength={200}
