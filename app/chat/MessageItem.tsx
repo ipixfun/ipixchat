@@ -115,9 +115,9 @@ export function PinnedMessage({
 }
 
 /* ========================================================================
-   POPUP MODAL GAMBAR DENGAN PILL SEMATAN (PIN), RESOLUSI & UKURAN FILE
+   POPUP MODAL GAMBAR DENGAN TOMBOL CLOSE (X) DI POJOK KANAN ATAS
    ======================================================================== */
-export function ImagePopupModal({ popupMsg, onClose, onPin }: { popupMsg: any; onClose: () => void; formatMessageTime?: (t: any) => string; onPin?: (msg: any) => void }) {
+export function ImagePopupModal({ popupMsg, onClose, formatMessageTime, onPin }: { popupMsg: any; onClose: () => void; formatMessageTime?: (t: any) => string; onPin?: (msg: any) => void }) {
   if (!popupMsg || !popupMsg.image_url) return null;
 
   const [scale, setScale] = useState(1);
@@ -229,9 +229,36 @@ export function ImagePopupModal({ popupMsg, onClose, onPin }: { popupMsg: any; o
 
   return (
     <div 
-      className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-between p-3 sm:p-4 select-none animate-fadeIn"
-      onClick={onClose}
+      className="fixed inset-0 z-[99999] bg-black/90 backdrop-blur-md flex flex-col items-center justify-between p-3 sm:p-4 select-none animate-fadeIn"
+      onClick={onClose} // KLIK AREA KOSONG APA PUN DI BACKDROP UNTUK CLOSE
     >
+      {/* HEADER ATAS DENGAN TOMBOL CLOSE (X) KANAN ATAS */}
+      <div className="w-full max-w-4xl flex items-center justify-between z-20 pt-1 pb-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex flex-col">
+          <span className="text-xs font-extrabold text-amber-400 drop-shadow">
+            @{popupMsg.username ? popupMsg.username.split("●")[0] : "User"}
+          </span>
+          {formatMessageTime && (
+            <span className="text-[10px] text-slate-400">
+              {formatMessageTime(popupMsg.created_at)}
+            </span>
+          )}
+        </div>
+
+        {/* TOMBOL CLOSE (X) MONCOL DI POJOK KANAN ATAS */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          className="w-9 h-9 rounded-full bg-slate-800/90 hover:bg-red-600 text-white flex items-center justify-center font-black text-sm border border-slate-700 shadow-xl active:scale-90 transition-all cursor-pointer"
+          title="Tutup Modal Gambar"
+        >
+          ✕
+        </button>
+      </div>
+
       {/* AREA GAMBAR ZOOMABLE */}
       <div 
         className="w-full flex-1 max-w-4xl my-auto overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing relative"
@@ -254,7 +281,7 @@ export function ImagePopupModal({ popupMsg, onClose, onPin }: { popupMsg: any; o
             const img = e.currentTarget;
             setResolution(`${img.naturalWidth}x${img.naturalHeight}`);
           }}
-          className="max-h-[75vh] max-w-full object-contain transition-transform duration-75 ease-out rounded-lg"
+          className="max-h-[70vh] max-w-full object-contain transition-transform duration-75 ease-out rounded-xl shadow-2xl border border-slate-800"
           style={{
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             touchAction: "none",
@@ -264,7 +291,7 @@ export function ImagePopupModal({ popupMsg, onClose, onPin }: { popupMsg: any; o
       </div>
 
       {/* PANEL KONTROL BAWAH */}
-      <div className="z-10 w-full max-w-md flex flex-col items-center gap-2 pb-2" onClick={(e) => e.stopPropagation()}>
+      <div className="z-20 w-full max-w-md flex flex-col items-center gap-2 pb-1" onClick={(e) => e.stopPropagation()}>
         <div className="w-full flex items-center justify-center gap-2 flex-wrap bg-slate-900/90 border border-slate-800 p-2 rounded-2xl backdrop-blur-md shadow-2xl">
           {/* 1. PILL SEMATAN (PIN) */}
           {onPin && (
@@ -275,7 +302,7 @@ export function ImagePopupModal({ popupMsg, onClose, onPin }: { popupMsg: any; o
                 onPin(popupMsg);
                 onClose();
               }} 
-              className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1 shrink-0"
+              className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1 shrink-0 cursor-pointer"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 17v5" />
@@ -289,7 +316,7 @@ export function ImagePopupModal({ popupMsg, onClose, onPin }: { popupMsg: any; o
           <button 
             type="button" 
             onClick={handleDownload}
-            className="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1 shrink-0"
+            className="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1 shrink-0 cursor-pointer"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -315,7 +342,7 @@ export function ImagePopupModal({ popupMsg, onClose, onPin }: { popupMsg: any; o
             <button 
               type="button" 
               onClick={handleZoomOut} 
-              className="w-6 h-6 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold"
+              className="w-6 h-6 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold cursor-pointer"
             >
               -
             </button>
@@ -325,7 +352,7 @@ export function ImagePopupModal({ popupMsg, onClose, onPin }: { popupMsg: any; o
             <button 
               type="button" 
               onClick={handleZoomIn} 
-              className="w-6 h-6 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold"
+              className="w-6 h-6 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold cursor-pointer"
             >
               +
             </button>
@@ -335,17 +362,17 @@ export function ImagePopupModal({ popupMsg, onClose, onPin }: { popupMsg: any; o
           <button 
             type="button" 
             onClick={handleResetZoom} 
-            className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl active:scale-95 transition-all shrink-0"
+            className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl active:scale-95 transition-all shrink-0 cursor-pointer"
           >
             Reset
           </button>
         </div>
 
-        {/* 6. TOMBOL CLOSE DI BAWAH */}
+        {/* 6. TOMBOL CLOSE DI BAWAH PANEL */}
         <button 
           type="button" 
           onClick={onClose}
-          className="px-6 py-1.5 bg-red-600/80 hover:bg-red-600 text-white text-xs font-bold rounded-full border border-red-500/50 shadow-lg active:scale-95 transition-all"
+          className="px-6 py-1.5 bg-red-600/80 hover:bg-red-600 text-white text-xs font-bold rounded-full border border-red-500/50 shadow-lg active:scale-95 transition-all cursor-pointer"
         >
           Tutup ✕
         </button>
