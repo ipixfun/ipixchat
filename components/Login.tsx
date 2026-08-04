@@ -12,7 +12,7 @@ const MailIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColo
 const EyeIcon = () => (<svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>);
 const EyeOffIcon = () => (<svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>);
 
-// FIREWORKS CANVAS DENGAN WARNA DARI CSS VARIABLE TEMA
+// FIREWORKS CANVAS DENGAN WARNA 100% SESUAI TEMA DYNAMIS CSS
 const FireworksCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -25,12 +25,14 @@ const FireworksCanvas = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
+    // BACA WARNA TEMA DARI ROOT CSS VARIABLE SECARA DINAMIS
     const styles = getComputedStyle(document.documentElement);
     const accent = styles.getPropertyValue('--accent').trim() || '#eab308';
     const accentGlow = styles.getPropertyValue('--accent-glow').trim() || accent;
     const fgHeading = styles.getPropertyValue('--foreground-heading').trim() || '#ffffff';
     const fgText = styles.getPropertyValue('--foreground').trim() || '#ffffff';
 
+    // VARIASI SHADE WARNA HANYA BERDASARKAN WARNA TEMA AKTIF
     const themeColors = [
       accent,
       accentGlow,
@@ -82,6 +84,7 @@ const FireworksCanvas = () => {
       for (let i = 0; i < 65; i++) particles.push(new Particle(x, y));
     };
 
+    // Burst utama
     createBurst(canvas.width / 2, canvas.height / 3);
     createBurst(canvas.width / 3, canvas.height / 2.5);
     createBurst((canvas.width / 3) * 2, canvas.height / 2.5);
@@ -148,7 +151,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const [isUsernameAgreed, setIsUsernameAgreed] = useState(false); const [validationMsg, setValidationMsg] = useState("");
   const [showPin, setShowPin] = useState(false); const [showWelcomePill, setShowWelcomePill] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false); const [isSavedDevice, setIsSavedDevice] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [hasTyped, setHasTyped] = useState(false); 
   const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
@@ -225,7 +227,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   };
 
   const handleUserLoginWrapper = async () => {
-    if (isLoading) return;
     setShowWelcomePill(false); 
     setShowFireworks(false);
 
@@ -237,38 +238,39 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
       if (!isUsernameAgreed) return setValidationMsg("Ceklist dulu sayang");
     }
     setValidationMsg("");
-    setIsLoading(true);
 
-    try {
-      // SIMPAN KE STORAGE INSTAN
-      localStorage.setItem('remembered_username', username.trim().toLowerCase());
-      localStorage.setItem('remembered_pin', pin);
-      localStorage.setItem('saved_pin', pin);
-      localStorage.setItem('user_pin', pin);
-      localStorage.setItem('pin', pin);
+    // NYALAKAN KEMBANG API & UCAPAN
+    setShowWelcomePill(true); 
+    setShowFireworks(true);
 
-      // PROSES LOGIN KE SUPABASE DAHULU (BELUM NYALAKAN KEMBANG API)
-      const result = await handleUserLogin(isLoginMode, true);
+    // DIBERI DELAY 1.6 DETIK UNTUK EFEK ANIMASI KEMBANG API DULUAN
+    setTimeout(async () => {
+      try {
+        const result = await handleUserLogin(isLoginMode, true);
 
-      if (!result || result === false || (typeof result === 'object' && result.error)) {
-        setIsLoading(false);
+        if (!result || result === false || (typeof result === 'object' && result.error)) {
+          setShowWelcomePill(false);
+          setShowFireworks(false);
+          if (isSavedDevice) {
+            handleResetSavedDevice();
+          }
+          return setValidationMsg("Username atau PIN salah/diubah");
+        }
+
+        localStorage.setItem('hide_register', 'true');
+        localStorage.setItem('has_ever_logged_in', 'true');
+        setHasLoggedInBefore(true);
+
+        localStorage.setItem('remembered_username', username.trim().toLowerCase());
+        localStorage.setItem('remembered_pin', pin);
+
+      } catch (err) { 
+        setShowWelcomePill(false);
+        setShowFireworks(false);
         if (isSavedDevice) handleResetSavedDevice();
-        return setValidationMsg("Username atau PIN salah/diubah");
+        setValidationMsg("Username atau PIN telah diubah sayang"); 
       }
-
-      // KETIKA LOGIN BERHASIL -> BARU NYALAKAN KEMBANG API & UCAPAN
-      setShowWelcomePill(true); 
-      setShowFireworks(true);
-
-      localStorage.setItem('hide_register', 'true');
-      localStorage.setItem('has_ever_logged_in', 'true');
-      setHasLoggedInBefore(true);
-
-    } catch (err) { 
-      setIsLoading(false);
-      if (isSavedDevice) handleResetSavedDevice();
-      setValidationMsg("Username atau PIN telah diubah sayang"); 
-    }
+    }, 1600);
   };
 
   const handleAdminLoginWrapper = async () => { try { const result = await handleAdminLogin(); if (result === false || (result && result.error)) return; } catch (err) {} };
@@ -298,9 +300,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   let buttonStyleObj: React.CSSProperties = active3dSubmitStyle; 
   let buttonText = isLoginMode ? "Login" : "Register";
 
-  if (isLoading) {
-    buttonText = "Memproses...";
-  } else if (isSavedDevice && !isLocked) { 
+  if (isSavedDevice && !isLocked) { 
     buttonStyleObj = active3dSubmitStyle; 
     buttonText = "Masuk Chat"; 
   }
@@ -332,7 +332,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
         }
       `}</style>
 
-      {/* FIREWORKS CANVAS */}
+      {/* RENDER KEMBANG API */}
       {showFireworks && <FireworksCanvas />}
 
       <div className="relative w-full max-w-[380px] my-auto flex flex-col items-center pointer-events-auto">
