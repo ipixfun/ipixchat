@@ -14,14 +14,7 @@ import BottomNav from "../../components/bottomnav";
 import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); }
-  return outputArray;
-}
+function urlBase64ToUint8Array(base64String: string) { const padding = "=".repeat((4 - (base64String.length % 4)) % 4); const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/"); const rawData = window.atob(base64); const outputArray = new Uint8Array(rawData.length); for (let i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); } return outputArray; }
 
 export default function Home() {
   const pathname = usePathname();
@@ -45,12 +38,7 @@ export default function Home() {
   const CLOUDINARY_CLOUD_NAME = "bjamo8ld";
   const CLOUDINARY_UPLOAD_PRESET = "ipixchat";
 
-  useEffect(() => {
-    setCurrentHash(window.location.hash);
-    const handleHashChange = () => setCurrentHash(window.location.hash);
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
+  useEffect(() => { setCurrentHash(window.location.hash); const handleHashChange = () => setCurrentHash(window.location.hash); window.addEventListener("hashchange", handleHashChange); return () => window.removeEventListener("hashchange", handleHashChange); }, []);
 
   const getFmt = useMemo(() => ({
     notif: (n: number) => (n >= 1000 ? (n / 1000).toFixed(1).replace(".0", "") + "k" : n.toString()),
@@ -59,28 +47,17 @@ export default function Home() {
     greet: () => { const h = new Date().getHours(); return `Selamat ${h >= 5 && h < 12 ? "pagi" : h >= 12 && h < 15 ? "siang" : h >= 15 && h < 18 ? "sore" : "malam"} `; },
   }), []);
 
-  useEffect(() => {
-    const timer = setTimeout(() => { const el = document.getElementById(`bottom-anchor-private`); if (el) el.scrollIntoView({ behavior: "smooth", block: "end" }); }, 200);
-    return () => clearTimeout(timer);
-  }, [msgs.priv.length]);
+  useEffect(() => { const timer = setTimeout(() => { const el = document.getElementById(`bottom-anchor-private`); if (el) el.scrollIntoView({ behavior: "smooth", block: "end" }); }, 200); return () => clearTimeout(timer); }, [msgs.priv.length]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
       setUsersInfo((prev) => {
         const newStatus = { ...prev.status }; let changed = false;
-        for (const [user, data] of Object.entries(newStatus)) {
-          const isOnline = now - data.lastActive < 300000;
-          if (data.online !== isOnline) { newStatus[user] = { ...data, online: isOnline, offlineTime: getFmt.ago(new Date(data.lastActive)) }; changed = true; }
-        }
+        for (const [user, data] of Object.entries(newStatus)) { const isOnline = now - data.lastActive < 300000; if (data.online !== isOnline) { newStatus[user] = { ...data, online: isOnline, offlineTime: getFmt.ago(new Date(data.lastActive)) }; changed = true; } }
         return changed ? { ...prev, status: newStatus } : prev;
       });
-      setAdminStat((prev) => {
-        if (!prev.lastActive) return prev;
-        const isOnline = now - prev.lastActive < 300000;
-        if (prev.online !== isOnline) return { ...prev, online: isOnline, offlineTime: getFmt.ago(new Date(prev.lastActive)) };
-        return prev;
-      });
+      setAdminStat((prev) => { if (!prev.lastActive) return prev; const isOnline = now - prev.lastActive < 300000; if (prev.online !== isOnline) return { ...prev, online: isOnline, offlineTime: getFmt.ago(new Date(prev.lastActive)) }; return prev; });
     }, 15000);
     return () => clearInterval(interval);
   }, [getFmt]);
@@ -103,114 +80,50 @@ export default function Home() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     const remUser = localStorage.getItem("remembered_username"), remPin = localStorage.getItem("remembered_pin");
-    localStorage.clear(); sessionStorage.clear();
-    localStorage.setItem("hide_register", "true"); localStorage.setItem("has_ever_logged_in", "true");
-    if (remUser) localStorage.setItem("remembered_username", remUser);
-    if (remPin) localStorage.setItem("remembered_pin", remPin);
-    setAuth({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" });
-    window.location.reload();
+    localStorage.clear(); sessionStorage.clear(); localStorage.setItem("hide_register", "true"); localStorage.setItem("has_ever_logged_in", "true");
+    if (remUser) localStorage.setItem("remembered_username", remUser); if (remPin) localStorage.setItem("remembered_pin", remPin);
+    setAuth({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" }); window.location.reload();
   };
 
-  const triggerAdminChangeNotice = useCallback((newUsername?: string) => {
-    setAdminNoticeModal((prev) => { if (prev.isOpen) return prev; return { isOpen: true, message: "Nama atau PIN Anda telah diubah oleh Admin. Silakan klik tombol di bawah untuk kembali ke halaman Login.", newUsername }; });
-  }, []);
+  const triggerAdminChangeNotice = useCallback((newUsername?: string) => { setAdminNoticeModal((prev) => { if (prev.isOpen) return prev; return { isOpen: true, message: "Nama atau PIN Anda telah diubah oleh Admin. Silakan klik tombol di bawah untuk kembali ke halaman Login.", newUsername }; }); }, []);
 
   const handleConfirmAdminChangeLogout = async () => {
     const newUsername = adminNoticeModal.newUsername;
-    localStorage.removeItem("is_auth"); sessionStorage.removeItem("is_auth");
-    localStorage.removeItem("remembered_pin"); localStorage.removeItem("saved_pin");
-    localStorage.removeItem("user_pin"); localStorage.removeItem("pin");
+    localStorage.removeItem("is_auth"); sessionStorage.removeItem("is_auth"); localStorage.removeItem("remembered_pin"); localStorage.removeItem("saved_pin"); localStorage.removeItem("user_pin"); localStorage.removeItem("pin");
     if (newUsername) { localStorage.setItem("remembered_username", newUsername); localStorage.setItem("username", newUsername); localStorage.setItem("active_username", newUsername); }
-    await supabase.auth.signOut();
-    setAuth({ isAuth: false, isExist: true, user: newUsername || "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" });
-    setAdminNoticeModal({ isOpen: false, message: "" });
+    await supabase.auth.signOut(); setAuth({ isAuth: false, isExist: true, user: newUsername || "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" }); setAdminNoticeModal({ isOpen: false, message: "" });
   };
 
   const fetchData = useCallback(async () => {
-    const savedUser = typeof window !== "undefined" 
-      ? (localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username") || sessionStorage.getItem("active_username")) 
-      : "";
-    const savedPin = typeof window !== "undefined" 
-      ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || sessionStorage.getItem("saved_pin")) 
-      : "";
-
-    const targetUser = auth.user || savedUser;
-
-    if (!auth.isAuth || !targetUser) return;
+    const savedUser = typeof window !== "undefined" ? (localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username") || sessionStorage.getItem("active_username")) : "";
+    const savedPin = typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || sessionStorage.getItem("saved_pin")) : "";
+    const targetUser = auth.user || savedUser; if (!auth.isAuth || !targetUser) return;
 
     try {
       if (targetUser !== "Admin●ipix.my.id") {
-        const cleanTargetUser = targetUser.split("●")[0];
-        const { data: profileCheck } = await supabase.from("profiles").select("username, pin").ilike("username", cleanTargetUser).maybeSingle();
-
-        if (profileCheck) {
-          const currentValidPin = auth.pin || savedPin;
-
-          // HANYA COCOKKAN JIKA PIN MEMANG ADA DAN VALID 6 ANGKA
-          if (currentValidPin && currentValidPin.length === 6 && profileCheck.pin !== currentValidPin) {
-            triggerAdminChangeNotice(profileCheck.username);
-            return;
-          }
-        } else {
-          triggerAdminChangeNotice();
-          return;
-        }
+        const cleanTargetUser = targetUser.split("●")[0]; const { data: profileCheck } = await supabase.from("profiles").select("username, pin").ilike("username", cleanTargetUser).maybeSingle();
+        if (profileCheck) { const currentValidPin = auth.pin || savedPin; if (currentValidPin && currentValidPin.length === 6 && profileCheck.pin !== currentValidPin) { triggerAdminChangeNotice(profileCheck.username); return; } } else { triggerAdminChangeNotice(); return; }
       }
-
       const isAdminTab = ui.tab === "admin";
       let queryFilter = isAdminTab ? (usersInfo.selPriv ? `username.ilike.${usersInfo.selPriv},chat_with.ilike.${usersInfo.selPriv}` : "id.gt.0") : `username.ilike.${targetUser},chat_with.ilike.${targetUser}`;
-      const [{ data: bD }, { data: bW }, { data: prD }] = await Promise.all([
-        supabase.from("blocked_users").select("*"), supabase.from("blocked_words").select("word"), supabase.from("messages").select("*").or(queryFilter).order("created_at", { ascending: false }).limit(100),
-      ]);
+      const [{ data: bD }, { data: bW }, { data: prD }] = await Promise.all([supabase.from("blocked_users").select("*"), supabase.from("blocked_words").select("word"), supabase.from("messages").select("*").or(queryFilter).order("created_at", { ascending: false }).limit(100)]);
       if (bW) setCensor((p) => ({ ...p, words: bW.map((w) => w.word) }));
       if (prD) {
-        const vPriv = prD.reverse().filter((m) => !bD?.map((b) => b.username).includes(m.username));
-        setMsgs({ all: vPriv, pub: [], priv: vPriv });
+        const vPriv = prD.reverse().filter((m) => !bD?.map((b) => b.username).includes(m.username)); setMsgs({ all: vPriv, pub: [], priv: vPriv });
         const lAdmin = vPriv.filter((m) => m.username?.toLowerCase().includes("admin")).pop();
         if (lAdmin) { const adminTime = new Date(lAdmin.created_at).getTime(); setAdminStat({ online: Date.now() - adminTime < 300000, offlineTime: getFmt.ago(new Date(adminTime)), lastActive: adminTime }); }
-        const sMap: Record<string, any> = {};
-        vPriv.forEach((m) => { if (!m.username?.toLowerCase().includes("admin")) { const t = new Date(m.created_at).getTime(); sMap[m.username] = { lastActive: t, online: Date.now() - t < 300000, offlineTime: getFmt.ago(new Date(t)) }; } });
+        const sMap: Record<string, any> = {}; vPriv.forEach((m) => { if (!m.username?.toLowerCase().includes("admin")) { const t = new Date(m.created_at).getTime(); sMap[m.username] = { lastActive: t, online: Date.now() - t < 300000, offlineTime: getFmt.ago(new Date(t)) }; } });
         setUsersInfo((p) => ({ ...p, status: sMap, blockedList: bD || [] }));
       }
-
-      // FITUR DIPERBARUI: Mengambil seluruh user dari TABEL PROFILES agar user baru (tanpa chat) tetap tampil
       if (isAdminTab) {
-        const [{ data: profilesData }, { data: allMessages }] = await Promise.all([
-          supabase.from("profiles").select("username, pin, umur, berat, created_at"),
-          supabase.from("messages").select("username, chat_with, created_at, pesan").order("created_at", { ascending: false })
-        ]);
-
+        const [{ data: profilesData }, { data: allMessages }] = await Promise.all([supabase.from("profiles").select("username, pin, umur, berat, created_at"), supabase.from("messages").select("username, chat_with, created_at, pesan").order("created_at", { ascending: false })]);
         if (profilesData) {
-          const formattedPrivUsers = profilesData
-            // Filter mengecualikan akun admin
-            .filter((p: any) => !p.username?.toLowerCase().includes("admin"))
-            .map((p: any) => {
-              const uName = p.username;
-              
-              // Filter riwayat pesan user ini (dikirim atau diterima)
-              const userMsgs = (allMessages || []).filter(
-                (m: any) => m.username === uName || m.chat_with === uName
-              );
-
-              const totalUserMsgs = (allMessages || []).filter((m: any) => m.username === uName).length;
-              const totalAdminMsgs = (allMessages || []).filter((m: any) => m.chat_with === uName).length;
-              
-              // Objek pesan paling terakhir
-              const lastMsgObj = userMsgs[0]; // Karena allMessages disort descending (created_at)
-
-              return {
-                username: uName,
-                pin: p.pin || "",
-                umur: p.umur || "",
-                berat: p.berat || "",
-                totalUserMsgs,
-                totalAdminMsgs,
-                count: 0,
-                last_message: lastMsgObj ? lastMsgObj.pesan : null,
-                last_active: lastMsgObj ? lastMsgObj.created_at : p.created_at
-              };
-            });
-
+          const formattedPrivUsers = profilesData.filter((p: any) => !p.username?.toLowerCase().includes("admin")).map((p: any) => {
+            const uName = p.username; const userMsgs = (allMessages || []).filter((m: any) => m.username === uName || m.chat_with === uName);
+            const totalUserMsgs = (allMessages || []).filter((m: any) => m.username === uName).length; const totalAdminMsgs = (allMessages || []).filter((m: any) => m.chat_with === uName).length;
+            const lastMsgObj = userMsgs[0];
+            return { username: uName, pin: p.pin || "", umur: p.umur || "", berat: p.berat || "", totalUserMsgs, totalAdminMsgs, count: 0, last_message: lastMsgObj ? lastMsgObj.pesan : null, last_active: lastMsgObj ? lastMsgObj.created_at : p.created_at };
+          });
           setUsersInfo((prev) => ({ ...prev, privUsers: formattedPrivUsers }));
         }
       }
@@ -219,44 +132,28 @@ export default function Home() {
 
   const handleUsernameChange = async (enteredName: string) => {
     const trimmed = enteredName.slice(0, 20); setAuth((p) => ({ ...p, user: trimmed }));
-    if (trimmed.length > 2) {
-      try {
-        const { data: pD } = await supabase.from("profiles").select("username").ilike("username", trimmed.trim()).maybeSingle();
-        setAuth((p) => ({ ...p, isExist: !!pD?.username }));
-      } catch (err) { console.error("Gagal cek user:", err); }
-    } else setAuth((p) => ({ ...p, isExist: false }));
+    if (trimmed.length > 2) { try { const { data: pD } = await supabase.from("profiles").select("username").ilike("username", trimmed.trim()).maybeSingle(); setAuth((p) => ({ ...p, isExist: !!pD?.username })); } catch (err) { console.error("Gagal cek user:", err); } } else setAuth((p) => ({ ...p, isExist: false }));
   };
 
   const updateMsgLocal = (id: number, newText: string, isEdited: boolean, editedBy: string, imageUrl?: any, deletedByAdmin?: boolean) => {
-    setMsgs((prev) => {
-      const update = (arr: any[]) => arr.map((m) => m.id === id ? { ...m, pesan: newText, is_edited: isEdited !== undefined ? isEdited : m.is_edited, edited_by: editedBy !== undefined ? editedBy : m.edited_by, ...(imageUrl !== undefined ? { image_url: imageUrl } : {}), ...(deletedByAdmin !== undefined ? { deleted_by_admin: deletedByAdmin } : {}) } : m);
-      return { all: update(prev.all), pub: [], priv: update(prev.priv) };
-    });
+    setMsgs((prev) => { const update = (arr: any[]) => arr.map((m) => m.id === id ? { ...m, pesan: newText, is_edited: isEdited !== undefined ? isEdited : m.is_edited, edited_by: editedBy !== undefined ? editedBy : m.edited_by, ...(imageUrl !== undefined ? { image_url: imageUrl } : {}), ...(deletedByAdmin !== undefined ? { deleted_by_admin: deletedByAdmin } : {}) } : m); return { all: update(prev.all), pub: [], priv: update(prev.priv) }; });
   };
 
   const dbActions = {
     editMsg: async (mOrId: any) => {
-      const msgToEdit = typeof mOrId === "object" ? mOrId : msgs.all.find((x) => x.id === mOrId);
-      if (!msgToEdit) return;
+      const msgToEdit = typeof mOrId === "object" ? mOrId : msgs.all.find((x) => x.id === mOrId); if (!msgToEdit) return;
       if (auth.user !== "Admin●ipix.my.id" && parseInt(localStorage.getItem(`edit_${msgToEdit.id}`) || "0") >= 2) return showAlert("Batas 2x edit telah tercapai!", "Perhatian", "warning");
-      setInput((p) => ({ ...p, text: msgToEdit.pesan || "" }));
-      setInteract((p) => ({ ...p, editingMsg: msgToEdit, replyTo: null, popup: null, activeMenu: null }));
+      setInput((p) => ({ ...p, text: msgToEdit.pesan || "" })); setInteract((p) => ({ ...p, editingMsg: msgToEdit, replyTo: null, popup: null, activeMenu: null }));
       setTimeout(() => { const inputEl = document.getElementById("chat-input") as HTMLTextAreaElement; if (inputEl) { inputEl.focus(); inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length); inputEl.scrollIntoView({ behavior: "smooth", block: "center" }); } }, 100);
     },
     editLmt: async (m: any) => { dbActions.editMsg(m); },
     deleteImageOnly: async (m: any) => {
-      if (!m.image_url) return;
-      if (auth.user !== "Admin●ipix.my.id") return showAlert("Hanya Admin yang diizinkan untuk menghapus gambar!", "Akses Ditolak", "danger");
+      if (!m.image_url) return; if (auth.user !== "Admin●ipix.my.id") return showAlert("Hanya Admin yang diizinkan untuk menghapus gambar!", "Akses Ditolak", "danger");
       setConfirmModal({
         isOpen: true, type: "danger", title: "Hapus Gambar Saja (Admin)", message: "Gambar akan dihapus permanen dari server Cloudinary dan pesan. Lanjutkan?", confirmText: "Hapus Gambar", cancelText: "Batal",
         onConfirm: async () => {
-          try {
-            const res = await fetch("/api/delete-image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imageUrl: m.image_url, username: auth.user }) });
-            const data = await res.json();
-            if (!res.ok) { showAlert(data.error || "Gagal menghapus gambar dari Cloudinary.", "Gagal", "danger"); setConfirmModal((p) => ({ ...p, isOpen: false })); return; }
-          } catch (err) { console.error("Gagal menghapus gambar dari Cloudinary:", err); }
-          const hasText = m.pesan && m.pesan.trim() !== "" && !m.pesan.startsWith("___DELETED");
-          const newPesanTag = hasText ? m.pesan : "___DELETED_IMAGE___";
+          try { const res = await fetch("/api/delete-image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imageUrl: m.image_url, username: auth.user }) }); const data = await res.json(); if (!res.ok) { showAlert(data.error || "Gagal menghapus gambar dari Cloudinary.", "Gagal", "danger"); setConfirmModal((p) => ({ ...p, isOpen: false })); return; } } catch (err) { console.error("Gagal menghapus gambar dari Cloudinary:", err); }
+          const hasText = m.pesan && m.pesan.trim() !== "" && !m.pesan.startsWith("___DELETED"); const newPesanTag = hasText ? m.pesan : "___DELETED_IMAGE___";
           const { error } = await supabase.from("messages").update({ image_url: null, pesan: newPesanTag, deleted_by_admin: true }).eq("id", m.id);
           if (error) showAlert("Gagal memperbarui status pesan di database.", "Gagal", "danger"); else updateMsgLocal(m.id, newPesanTag, m.is_edited, m.edited_by, null, true);
           fetchData(); setConfirmModal((p) => ({ ...p, isOpen: false }));
@@ -288,17 +185,27 @@ export default function Home() {
         }
       });
     },
-    emptyTrash: async () => {
-      setConfirmModal({
-        isOpen: true, type: "danger", title: "Kosongkan Sampah", message: "Kosongkan semua pesan yang telah dihapus di tong sampah secara permanen?", confirmText: "Kosongkan", cancelText: "Batal",
-        onConfirm: async () => { const { error } = await supabase.from("messages").delete().like("pesan", "___DELETED%"); if (error) showAlert("Gagal mengosongkan tempat sampah.", "Gagal", "danger"); fetchData(); setConfirmModal((p) => ({ ...p, isOpen: false })); }
-      });
-    },
+    emptyTrash: async () => { setConfirmModal({ isOpen: true, type: "danger", title: "Kosongkan Sampah", message: "Kosongkan semua pesan yang telah dihapus di tong sampah secara permanen?", confirmText: "Kosongkan", cancelText: "Batal", onConfirm: async () => { const { error } = await supabase.from("messages").delete().like("pesan", "___DELETED%"); if (error) showAlert("Gagal mengosongkan tempat sampah.", "Gagal", "danger"); fetchData(); setConfirmModal((p) => ({ ...p, isOpen: false })); } }); },
     blkUser: async (arg1: string, arg2?: string) => {
       const targetUsername = arg2 || arg1;
       setConfirmModal({
         isOpen: true, type: "danger", title: "Blokir User", message: `Apakah Anda yakin ingin memblokir user ${targetUsername}?`, confirmText: "Blokir", cancelText: "Batal",
-        onConfirm: async () => { await supabase.from("blocked_users").insert([{ username: targetUsername }]); fetchData(); setConfirmModal((p) => ({ ...p, isOpen: false })); }
+        onConfirm: async () => { const { error } = await supabase.from("blocked_users").insert([{ username: targetUsername }]); if (error) showAlert("Gagal memblokir user.", "Gagal", "danger"); else showAlert(`User ${targetUsername} berhasil diblokir.`, "Sukses", "success"); fetchData(); setConfirmModal((p) => ({ ...p, isOpen: false })); }
+      });
+    },
+    deleteUserAccount: async (targetUsername: string) => {
+      setConfirmModal({
+        isOpen: true, type: "danger", title: "Hapus Akun User Permanen", message: `Yakin ingin MENGHAPUS AKUN "${targetUsername}"? Profil dan seluruh pesan user ini di Supabase akan dihapus permanen.`, confirmText: "Hapus Akun", cancelText: "Batal",
+        onConfirm: async () => {
+          try {
+            const { data: targetMsgs } = await supabase.from("messages").select("image_url").or(`username.ilike.${targetUsername},chat_with.ilike.${targetUsername}`).not("image_url", "is", null);
+            if (targetMsgs) { for (const item of targetMsgs) { if (item.image_url) { try { await fetch("/api/delete-image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imageUrl: item.image_url, username: auth.user }) }); } catch (err) {} } } }
+            const { error: profileErr } = await supabase.from("profiles").delete().ilike("username", targetUsername);
+            const { error: msgErr } = await supabase.from("messages").delete().or(`username.ilike.${targetUsername},chat_with.ilike.${targetUsername}`);
+            if (profileErr || msgErr) { showAlert("Gagal menghapus user dari Supabase.", "Gagal", "danger"); console.error(profileErr || msgErr); } else { showAlert(`Akun user ${targetUsername} berhasil dihapus dari Supabase.`, "Sukses", "success"); if (usersInfo.selPriv === targetUsername) { setUsersInfo((p) => ({ ...p, selPriv: null })); } fetchData(); }
+          } catch (err) { console.error("Error deleting user:", err); showAlert("Terjadi kesalahan saat menghapus user.", "Gagal", "danger"); }
+          setConfirmModal((p) => ({ ...p, isOpen: false }));
+        }
       });
     },
     deleteAllUserMsgs: async (targetUsername: string) => {
@@ -323,24 +230,16 @@ export default function Home() {
       const { error: profileErr } = await supabase.from("profiles").update({ username: newUsername }).ilike("username", oldUsername);
       if (profileErr) { showAlert("Gagal mengubah username.", "Gagal", "danger"); console.error(profileErr); return; }
       await supabase.from("messages").insert([{ username: "Admin●ipix.my.id", pesan: `___KICK_SIGNAL___:${oldUsername}:NEWNAME:${newUsername}`, chat_with: oldUsername, user_browser: navigator.userAgent }]);
-      await supabase.from("messages").update({ username: newUsername }).eq("username", oldUsername);
-      await supabase.from("messages").update({ chat_with: newUsername }).eq("chat_with", oldUsername);
+      await supabase.from("messages").update({ username: newUsername }).eq("username", oldUsername); await supabase.from("messages").update({ chat_with: newUsername }).eq("chat_with", oldUsername);
       fetchData();
     },
-    addWrd: async () => {
-      if (censor.newWord.trim()) {
-        const { error } = await supabase.from("blocked_words").insert([{ word: censor.newWord.trim().toLowerCase() }]);
-        if (error) { showAlert("Gagal menambah kata terlarang.", "Gagal", "danger"); console.error(error); } else { setCensor((p) => ({ ...p, newWord: "" })); fetchData(); }
-      }
-    },
+    addWrd: async () => { if (censor.newWord.trim()) { const { error } = await supabase.from("blocked_words").insert([{ word: censor.newWord.trim().toLowerCase() }]); if (error) { showAlert("Gagal menambah kata terlarang.", "Gagal", "danger"); console.error(error); } else { setCensor((p) => ({ ...p, newWord: "" })); fetchData(); } } },
     rmWrd: async (w: string) => { const { error } = await supabase.from("blocked_words").delete().eq("word", w); if (error) showAlert("Gagal menghapus kata terlarang.", "Gagal", "danger"); fetchData(); },
     togglePin: async (msg: any) => {
       try {
         const nextState = !msg.is_pinned, isMsgFromAdmin = msg.username === "Admin●ipix.my.id";
         if (nextState) { const messagesToUnpin = msgs.priv.filter(m => m.is_pinned && (isMsgFromAdmin ? m.username === "Admin●ipix.my.id" : m.username !== "Admin●ipix.my.id")); for (const mUnpin of messagesToUnpin) await supabase.from("messages").update({ is_pinned: false }).eq("id", mUnpin.id); }
-        const { error } = await supabase.from("messages").update({ is_pinned: nextState }).eq("id", msg.id);
-        if (error) throw error;
-        fetchData();
+        const { error } = await supabase.from("messages").update({ is_pinned: nextState }).eq("id", msg.id); if (error) throw error; fetchData();
       } catch (err) { showAlert("Gagal memperbarui status sematan.", "Gagal", "danger"); }
     },
     editPinned: async (currentPinned: any) => {
@@ -374,21 +273,13 @@ export default function Home() {
     chk();
   }, [pathname]);
 
-  useEffect(() => {
-    if (!mounted || !auth.isAuth || auth.user === "Admin●ipix.my.id") return;
-    const checkInterval = setInterval(() => { fetchData(); }, 5000);
-    return () => clearInterval(checkInterval);
-  }, [mounted, auth.isAuth, auth.user, fetchData]);
+  useEffect(() => { if (!mounted || !auth.isAuth || auth.user === "Admin●ipix.my.id") return; const checkInterval = setInterval(() => { fetchData(); }, 5000); return () => clearInterval(checkInterval); }, [mounted, auth.isAuth, auth.user, fetchData]);
 
   useEffect(() => {
-    if (!mounted) return;
-    fetchData();
+    if (!mounted) return; fetchData();
     const messageSubscription = supabase.channel("public:messages_realtime_channel").on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload: any) => {
       const newMsg = payload.new;
-      if (newMsg?.pesan?.startsWith("___KICK_SIGNAL___")) {
-        const myUsername = (localStorage.getItem("remembered_username") || localStorage.getItem("username") || auth.user || "").toLowerCase(), parts = newMsg.pesan.split(":");
-        if (parts[1]?.toLowerCase() === myUsername) { triggerAdminChangeNotice(parts[2] === "NEWNAME" ? parts[3] : undefined); return; }
-      }
+      if (newMsg?.pesan?.startsWith("___KICK_SIGNAL___")) { const myUsername = (localStorage.getItem("remembered_username") || localStorage.getItem("username") || auth.user || "").toLowerCase(), parts = newMsg.pesan.split(":"); if (parts[1]?.toLowerCase() === myUsername) { triggerAdminChangeNotice(parts[2] === "NEWNAME" ? parts[3] : undefined); return; } }
       fetchData();
     }).subscribe();
     return () => { supabase.removeChannel(messageSubscription); };
@@ -398,19 +289,9 @@ export default function Home() {
     if (!mounted || !auth.isAuth || !auth.user) return;
     const setupPushNotifications = async () => {
       if (Capacitor.isNativePlatform()) {
-        try {
-          let perm = await PushNotifications.checkPermissions(); if (perm.receive === "prompt") perm = await PushNotifications.requestPermissions();
-          if (perm.receive === "granted") { await PushNotifications.register(); PushNotifications.addListener("registration", async (token) => { await fetch("/api/save-subscription", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: auth.user, subscription: { type: "fcm", token: token.value } }) }); }); }
-        } catch (err) {}
+        try { let perm = await PushNotifications.checkPermissions(); if (perm.receive === "prompt") perm = await PushNotifications.requestPermissions(); if (perm.receive === "granted") { await PushNotifications.register(); PushNotifications.addListener("registration", async (token) => { await fetch("/api/save-subscription", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: auth.user, subscription: { type: "fcm", token: token.value } }) }); }); } } catch (err) {}
       } else if ("serviceWorker" in navigator && "PushManager" in window) {
-        try {
-          const reg = await navigator.serviceWorker.register("/sw.js"), permission = await Notification.requestPermission();
-          if (permission === "granted") {
-            const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY; if (!vapidPublicKey) return;
-            let sub = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) });
-            await supabase.from("push_subscriptions").upsert({ username: auth.user, subscription: JSON.stringify(sub) }, { onConflict: "username" });
-          }
-        } catch (err) {}
+        try { const reg = await navigator.serviceWorker.register("/sw.js"), permission = await Notification.requestPermission(); if (permission === "granted") { const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY; if (!vapidPublicKey) return; let sub = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) }); await supabase.from("push_subscriptions").upsert({ username: auth.user, subscription: JSON.stringify(sub) }, { onConflict: "username" }); } } catch (err) {}
       }
     };
     setupPushNotifications();
@@ -422,36 +303,24 @@ export default function Home() {
     if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("action") === "reply") { focusChatInput(); window.history.replaceState({}, document.title, window.location.pathname); }
     const handleSWMessage = (e: MessageEvent) => { if (e.data && (e.data.type === "ACTION_REPLY" || e.data.type === "ACTION_OPEN")) focusChatInput(); };
     if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", handleSWMessage);
-    let pushListener: any;
-    if (Capacitor.isNativePlatform()) pushListener = PushNotifications.addListener("pushNotificationActionPerformed", () => { focusChatInput(); });
+    let pushListener: any; if (Capacitor.isNativePlatform()) pushListener = PushNotifications.addListener("pushNotificationActionPerformed", () => { focusChatInput(); });
     return () => { if ("serviceWorker" in navigator) navigator.serviceWorker.removeEventListener("message", handleSWMessage); if (pushListener) pushListener.remove(); };
   }, [mounted]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    if (file.size > 5 * 1024 * 1024) return showAlert("Ukuran gambar maksimal 5MB!", "Ukuran Terlalu Besar", "warning");
-    if (auth.user !== "Admin●ipix.my.id") {
-      const { count } = await supabase.from("messages").select("*", { count: "exact", head: true }).eq("username", auth.user).not("image_url", "is", null).gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-      if (count && count >= 2) return showAlert("Batas maksimal upload gambar adalah 2x dalam 24 jam.", "Batas Upload", "warning");
-    }
-    setInput((p) => ({ ...p, uploadingImage: true }));
-    const formData = new FormData(); formData.append("file", file); formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-    try {
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: "POST", body: formData }), data = await res.json();
-      if (data.secure_url) setInput((p) => ({ ...p, image: data.secure_url, uploadingImage: false })); else throw new Error("Upload gagal");
-    } catch (err) { showAlert("Gagal mengunggah gambar. Pastikan konfigurasi Cloudinary benar.", "Gagal Upload", "danger"); setInput((p) => ({ ...p, uploadingImage: false })); }
+    const file = e.target.files?.[0]; if (!file) return; if (file.size > 5 * 1024 * 1024) return showAlert("Ukuran gambar maksimal 5MB!", "Ukuran Terlalu Besar", "warning");
+    if (auth.user !== "Admin●ipix.my.id") { const { count } = await supabase.from("messages").select("*", { count: "exact", head: true }).eq("username", auth.user).not("image_url", "is", null).gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()); if (count && count >= 2) return showAlert("Batas maksimal upload gambar adalah 2x dalam 24 jam.", "Batas Upload", "warning"); }
+    setInput((p) => ({ ...p, uploadingImage: true })); const formData = new FormData(); formData.append("file", file); formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+    try { const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: "POST", body: formData }), data = await res.json(); if (data.secure_url) setInput((p) => ({ ...p, image: data.secure_url, uploadingImage: false })); else throw new Error("Upload gagal"); } catch (err) { showAlert("Gagal mengunggah gambar. Pastikan konfigurasi Cloudinary benar.", "Gagal Upload", "danger"); setInput((p) => ({ ...p, uploadingImage: false })); }
   };
 
   const sendMsg = async (e: React.FormEvent) => {
     e.preventDefault(); if ((!input.text.trim() && !input.image) || input.sending) return;
     if (usersInfo.blockedList.some((b) => b.username === auth.user)) return showAlert("Akun Anda telah diblokir. Pesan tidak dapat dikirim.", "Akun Diblokir", "danger");
     if (isCensored(input.text)) return showAlert("Pesan gagal dikirim karena mengandung kata terlarang!", "Pesan Ditolak", "danger");
-    setInput((p) => ({ ...p, sending: true }));
-    let txt = input.text.trim();
+    setInput((p) => ({ ...p, sending: true })); let txt = input.text.trim();
     if (interact.editingMsg) {
-      const mId = interact.editingMsg.id;
-      if (auth.user !== "Admin●ipix.my.id") localStorage.setItem(`edit_${mId}`, (parseInt(localStorage.getItem(`edit_${mId}`) || "0") + 1).toString());
-      localStorage.setItem(`edit_count_${mId}`, "1");
+      const mId = interact.editingMsg.id; if (auth.user !== "Admin●ipix.my.id") localStorage.setItem(`edit_${mId}`, (parseInt(localStorage.getItem(`edit_${mId}`) || "0") + 1).toString()); localStorage.setItem(`edit_count_${mId}`, "1");
       const { error } = await supabase.from("messages").update({ pesan: txt, is_edited: true, edited_by: auth.user }).eq("id", mId);
       if (error) showAlert("Gagal mengedit pesan.", "Gagal", "danger"); else updateMsgLocal(mId, txt, true, auth.user);
       setInput({ text: "", sending: false, blink: false, image: null, uploadingImage: false }); setInteract((p) => ({ ...p, editingMsg: null, replyTo: null })); setUi((p) => ({ ...p, inputFocus: false }));
@@ -459,10 +328,7 @@ export default function Home() {
       fetchData(); return;
     }
     if (interact.replyTo) { const q = interact.replyTo.pesan?.trim() || (interact.replyTo.image_url ? `📷 Gambar #${interact.replyTo.id}` : "Pesan"); txt = `@${interact.replyTo.username.split("●")[0]} ("${q.length > 30 ? q.substring(0, 30) + "..." : q}") ${input.text.trim()}`; }
-    if (auth.user !== "Admin●ipix.my.id") {
-      const { count } = await supabase.from("messages").select("*", { count: "exact", head: true }).eq("username", auth.user).gte("created_at", new Date(Date.now() - 300000).toISOString());
-      if (typeof count === "number" && count >= 5) { showAlert("Batas maksimum tercapai: Anda hanya dapat mengirim 5 pesan per 5 menit.", "Batas Pesan", "warning"); setInput((p) => ({ ...p, sending: false })); return; }
-    }
+    if (auth.user !== "Admin●ipix.my.id") { const { count } = await supabase.from("messages").select("*", { count: "exact", head: true }).eq("username", auth.user).gte("created_at", new Date(Date.now() - 300000).toISOString()); if (typeof count === "number" && count >= 5) { showAlert("Batas maksimum tercapai: Anda hanya dapat mengirim 5 pesan per 5 menit.", "Batas Pesan", "warning"); setInput((p) => ({ ...p, sending: false })); return; } }
     const recipientUsername = ui.tab === "user" ? "Admin●ipix.my.id" : usersInfo.selPriv;
     const { error } = await supabase.from("messages").insert([{ username: auth.user, pesan: txt, image_url: input.image, user_browser: navigator.userAgent, chat_with: recipientUsername }]);
     if (!error) { try { await fetch("/api/send-push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientUsername, senderUsername: auth.user, title: `Pesan baru dari ${auth.user.split("●")[0]}`, body: txt || (input.image ? "📷 Mengirim Gambar" : "Pesan baru") }) }); } catch (err) {} }
@@ -531,7 +397,6 @@ export default function Home() {
                     storage.setItem("active_username", finalUsername); storage.setItem("username", finalUsername); storage.setItem("saved_pin", plainPin); storage.setItem("user_pin", plainPin); storage.setItem("pin", plainPin); storage.setItem("is_auth", "true"); storage.setItem("active_tab", "user");
                     localStorage.setItem("hide_register", "true"); localStorage.setItem("has_ever_logged_in", "true");
                     if (rememberMe) { localStorage.setItem("remembered_username", finalUsername); localStorage.setItem("remembered_pin", plainPin); }
-                    
                     setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, umur: existUser.umur || "", berat: existUser.berat || "", pin: plainPin }));
                     return true;
                   }
@@ -543,7 +408,6 @@ export default function Home() {
                   storage.setItem("active_username", finalUsername); storage.setItem("username", finalUsername); storage.setItem("saved_pin", plainPin); storage.setItem("user_pin", plainPin); storage.setItem("pin", plainPin); storage.setItem("is_auth", "true"); storage.setItem("active_tab", "user");
                   localStorage.setItem("hide_register", "true"); localStorage.setItem("has_ever_logged_in", "true");
                   if (rememberMe) { localStorage.setItem("remembered_username", finalUsername); localStorage.setItem("remembered_pin", plainPin); }
-                  
                   setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: plainPin }));
                   return true;
                 } catch (e) { return { error: true }; }
@@ -560,8 +424,10 @@ export default function Home() {
         <PinnedMessage adminPinnedMsg={adminPinnedMsg} userPinnedMsg={userPinnedMsg} uiTab={ui.tab} onEditPinned={dbActions.editPinned} onScrollToMsg={scrollMsg} />
       )}
       <div className="flex-1 w-full relative flex overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
-        {ui.tab === "admin" && currentHash === "#block" && auth.isAuth ? (<Block blockedList={usersInfo.blockedList} unblock={async (identifier: string) => { await supabase.from("blocked_users").delete().eq("username", identifier); if (!isNaN(Number(identifier))) await supabase.from("blocked_users").delete().eq("id", Number(identifier)); fetchData(); }} blockedWords={censor.words} newWord={censor.newWord} setNewWord={(w: string) => setCensor((p) => ({ ...p, newWord: w }))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} />) : (
-          <ChatLayout cMode="private" viewMode="full-private" hInteract={() => {}} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={[]} privMsgs={msgs.priv} isPill={false} pDelta={0} pTouchX={0} capIdx={0} setPTouchX={() => {}} setPDelta={() => {}} setCapPause={() => {}} setIsPill={() => {}} renderMsgs={renderMsgs} renderInput={() => <></>} fmtTime={getFmt.time} setSelPriv={(u: string) => setUsersInfo((p) => ({ ...p, selPriv: u }))} onBlockUser={dbActions.blkUser} onDeleteAllMsgs={dbActions.deleteAllUserMsgs} onUpdatePin={dbActions.updatePin} onUpdateUsername={dbActions.updateUsername} />
+        {ui.tab === "admin" && currentHash === "#block" && auth.isAuth ? (
+          <Block blockedList={usersInfo.blockedList} unblock={async (identifier: string) => { await supabase.from("blocked_users").delete().eq("username", identifier); if (!isNaN(Number(identifier))) await supabase.from("blocked_users").delete().eq("id", Number(identifier)); fetchData(); }} blockedWords={censor.words} newWord={censor.newWord} setNewWord={(w: string) => setCensor((p) => ({ ...p, newWord: w }))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} />
+        ) : (
+          <ChatLayout cMode="private" viewMode="full-private" hInteract={() => {}} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={[]} privMsgs={msgs.priv} isPill={false} pDelta={0} pTouchX={0} capIdx={0} setPTouchX={() => {}} setPDelta={() => {}} setCapPause={() => {}} setIsPill={() => {}} renderMsgs={renderMsgs} renderInput={() => <></>} fmtTime={getFmt.time} setSelPriv={(u: string) => setUsersInfo((p) => ({ ...p, selPriv: u }))} onBlockUser={dbActions.blkUser} onDeleteUser={dbActions.deleteUserAccount} onDeleteAllMsgs={dbActions.deleteAllUserMsgs} onUpdatePin={dbActions.updatePin} onUpdateUsername={dbActions.updateUsername} />
         )}
       </div>
       {currentHash !== "#block" && auth.isAuth && <ChatInput input={input} setInput={setInput} interact={interact} setInteract={setInteract} ui={ui} setUi={setUi} auth={auth} usersInfo={usersInfo} currentHash={currentHash} isBlocked={usersInfo.blockedList.some((b) => b.username === auth.user)} hasInputReady={input.text.trim().length > 0 || input.image !== null} handleImageUpload={handleImageUpload} scrollMsg={scrollMsg} sendMsg={sendMsg} handleLogout={handleLogout} />}

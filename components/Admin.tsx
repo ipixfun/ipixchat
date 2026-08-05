@@ -62,7 +62,6 @@ export default function Admin({
       const rect = dropdownRef.current.getBoundingClientRect();
       const spaceAbove = rect.top;
       const spaceBelow = window.innerHeight - rect.bottom;
-
       if (spaceBelow > spaceAbove && spaceBelow > 200) {
         setDropdownPosition("bottom");
       } else {
@@ -90,12 +89,10 @@ export default function Admin({
   const handleSelectFromDropdown = (username: string) => {
     setIsUserDropdownOpen(false);
     setHighlightedUser(username);
-
     const cardEl = document.getElementById(`user-card-${username}`);
     if (cardEl) {
       cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-
     setTimeout(() => {
       setHighlightedUser(null);
     }, 2500);
@@ -140,22 +137,19 @@ export default function Admin({
     }
   };
 
+  // EKSEKUSI HAPUS USER
   const handleDeleteUserAccount = (e: React.MouseEvent, username: string) => {
     e.stopPropagation();
-    if (confirm(`Hapus akun user "${username}" secara permanen dari Supabase? Semua data profil & pesan user ini akan terhapus.`)) {
-      if (onDeleteUser) {
-        onDeleteUser(username);
-      }
+    if (onDeleteUser) {
+      onDeleteUser(username);
     }
   };
 
-  // HANDLER BLOKIR USER DARI MENU PULL-DOWN
+  // EKSEKUSI BLOKIR USER
   const handleBlockUserAccount = (e: React.MouseEvent, username: string) => {
     e.stopPropagation();
-    if (confirm(`Apakah Anda yakin ingin MEMBLOKIR user "${username}"?`)) {
-      if (onBlockUser) {
-        onBlockUser(username);
-      }
+    if (onBlockUser) {
+      onBlockUser(username);
     }
   };
 
@@ -257,7 +251,6 @@ export default function Admin({
       {/* KOLOM KONTROL UTAMA DI BAWAH */}
       <div className="fixed bottom-[52px] left-2.5 right-2.5 z-40 bg-white/95 backdrop-blur-md p-2.5 rounded-xl border border-gray-200 shadow-xl flex flex-col gap-1.5">
         <div className="flex items-center gap-1.5">
-          {/* DROPDOWN SIMPLE */}
           <div className="relative flex-1" ref={dropdownRef}>
             <button
               type="button"
@@ -270,7 +263,7 @@ export default function Admin({
               </span>
             </button>
 
-            {/* POPUP MENU ROLL PULL-UP */}
+            {/* POPUP PULL-DOWN / PULL-UP */}
             {isUserDropdownOpen && (
               <div
                 className={`fixed left-2 right-2 bg-slate-100 border border-slate-300 rounded-xl shadow-2xl max-h-[320px] overflow-y-auto z-[99999] p-1.5 flex flex-col gap-1 transition-all ${
@@ -286,7 +279,6 @@ export default function Admin({
                     const username = typeof u === "string" ? u : u.username;
                     const umur = typeof u === "object" && u.umur ? u.umur : "-";
                     const berat = typeof u === "object" && u.berat ? u.berat : "-";
-
                     const userMsgs = typeof u === "object" ? (u.totalUserMsgs || 0) : 0;
                     const adminMsgs = typeof u === "object" ? (u.totalAdminMsgs || 0) : 0;
                     const totalPesan = userMsgs + adminMsgs;
@@ -302,7 +294,7 @@ export default function Admin({
                             type="button"
                             onClick={(e) => handleDeleteUserAccount(e, username)}
                             className="px-1.5 py-0.5 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white border border-red-200 rounded text-[9px] font-bold shrink-0 cursor-pointer transition-colors"
-                            title="Hapus User"
+                            title="Hapus User dari Supabase"
                           >
                             Hapus
                           </button>
@@ -316,9 +308,8 @@ export default function Admin({
                           </span>
                         </div>
 
-                        {/* KANAN: PILL ANGKA + PILL BLOKIR DI BELAKANGNYA */}
+                        {/* KANAN: STATISTIK & TOMBOL BLOKIR */}
                         <div className="flex items-center gap-1 shrink-0">
-                          {/* PILL ANGKA (UMUR: HIJAU | BERAT: MERAH | PESAN: BIRU) */}
                           <div
                             onClick={() => handleSelectFromDropdown(username)}
                             className="bg-gray-50 text-[10px] font-black px-2 py-0.5 rounded-full border border-gray-200 whitespace-nowrap shadow-2xs flex items-center gap-0.5 cursor-pointer"
@@ -330,7 +321,6 @@ export default function Admin({
                             <span className="text-blue-600">{totalPesan}</span>
                           </div>
 
-                          {/* PILL BLOKIR (DIBELAKANG JUMLAH PESAN) */}
                           <button
                             type="button"
                             onClick={(e) => handleBlockUserAccount(e, username)}
