@@ -7,6 +7,7 @@ interface AdminProps {
   formatMessageTime: (time: any) => string;
   onDeleteAllMsgs?: (username: string) => void;
   onDeleteUser?: (username: string) => void;
+  onBlockUser?: (username: string) => void;
   onUpdatePin?: (username: string, newPin: string) => void;
   onUpdateUsername?: (oldUsername: string, newUsername: string) => void;
   onRefresh?: () => void;
@@ -18,6 +19,7 @@ export default function Admin({
   formatMessageTime,
   onDeleteAllMsgs,
   onDeleteUser,
+  onBlockUser,
   onUpdatePin,
   onUpdateUsername,
   onRefresh
@@ -28,13 +30,12 @@ export default function Admin({
   }>({ isOpen: false, title: "", value: "", onConfirm: () => {} });
 
   const [clearedUserMsgs, setClearedUserMsgs] = useState<Record<string, boolean>>({});
+  const [highlightedUser, setHighlightedUser] = useState<string | null>(null);
 
-  // State & Ref untuk Dropdown Dinamis di Admin
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState<"top" | "bottom">("top");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Filter mengecualikan akun admin dari daftar tampilan
   const filteredUsers = privateUsers.filter((u: any) => {
     const name = (typeof u === "string" ? u : u.username || "").toLowerCase();
     const email = (typeof u === "object" && u.email ? u.email : "").toLowerCase();
@@ -56,7 +57,6 @@ export default function Admin({
     });
   }, [privateUsers]);
 
-  // Hitung posisi terbawah / teratas untuk popup dropdown
   useEffect(() => {
     if (isUserDropdownOpen && dropdownRef.current) {
       const rect = dropdownRef.current.getBoundingClientRect();
@@ -71,7 +71,6 @@ export default function Admin({
     }
   }, [isUserDropdownOpen]);
 
-  // Tutup dropdown jika klik di luar
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -86,6 +85,20 @@ export default function Admin({
     const username = typeof user === "string" ? user : user.username;
     setSelectedPrivateUser(username);
     setReadBaselines((prev) => ({ ...prev, [username]: user.totalUserMsgs || 0 }));
+  };
+
+  const handleSelectFromDropdown = (username: string) => {
+    setIsUserDropdownOpen(false);
+    setHighlightedUser(username);
+
+    const cardEl = document.getElementById(`user-card-${username}`);
+    if (cardEl) {
+      cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    setTimeout(() => {
+      setHighlightedUser(null);
+    }, 2500);
   };
 
   const handleEditPin = (e: React.MouseEvent, user: any) => {
@@ -127,18 +140,53 @@ export default function Admin({
     }
   };
 
+  const handleDeleteUserAccount = (e: React.MouseEvent, username: string) => {
+    e.stopPropagation();
+    if (confirm(`Hapus akun user "${username}" secara permanen dari Supabase? Semua data profil & pesan user ini akan terhapus.`)) {
+      if (onDeleteUser) {
+        onDeleteUser(username);
+      }
+    }
+  };
+
+  // HANDLER BLOKIR USER DARI MENU PULL-DOWN
+  const handleBlockUserAccount = (e: React.MouseEvent, username: string) => {
+    e.stopPropagation();
+    if (confirm(`Apakah Anda yakin ingin MEMBLOKIR user "${username}"?`)) {
+      if (onBlockUser) {
+        onBlockUser(username);
+      }
+    }
+  };
+
   return (
-    <div className="flex flex-col min-h-full p-3 gap-4 relative pb-44">
-      {/* LIST KARTU USER */}
-      <div className="space-y-3 flex-1">
+    <div className="flex flex-col min-h-full p-2.5 gap-3 relative pb-32">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes shakeGlow {
+          0%, 100% { transform: scale(1); box-shadow: 0 0 0px transparent; }
+          10%, 30%, 50%, 70%, 90% { transform: scale(1.02) translateX(-4px); }
+          20%, 40%, 60%, 80% { transform: scale(1.02) translateX(4px); }
+          15%, 85% { border-color: #f59e0b !important; box-shadow: 0 0 20px rgba(245, 158, 11, 0.8), inset 0 0 10px rgba(245, 158, 11, 0.3); }
+        }
+        .active-card-highlight {
+          animation: shakeGlow 2.2s cubic-bezier(.36,.07,.19,.97) both !important;
+          border-width: 2px !important;
+          border-color: #f59e0b !important;
+          z-index: 10;
+        }
+      ` }} />
+
+      {/* LIST KARTU USER BESAR */}
+      <div className="space-y-2.5 flex-1">
         {filteredUsers.length === 0 ? (
-          <div className="bg-white p-6 rounded-2xl border text-center text-gray-400 font-medium text-sm">
+          <div className="bg-white p-5 rounded-2xl border text-center text-gray-400 font-medium text-xs">
             Belum ada user terdaftar.
           </div>
         ) : (
           filteredUsers.map((user: any, index: number) => {
             const identifier = user.username || `anonymous-${index}`;
             const isCleared = clearedUserMsgs[user.username];
+            const isHighlighted = highlightedUser === user.username;
             
             const totalUserMsgs = isCleared ? 0 : (user.totalUserMsgs || 0);
             const totalAdminMsgs = isCleared ? 0 : (user.totalAdminMsgs || 0);
@@ -158,20 +206,21 @@ export default function Admin({
             return (
               <div 
                 key={identifier} 
+                id={`user-card-${user.username}`}
                 onClick={() => handleUserClick(user)} 
-                className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col group gap-2 border" 
-                style={{ borderColor: "var(--card-border)" }}
+                className={`bg-white p-3.5 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col group gap-1.5 border ${
+                  isHighlighted ? "active-card-highlight" : ""
+                }`} 
+                style={{ borderColor: isHighlighted ? "#f59e0b" : "var(--card-border)" }}
               >
                 <div className="flex justify-between items-center w-full gap-2">
                   <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                    {/* TOMBOL EDIT USERNAME */}
                     <button onClick={(e) => handleEditUsername(e, user)} className="text-gray-400 hover:text-blue-600 p-0.5 rounded transition-colors text-xs shrink-0" title="Edit Username">✏️</button>
-                    {/* USERNAME */}
-                    <span className="font-bold text-blue-700 text-sm sm:text-base tracking-tight truncate max-w-[210px] sm:max-w-[280px]" title={user.username || 'User Tanpa Nama'}>
+                    <span className="font-bold text-blue-700 text-xs sm:text-sm tracking-tight truncate max-w-[210px] sm:max-w-[280px]" title={user.username || 'User Tanpa Nama'}>
                       {user.username || 'User Tanpa Nama'}
                     </span>
                   </div>
-                  <div className={`text-[10px] sm:text-xs font-medium whitespace-nowrap shrink-0 text-right ${hasUnread ? 'text-emerald-600 font-semibold' : 'text-gray-400'}`}>
+                  <div className={`text-[10px] font-medium whitespace-nowrap shrink-0 text-right ${hasUnread ? 'text-emerald-600 font-semibold' : 'text-gray-400'}`}>
                     {user.last_active ? formatMessageTime(user.last_active) : "-"}
                   </div>
                 </div>
@@ -181,22 +230,22 @@ export default function Admin({
                     {lastMsg}
                   </div>
                   {(user.umur || user.berat) && (
-                    <div className="flex gap-1.5 shrink-0 justify-end items-center">
+                    <div className="flex gap-1 shrink-0 justify-end items-center">
                       {user.umur && <span className="text-[9px] font-bold bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded border border-gray-200 whitespace-nowrap">U: {user.umur}</span>}
                       {user.berat && <span className="text-[9px] font-bold bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded border border-gray-200 whitespace-nowrap">B: {user.berat}</span>}
                     </div>
                   )}
                 </div>
 
-                <div className="flex justify-between items-end pt-2 border-t border-gray-100 w-full gap-2">
-                  <div className="flex gap-1.5 items-center">
-                    <button onClick={(e) => handleEditPin(e, user)} className="bg-amber-50 hover:bg-amber-500 text-amber-700 hover:text-white text-[9px] font-black px-2 py-1 rounded shadow-sm border border-amber-200 hover:border-amber-500 transition-colors uppercase tracking-wider flex items-center gap-1" title="Klik untuk edit PIN user">🔑 PIN: {user.pin || '---'}</button>
-                    <button onClick={(e) => handleDeleteAll(e, user.username)} className="bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white text-[9px] font-black px-2 py-1 rounded shadow-sm border border-orange-200 hover:border-orange-600 transition-colors uppercase tracking-wider">DELETE ALL</button>
+                <div className="flex justify-between items-end pt-1.5 border-t border-gray-100 w-full gap-2">
+                  <div className="flex gap-1 items-center">
+                    <button onClick={(e) => handleEditPin(e, user)} className="bg-amber-50 hover:bg-amber-500 text-amber-700 hover:text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-xs border border-amber-200 hover:border-amber-500 transition-colors uppercase tracking-wider flex items-center gap-1" title="Klik untuk edit PIN user">🔑 PIN: {user.pin || '---'}</button>
+                    <button onClick={(e) => handleDeleteAll(e, user.username)} className="bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-xs border border-orange-200 hover:border-orange-600 transition-colors uppercase tracking-wider">DELETE ALL</button>
                   </div>
-                  <div className="flex gap-1.5 items-center shrink-0">
-                    {hasUnread ? <span className="bg-emerald-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap animate-pulse">{displayCount} Baru</span> : <span className="bg-gray-400 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap">0</span>}
-                    <span className="bg-blue-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap" title="Total pesan dikirim oleh user">👤 {totalUserMsgs}</span>
-                    <span className="bg-red-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap" title="Total balasan admin ke user">⭐ {totalAdminMsgs}</span>
+                  <div className="flex gap-1 items-center shrink-0">
+                    {hasUnread ? <span className="bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-xs whitespace-nowrap animate-pulse">{displayCount} Baru</span> : <span className="bg-gray-400 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-xs whitespace-nowrap">0</span>}
+                    <span className="bg-blue-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-xs whitespace-nowrap" title="Total pesan dikirim oleh user">👤 {totalUserMsgs}</span>
+                    <span className="bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-xs whitespace-nowrap" title="Total balasan admin ke user">⭐ {totalAdminMsgs}</span>
                   </div>
                 </div>
               </div>
@@ -205,19 +254,15 @@ export default function Admin({
         )}
       </div>
 
-      {/* KOLOM KONTROL PUTIH (FROZEN DI ATAS NAVBAR BOTTOM) */}
-      <div className="fixed bottom-[65px] left-3 right-3 z-40 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-gray-200 shadow-2xl flex flex-col gap-2">
-        <div className="flex justify-between items-center">
-          <span className="text-xs font-bold text-gray-500">Pilih obrolan di atas</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* DROPDOWN DINAMIS (ROLL) */}
+      {/* KOLOM KONTROL UTAMA DI BAWAH */}
+      <div className="fixed bottom-[52px] left-2.5 right-2.5 z-40 bg-white/95 backdrop-blur-md p-2.5 rounded-xl border border-gray-200 shadow-xl flex flex-col gap-1.5">
+        <div className="flex items-center gap-1.5">
+          {/* DROPDOWN SIMPLE */}
           <div className="relative flex-1" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setIsUserDropdownOpen((p) => !p)}
-              className="w-full bg-gray-50 border border-gray-300 text-gray-800 text-xs font-semibold rounded-xl px-3 py-2 flex items-center justify-between text-left truncate active:scale-95 transition-all cursor-pointer"
+              className="w-full bg-gray-50 border border-gray-300 text-gray-800 text-xs font-semibold rounded-lg px-2.5 py-1.5 flex items-center justify-between text-left truncate active:scale-95 transition-all cursor-pointer"
             >
               <span className="truncate">Pilih user ({filteredUsers.length})...</span>
               <span className="text-gray-400 text-[10px] ml-1 shrink-0">
@@ -228,88 +273,72 @@ export default function Admin({
             {/* POPUP MENU ROLL PULL-UP */}
             {isUserDropdownOpen && (
               <div
-                className={`fixed left-2 right-2 bg-white border border-gray-200 rounded-2xl shadow-2xl max-h-[48vh] overflow-y-auto z-[99999] p-2 flex flex-col gap-1 transition-all ${
-                  dropdownPosition === "top" ? "bottom-[145px]" : "top-[calc(100vh-120px)]"
+                className={`fixed left-2 right-2 bg-slate-100 border border-slate-300 rounded-xl shadow-2xl max-h-[320px] overflow-y-auto z-[99999] p-1.5 flex flex-col gap-1 transition-all ${
+                  dropdownPosition === "top" ? "bottom-[95px]" : "top-[calc(100vh-100px)]"
                 }`}
               >
                 {filteredUsers.length === 0 ? (
-                  <div className="p-3 text-center text-xs text-gray-400 font-medium">
+                  <div className="p-2.5 text-center text-xs text-gray-400 font-medium">
                     Tidak ada user terdaftar
                   </div>
                 ) : (
                   filteredUsers.map((u: any, idx: number) => {
                     const username = typeof u === "string" ? u : u.username;
-                    const umur = typeof u === "object" ? u.umur : null;
-                    const berat = typeof u === "object" ? u.berat : null;
+                    const umur = typeof u === "object" && u.umur ? u.umur : "-";
+                    const berat = typeof u === "object" && u.berat ? u.berat : "-";
 
-                    // Deteksi user baru mendaftar (belum pernah ada riwayat chat)
                     const userMsgs = typeof u === "object" ? (u.totalUserMsgs || 0) : 0;
                     const adminMsgs = typeof u === "object" ? (u.totalAdminMsgs || 0) : 0;
-                    const hasMessages = userMsgs > 0 || adminMsgs > 0 || (typeof u === "object" && u.last_message && u.last_message !== "___DELETED___");
-                    const isNewRegister = !hasMessages;
+                    const totalPesan = userMsgs + adminMsgs;
 
                     return (
                       <div
                         key={username || idx}
-                        className={`w-full px-2.5 py-2 hover:bg-blue-50/80 rounded-xl text-xs font-bold text-gray-700 flex items-center justify-between transition-colors border-b border-gray-100 last:border-0 gap-2 ${
-                          isNewRegister ? "bg-emerald-50/60" : ""
-                        }`}
+                        className="w-full px-2 py-1.5 bg-white hover:bg-blue-50/90 rounded-lg text-xs font-bold text-gray-800 flex items-center justify-between transition-colors border border-slate-200/80 gap-1.5"
                       >
-                        {/* KIRI: TOMBOL HAPUS + USERNAME + BADGE NEW */}
-                        <div
-                          onClick={() => {
-                            setSelectedPrivateUser(username);
-                            setIsUserDropdownOpen(false);
-                          }}
-                          className="flex items-center gap-1.5 min-w-0 flex-1 cursor-pointer"
-                        >
+                        {/* KIRI: TOMBOL HAPUS + NAMA USER */}
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (confirm(`Hapus akun user "${username}" secara permanen?`)) {
-                                onDeleteUser && onDeleteUser(username);
-                              }
-                            }}
-                            className="px-2 py-0.5 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white border border-red-200 rounded-lg transition-colors text-[10px] font-bold shrink-0 cursor-pointer"
+                            onClick={(e) => handleDeleteUserAccount(e, username)}
+                            className="px-1.5 py-0.5 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white border border-red-200 rounded text-[9px] font-bold shrink-0 cursor-pointer transition-colors"
                             title="Hapus User"
                           >
                             Hapus
                           </button>
 
                           <span
-                            className="truncate text-blue-900 font-extrabold max-w-[18ch] shrink-0"
-                            title={username || `User #${idx + 1}`}
+                            onClick={() => handleSelectFromDropdown(username)}
+                            className="truncate text-blue-900 font-extrabold flex-1 min-w-0 cursor-pointer"
+                            title={username}
                           >
                             {username || `User #${idx + 1}`}
                           </span>
-
-                          {/* BADGE USER BARU */}
-                          {isNewRegister && (
-                            <span className="text-[8px] font-black bg-emerald-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 animate-pulse">
-                              NEW
-                            </span>
-                          )}
                         </div>
 
-                        {/* KANAN: INFO UMUR DAN BERAT */}
-                        <div
-                          onClick={() => {
-                            setSelectedPrivateUser(username);
-                            setIsUserDropdownOpen(false);
-                          }}
-                          className="flex gap-1 shrink-0 items-center cursor-pointer"
-                        >
-                          {umur && (
-                            <span className="text-[8px] font-extrabold bg-gray-100 text-gray-600 px-1 py-0.5 rounded border border-gray-200 whitespace-nowrap">
-                              U: {umur}
-                            </span>
-                          )}
-                          {berat && (
-                            <span className="text-[8px] font-extrabold bg-gray-100 text-gray-600 px-1 py-0.5 rounded border border-gray-200 whitespace-nowrap">
-                              B: {berat}
-                            </span>
-                          )}
+                        {/* KANAN: PILL ANGKA + PILL BLOKIR DI BELAKANGNYA */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {/* PILL ANGKA (UMUR: HIJAU | BERAT: MERAH | PESAN: BIRU) */}
+                          <div
+                            onClick={() => handleSelectFromDropdown(username)}
+                            className="bg-gray-50 text-[10px] font-black px-2 py-0.5 rounded-full border border-gray-200 whitespace-nowrap shadow-2xs flex items-center gap-0.5 cursor-pointer"
+                          >
+                            <span className="text-emerald-600">{umur}</span>
+                            <span className="text-gray-400">/</span>
+                            <span className="text-red-500">{berat}</span>
+                            <span className="text-gray-400">/</span>
+                            <span className="text-blue-600">{totalPesan}</span>
+                          </div>
+
+                          {/* PILL BLOKIR (DIBELAKANG JUMLAH PESAN) */}
+                          <button
+                            type="button"
+                            onClick={(e) => handleBlockUserAccount(e, username)}
+                            className="px-1.5 py-0.5 bg-red-100 hover:bg-red-600 text-red-700 hover:text-white border border-red-300 rounded-full text-[9px] font-extrabold cursor-pointer transition-colors whitespace-nowrap flex items-center gap-0.5 shadow-2xs"
+                            title="Blokir User"
+                          >
+                            🚫 Blokir
+                          </button>
                         </div>
                       </div>
                     );
@@ -319,15 +348,14 @@ export default function Admin({
             )}
           </div>
 
-          {/* JUMLAH USER & TOMBOL REFRESH */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <div className="bg-blue-50 text-blue-800 text-xs font-extrabold px-2.5 py-2 rounded-xl border border-blue-200 whitespace-nowrap shadow-sm">
+          <div className="flex items-center gap-1 shrink-0">
+            <div className="bg-blue-50 text-blue-800 text-[11px] font-extrabold px-2 py-1.5 rounded-lg border border-blue-200 whitespace-nowrap">
               {filteredUsers.length} User
             </div>
             <button
               type="button"
               onClick={() => onRefresh ? onRefresh() : window.location.reload()}
-              className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-black text-xs px-3 py-2 rounded-xl shadow transition-all tracking-wider uppercase cursor-pointer whitespace-nowrap"
+              className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-black text-[11px] px-2.5 py-1.5 rounded-lg shadow-xs transition-all tracking-wider uppercase cursor-pointer whitespace-nowrap"
             >
               REFRESH
             </button>
@@ -335,9 +363,8 @@ export default function Admin({
         </div>
       </div>
 
-      {/* POPUP PROMPT EDIT */}
       {promptState.isOpen && (
-        <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn select-none" onClick={() => setPromptState((p) => ({ ...p, isOpen: false }))}>
+        <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn select-none" onClick={() => setPromptState((p) => ({ ...p, isOpen: false }))}>
           <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 animate-scaleUp text-white" onClick={(e) => e.stopPropagation()}>
             <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xl shadow-inner">✏️</div>
             <h3 className="text-sm font-bold text-slate-200 tracking-wide">{promptState.title}</h3>
