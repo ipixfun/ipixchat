@@ -8,6 +8,8 @@ interface AdminProps {
   onDeleteAllMsgs?: (username: string) => void;
   onDeleteUser?: (username: string) => void;
   onBlockUser?: (username: string) => void;
+  onUnblockUser?: (username: string) => void; // Tambahan handler untuk buka blokir
+  blockedList?: any[]; // Tambahan daftar user terblokir
   onUpdatePin?: (username: string, newPin: string) => void;
   onUpdateUsername?: (oldUsername: string, newUsername: string) => void;
   onRefresh?: () => void;
@@ -20,6 +22,8 @@ export default function Admin({
   onDeleteAllMsgs,
   onDeleteUser,
   onBlockUser,
+  onUnblockUser,
+  blockedList = [],
   onUpdatePin,
   onUpdateUsername,
   onRefresh
@@ -41,6 +45,15 @@ export default function Admin({
     const email = (typeof u === "object" && u.email ? u.email : "").toLowerCase();
     return !name.includes("admin") && !email.includes("admin");
   });
+
+  // Fungsi pembantu untuk mengecek status blokir user
+  const isUserBlocked = (username: string) => {
+    if (!blockedList || blockedList.length === 0) return false;
+    return blockedList.some((b: any) => {
+      const bName = typeof b === "string" ? b : b.username;
+      return bName && bName.toLowerCase() === username.toLowerCase();
+    });
+  };
 
   useEffect(() => {
     setReadBaselines((prev) => {
@@ -145,11 +158,20 @@ export default function Admin({
     }
   };
 
-  // EKSEKUSI BLOKIR USER
-  const handleBlockUserAccount = (e: React.MouseEvent, username: string) => {
+  // EKSEKUSI TOGGLE BLOKIR / UNBLOCK USER
+  const handleToggleBlockUserAccount = (e: React.MouseEvent, username: string) => {
     e.stopPropagation();
-    if (onBlockUser) {
-      onBlockUser(username);
+    const currentlyBlocked = isUserBlocked(username);
+    if (currentlyBlocked) {
+      if (onUnblockUser) {
+        onUnblockUser(username);
+      } else if (onBlockUser) {
+        onBlockUser(username);
+      }
+    } else {
+      if (onBlockUser) {
+        onBlockUser(username);
+      }
     }
   };
 
@@ -181,6 +203,7 @@ export default function Admin({
             const identifier = user.username || `anonymous-${index}`;
             const isCleared = clearedUserMsgs[user.username];
             const isHighlighted = highlightedUser === user.username;
+            const blocked = isUserBlocked(user.username);
             
             const totalUserMsgs = isCleared ? 0 : (user.totalUserMsgs || 0);
             const totalAdminMsgs = isCleared ? 0 : (user.totalAdminMsgs || 0);
@@ -210,9 +233,14 @@ export default function Admin({
                 <div className="flex justify-between items-center w-full gap-2">
                   <div className="flex items-center gap-1.5 min-w-0 flex-1">
                     <button onClick={(e) => handleEditUsername(e, user)} className="text-gray-400 hover:text-blue-600 p-0.5 rounded transition-colors text-xs shrink-0" title="Edit Username">✏️</button>
-                    <span className="font-bold text-blue-700 text-xs sm:text-sm tracking-tight truncate max-w-[210px] sm:max-w-[280px]" title={user.username || 'User Tanpa Nama'}>
+                    <span className="font-bold text-blue-700 text-xs sm:text-sm tracking-tight truncate max-w-[180px] sm:max-w-[250px]" title={user.username || 'User Tanpa Nama'}>
                       {user.username || 'User Tanpa Nama'}
                     </span>
+                    {blocked && (
+                      <span className="text-[9px] bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded border border-red-200 shrink-0">
+                        TERBLOKIR
+                      </span>
+                    )}
                   </div>
                   <div className={`text-[10px] font-medium whitespace-nowrap shrink-0 text-right ${hasUnread ? 'text-emerald-600 font-semibold' : 'text-gray-400'}`}>
                     {user.last_active ? formatMessageTime(user.last_active) : "-"}
@@ -282,6 +310,7 @@ export default function Admin({
                     const userMsgs = typeof u === "object" ? (u.totalUserMsgs || 0) : 0;
                     const adminMsgs = typeof u === "object" ? (u.totalAdminMsgs || 0) : 0;
                     const totalPesan = userMsgs + adminMsgs;
+                    const blocked = isUserBlocked(username);
 
                     return (
                       <div
@@ -308,7 +337,7 @@ export default function Admin({
                           </span>
                         </div>
 
-                        {/* KANAN: STATISTIK & TOMBOL BLOKIR */}
+                        {/* KANAN: STATISTIK & TOMBOL BLOKIR / BUKA BLOKIR */}
                         <div className="flex items-center gap-1 shrink-0">
                           <div
                             onClick={() => handleSelectFromDropdown(username)}
@@ -323,11 +352,15 @@ export default function Admin({
 
                           <button
                             type="button"
-                            onClick={(e) => handleBlockUserAccount(e, username)}
-                            className="px-1.5 py-0.5 bg-red-100 hover:bg-red-600 text-red-700 hover:text-white border border-red-300 rounded-full text-[9px] font-extrabold cursor-pointer transition-colors whitespace-nowrap flex items-center gap-0.5 shadow-2xs"
-                            title="Blokir User"
+                            onClick={(e) => handleToggleBlockUserAccount(e, username)}
+                            className={`px-1.5 py-0.5 rounded-full text-[9px] font-extrabold cursor-pointer transition-colors whitespace-nowrap flex items-center gap-0.5 shadow-2xs ${
+                              blocked
+                                ? "bg-emerald-100 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-300"
+                                : "bg-red-100 hover:bg-red-600 text-red-700 hover:text-white border border-red-300"
+                            }`}
+                            title={blocked ? "Buka Blokir User" : "Blokir User"}
                           >
-                            🚫 Blokir
+                            {blocked ? "✅ Buka Blokir" : "🚫 Blokir"}
                           </button>
                         </div>
                       </div>

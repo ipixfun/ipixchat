@@ -96,7 +96,7 @@ export default function Home() {
 
   const fetchData = useCallback(async () => {
     const savedUser = typeof window !== "undefined" ? (localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username") || sessionStorage.getItem("active_username")) : "";
-    const savedPin = typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || sessionStorage.getItem("saved_pin")) : "";
+    const savedPin = typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || sessionStorage.getItem("saved_pin")) : "";
     const targetUser = auth.user || savedUser; if (!auth.isAuth || !targetUser) return;
 
     try {
@@ -192,6 +192,15 @@ export default function Home() {
         isOpen: true, type: "danger", title: "Blokir User", message: `Apakah Anda yakin ingin memblokir user ${targetUsername}?`, confirmText: "Blokir", cancelText: "Batal",
         onConfirm: async () => { const { error } = await supabase.from("blocked_users").insert([{ username: targetUsername }]); if (error) showAlert("Gagal memblokir user.", "Gagal", "danger"); else showAlert(`User ${targetUsername} berhasil diblokir.`, "Sukses", "success"); fetchData(); setConfirmModal((p) => ({ ...p, isOpen: false })); }
       });
+    },
+    unblockUser: async (targetUsername: string) => {
+      const { error } = await supabase.from("blocked_users").delete().ilike("username", targetUsername);
+      if (error) {
+        showAlert("Gagal membuka blokir user.", "Gagal", "danger");
+      } else {
+        showAlert(`Blokir user ${targetUsername} berhasil dibuka.`, "Sukses", "success");
+        fetchData();
+      }
     },
     deleteUserAccount: async (targetUsername: string) => {
       setConfirmModal({
@@ -433,7 +442,7 @@ export default function Home() {
         {ui.tab === "admin" && currentHash === "#block" && auth.isAuth ? (
           <Block blockedList={usersInfo.blockedList} unblock={async (identifier: string) => { await supabase.from("blocked_users").delete().eq("username", identifier); if (!isNaN(Number(identifier))) await supabase.from("blocked_users").delete().eq("id", Number(identifier)); fetchData(); }} blockedWords={censor.words} newWord={censor.newWord} setNewWord={(w: string) => setCensor((p) => ({ ...p, newWord: w }))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} />
         ) : (
-          <ChatLayout cMode="private" viewMode="full-private" hInteract={() => {}} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={[]} privMsgs={msgs.priv} isPill={false} pDelta={0} pTouchX={0} capIdx={0} setPTouchX={() => {}} setPDelta={() => {}} setCapPause={() => {}} setIsPill={() => {}} renderMsgs={renderMsgs} renderInput={() => <></>} fmtTime={getFmt.time} setSelPriv={(u: string) => setUsersInfo((p) => ({ ...p, selPriv: u }))} onBlockUser={dbActions.blkUser} onDeleteUser={dbActions.deleteUserAccount} onDeleteAllMsgs={dbActions.deleteAllUserMsgs} onUpdatePin={dbActions.updatePin} onUpdateUsername={dbActions.updateUsername} />
+          <ChatLayout cMode="private" viewMode="full-private" hInteract={() => {}} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={[]} privMsgs={msgs.priv} isPill={false} pDelta={0} pTouchX={0} capIdx={0} setPTouchX={() => {}} setPDelta={() => {}} setCapPause={() => {}} setIsPill={() => {}} renderMsgs={renderMsgs} renderInput={() => <></>} fmtTime={getFmt.time} setSelPriv={(u: string) => setUsersInfo((p) => ({ ...p, selPriv: u }))} onBlockUser={dbActions.blkUser} onUnblockUser={dbActions.unblockUser} blockedList={usersInfo.blockedList} onDeleteUser={dbActions.deleteUserAccount} onDeleteAllMsgs={dbActions.deleteAllUserMsgs} onUpdatePin={dbActions.updatePin} onUpdateUsername={dbActions.updateUsername} onRefresh={fetchData} />
         )}
       </div>
 

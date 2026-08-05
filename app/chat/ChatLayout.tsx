@@ -78,6 +78,8 @@ export default function ChatLayout({
   fmtTime, 
   setSelPriv, 
   onBlockUser,
+  onUnblockUser,   // <-- Tambahan prop untuk buka blokir
+  blockedList,    // <-- Tambahan prop daftar user terblokir
   onDeleteUser,
   onDeleteAllMsgs,
   onUpdatePin,
@@ -118,6 +120,8 @@ export default function ChatLayout({
                 onDeleteAllMsgs={onDeleteAllMsgs}
                 onDeleteUser={onDeleteUser}
                 onBlockUser={onBlockUser}
+                onUnblockUser={onUnblockUser}  /* <-- Disambungkan ke Admin */
+                blockedList={blockedList}       /* <-- Disambungkan ke Admin */
                 onUpdatePin={onUpdatePin}
                 onUpdateUsername={onUpdateUsername}
                 onRefresh={onRefresh}
