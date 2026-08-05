@@ -10,7 +10,7 @@ const EMOJIS = [
   { char: "🔥", anim: "anim-pulse-glow" },
   { char: "🙏", anim: "anim-shake-soft" },
   { char: "😍", anim: "anim-heartbeat" },
-  { char: "💦", anim: "anim-wiggle"},
+  { char: "💦", anim: "anim-wiggle" },
   { char: "😭", anim: "anim-shake-soft" },
   { char: "😱", anim: "anim-bounce-soft" },
 ];
@@ -48,7 +48,9 @@ export default function ChatInput({
   handleImageUpload,
   scrollMsg,
   sendMsg,
+  handleLogout,
   isCredentialsChanged: externalIsCredentialsChanged,
+  isAccountChangedByAdmin,
 }: {
   input: any;
   setInput: any;
@@ -66,16 +68,16 @@ export default function ChatInput({
   sendMsg: (e: React.FormEvent) => void;
   handleLogout?: () => void;
   isCredentialsChanged?: boolean;
+  isAccountChangedByAdmin?: boolean;
 }) {
-
   const [showEmoji, setShowEmoji] = useState(false);
   const [isCredentialsChanged, setIsCredentialsChanged] = useState(false);
 
   useEffect(() => {
-    if (externalIsCredentialsChanged) {
+    if (externalIsCredentialsChanged || isAccountChangedByAdmin) {
       setIsCredentialsChanged(true);
     }
-  }, [externalIsCredentialsChanged]);
+  }, [externalIsCredentialsChanged, isAccountChangedByAdmin]);
 
   useEffect(() => {
     if (!auth?.user || auth.user === "Admin●ipix.my.id") return;
@@ -138,7 +140,7 @@ export default function ChatInput({
 
   const selectedUser = usersInfo?.selPriv || usersInfo?.selectedUser;
 
-  // RULE LOGIKA 2: SEMBUNYIKAN CHAT INPUT KETIKA DI TAB ADMIN DAN BELUM MEMILIH USER
+  // RULE LOGIKA: SEMBUNYIKAN CHAT INPUT KETIKA DI TAB ADMIN DAN BELUM MEMILIH USER
   if (ui?.tab === "admin" && !selectedUser) {
     return null;
   }
@@ -147,7 +149,7 @@ export default function ChatInput({
 
   const addEmoji = (emoji: string) => {
     if (isInputDisabled) return;
-    
+
     setInput((p: any) => ({
       ...p,
       text: (p.text || "") + emoji,
@@ -172,7 +174,6 @@ export default function ChatInput({
     <InputThemeWrapper>
       {(styles) => (
         <div className={`shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-[100] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative transition-all duration-150 ${ui?.inputFocus ? "mb-0" : "mb-16"}`}>
-          
           <style>{`
             @keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.3); } 30% { transform: scale(1); } 45% { transform: scale(1.2); } }
             .anim-heartbeat { animation: heartbeat 1.2s infinite ease-in-out; }
@@ -245,7 +246,6 @@ export default function ChatInput({
           )}
 
           <form onSubmit={handleSubmit} className="shrink-0 p-2 sm:p-3 bg-transparent flex flex-col gap-1.5 w-full relative transition-all duration-300">
-            
             <div className="flex items-center gap-1.5 sm:gap-2 w-full">
               <div className={`flex-1 text-[9px] h-[36px] sm:h-[40px] flex items-center min-w-0 ${styles.labelText}`}>
                 {showEmoji ? (
@@ -269,7 +269,18 @@ export default function ChatInput({
                 ) : isBlocked ? (
                   "Anda telah diblokir."
                 ) : isCredentialsChanged ? (
-                  <span className="text-red-400 font-bold">⚠️ Nama/PIN Anda telah diubah oleh Admin.</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-400 font-bold">⚠️ Nama/PIN Anda telah diubah oleh Admin.</span>
+                    {handleLogout && (
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded text-[9px] font-bold tracking-wider shrink-0"
+                      >
+                        Login Ulang
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   "*bijaklah dalam berinteraksi"
                 )}
@@ -355,7 +366,6 @@ export default function ChatInput({
                   )
                 )}
               </div>
-
             </div>
 
             <div className="flex items-stretch gap-1.5 sm:gap-2 w-full">
@@ -410,7 +420,6 @@ export default function ChatInput({
               >
                 {input.sending ? "..." : (interact?.editingMsg ? "Simpan" : "Kirim")}
               </button>
-
             </div>
           </form>
         </div>
