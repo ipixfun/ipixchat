@@ -96,7 +96,7 @@ export default function Home() {
 
   const fetchData = useCallback(async () => {
     const savedUser = typeof window !== "undefined" ? (localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username") || sessionStorage.getItem("active_username")) : "";
-    const savedPin = typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || sessionStorage.getItem("saved_pin")) : "";
+    const savedPin = typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || sessionStorage.getItem("saved_pin")) : "";
     const targetUser = auth.user || savedUser; if (!auth.isAuth || !targetUser) return;
 
     try {
@@ -195,12 +195,7 @@ export default function Home() {
     },
     unblockUser: async (targetUsername: string) => {
       const { error } = await supabase.from("blocked_users").delete().ilike("username", targetUsername);
-      if (error) {
-        showAlert("Gagal membuka blokir user.", "Gagal", "danger");
-      } else {
-        showAlert(`Blokir user ${targetUsername} berhasil dibuka.`, "Sukses", "success");
-        fetchData();
-      }
+      if (error) { showAlert("Gagal membuka blokir user.", "Gagal", "danger"); } else { showAlert(`Blokir user ${targetUsername} berhasil dibuka.`, "Sukses", "success"); fetchData(); }
     },
     deleteUserAccount: async (targetUsername: string) => {
       setConfirmModal({
@@ -349,7 +344,6 @@ export default function Home() {
 
   const currentMsgs = msgs.priv.filter((m) => !m.pesan?.startsWith("___KICK_SIGNAL___")), adminPinnedMsg = currentMsgs.find((m) => m.is_pinned && !m.pesan?.startsWith("___DELETED") && m.username === "Admin●ipix.my.id"), userPinnedMsg = currentMsgs.find((m) => m.is_pinned && !m.pesan?.startsWith("___DELETED") && m.username !== "Admin●ipix.my.id");
 
-  // HANYA AKAN MENAMPILKAN PINNED MESSAGE DI HALAMAN ADMIN
   const shouldShowPinnedForAdmin = auth.isAuth && currentHash !== "#block" && ui.tab === "admin" && usersInfo.selPriv !== null;
 
   const handleOpenUserGallery = (targetUsername: string) => {
@@ -397,13 +391,24 @@ export default function Home() {
         {!auth.isAuth && (
           <motion.div key="login-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.95, filter: "blur(4px)" }} transition={{ duration: 0.35, ease: "easeInOut" }} className="fixed inset-0 z-[80000] flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto">
             <Login activeTab={ui.tab} username={auth.user} setUsername={handleUsernameChange} pin={auth.pin} setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))} umur={auth.umur} setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))} berat={auth.berat} setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))} adminPass={auth.adminPass} setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))} handleUserLogin={async (isLoginMode?: boolean, rememberMe?: boolean) => {
-                const inputName = auth.user.trim(); if (!inputName || isCensored(inputName)) return { error: true };
-                const plainPin = auth.pin || (typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || "") : ""); if (!plainPin || plainPin.length !== 6) return { error: true };
+                const inputName = auth.user.trim();
+                const plainPin = auth.pin || (typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || "") : "");
+                
+                const isUserValid = Boolean(inputName && !isCensored(inputName));
+                const isPinValid = Boolean(plainPin && plainPin.length === 6);
+
+                if (!isUserValid && !isPinValid) return { error: true, reason: "BOTH_INVALID" };
+                if (!isUserValid) return { error: true, reason: "USER_NOT_FOUND" };
+                if (!isPinValid) return { error: true, reason: "INVALID_PIN" };
+
                 try {
                   const { data: existUser } = await supabase.from("profiles").select("username, pin, email, umur, berat").ilike("username", inputName).maybeSingle();
                   const finalUsername = existUser ? existUser.username : inputName.toLowerCase();
+
                   if (isLoginMode) {
-                    if (!existUser || existUser.pin !== plainPin) return { error: true };
+                    if (!existUser) return { error: true, reason: "USER_NOT_FOUND" };
+                    if (existUser.pin !== plainPin) return { error: true, reason: "INVALID_PIN" };
+
                     const storage = rememberMe ? localStorage : sessionStorage;
                     storage.setItem("active_username", finalUsername); storage.setItem("username", finalUsername); storage.setItem("saved_pin", plainPin); storage.setItem("user_pin", plainPin); storage.setItem("pin", plainPin); storage.setItem("is_auth", "true"); storage.setItem("active_tab", "user");
                     localStorage.setItem("hide_register", "true"); localStorage.setItem("has_ever_logged_in", "true");
@@ -411,17 +416,20 @@ export default function Home() {
                     setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, umur: existUser.umur || "", berat: existUser.berat || "", pin: plainPin }));
                     return true;
                   }
-                  if (existUser && existUser.pin !== plainPin) return { error: true };
+
+                  if (existUser && existUser.pin !== plainPin) return { error: true, reason: "INVALID_PIN" };
+
                   let finalEmail = existUser?.email || `user${((await supabase.from("profiles").select("*", { count: "exact", head: true })).count || 0) + 1}@ipix.fun`;
                   const { error } = await supabase.from("profiles").upsert({ email: finalEmail, username: finalUsername, user_browser: navigator.userAgent, pin: plainPin, umur: auth.umur, berat: auth.berat }, { onConflict: "username" });
-                  if (error) return { error: true };
+                  if (error) return { error: true, reason: "BOTH_INVALID" };
+
                   const storage = rememberMe ? localStorage : sessionStorage;
                   storage.setItem("active_username", finalUsername); storage.setItem("username", finalUsername); storage.setItem("saved_pin", plainPin); storage.setItem("user_pin", plainPin); storage.setItem("pin", plainPin); storage.setItem("is_auth", "true"); storage.setItem("active_tab", "user");
                   localStorage.setItem("hide_register", "true"); localStorage.setItem("has_ever_logged_in", "true");
                   if (rememberMe) { localStorage.setItem("remembered_username", finalUsername); localStorage.setItem("remembered_pin", plainPin); }
                   setAuth((p) => ({ ...p, isAuth: true, user: finalUsername, pin: plainPin }));
                   return true;
-                } catch (e) { return { error: true }; }
+                } catch (e) { return { error: true, reason: "BOTH_INVALID" }; }
               }} handleAdminLogin={async () => {
                 const { error } = await supabase.auth.signInWithPassword({ email: auth.adminEmail, password: auth.adminPass });
                 if (error) showAlert("Gagal login admin. Periksa email & password.", "Gagal Login", "danger"); else { setAuth((p) => ({ ...p, isAuth: true, user: "Admin●ipix.my.id" })); setUi((p) => ({ ...p, tab: "admin" })); localStorage.setItem("active_username", "Admin●ipix.my.id"); localStorage.setItem("username", "Admin●ipix.my.id"); localStorage.setItem("is_auth", "true"); localStorage.setItem("active_tab", "admin"); }
@@ -433,7 +441,6 @@ export default function Home() {
 
       <Head auth={auth} ui={ui} adminStat={adminStat} onlineUsers={Object.entries(usersInfo.status).filter(([_, data]) => data.online).map(([u]) => u)} currentHash={currentHash} getFmt={getFmt} handleLogout={handleLogout} onBlockMgr={() => window.open(`${window.location.pathname}#block`, "_blank")} onTrashMgr={dbActions.emptyTrash} adminPinnedMsg={adminPinnedMsg} userPinnedMsg={userPinnedMsg} onEditPinned={dbActions.editPinned} onScrollToMsg={scrollMsg} />
 
-      {/* TAMPIL HANYA PADA TAB ADMIN */}
       {shouldShowPinnedForAdmin && (adminPinnedMsg || userPinnedMsg) && (
         <PinnedMessage adminPinnedMsg={adminPinnedMsg} userPinnedMsg={userPinnedMsg} uiTab={ui.tab} onEditPinned={dbActions.editPinned} onScrollToMsg={scrollMsg} />
       )}

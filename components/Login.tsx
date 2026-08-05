@@ -1,6 +1,6 @@
 'use client';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import { useTheme } from '@/app/context/ThemeContext';
 import BearMascot from './BearMascot';
 
@@ -11,114 +11,6 @@ const ScaleIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentCol
 const MailIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2 z" /></svg>);
 const EyeIcon = () => (<svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>);
 const EyeOffIcon = () => (<svg className="w-5 h-5 opacity-70 cursor-pointer hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>);
-
-// FIREWORKS CANVAS DENGAN WARNA 100% SESUAI TEMA DYNAMIS CSS
-const FireworksCanvas = () => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    // BACA WARNA TEMA DARI ROOT CSS VARIABLE SECARA DINAMIS
-    const styles = getComputedStyle(document.documentElement);
-    const accent = styles.getPropertyValue('--accent').trim() || '#eab308';
-    const accentGlow = styles.getPropertyValue('--accent-glow').trim() || accent;
-    const fgHeading = styles.getPropertyValue('--foreground-heading').trim() || '#ffffff';
-    const fgText = styles.getPropertyValue('--foreground').trim() || '#ffffff';
-
-    // VARIASI SHADE WARNA HANYA BERDASARKAN WARNA TEMA AKTIF
-    const themeColors = [
-      accent,
-      accentGlow,
-      `color-mix(in srgb, ${accent} 80%, #ffffff)`,
-      `color-mix(in srgb, ${accent} 50%, #ffffff)`,
-      `color-mix(in srgb, ${accentGlow} 60%, #ffffff)`,
-      fgHeading,
-      fgText
-    ];
-
-    let animationId: number;
-
-    class Particle {
-      x: number; y: number; vx: number; vy: number; color: string; size: number; alpha: number; decay: number;
-      constructor(x: number, y: number) {
-        this.x = x; this.y = y;
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 11 + 3;
-        this.vx = Math.cos(angle) * speed;
-        this.vy = Math.sin(angle) * speed;
-        this.color = themeColors[Math.floor(Math.random() * themeColors.length)];
-        this.size = Math.random() * 4 + 2.5;
-        this.alpha = 1;
-        this.decay = Math.random() * 0.009 + 0.004;
-      }
-      update() {
-        this.x += this.vx;
-        this.y += this.vy;
-        this.vy += 0.07;
-        this.vx *= 0.98;
-        this.vy *= 0.98;
-        this.alpha -= this.decay;
-      }
-      draw(context: CanvasRenderingContext2D) {
-        context.save();
-        context.globalAlpha = Math.max(0, this.alpha);
-        context.beginPath();
-        context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        context.fillStyle = this.color;
-        context.shadowColor = this.color;
-        context.shadowBlur = 14;
-        context.fill();
-        context.restore();
-      }
-    }
-
-    let particles: Particle[] = [];
-    const createBurst = (x: number, y: number) => {
-      for (let i = 0; i < 65; i++) particles.push(new Particle(x, y));
-    };
-
-    // Burst utama
-    createBurst(canvas.width / 2, canvas.height / 3);
-    createBurst(canvas.width / 3, canvas.height / 2.5);
-    createBurst((canvas.width / 3) * 2, canvas.height / 2.5);
-
-    let frame = 0;
-    const render = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (frame % 10 === 0 && frame < 160) {
-        createBurst(
-          Math.random() * (canvas.width * 0.8) + canvas.width * 0.1,
-          Math.random() * (canvas.height * 0.5) + canvas.height * 0.1
-        );
-      }
-      frame++;
-      particles.forEach((p, index) => {
-        p.update();
-        p.draw(ctx);
-        if (p.alpha <= 0) particles.splice(index, 1);
-      });
-      animationId = requestAnimationFrame(render);
-    };
-    render();
-
-    const handleResize = () => {
-      if (!canvas) return;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    window.addEventListener('resize', handleResize);
-    return () => { cancelAnimationFrame(animationId); window.removeEventListener('resize', handleResize); };
-  }, []);
-
-  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-[999999]" />;
-};
 
 const InputField = ({ icon, suffix, readOnly, className, style, type = "text", disabled, ...props }: any) => (
   <div className={`flex items-center w-full rounded-full px-4 py-2.5 sm:py-3 mb-2.5 border transition-all duration-300 ${(readOnly || disabled) ? 'opacity-75 cursor-not-allowed select-none' : ''} ${className}`} style={style}>
@@ -149,8 +41,8 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const [isLoginMode, setIsLoginMode] = useState(true); 
   const [hasLoggedInBefore, setHasLoggedInBefore] = useState(false);
   const [isUsernameAgreed, setIsUsernameAgreed] = useState(false); const [validationMsg, setValidationMsg] = useState("");
-  const [showPin, setShowPin] = useState(false); const [showWelcomePill, setShowWelcomePill] = useState(false);
-  const [showFireworks, setShowFireworks] = useState(false); const [isSavedDevice, setIsSavedDevice] = useState(false);
+  const [showPin, setShowPin] = useState(false);
+  const [isSavedDevice, setIsSavedDevice] = useState(false);
   const [hasTyped, setHasTyped] = useState(false); 
   const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
@@ -227,50 +119,54 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   };
 
   const handleUserLoginWrapper = async () => {
-    setShowWelcomePill(false); 
-    setShowFireworks(false);
-
     if (isLocked && !isSavedDevice) return;
-    if (!username || username.trim().length === 0) return setValidationMsg("Isi nama dulu sayang");
-    if (!pin || pin.length !== 6) return setValidationMsg("PIN harus 6 angka sayang");
+    
+    // VERIFIKASI AWAL INPUT
+    const isUserEmpty = !username || username.trim().length === 0;
+    const isPinEmpty = !pin || pin.length !== 6;
+
+    if (isUserEmpty && isPinEmpty) {
+      return setValidationMsg("Username & PIN tidak valid");
+    }
+    if (isUserEmpty) {
+      return setValidationMsg("Isi username dulu sayang");
+    }
+    if (isPinEmpty) {
+      return setValidationMsg("PIN harus 6 angka sayang");
+    }
+
     if (!isSavedDevice && !isLoginMode) {
       if (!umur || !berat) return setValidationMsg("Pilih umur & berat sayang");
       if (!isUsernameAgreed) return setValidationMsg("Ceklist dulu sayang");
     }
     setValidationMsg("");
 
-    // NYALAKAN KEMBANG API & UCAPAN
-    setShowWelcomePill(true); 
-    setShowFireworks(true);
+    try {
+      const result = await handleUserLogin(isLoginMode, true);
 
-    // DIBERI DELAY 1.6 DETIK UNTUK EFEK ANIMASI KEMBANG API DULUAN
-    setTimeout(async () => {
-      try {
-        const result = await handleUserLogin(isLoginMode, true);
-
-        if (!result || result === false || (typeof result === 'object' && result.error)) {
-          setShowWelcomePill(false);
-          setShowFireworks(false);
-          if (isSavedDevice) {
-            handleResetSavedDevice();
-          }
-          return setValidationMsg("Username atau PIN salah/diubah");
-        }
-
-        localStorage.setItem('hide_register', 'true');
-        localStorage.setItem('has_ever_logged_in', 'true');
-        setHasLoggedInBefore(true);
-
-        localStorage.setItem('remembered_username', username.trim().toLowerCase());
-        localStorage.setItem('remembered_pin', pin);
-
-      } catch (err) { 
-        setShowWelcomePill(false);
-        setShowFireworks(false);
+      if (!result || result === false || (typeof result === 'object' && result.error)) {
         if (isSavedDevice) handleResetSavedDevice();
-        setValidationMsg("Username atau PIN telah diubah sayang"); 
+        
+        // MEMBEDAKAN NOTIFIKASI ERROR SESUAI HASIL VERIFIKASI DATABASE
+        if (typeof result === 'object' && result.reason) {
+          if (result.reason === "USER_NOT_FOUND") return setValidationMsg("Username tidak terdaftar");
+          if (result.reason === "INVALID_PIN") return setValidationMsg("PIN yang dimasukkan salah");
+          if (result.reason === "BOTH_INVALID") return setValidationMsg("Username & PIN salah");
+        }
+        return setValidationMsg("Username atau PIN salah");
       }
-    }, 1600);
+
+      localStorage.setItem('hide_register', 'true');
+      localStorage.setItem('has_ever_logged_in', 'true');
+      setHasLoggedInBefore(true);
+
+      localStorage.setItem('remembered_username', username.trim().toLowerCase());
+      localStorage.setItem('remembered_pin', pin);
+
+    } catch (err) { 
+      if (isSavedDevice) handleResetSavedDevice();
+      setValidationMsg("Gagal melakukan login"); 
+    }
   };
 
   const handleAdminLoginWrapper = async () => { try { const result = await handleAdminLogin(); if (result === false || (result && result.error)) return; } catch (err) {} };
@@ -281,8 +177,8 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const validInputStyle = { backgroundColor: "color-mix(in srgb, var(--accent) 15%, transparent)", borderColor: "var(--accent)" };
   const errorInputStyle = { backgroundColor: "rgba(239, 68, 68, 0.15)", borderColor: "rgb(239, 68, 68)" };
   const getInputStyle = (isError: boolean) => { if (isFormValid) return validInputStyle; if (isError) return errorInputStyle; return normalInputStyle; };
-  const usernameStyle = getInputStyle(validationMsg === "Isi nama dulu sayang" || validationMsg.includes("salah") || validationMsg.includes("diubah"));
-  const pinStyle = getInputStyle(Boolean(validationMsg === "PIN harus 6 angka sayang" || validationMsg.includes("salah") || validationMsg.includes("diubah") || (!isLoginMode && Boolean(validationMsg) && (!pin || pin.length !== 6))));
+  const usernameStyle = getInputStyle(validationMsg.includes("Username") || validationMsg.includes("username") || validationMsg.includes("tidak terdaftar"));
+  const pinStyle = getInputStyle(validationMsg.includes("PIN") || validationMsg.includes("pin"));
   const umurStyle = getInputStyle(Boolean(validationMsg && !umur)); const beratStyle = getInputStyle(Boolean(validationMsg && !berat));
   const existingStyle = { backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)", opacity: 0.75 };
 
@@ -331,9 +227,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
           100% { background-position: 0% 50%; }
         }
       `}</style>
-
-      {/* RENDER KEMBANG API */}
-      {showFireworks && <FireworksCanvas />}
 
       <div className="relative w-full max-w-[380px] my-auto flex flex-col items-center pointer-events-auto">
         {activeTab === 'user' ? (
@@ -446,24 +339,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                   >
                     {buttonText}
                   </button>
-
-                  <AnimatePresence>
-                    {showWelcomePill && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                        animate={{ opacity: 1, y: 0, scale: 1 }} 
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }} 
-                        className="w-full text-center mt-4 px-2 py-2.5 rounded-2xl font-black text-base sm:text-lg border pointer-events-auto"
-                        style={{ 
-                          backgroundColor: "var(--card-bg)", 
-                          borderColor: "var(--accent)", 
-                          color: "var(--foreground-heading)"
-                        }}
-                      >
-                        Selamat Datang {username ? `${username} ` : ''}Sayang!
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
               </div>
             </div>
