@@ -6,6 +6,7 @@ interface AdminProps {
   setSelectedPrivateUser: (username: string) => void;
   formatMessageTime: (time: any) => string;
   onDeleteAllMsgs?: (username: string) => void;
+  onDeleteUser?: (username: string) => void;
   onUpdatePin?: (username: string, newPin: string) => void;
   onUpdateUsername?: (oldUsername: string, newUsername: string) => void;
   onRefresh?: () => void;
@@ -16,6 +17,7 @@ export default function Admin({
   setSelectedPrivateUser,
   formatMessageTime,
   onDeleteAllMsgs,
+  onDeleteUser,
   onUpdatePin,
   onUpdateUsername,
   onRefresh
@@ -74,8 +76,9 @@ export default function Admin({
   }, []);
 
   const handleUserClick = (user: any) => {
-    setSelectedPrivateUser(user.username);
-    setReadBaselines((prev) => ({ ...prev, [user.username]: user.totalUserMsgs || 0 }));
+    const username = typeof user === "string" ? user : user.username;
+    setSelectedPrivateUser(username);
+    setReadBaselines((prev) => ({ ...prev, [username]: user.totalUserMsgs || 0 }));
   };
 
   const handleEditPin = (e: React.MouseEvent, user: any) => {
@@ -134,7 +137,11 @@ export default function Admin({
             : (baseline !== undefined ? Math.max(0, totalUserMsgs - baseline) : (user.count || 0));
           
           const hasUnread = displayCount > 0;
-          const lastMsg = isCleared ? "-" : (user.last_message === "___DELETED___" ? "(Pesan dihapus)" : user.last_message || "Mengirim Gambar");
+          const lastMsg = isCleared 
+            ? "-" 
+            : (user.last_message === "___DELETED___" 
+                ? "(Pesan dihapus)" 
+                : user.last_message || "(Belum ada pesan)");
 
           return (
             <div key={identifier} onClick={() => handleUserClick(user)} className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col group gap-2 border" style={{ borderColor: "var(--card-border)" }}>
@@ -143,7 +150,7 @@ export default function Admin({
                   <span className="font-bold text-blue-700 text-sm sm:text-base tracking-tight truncate max-w-[210px] sm:max-w-[280px]" title={user.username || 'User Tanpa Nama'}>{user.username || 'User Tanpa Nama'}</span>
                   <button onClick={(e) => handleEditUsername(e, user)} className="text-gray-400 hover:text-blue-600 p-0.5 rounded transition-colors text-xs shrink-0" title="Edit Username">✏️</button>
                 </div>
-                <div className={`text-[10px] sm:text-xs font-medium whitespace-nowrap shrink-0 text-right ${hasUnread ? 'text-emerald-600 font-semibold' : 'text-gray-400'}`}>{formatMessageTime(user.last_active)}</div>
+                <div className={`text-[10px] sm:text-xs font-medium whitespace-nowrap shrink-0 text-right ${hasUnread ? 'text-emerald-600 font-semibold' : 'text-gray-400'}`}>{user.last_active ? formatMessageTime(user.last_active) : "-"}</div>
               </div>
 
               <div className="flex justify-between items-center w-full gap-2 my-0.5">
@@ -172,21 +179,14 @@ export default function Admin({
         })}
       </div>
 
-      {/* KOLOM KONTROL PUTIH (LOCKED FIX / FROZEN DI ATAS NAVBAR BOTTOM) */}
-      <div className="fixed bottom-[65px] left-3 right-3 z-40 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-gray-200 shadow-2xl flex flex-col gap-2.5">
+      {/* KOLOM KONTROL PUTIH (FROZEN DI ATAS NAVBAR BOTTOM) */}
+      <div className="fixed bottom-[65px] left-3 right-3 z-40 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-gray-200 shadow-2xl flex flex-col gap-2">
         <div className="flex justify-between items-center">
           <span className="text-xs font-bold text-gray-500">Pilih obrolan di atas</span>
-          <button
-            type="button"
-            onClick={() => onRefresh ? onRefresh() : window.location.reload()}
-            className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-black text-xs px-4 py-2 rounded-xl shadow transition-all tracking-wider uppercase cursor-pointer"
-          >
-            REFRESH
-          </button>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* DROPDOWN DINAMIS */}
+          {/* DROPDOWN DINAMIS (ROLL) */}
           <div className="relative flex-1" ref={dropdownRef}>
             <button
               type="button"
@@ -199,11 +199,11 @@ export default function Admin({
               </span>
             </button>
 
-            {/* POPUP MENU */}
+            {/* POPUP MENU ROLL FULL LEBAR LAYAR HORISONTAL */}
             {isUserDropdownOpen && (
               <div
-                className={`absolute left-0 right-0 bg-white border border-gray-200 rounded-2xl shadow-2xl max-h-[40vh] overflow-y-auto z-[99999] p-1.5 flex flex-col gap-1 transition-all ${
-                  dropdownPosition === "top" ? "bottom-full mb-2" : "top-full mt-2"
+                className={`fixed left-2 right-2 bg-white border border-gray-200 rounded-2xl shadow-2xl max-h-[48vh] overflow-y-auto z-[99999] p-2 flex flex-col gap-1 transition-all ${
+                  dropdownPosition === "top" ? "bottom-[145px]" : "top-[calc(100vh-120px)]"
                 }`}
               >
                 {privateUsers.length === 0 ? (
@@ -214,23 +214,83 @@ export default function Admin({
                   privateUsers.map((u: any, idx: number) => {
                     const username = typeof u === "string" ? u : u.username;
                     const pin = typeof u === "object" ? u.pin : null;
+                    const umur = typeof u === "object" ? u.umur : null;
+                    const berat = typeof u === "object" ? u.berat : null;
+                    
+                    // Hitung jumlah chat user
+                    const userMsgs = typeof u === "object" ? (u.totalUserMsgs || 0) : 0;
+                    const adminMsgs = typeof u === "object" ? (u.totalAdminMsgs || 0) : 0;
+                    const totalChats = userMsgs + adminMsgs || (typeof u === "object" ? u.count : 0) || 0;
+
                     return (
-                      <button
+                      <div
                         key={username || idx}
-                        type="button"
-                        onClick={() => {
-                          setSelectedPrivateUser(username);
-                          setIsUserDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 hover:bg-blue-50 active:bg-blue-100 rounded-xl text-xs font-bold text-gray-700 flex items-center justify-between transition-colors border-b border-gray-50 last:border-0 cursor-pointer"
+                        className="w-full px-2.5 py-2 hover:bg-blue-50/80 rounded-xl text-xs font-bold text-gray-700 flex items-center justify-between transition-colors border-b border-gray-100 last:border-0 gap-2"
                       >
-                        <span className="truncate">👤 {username || `User #${idx + 1}`}</span>
-                        {pin && (
-                          <span className="text-[9px] bg-amber-100 text-amber-800 font-extrabold px-1.5 py-0.5 rounded border border-amber-200 shrink-0 ml-2">
-                            PIN: {pin}
+                        {/* KIRI: TOMBOL HAPUS + USERNAME (20 HURUF) + PIN */}
+                        <div
+                          onClick={() => {
+                            setSelectedPrivateUser(username);
+                            setIsUserDropdownOpen(false);
+                          }}
+                          className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
+                        >
+                          {/* TOMBOL HAPUS (KIRI USERNAME) */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm(`Hapus akun user "${username}" secara permanen?`)) {
+                                onDeleteUser && onDeleteUser(username);
+                              }
+                            }}
+                            className="px-2 py-0.5 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white border border-red-200 rounded-lg transition-colors text-[10px] font-bold shrink-0 cursor-pointer"
+                            title="Hapus User"
+                          >
+                            Hapus
+                          </button>
+
+                          {/* USERNAME (RESPONSIF UP TO 20 HURUF) */}
+                          <span
+                            className="truncate text-blue-900 font-extrabold max-w-[20ch] shrink-0"
+                            title={username || `User #${idx + 1}`}
+                          >
+                            {username || `User #${idx + 1}`}
                           </span>
-                        )}
-                      </button>
+
+                          {/* PIN (KANAN USERNAME) */}
+                          {pin && (
+                            <span className="text-[9px] bg-amber-100 text-amber-800 font-extrabold px-1.5 py-0.5 rounded border border-amber-200 shrink-0">
+                              PIN: {pin}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* KANAN: INFO CHAT, UMUR, DAN BERAT */}
+                        <div
+                          onClick={() => {
+                            setSelectedPrivateUser(username);
+                            setIsUserDropdownOpen(false);
+                          }}
+                          className="flex gap-1 shrink-0 items-center cursor-pointer"
+                        >
+                          {totalChats > 0 && (
+                            <span className="text-[8px] font-extrabold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200 whitespace-nowrap" title="Jumlah Chat">
+                              {totalChats} chat
+                            </span>
+                          )}
+                          {umur && (
+                            <span className="text-[8px] font-extrabold bg-gray-100 text-gray-600 px-1 py-0.5 rounded border border-gray-200 whitespace-nowrap">
+                              U: {umur}
+                            </span>
+                          )}
+                          {berat && (
+                            <span className="text-[8px] font-extrabold bg-gray-100 text-gray-600 px-1 py-0.5 rounded border border-gray-200 whitespace-nowrap">
+                              B: {berat}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     );
                   })
                 )}
@@ -238,8 +298,18 @@ export default function Admin({
             )}
           </div>
 
-          <div className="bg-gray-100 text-gray-800 text-xs font-bold px-3 py-2 rounded-xl border border-gray-300 shrink-0 whitespace-nowrap">
-            {privateUsers.length} User
+          {/* JUMLAH USER & TOMBOL REFRESH */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="bg-gray-100 text-gray-800 text-xs font-bold px-2.5 py-2 rounded-xl border border-gray-300 whitespace-nowrap">
+              {privateUsers.length} User
+            </div>
+            <button
+              type="button"
+              onClick={() => onRefresh ? onRefresh() : window.location.reload()}
+              className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-black text-xs px-3 py-2 rounded-xl shadow transition-all tracking-wider uppercase cursor-pointer whitespace-nowrap"
+            >
+              REFRESH
+            </button>
           </div>
         </div>
       </div>
