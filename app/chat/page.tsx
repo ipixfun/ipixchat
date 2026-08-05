@@ -146,7 +146,7 @@ export default function Home() {
         if (profileCheck) {
           const currentValidPin = auth.pin || savedPin;
 
-          // HANYA COCOKKAN JIKA PIN MEMANG ADA DAN VALiD 6 ANGKA
+          // HANYA COCOKKAN JIKA PIN MEMANG ADA DAN VALID 6 ANGKA
           if (currentValidPin && currentValidPin.length === 6 && profileCheck.pin !== currentValidPin) {
             triggerAdminChangeNotice(profileCheck.username);
             return;
@@ -172,16 +172,46 @@ export default function Home() {
         vPriv.forEach((m) => { if (!m.username?.toLowerCase().includes("admin")) { const t = new Date(m.created_at).getTime(); sMap[m.username] = { lastActive: t, online: Date.now() - t < 300000, offlineTime: getFmt.ago(new Date(t)) }; } });
         setUsersInfo((p) => ({ ...p, status: sMap, blockedList: bD || [] }));
       }
-      if (isAdminTab && !usersInfo.selPriv) {
-        const { data: aP } = await supabase.from("messages").select("username, chat_with, created_at, pesan").order("created_at", { ascending: false }).limit(500);
-        if (aP) {
-          const uMap = new Map(), c: Record<string, number> = {}, userMsgTotal: Record<string, number> = {}, adminMsgTotal: Record<string, number> = {};
-          const uniqueUsernames = Array.from(new Set(aP.map((m: any) => m.username).filter((u: string) => !u?.toLowerCase().includes("admin"))));
-          const { data: profilesData } = await supabase.from("profiles").select("username, pin, umur, berat").in("username", uniqueUsernames);
-          const profileMap = new Map(profilesData?.map((p: any) => [p.username.toLowerCase(), { pin: p.pin, umur: p.umur, berat: p.berat }]) || []);
-          aP.forEach((m) => { if (!m.username?.toLowerCase().includes("admin")) { c[m.username] = (c[m.username] || 0) + 1; userMsgTotal[m.username] = (userMsgTotal[m.username] || 0) + 1; } else if (m.chat_with) { adminMsgTotal[m.chat_with] = (adminMsgTotal[m.chat_with] || 0) + 1; } });
-          aP.forEach((m: any) => { if (!m.username?.toLowerCase().includes("admin") && !uMap.has(m.username)) { const userProfile = profileMap.get(m.username.toLowerCase()); uMap.set(m.username, { ...m, last_active: m.created_at, count: isAdminTab ? 0 : (c[m.username] || 0), pin: userProfile?.pin || "", umur: userProfile?.umur || "", berat: userProfile?.berat || "", totalUserMsgs: userMsgTotal[m.username] || 0, totalAdminMsgs: adminMsgTotal[m.username] || 0, last_message: m.pesan }); } });
-          setUsersInfo((p) => ({ ...p, privUsers: Array.from(uMap.values()) }));
+
+      // FITUR DIPERBARUI: Mengambil seluruh user dari TABEL PROFILES agar user baru (tanpa chat) tetap tampil
+      if (isAdminTab) {
+        const [{ data: profilesData }, { data: allMessages }] = await Promise.all([
+          supabase.from("profiles").select("username, pin, umur, berat, created_at"),
+          supabase.from("messages").select("username, chat_with, created_at, pesan").order("created_at", { ascending: false })
+        ]);
+
+        if (profilesData) {
+          const formattedPrivUsers = profilesData
+            // Filter mengecualikan akun admin
+            .filter((p: any) => !p.username?.toLowerCase().includes("admin"))
+            .map((p: any) => {
+              const uName = p.username;
+              
+              // Filter riwayat pesan user ini (dikirim atau diterima)
+              const userMsgs = (allMessages || []).filter(
+                (m: any) => m.username === uName || m.chat_with === uName
+              );
+
+              const totalUserMsgs = (allMessages || []).filter((m: any) => m.username === uName).length;
+              const totalAdminMsgs = (allMessages || []).filter((m: any) => m.chat_with === uName).length;
+              
+              // Objek pesan paling terakhir
+              const lastMsgObj = userMsgs[0]; // Karena allMessages disort descending (created_at)
+
+              return {
+                username: uName,
+                pin: p.pin || "",
+                umur: p.umur || "",
+                berat: p.berat || "",
+                totalUserMsgs,
+                totalAdminMsgs,
+                count: 0,
+                last_message: lastMsgObj ? lastMsgObj.pesan : null,
+                last_active: lastMsgObj ? lastMsgObj.created_at : p.created_at
+              };
+            });
+
+          setUsersInfo((prev) => ({ ...prev, privUsers: formattedPrivUsers }));
         }
       }
     } catch (e) { console.error("Gagal fetch data:", e); }

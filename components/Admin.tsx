@@ -34,11 +34,18 @@ export default function Admin({
   const [dropdownPosition, setDropdownPosition] = useState<"top" | "bottom">("top");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Filter mengecualikan akun admin dari daftar tampilan
+  const filteredUsers = privateUsers.filter((u: any) => {
+    const name = (typeof u === "string" ? u : u.username || "").toLowerCase();
+    const email = (typeof u === "object" && u.email ? u.email : "").toLowerCase();
+    return !name.includes("admin") && !email.includes("admin");
+  });
+
   useEffect(() => {
     setReadBaselines((prev) => {
       let hasChanges = false;
       const nextBaselines = { ...prev };
-      privateUsers.forEach((user: any) => {
+      filteredUsers.forEach((user: any) => {
         const currentTotal = user.totalUserMsgs || 0;
         if (nextBaselines[user.username] === undefined || currentTotal < nextBaselines[user.username]) {
           nextBaselines[user.username] = Math.max(0, currentTotal - (user.count || 0));
@@ -49,7 +56,7 @@ export default function Admin({
     });
   }, [privateUsers]);
 
-  // Hitung posisi terbawa / teratas untuk popup dropdown
+  // Hitung posisi terbawah / teratas untuk popup dropdown
   useEffect(() => {
     if (isUserDropdownOpen && dropdownRef.current) {
       const rect = dropdownRef.current.getBoundingClientRect();
@@ -124,61 +131,78 @@ export default function Admin({
     <div className="flex flex-col min-h-full p-3 gap-4 relative pb-44">
       {/* LIST KARTU USER */}
       <div className="space-y-3 flex-1">
-        {privateUsers.map((user: any, index: number) => {
-          const identifier = user.username || `anonymous-${index}`;
-          const isCleared = clearedUserMsgs[user.username];
-          
-          const totalUserMsgs = isCleared ? 0 : (user.totalUserMsgs || 0);
-          const totalAdminMsgs = isCleared ? 0 : (user.totalAdminMsgs || 0);
-          const baseline = readBaselines[user.username];
-          
-          let displayCount = isCleared 
-            ? 0 
-            : (baseline !== undefined ? Math.max(0, totalUserMsgs - baseline) : (user.count || 0));
-          
-          const hasUnread = displayCount > 0;
-          const lastMsg = isCleared 
-            ? "-" 
-            : (user.last_message === "___DELETED___" 
-                ? "(Pesan dihapus)" 
-                : user.last_message || "(Belum ada pesan)");
+        {filteredUsers.length === 0 ? (
+          <div className="bg-white p-6 rounded-2xl border text-center text-gray-400 font-medium text-sm">
+            Belum ada user terdaftar.
+          </div>
+        ) : (
+          filteredUsers.map((user: any, index: number) => {
+            const identifier = user.username || `anonymous-${index}`;
+            const isCleared = clearedUserMsgs[user.username];
+            
+            const totalUserMsgs = isCleared ? 0 : (user.totalUserMsgs || 0);
+            const totalAdminMsgs = isCleared ? 0 : (user.totalAdminMsgs || 0);
+            const baseline = readBaselines[user.username];
+            
+            let displayCount = isCleared 
+              ? 0 
+              : (baseline !== undefined ? Math.max(0, totalUserMsgs - baseline) : (user.count || 0));
+            
+            const hasUnread = displayCount > 0;
+            const lastMsg = isCleared 
+              ? "-" 
+              : (user.last_message === "___DELETED___" 
+                  ? "(Pesan dihapus)" 
+                  : user.last_message || "(Belum ada pesan)");
 
-          return (
-            <div key={identifier} onClick={() => handleUserClick(user)} className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col group gap-2 border" style={{ borderColor: "var(--card-border)" }}>
-              <div className="flex justify-between items-center w-full gap-2">
-                <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  {/* TOMBOL EDIT USERNAME DI KIRI */}
-                  <button onClick={(e) => handleEditUsername(e, user)} className="text-gray-400 hover:text-blue-600 p-0.5 rounded transition-colors text-xs shrink-0" title="Edit Username">✏️</button>
-                  {/* USERNAME */}
-                  <span className="font-bold text-blue-700 text-sm sm:text-base tracking-tight truncate max-w-[210px] sm:max-w-[280px]" title={user.username || 'User Tanpa Nama'}>{user.username || 'User Tanpa Nama'}</span>
-                </div>
-                <div className={`text-[10px] sm:text-xs font-medium whitespace-nowrap shrink-0 text-right ${hasUnread ? 'text-emerald-600 font-semibold' : 'text-gray-400'}`}>{user.last_active ? formatMessageTime(user.last_active) : "-"}</div>
-              </div>
-
-              <div className="flex justify-between items-center w-full gap-2 my-0.5">
-                <div className={`text-xs font-medium truncate flex-1 min-w-0 ${hasUnread ? 'text-emerald-600 font-semibold' : 'text-gray-500'}`}>{lastMsg}</div>
-                {(user.umur || user.berat) && (
-                  <div className="flex gap-1.5 shrink-0 justify-end items-center">
-                    {user.umur && <span className="text-[9px] font-bold bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded border border-gray-200 whitespace-nowrap">U: {user.umur}</span>}
-                    {user.berat && <span className="text-[9px] font-bold bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded border border-gray-200 whitespace-nowrap">B: {user.berat}</span>}
+            return (
+              <div 
+                key={identifier} 
+                onClick={() => handleUserClick(user)} 
+                className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col group gap-2 border" 
+                style={{ borderColor: "var(--card-border)" }}
+              >
+                <div className="flex justify-between items-center w-full gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    {/* TOMBOL EDIT USERNAME */}
+                    <button onClick={(e) => handleEditUsername(e, user)} className="text-gray-400 hover:text-blue-600 p-0.5 rounded transition-colors text-xs shrink-0" title="Edit Username">✏️</button>
+                    {/* USERNAME */}
+                    <span className="font-bold text-blue-700 text-sm sm:text-base tracking-tight truncate max-w-[210px] sm:max-w-[280px]" title={user.username || 'User Tanpa Nama'}>
+                      {user.username || 'User Tanpa Nama'}
+                    </span>
                   </div>
-                )}
-              </div>
+                  <div className={`text-[10px] sm:text-xs font-medium whitespace-nowrap shrink-0 text-right ${hasUnread ? 'text-emerald-600 font-semibold' : 'text-gray-400'}`}>
+                    {user.last_active ? formatMessageTime(user.last_active) : "-"}
+                  </div>
+                </div>
 
-              <div className="flex justify-between items-end pt-2 border-t border-gray-100 w-full gap-2">
-                <div className="flex gap-1.5 items-center">
-                  <button onClick={(e) => handleEditPin(e, user)} className="bg-amber-50 hover:bg-amber-500 text-amber-700 hover:text-white text-[9px] font-black px-2 py-1 rounded shadow-sm border border-amber-200 hover:border-amber-500 transition-colors uppercase tracking-wider flex items-center gap-1" title="Klik untuk edit PIN user">🔑 PIN: {user.pin || '---'}</button>
-                  <button onClick={(e) => handleDeleteAll(e, user.username)} className="bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white text-[9px] font-black px-2 py-1 rounded shadow-sm border border-orange-200 hover:border-orange-600 transition-colors uppercase tracking-wider">DELETE ALL</button>
+                <div className="flex justify-between items-center w-full gap-2 my-0.5">
+                  <div className={`text-xs font-medium truncate flex-1 min-w-0 ${hasUnread ? 'text-emerald-600 font-semibold' : 'text-gray-500'}`}>
+                    {lastMsg}
+                  </div>
+                  {(user.umur || user.berat) && (
+                    <div className="flex gap-1.5 shrink-0 justify-end items-center">
+                      {user.umur && <span className="text-[9px] font-bold bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded border border-gray-200 whitespace-nowrap">U: {user.umur}</span>}
+                      {user.berat && <span className="text-[9px] font-bold bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded border border-gray-200 whitespace-nowrap">B: {user.berat}</span>}
+                    </div>
+                  )}
                 </div>
-                <div className="flex gap-1.5 items-center shrink-0">
-                  {hasUnread ? <span className="bg-emerald-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap animate-pulse">{displayCount} Baru</span> : <span className="bg-gray-400 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap">0</span>}
-                  <span className="bg-blue-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap" title="Total pesan dikirim oleh user">👤 {totalUserMsgs}</span>
-                  <span className="bg-red-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap" title="Total balasan admin ke user">⭐ {totalAdminMsgs}</span>
+
+                <div className="flex justify-between items-end pt-2 border-t border-gray-100 w-full gap-2">
+                  <div className="flex gap-1.5 items-center">
+                    <button onClick={(e) => handleEditPin(e, user)} className="bg-amber-50 hover:bg-amber-500 text-amber-700 hover:text-white text-[9px] font-black px-2 py-1 rounded shadow-sm border border-amber-200 hover:border-amber-500 transition-colors uppercase tracking-wider flex items-center gap-1" title="Klik untuk edit PIN user">🔑 PIN: {user.pin || '---'}</button>
+                    <button onClick={(e) => handleDeleteAll(e, user.username)} className="bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white text-[9px] font-black px-2 py-1 rounded shadow-sm border border-orange-200 hover:border-orange-600 transition-colors uppercase tracking-wider">DELETE ALL</button>
+                  </div>
+                  <div className="flex gap-1.5 items-center shrink-0">
+                    {hasUnread ? <span className="bg-emerald-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap animate-pulse">{displayCount} Baru</span> : <span className="bg-gray-400 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap">0</span>}
+                    <span className="bg-blue-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap" title="Total pesan dikirim oleh user">👤 {totalUserMsgs}</span>
+                    <span className="bg-red-500 text-white text-[9px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap" title="Total balasan admin ke user">⭐ {totalAdminMsgs}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {/* KOLOM KONTROL PUTIH (FROZEN DI ATAS NAVBAR BOTTOM) */}
@@ -195,43 +219,50 @@ export default function Admin({
               onClick={() => setIsUserDropdownOpen((p) => !p)}
               className="w-full bg-gray-50 border border-gray-300 text-gray-800 text-xs font-semibold rounded-xl px-3 py-2 flex items-center justify-between text-left truncate active:scale-95 transition-all cursor-pointer"
             >
-              <span className="truncate">Pilih user...</span>
+              <span className="truncate">Pilih user ({filteredUsers.length})...</span>
               <span className="text-gray-400 text-[10px] ml-1 shrink-0">
                 {isUserDropdownOpen ? (dropdownPosition === "top" ? "▲" : "▼") : "▼"}
               </span>
             </button>
 
-            {/* POPUP MENU ROLL FULL LEBAR LAYAR HORISONTAL */}
+            {/* POPUP MENU ROLL PULL-UP */}
             {isUserDropdownOpen && (
               <div
                 className={`fixed left-2 right-2 bg-white border border-gray-200 rounded-2xl shadow-2xl max-h-[48vh] overflow-y-auto z-[99999] p-2 flex flex-col gap-1 transition-all ${
                   dropdownPosition === "top" ? "bottom-[145px]" : "top-[calc(100vh-120px)]"
                 }`}
               >
-                {privateUsers.length === 0 ? (
+                {filteredUsers.length === 0 ? (
                   <div className="p-3 text-center text-xs text-gray-400 font-medium">
                     Tidak ada user terdaftar
                   </div>
                 ) : (
-                  privateUsers.map((u: any, idx: number) => {
+                  filteredUsers.map((u: any, idx: number) => {
                     const username = typeof u === "string" ? u : u.username;
                     const umur = typeof u === "object" ? u.umur : null;
                     const berat = typeof u === "object" ? u.berat : null;
 
+                    // Deteksi user baru mendaftar (belum pernah ada riwayat chat)
+                    const userMsgs = typeof u === "object" ? (u.totalUserMsgs || 0) : 0;
+                    const adminMsgs = typeof u === "object" ? (u.totalAdminMsgs || 0) : 0;
+                    const hasMessages = userMsgs > 0 || adminMsgs > 0 || (typeof u === "object" && u.last_message && u.last_message !== "___DELETED___");
+                    const isNewRegister = !hasMessages;
+
                     return (
                       <div
                         key={username || idx}
-                        className="w-full px-2.5 py-2 hover:bg-blue-50/80 rounded-xl text-xs font-bold text-gray-700 flex items-center justify-between transition-colors border-b border-gray-100 last:border-0 gap-2"
+                        className={`w-full px-2.5 py-2 hover:bg-blue-50/80 rounded-xl text-xs font-bold text-gray-700 flex items-center justify-between transition-colors border-b border-gray-100 last:border-0 gap-2 ${
+                          isNewRegister ? "bg-emerald-50/60" : ""
+                        }`}
                       >
-                        {/* KIRI: TOMBOL HAPUS + USERNAME */}
+                        {/* KIRI: TOMBOL HAPUS + USERNAME + BADGE NEW */}
                         <div
                           onClick={() => {
                             setSelectedPrivateUser(username);
                             setIsUserDropdownOpen(false);
                           }}
-                          className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
+                          className="flex items-center gap-1.5 min-w-0 flex-1 cursor-pointer"
                         >
-                          {/* TOMBOL HAPUS (KIRI USERNAME) */}
                           <button
                             type="button"
                             onClick={(e) => {
@@ -246,13 +277,19 @@ export default function Admin({
                             Hapus
                           </button>
 
-                          {/* USERNAME */}
                           <span
-                            className="truncate text-blue-900 font-extrabold max-w-[20ch] shrink-0"
+                            className="truncate text-blue-900 font-extrabold max-w-[18ch] shrink-0"
                             title={username || `User #${idx + 1}`}
                           >
                             {username || `User #${idx + 1}`}
                           </span>
+
+                          {/* BADGE USER BARU */}
+                          {isNewRegister && (
+                            <span className="text-[8px] font-black bg-emerald-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 animate-pulse">
+                              NEW
+                            </span>
+                          )}
                         </div>
 
                         {/* KANAN: INFO UMUR DAN BERAT */}
@@ -284,8 +321,8 @@ export default function Admin({
 
           {/* JUMLAH USER & TOMBOL REFRESH */}
           <div className="flex items-center gap-1.5 shrink-0">
-            <div className="bg-gray-100 text-gray-800 text-xs font-bold px-2.5 py-2 rounded-xl border border-gray-300 whitespace-nowrap">
-              {privateUsers.length} User
+            <div className="bg-blue-50 text-blue-800 text-xs font-extrabold px-2.5 py-2 rounded-xl border border-blue-200 whitespace-nowrap shadow-sm">
+              {filteredUsers.length} User
             </div>
             <button
               type="button"
