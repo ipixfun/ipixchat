@@ -339,7 +339,9 @@ export default function Home() {
   };
 
   const currentMsgs = msgs.priv.filter((m) => !m.pesan?.startsWith("___KICK_SIGNAL___")), adminPinnedMsg = currentMsgs.find((m) => m.is_pinned && !m.pesan?.startsWith("___DELETED") && m.username === "Admin●ipix.my.id"), userPinnedMsg = currentMsgs.find((m) => m.is_pinned && !m.pesan?.startsWith("___DELETED") && m.username !== "Admin●ipix.my.id");
-  const shouldShowPinned = auth.isAuth && currentHash !== "#block" && (ui.tab === "user" || (ui.tab === "admin" && usersInfo.selPriv !== null));
+
+  // HANYA AKAN MENAMPILKAN PINNED MESSAGE DI HALAMAN ADMIN
+  const shouldShowPinnedForAdmin = auth.isAuth && currentHash !== "#block" && ui.tab === "admin" && usersInfo.selPriv !== null;
 
   const handleOpenUserGallery = (targetUsername: string) => {
     const userImagesMsgs = msgs.priv.filter((m) => m.username === targetUsername && m.image_url && !m.pesan?.startsWith("___DELETED"));
@@ -419,10 +421,14 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
+
       <Head auth={auth} ui={ui} adminStat={adminStat} onlineUsers={Object.entries(usersInfo.status).filter(([_, data]) => data.online).map(([u]) => u)} currentHash={currentHash} getFmt={getFmt} handleLogout={handleLogout} onBlockMgr={() => window.open(`${window.location.pathname}#block`, "_blank")} onTrashMgr={dbActions.emptyTrash} adminPinnedMsg={adminPinnedMsg} userPinnedMsg={userPinnedMsg} onEditPinned={dbActions.editPinned} onScrollToMsg={scrollMsg} />
-      {shouldShowPinned && (adminPinnedMsg || userPinnedMsg) && (
+
+      {/* TAMPIL HANYA PADA TAB ADMIN */}
+      {shouldShowPinnedForAdmin && (adminPinnedMsg || userPinnedMsg) && (
         <PinnedMessage adminPinnedMsg={adminPinnedMsg} userPinnedMsg={userPinnedMsg} uiTab={ui.tab} onEditPinned={dbActions.editPinned} onScrollToMsg={scrollMsg} />
       )}
+
       <div className="flex-1 w-full relative flex overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
         {ui.tab === "admin" && currentHash === "#block" && auth.isAuth ? (
           <Block blockedList={usersInfo.blockedList} unblock={async (identifier: string) => { await supabase.from("blocked_users").delete().eq("username", identifier); if (!isNaN(Number(identifier))) await supabase.from("blocked_users").delete().eq("id", Number(identifier)); fetchData(); }} blockedWords={censor.words} newWord={censor.newWord} setNewWord={(w: string) => setCensor((p) => ({ ...p, newWord: w }))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} />
@@ -430,6 +436,7 @@ export default function Home() {
           <ChatLayout cMode="private" viewMode="full-private" hInteract={() => {}} hScroll={hScroll} aTab={ui.tab} selPrivUser={usersInfo.selPriv} pUsers={usersInfo.privUsers} pubMsgs={[]} privMsgs={msgs.priv} isPill={false} pDelta={0} pTouchX={0} capIdx={0} setPTouchX={() => {}} setPDelta={() => {}} setCapPause={() => {}} setIsPill={() => {}} renderMsgs={renderMsgs} renderInput={() => <></>} fmtTime={getFmt.time} setSelPriv={(u: string) => setUsersInfo((p) => ({ ...p, selPriv: u }))} onBlockUser={dbActions.blkUser} onDeleteUser={dbActions.deleteUserAccount} onDeleteAllMsgs={dbActions.deleteAllUserMsgs} onUpdatePin={dbActions.updatePin} onUpdateUsername={dbActions.updateUsername} />
         )}
       </div>
+
       {currentHash !== "#block" && auth.isAuth && <ChatInput input={input} setInput={setInput} interact={interact} setInteract={setInteract} ui={ui} setUi={setUi} auth={auth} usersInfo={usersInfo} currentHash={currentHash} isBlocked={usersInfo.blockedList.some((b) => b.username === auth.user)} isAccountChangedByAdmin={adminNoticeModal.isOpen} hasInputReady={input.text.trim().length > 0 || input.image !== null} handleImageUpload={handleImageUpload} scrollMsg={scrollMsg} sendMsg={sendMsg} handleLogout={handleLogout} />}
 
       {alertModal.isOpen && (
