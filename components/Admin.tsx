@@ -215,21 +215,15 @@ export default function Admin({
                 ) : (
                   privateUsers.map((u: any, idx: number) => {
                     const username = typeof u === "string" ? u : u.username;
-                    const pin = typeof u === "object" ? u.pin : null;
                     const umur = typeof u === "object" ? u.umur : null;
                     const berat = typeof u === "object" ? u.berat : null;
-                    
-                    // Hitung jumlah chat user
-                    const userMsgs = typeof u === "object" ? (u.totalUserMsgs || 0) : 0;
-                    const adminMsgs = typeof u === "object" ? (u.totalAdminMsgs || 0) : 0;
-                    const totalChats = userMsgs + adminMsgs || (typeof u === "object" ? u.count : 0) || 0;
 
                     return (
                       <div
                         key={username || idx}
                         className="w-full px-2.5 py-2 hover:bg-blue-50/80 rounded-xl text-xs font-bold text-gray-700 flex items-center justify-between transition-colors border-b border-gray-100 last:border-0 gap-2"
                       >
-                        {/* KIRI: TOMBOL HAPUS + USERNAME (20 HURUF) + PIN */}
+                        {/* KIRI: TOMBOL HAPUS + USERNAME */}
                         <div
                           onClick={() => {
                             setSelectedPrivateUser(username);
@@ -252,23 +246,16 @@ export default function Admin({
                             Hapus
                           </button>
 
-                          {/* USERNAME (RESPONSIF UP TO 20 HURUF) */}
+                          {/* USERNAME */}
                           <span
                             className="truncate text-blue-900 font-extrabold max-w-[20ch] shrink-0"
                             title={username || `User #${idx + 1}`}
                           >
                             {username || `User #${idx + 1}`}
                           </span>
-
-                          {/* PIN (KANAN USERNAME) */}
-                          {pin && (
-                            <span className="text-[9px] bg-amber-100 text-amber-800 font-extrabold px-1.5 py-0.5 rounded border border-amber-200 shrink-0">
-                              PIN: {pin}
-                            </span>
-                          )}
                         </div>
 
-                        {/* KANAN: INFO CHAT, UMUR, DAN BERAT */}
+                        {/* KANAN: INFO UMUR DAN BERAT */}
                         <div
                           onClick={() => {
                             setSelectedPrivateUser(username);
@@ -276,11 +263,6 @@ export default function Admin({
                           }}
                           className="flex gap-1 shrink-0 items-center cursor-pointer"
                         >
-                          {totalChats > 0 && (
-                            <span className="text-[8px] font-extrabold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200 whitespace-nowrap" title="Jumlah Chat">
-                              {totalChats} chat
-                            </span>
-                          )}
                           {umur && (
                             <span className="text-[8px] font-extrabold bg-gray-100 text-gray-600 px-1 py-0.5 rounded border border-gray-200 whitespace-nowrap">
                               U: {umur}
