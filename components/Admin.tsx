@@ -147,8 +147,10 @@ export default function Admin({
             <div key={identifier} onClick={() => handleUserClick(user)} className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col group gap-2 border" style={{ borderColor: "var(--card-border)" }}>
               <div className="flex justify-between items-center w-full gap-2">
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  <span className="font-bold text-blue-700 text-sm sm:text-base tracking-tight truncate max-w-[210px] sm:max-w-[280px]" title={user.username || 'User Tanpa Nama'}>{user.username || 'User Tanpa Nama'}</span>
+                  {/* TOMBOL EDIT USERNAME DI KIRI */}
                   <button onClick={(e) => handleEditUsername(e, user)} className="text-gray-400 hover:text-blue-600 p-0.5 rounded transition-colors text-xs shrink-0" title="Edit Username">✏️</button>
+                  {/* USERNAME */}
+                  <span className="font-bold text-blue-700 text-sm sm:text-base tracking-tight truncate max-w-[210px] sm:max-w-[280px]" title={user.username || 'User Tanpa Nama'}>{user.username || 'User Tanpa Nama'}</span>
                 </div>
                 <div className={`text-[10px] sm:text-xs font-medium whitespace-nowrap shrink-0 text-right ${hasUnread ? 'text-emerald-600 font-semibold' : 'text-gray-400'}`}>{user.last_active ? formatMessageTime(user.last_active) : "-"}</div>
               </div>
