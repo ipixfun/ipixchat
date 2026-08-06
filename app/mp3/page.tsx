@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { SongItem, SyncedLine, searchSongs, fetchLyrics, chunkArray } from './yt';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/app/lib/supabaseClient';
 
 declare global {
   interface Window {
