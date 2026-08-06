@@ -16,6 +16,9 @@ export interface LyricsResponse {
   rawLyrics?: string;
 }
 
+/**
+ * Mencari lagu melalui API internal (dengan fallback)
+ */
 export async function searchSongs(query: string, limit = 20): Promise<SongItem[]> {
   try {
     const res = await fetch(`/api/lyrics?action=search-song&q=${encodeURIComponent(query)}&limit=${limit}`);
@@ -33,6 +36,9 @@ export async function searchSongs(query: string, limit = 20): Promise<SongItem[]
   }
 }
 
+/**
+ * Mengambil lirik lagu berdasarkan judul, artis, dan ID YouTube
+ */
 export async function fetchLyrics(song: SongItem): Promise<LyricsResponse> {
   try {
     const res = await fetch(
@@ -51,10 +57,25 @@ export async function fetchLyrics(song: SongItem): Promise<LyricsResponse> {
   }
 }
 
+/**
+ * Membagi array menjadi potongan-potongan dengan ukuran tertentu (misal: per 5 item)
+ */
 export function chunkArray<T>(array: T[], size: number): T[][] {
   const result: T[][] = [];
   for (let i = 0; i < array.length; i += size) {
     result.push(array.slice(i, i + size));
   }
   return result;
+}
+
+/**
+ * Mengacak array (Fisher-Yates Shuffle)
+ */
+export function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
