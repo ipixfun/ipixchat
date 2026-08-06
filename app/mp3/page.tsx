@@ -12,6 +12,13 @@ interface SongItem {
   thumbnail?: string;
 }
 
+declare global {
+  interface Window {
+    onYouTubeIframeAPIReady: () => void;
+    YT: any;
+  }
+}
+
 export default function Mp3Page() {
   const { theme, mounted } = useTheme();
 
@@ -21,15 +28,14 @@ export default function Mp3Page() {
 
   const [currentSong, setCurrentSong] = useState<SongItem | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
 
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState('0:00');
   const [duration, setDuration] = useState('0:00');
-  const [totalSeconds, setTotalSeconds] = useState(0);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playerRef = useRef<any>(null);
   const isSeeking = useRef(false);
+  const intervalRef = useRef<any>(null);
 
   const formatTime = (secs: number) => {
     if (isNaN(secs) || !isFinite(secs) || secs < 0) return '0:00';
@@ -38,16 +44,83 @@ export default function Mp3Page() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const parseDurationToSeconds = (durStr: string): number => {
-    if (!durStr || durStr === '0:00') return 0;
-    const parts = durStr.split(':').map(Number);
-    if (parts.some(isNaN)) return 0;
-    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    if (parts.length === 2) return parts[0] * 60 + parts[1];
-    return 0;
+  // 1. LOAD YOUTUBE IFRAME API SCRIPT
+  useEffect(() => {
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    }
+  }, []);
+
+  // 2. TIMELINE PROGRESS TRACKER
+  const startProgressTimer = useCallback(() => {
+    stopProgressTimer();
+    intervalRef.current = setInterval(() => {
+      if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function' && !isSeeking.current) {
+        const cur = playerRef.current.getCurrentTime() || 0;
+        const dur = playerRef.current.getDuration() || 0;
+        if (dur > 0) {
+          setProgress((cur / dur) * 100);
+          setDuration(formatTime(dur));
+        }
+        setCurrentTime(formatTime(cur));
+      }
+    }, 500);
+  }, []);
+
+  const stopProgressTimer = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
   };
 
-  // ===== PENCARIAN =====
+  // 3. INIT OR PLAY SONG IN IFRAME PLAYER
+  const playSong = useCallback((song: SongItem) => {
+    setCurrentSong(song);
+    setIsPlaying(false);
+    setProgress(0);
+    setCurrentTime('0:00');
+
+    if (!window.YT || !window.YT.Player) return;
+
+    if (playerRef.current) {
+      playerRef.current.loadVideoById(song.id);
+    } else {
+      playerRef.current = new window.YT.Player('yt-hidden-player', {
+        height: '1',
+        width: '1',
+        videoId: song.id,
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          rel: 0,
+        },
+        events: {
+          onReady: (event: any) => {
+            event.target.playVideo();
+          },
+          onStateChange: (event: any) => {
+            // YT.PlayerState.PLAYING = 1, PAUSED = 2, ENDED = 0
+            if (event.data === 1) {
+              setIsPlaying(true);
+              startProgressTimer();
+            } else if (event.data === 2) {
+              setIsPlaying(false);
+              stopProgressTimer();
+            } else if (event.data === 0) {
+              setIsPlaying(false);
+              stopProgressTimer();
+              setProgress(0);
+            }
+          },
+        },
+      });
+    }
+  }, [startProgressTimer]);
+
+  // 4. PENCARIAN LAGU (VIA INVIDIOUS / PUBLIC SEARCH)
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputQuery.trim()) return;
@@ -57,19 +130,18 @@ export default function Mp3Page() {
 
     let queryOrId = inputQuery.trim();
 
-    // Deteksi YouTube URL
     const ytMatch = queryOrId.match(
       /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/
     );
     if (ytMatch) {
       queryOrId = ytMatch[1];
-      playSong({ id: queryOrId, title: 'Memuat...', artist: '-', duration: '0:00' });
+      playSong({ id: queryOrId, title: 'Memuat Video...', artist: 'YouTube', duration: '0:00' });
       setIsSearching(false);
       return;
     }
 
     if (/^[a-zA-Z0-9_-]{11}$/.test(queryOrId)) {
-      playSong({ id: queryOrId, title: 'Memuat...', artist: '-', duration: '0:00' });
+      playSong({ id: queryOrId, title: 'Memuat Video...', artist: 'YouTube', duration: '0:00' });
       setIsSearching(false);
       return;
     }
@@ -77,9 +149,7 @@ export default function Mp3Page() {
     try {
       const res = await fetch(`/api/yt?q=${encodeURIComponent(queryOrId)}`);
       const data = await res.json();
-      if (data.songs && data.songs.length > 0) {
-        setSearchResults(data.songs);
-      }
+      if (data.songs) setSearchResults(data.songs);
     } catch (err) {
       console.error('Search error:', err);
     } finally {
@@ -87,92 +157,17 @@ export default function Mp3Page() {
     }
   };
 
-  // ===== PUTAR LAGU =====
-  const playSong = useCallback((song: SongItem) => {
-    setCurrentSong(song);
-    setIsLoadingAudio(true);
-    setIsPlaying(false);
-    setProgress(0);
-    setCurrentTime('0:00');
-    setDuration(song.duration || '0:00');
-    setTotalSeconds(parseDurationToSeconds(song.duration || '0:00'));
-
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = `/api/yt?v=${song.id}`;
-      audioRef.current.load();
-    }
-  }, []);
-
-  // Auto-play setelah audio siap
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleCanPlay = () => {
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsPlaying(true);
-            setIsLoadingAudio(false);
-          })
-          .catch((err) => {
-            console.error('Autoplay gagal:', err);
-            setIsLoadingAudio(false);
-          });
-      }
-    };
-
-    const handleLoadedMetadata = () => {
-      if (audio.duration && isFinite(audio.duration) && audio.duration > 0) {
-        setTotalSeconds(audio.duration);
-        setDuration(formatTime(audio.duration));
-      }
-    };
-
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-
-    return () => {
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-    };
-  }, [currentSong?.id]);
-
-  // ===== PLAY / PAUSE =====
+  // 5. KONTROL UTAMA (PLAY / PAUSE)
   const togglePlayPause = () => {
-    if (!audioRef.current || !currentSong) return;
+    if (!playerRef.current) return;
     if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
+      playerRef.current.pauseVideo();
     } else {
-      audioRef.current
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch((err) => console.error('Play error:', err));
+      playerRef.current.playVideo();
     }
   };
 
-  // ===== TIME UPDATE =====
-  const handleTimeUpdate = () => {
-    if (!audioRef.current || isSeeking.current) return;
-
-    const cur = audioRef.current.currentTime;
-    let total = totalSeconds;
-
-    if (audioRef.current.duration && isFinite(audioRef.current.duration)) {
-      total = audioRef.current.duration;
-    }
-
-    if (total > 0) {
-      setProgress((cur / total) * 100);
-      setDuration(formatTime(total));
-    }
-    setCurrentTime(formatTime(cur));
-  };
-
-  // ===== SEEKING HANDLERS =====
+  // 6. SEEKING HANDLERS
   const handleSeekStart = () => {
     isSeeking.current = true;
   };
@@ -182,22 +177,16 @@ export default function Mp3Page() {
   };
 
   const handleSeekEnd = () => {
-    if (!audioRef.current) return;
-
-    let total = totalSeconds;
-    if (audioRef.current.duration && isFinite(audioRef.current.duration)) {
-      total = audioRef.current.duration;
+    if (playerRef.current && typeof playerRef.current.getDuration === 'function') {
+      const dur = playerRef.current.getDuration();
+      if (dur > 0) {
+        const seekTime = (progress / 100) * dur;
+        playerRef.current.seekTo(seekTime, true);
+      }
     }
-
-    if (total > 0) {
-      const seekTime = (progress / 100) * total;
-      audioRef.current.currentTime = seekTime;
-    }
-
     isSeeking.current = false;
   };
 
-  // ===== NAVIGASI LAGU =====
   const playNext = () => {
     if (!currentSong || searchResults.length === 0) return;
     const currentIndex = searchResults.findIndex((s) => s.id === currentSong.id);
@@ -220,15 +209,17 @@ export default function Mp3Page() {
         color: 'var(--foreground, #f4f4f5)',
       }}
     >
+      {/* Hidden YouTube Player Frame */}
+      <div className="absolute opacity-0 pointer-events-none -z-50 w-1 h-1 overflow-hidden">
+        <div id="yt-hidden-player"></div>
+      </div>
+
       {/* Top Bar */}
       <div className="w-full max-w-md flex justify-between items-center my-4">
         <Link href="/" className="text-xs transition opacity-70 hover:opacity-100">
           ← Kembali
         </Link>
-        <span
-          className="text-xs font-semibold tracking-wider uppercase"
-          style={{ color: 'var(--accent)' }}
-        >
+        <span className="text-xs font-semibold tracking-wider uppercase" style={{ color: 'var(--accent)' }}>
           YT MUSIC ({mounted ? theme : 'DARK'})
         </span>
       </div>
@@ -274,32 +265,21 @@ export default function Mp3Page() {
               style={{
                 backgroundColor: 'var(--card-bg, rgba(255,255,255,0.05))',
                 borderColor:
-                  currentSong?.id === song.id
-                    ? 'var(--accent)'
-                    : 'var(--card-border, rgba(255,255,255,0.1))',
+                  currentSong?.id === song.id ? 'var(--accent)' : 'var(--card-border, rgba(255,255,255,0.1))',
               }}
             >
               <div className="flex items-center gap-3 overflow-hidden pr-2">
                 {song.thumbnail && (
-                  <img
-                    src={song.thumbnail}
-                    alt=""
-                    className="w-10 h-10 rounded-lg object-cover shrink-0"
-                  />
+                  <img src={song.thumbnail} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
                 )}
                 <div className="overflow-hidden">
-                  <h4
-                    className="text-xs font-semibold truncate"
-                    style={{ color: 'var(--foreground-heading)' }}
-                  >
+                  <h4 className="text-xs font-semibold truncate" style={{ color: 'var(--foreground-heading)' }}>
                     {song.title}
                   </h4>
                   <p className="text-[10px] opacity-70 truncate">{song.artist}</p>
                 </div>
               </div>
-              <span className="text-[10px] font-mono opacity-50 shrink-0">
-                {song.duration}
-              </span>
+              <span className="text-[10px] font-mono opacity-50 shrink-0">{song.duration}</span>
             </div>
           ))}
         </div>
@@ -314,7 +294,6 @@ export default function Mp3Page() {
           boxShadow: '0 8px 32px var(--accent-glow, rgba(0, 0, 0, 0.3))',
         }}
       >
-        {/* Thumbnail & Info */}
         <div className="flex flex-col items-center gap-3">
           {currentSong?.thumbnail && (
             <img
@@ -324,13 +303,8 @@ export default function Mp3Page() {
             />
           )}
           <div className="text-center w-full">
-            <h2
-              className="text-base font-semibold truncate"
-              style={{ color: 'var(--foreground-heading, #fff)' }}
-            >
-              {isLoadingAudio
-                ? 'Memuat Audio...'
-                : currentSong?.title || 'Belum Ada Lagu Diputar'}
+            <h2 className="text-base font-semibold truncate" style={{ color: 'var(--foreground-heading, #fff)' }}>
+              {currentSong?.title || 'Belum Ada Lagu Diputar'}
             </h2>
             <p className="text-xs mt-1 truncate" style={{ color: 'var(--foreground, #a1a1aa)' }}>
               {currentSong?.artist || 'Ketik judul lagu di atas untuk memutar'}
@@ -357,10 +331,7 @@ export default function Mp3Page() {
               background: `linear-gradient(to right, var(--accent) ${progress}%, rgba(255,255,255,0.15) ${progress}%)`,
             }}
           />
-          <div
-            className="flex justify-between text-[11px] font-mono"
-            style={{ color: 'var(--foreground, #a1a1aa)' }}
-          >
+          <div className="flex justify-between text-[11px] font-mono" style={{ color: 'var(--foreground, #a1a1aa)' }}>
             <span>{currentTime}</span>
             <span>{duration}</span>
           </div>
@@ -377,7 +348,7 @@ export default function Mp3Page() {
           </button>
           <button
             onClick={togglePlayPause}
-            disabled={isLoadingAudio || !currentSong}
+            disabled={!currentSong}
             className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold transition-all transform hover:scale-105 active:scale-95 disabled:opacity-40"
             style={{
               backgroundColor: 'var(--accent)',
@@ -385,13 +356,7 @@ export default function Mp3Page() {
               boxShadow: '0 0 20px var(--accent-glow, transparent)',
             }}
           >
-            {isLoadingAudio ? (
-              <span className="animate-spin">⏳</span>
-            ) : isPlaying ? (
-              '⏸'
-            ) : (
-              '▶'
-            )}
+            {isPlaying ? '⏸' : '▶'}
           </button>
           <button
             onClick={playNext}
@@ -402,30 +367,6 @@ export default function Mp3Page() {
           </button>
         </div>
       </div>
-
-      {/* Audio Element */}
-      <audio
-        ref={audioRef}
-        onTimeUpdate={handleTimeUpdate}
-        onEnded={() => {
-          setIsPlaying(false);
-          setProgress(0);
-          setCurrentTime('0:00');
-          if (searchResults.length > 0) {
-            playNext();
-          }
-        }}
-        onWaiting={() => setIsLoadingAudio(true)}
-        onPlaying={() => {
-          setIsLoadingAudio(false);
-          setIsPlaying(true);
-        }}
-        onError={(e) => {
-          console.error('Audio error:', e);
-          setIsLoadingAudio(false);
-          setIsPlaying(false);
-        }}
-      />
     </div>
   );
 }
