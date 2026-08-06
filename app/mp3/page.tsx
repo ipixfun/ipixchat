@@ -2,9 +2,11 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { SongItem, SyncedLine, searchSongs, fetchLyrics, chunkArray } from './yt';
+import { supabase } from '@/app/lib/supabaseClient'; // Sesuaikan lokasi supabaseClient Anda
 
 declare global {
   interface Window {
@@ -17,6 +19,11 @@ type PlayMode = 'normal' | 'repeat-one' | 'repeat-all' | 'shuffle';
 
 export default function Mp3Page() {
   const { theme } = useTheme();
+  const router = useRouter();
+
+  // State Autentikasi / Registration
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
 
   const [inputQuery, setInputQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SongItem[]>([]);
@@ -48,6 +55,30 @@ export default function Mp3Page() {
 
   const activePlaylistRef = useRef<SongItem[]>([]);
 
+  // 0. Cek Status Login / Registrasi User
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setIsAuthenticated(!!session?.user);
+      } catch (err) {
+        setIsAuthenticated(false);
+      } finally {
+        setCheckingAuth(false);
+      }
+    };
+
+    checkUser();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session?.user);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
   const formatTime = (secs: number) => {
     if (isNaN(secs) || !isFinite(secs) || secs < 0) return '0:00';
     const m = Math.floor(secs / 60);
@@ -65,7 +96,7 @@ export default function Mp3Page() {
     }
   }, []);
 
-  // Refresh Pilihan Cepat
+  // Refresh Pilihan Cepat (Jika belum login, batasi hanya 5 lagu)
   const refreshQuickPicks = useCallback(async () => {
     setIsSearching(true);
     const keywords = [
@@ -76,15 +107,17 @@ export default function Mp3Page() {
       'Indie Indonesia Terbaru'
     ];
     const randomKeyword = keywords[Math.floor(Math.random() * keywords.length)];
-    const songs = await searchSongs(randomKeyword, 20);
+    const songs = await searchSongs(randomKeyword, isAuthenticated ? 20 : 5);
     setSearchResults(songs);
     setIsSearching(false);
-  }, []);
+  }, [isAuthenticated]);
 
   // Load Awal untuk Pilihan Cepat
   useEffect(() => {
-    refreshQuickPicks();
-  }, [refreshQuickPicks]);
+    if (!checkingAuth) {
+      refreshQuickPicks();
+    }
+  }, [checkingAuth, refreshQuickPicks]);
 
   // Update Active Playlist Ref
   useEffect(() => {
@@ -197,7 +230,8 @@ export default function Mp3Page() {
 
       setQuickPicks((prev: SongItem[]) => {
         if (prev.some((item: SongItem) => item.id === song.id)) return prev;
-        return [song, ...prev];
+        const updated = [song, ...prev];
+        return isAuthenticated ? updated : updated.slice(0, 5);
       });
 
       if (!window.YT || !window.YT.Player) return;
@@ -230,12 +264,17 @@ export default function Mp3Page() {
         });
       }
     },
-    [startProgressTimer, handleSongEnded]
+    [startProgressTimer, handleSongEnded, isAuthenticated]
   );
 
-  // 6. Handler Pencarian Baru
+  // 6. Handler Pencarian Baru (Kunci Jika Belum Login)
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
     if (!inputQuery.trim()) return;
 
     let queryOrId = inputQuery.trim();
@@ -318,6 +357,10 @@ export default function Mp3Page() {
   };
 
   const handleOpenSearchFromModal = () => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
     setShowLyricsModal(false);
     setTimeout(() => {
       if (searchInputRef.current) searchInputRef.current.focus();
@@ -370,8 +413,12 @@ export default function Mp3Page() {
     navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
   }, [isPlaying]);
 
-  const chunkedSearchResults: SongItem[][] = chunkArray(searchResults, 5);
-  const chunkedQuickPicks: SongItem[][] = chunkArray(quickPicks, 5);
+  // Batasi daftar lagu menjadi maksimal 5 jika belum terautentikasi
+  const visibleSearchResults = isAuthenticated ? searchResults : searchResults.slice(0, 5);
+  const visibleQuickPicks = isAuthenticated ? quickPicks : quickPicks.slice(0, 5);
+
+  const chunkedSearchResults: SongItem[][] = chunkArray(visibleSearchResults, 5);
+  const chunkedQuickPicks: SongItem[][] = chunkArray(visibleQuickPicks, 5);
 
   return (
     <div
@@ -385,21 +432,32 @@ export default function Mp3Page() {
         <div id="yt-hidden-player"></div>
       </div>
 
-      {/* HEADER: KOLOM PENCARIAN DINAMIS */}
+      {/* HEADER: KOLOM PENCARIAN TERKUNCI JIKA BELUM REGISTER */}
       <header className="w-full max-w-md sticky top-0 z-30 px-4 py-3 backdrop-blur-md bg-black/60 border-b border-white/5 flex items-center gap-3">
         <Link href="/" className="opacity-80 hover:opacity-100 transition shrink-0">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
+        
         <form onSubmit={handleSearch} className="flex-1 relative flex items-center">
           <input
             ref={searchInputRef}
             type="text"
-            placeholder="Cari lagu, artis, atau album..."
+            disabled={!isAuthenticated}
+            placeholder={
+              isAuthenticated
+                ? 'Cari lagu, artis, atau album...'
+                : '🔒 Login/Register untuk mencari lagu...'
+            }
             value={inputQuery}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputQuery(e.target.value)}
-            className="w-full border rounded-full pl-10 pr-4 py-2 text-xs focus:outline-none transition shadow-sm"
+            onClick={() => {
+              if (!isAuthenticated) router.push('/login');
+            }}
+            className={`w-full border rounded-full pl-10 pr-4 py-2 text-xs transition shadow-sm ${
+              !isAuthenticated ? 'cursor-pointer opacity-70 bg-white/5' : 'focus:outline-none'
+            }`}
             style={{
               backgroundColor: 'var(--card-bg, rgba(255, 255, 255, 0.08))',
               borderColor: 'var(--card-border, rgba(255, 255, 255, 0.18))',
@@ -413,15 +471,45 @@ export default function Mp3Page() {
             viewBox="0 0 24 24"
             style={{ color: 'var(--accent, #f43f5e)' }}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
+            {isAuthenticated ? (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            ) : (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            )}
           </svg>
         </form>
       </header>
+
+      {/* BANNER AJAKAN REGISTRASI JIKA UNREGISTERED */}
+      {!checkingAuth && !isAuthenticated && (
+        <div className="w-full max-w-md px-4 mt-3">
+          <div
+            onClick={() => router.push('/login')}
+            className="p-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 flex items-center justify-between cursor-pointer hover:bg-rose-500/20 transition"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="text-base">🔓</span>
+              <div>
+                <p className="text-xs font-bold text-rose-400">Akses Terbatas</p>
+                <p className="text-[10px] opacity-70">Daftar sekarang untuk mencari & putar lagu tanpa batas.</p>
+              </div>
+            </div>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-rose-500 text-white shrink-0">
+              Daftar
+            </span>
+          </div>
+        </div>
+      )}
 
       <main className="w-full max-w-md px-4 flex flex-col gap-6 mt-4">
         {/* UTAMA: PILIHAN CEAPAT / HASIL PENCARIAN */}
@@ -429,6 +517,7 @@ export default function Mp3Page() {
           <div className="flex justify-between items-center px-1">
             <h2 className="text-lg font-extrabold tracking-tight" style={{ color: 'var(--foreground-heading, #fff)' }}>
               {hasSearched ? 'Hasil Pencarian' : 'Pilihan Cepat'}
+              {!isAuthenticated && <span className="text-xs font-normal opacity-50 ml-2">(Maks 5 Lagu)</span>}
             </h2>
 
             {/* PILL REFRESH DENGAN SVG */}
@@ -507,7 +596,7 @@ export default function Mp3Page() {
         </section>
 
         {/* SECTION RIWAYAT / PILIHAN CEAPAT LAMA */}
-        {hasSearched && quickPicks.length > 0 && (
+        {hasSearched && visibleQuickPicks.length > 0 && (
           <section className="flex flex-col gap-3 border-t border-white/10 pt-4">
             <div className="flex justify-between items-center px-1">
               <h2
@@ -677,9 +766,8 @@ export default function Mp3Page() {
                 </div>
               </div>
 
-              {/* FOOTER CONTROLS: REPEAT/SHUFFLE (KIRI) | PLAY, PREV, NEXT (TENGAH) | MINIMIZE (KANAN BAWAH) */}
+              {/* FOOTER CONTROLS */}
               <div className="flex items-center justify-between px-2 py-1">
-                {/* KIRI: MODE PUTAR (REPEAT/SHUFFLE) */}
                 <button
                   type="button"
                   onClick={togglePlayMode}
@@ -717,7 +805,6 @@ export default function Mp3Page() {
                   )}
                 </button>
 
-                {/* TENGAH: PREV, PLAY/PAUSE, NEXT */}
                 <div className="flex items-center gap-6">
                   <button type="button" onClick={playPrev} className="p-2 opacity-80 hover:opacity-100 transition cursor-pointer">
                     <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
@@ -747,7 +834,6 @@ export default function Mp3Page() {
                   </button>
                 </div>
 
-                {/* KANAN BAWAH: TOMBOL MINIMIZE MODAL LIRIK */}
                 <button
                   type="button"
                   onClick={() => setShowLyricsModal(false)}
@@ -816,7 +902,7 @@ export default function Mp3Page() {
             <button
               type="button"
               onClick={playPrev}
-              disabled={searchResults.length === 0}
+              disabled={visibleSearchResults.length === 0}
               className="p-1.5 opacity-80 hover:opacity-100 active:scale-95 transition disabled:opacity-20 cursor-pointer"
             >
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
@@ -847,7 +933,7 @@ export default function Mp3Page() {
             <button
               type="button"
               onClick={playNext}
-              disabled={searchResults.length === 0}
+              disabled={visibleSearchResults.length === 0}
               className="p-1.5 opacity-80 hover:opacity-100 active:scale-95 transition disabled:opacity-20 cursor-pointer"
             >
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
