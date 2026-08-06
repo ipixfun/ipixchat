@@ -12,6 +12,11 @@ interface SongItem {
   thumbnail?: string;
 }
 
+interface LyricLine {
+  time: number; // Dalam detik
+  text: string;
+}
+
 declare global {
   interface Window {
     onYouTubeIframeAPIReady: () => void;
@@ -30,18 +35,49 @@ export default function Mp3Page() {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const [progress, setProgress] = useState(0);
+  const [currentTimeSec, setCurrentTimeSec] = useState(0);
   const [currentTime, setCurrentTime] = useState('0:00');
   const [duration, setDuration] = useState('0:00');
+
+  // Lirik State
+  const [showLyrics, setShowLyrics] = useState(false);
+  const [lyrics, setLyrics] = useState<LyricLine[]>([]);
+  const [rawLyrics, setRawLyrics] = useState<string>('');
+  const [isLoadingLyrics, setIsLoadingLyrics] = useState(false);
+  const [activeLyricIndex, setActiveLyricIndex] = useState<number>(-1);
 
   const playerRef = useRef<any>(null);
   const isSeeking = useRef(false);
   const intervalRef = useRef<any>(null);
+  const lyricsContainerRef = useRef<HTMLDivElement>(null);
 
   const formatTime = (secs: number) => {
     if (isNaN(secs) || !isFinite(secs) || secs < 0) return '0:00';
     const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60);
     return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  // Helper Parser Lirik LRC (e.g. [00:12.34] Teks lirik)
+  const parseLrc = (lrcText: string): LyricLine[] => {
+    const lines = lrcText.split('\n');
+    const result: LyricLine[] = [];
+    const timeReg = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]/;
+
+    for (const line of lines) {
+      const match = timeReg.exec(line);
+      if (match) {
+        const min = parseInt(match[1], 10);
+        const sec = parseInt(match[2], 10);
+        const ms = match[3] ? parseInt(match[3], 10) / (match[3].length === 2 ? 100 : 1000) : 0;
+        const timeInSeconds = min * 60 + sec + ms;
+        const text = line.replace(timeReg, '').trim();
+        if (text) {
+          result.push({ time: timeInSeconds, text });
+        }
+      }
+    }
+    return result.sort((a, b) => a.time - b.time);
   };
 
   // 1. LOAD YOUTUBE IFRAME API SCRIPT
@@ -54,6 +90,66 @@ export default function Mp3Page() {
     }
   }, []);
 
+  // FETCH LIRIK SAAT LAGU BERUBAH
+  useEffect(() => {
+    if (!currentSong) return;
+
+    const fetchLyrics = async () => {
+      setIsLoadingLyrics(true);
+      setLyrics([]);
+      setRawLyrics('');
+      setActiveLyricIndex(-1);
+
+      try {
+        const res = await fetch(
+          `/api/lyrics?title=${encodeURIComponent(currentSong.title)}&artist=${encodeURIComponent(currentSong.artist)}&id=${currentSong.id}`
+        );
+        const data = await res.json();
+
+        if (data.lrc) {
+          const parsed = parseLrc(data.lrc);
+          setLyrics(parsed);
+        } else if (data.lyrics) {
+          setRawLyrics(data.lyrics);
+        } else {
+          setRawLyrics('Lirik tidak ditemukan untuk lagu ini.');
+        }
+      } catch (err) {
+        console.error('Failed to fetch lyrics:', err);
+        setRawLyrics('Gagal memuat lirik.');
+      } finally {
+        setIsLoadingLyrics(false);
+      }
+    };
+
+    fetchLyrics();
+  }, [currentSong]);
+
+  // UPDATE ACTIVE LYRIC INDEX & AUTO SCROLL
+  useEffect(() => {
+    if (lyrics.length === 0) return;
+
+    let index = -1;
+    for (let i = 0; i < lyrics.length; i++) {
+      if (currentTimeSec >= lyrics[i].time) {
+        index = i;
+      } else {
+        break;
+      }
+    }
+
+    if (index !== activeLyricIndex) {
+      setActiveLyricIndex(index);
+      // Auto-scroll lirik aktif ke tengah layar
+      if (lyricsContainerRef.current && index !== -1) {
+        const activeElem = lyricsContainerRef.current.children[index] as HTMLElement;
+        if (activeElem) {
+          activeElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+  }, [currentTimeSec, lyrics, activeLyricIndex]);
+
   // 2. TIMELINE PROGRESS TRACKER
   const startProgressTimer = useCallback(() => {
     stopProgressTimer();
@@ -61,13 +157,14 @@ export default function Mp3Page() {
       if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function' && !isSeeking.current) {
         const cur = playerRef.current.getCurrentTime() || 0;
         const dur = playerRef.current.getDuration() || 0;
+        setCurrentTimeSec(cur);
         if (dur > 0) {
           setProgress((cur / dur) * 100);
           setDuration(formatTime(dur));
         }
         setCurrentTime(formatTime(cur));
       }
-    }, 500);
+    }, 300);
   }, []);
 
   const stopProgressTimer = () => {
@@ -75,52 +172,55 @@ export default function Mp3Page() {
   };
 
   // 3. INIT OR PLAY SONG IN IFRAME PLAYER
-  const playSong = useCallback((song: SongItem) => {
-    setCurrentSong(song);
-    setIsPlaying(false);
-    setProgress(0);
-    setCurrentTime('0:00');
+  const playSong = useCallback(
+    (song: SongItem) => {
+      setCurrentSong(song);
+      setIsPlaying(false);
+      setProgress(0);
+      setCurrentTime('0:00');
+      setCurrentTimeSec(0);
 
-    if (!window.YT || !window.YT.Player) return;
+      if (!window.YT || !window.YT.Player) return;
 
-    if (playerRef.current) {
-      playerRef.current.loadVideoById(song.id);
-    } else {
-      playerRef.current = new window.YT.Player('yt-hidden-player', {
-        height: '1',
-        width: '1',
-        videoId: song.id,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          disablekb: 1,
-          fs: 0,
-          rel: 0,
-        },
-        events: {
-          onReady: (event: any) => {
-            event.target.playVideo();
+      if (playerRef.current) {
+        playerRef.current.loadVideoById(song.id);
+      } else {
+        playerRef.current = new window.YT.Player('yt-hidden-player', {
+          height: '1',
+          width: '1',
+          videoId: song.id,
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            rel: 0,
           },
-          onStateChange: (event: any) => {
-            // YT.PlayerState.PLAYING = 1, PAUSED = 2, ENDED = 0
-            if (event.data === 1) {
-              setIsPlaying(true);
-              startProgressTimer();
-            } else if (event.data === 2) {
-              setIsPlaying(false);
-              stopProgressTimer();
-            } else if (event.data === 0) {
-              setIsPlaying(false);
-              stopProgressTimer();
-              setProgress(0);
-            }
+          events: {
+            onReady: (event: any) => {
+              event.target.playVideo();
+            },
+            onStateChange: (event: any) => {
+              if (event.data === 1) {
+                setIsPlaying(true);
+                startProgressTimer();
+              } else if (event.data === 2) {
+                setIsPlaying(false);
+                stopProgressTimer();
+              } else if (event.data === 0) {
+                setIsPlaying(false);
+                stopProgressTimer();
+                setProgress(0);
+              }
+            },
           },
-        },
-      });
-    }
-  }, [startProgressTimer]);
+        });
+      }
+    },
+    [startProgressTimer]
+  );
 
-  // 4. PENCARIAN LAGU (VIA INVIDIOUS / PUBLIC SEARCH)
+  // 4. PENCARIAN LAGU
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputQuery.trim()) return;
@@ -157,7 +257,7 @@ export default function Mp3Page() {
     }
   };
 
-  // 5. KONTROL UTAMA (PLAY / PAUSE)
+  // 5. KONTROL UTAMA
   const togglePlayPause = () => {
     if (!playerRef.current) return;
     if (isPlaying) {
@@ -182,6 +282,7 @@ export default function Mp3Page() {
       if (dur > 0) {
         const seekTime = (progress / 100) * dur;
         playerRef.current.seekTo(seekTime, true);
+        setCurrentTimeSec(seekTime);
       }
     }
     isSeeking.current = false;
@@ -252,7 +353,7 @@ export default function Mp3Page() {
       </form>
 
       {/* Hasil Pencarian */}
-      {searchResults.length > 0 && (
+      {searchResults.length > 0 && !showLyrics && (
         <div className="w-full max-w-md mb-6 flex flex-col gap-2">
           <p className="text-[11px] opacity-60 font-medium px-1">Hasil Pencarian:</p>
           {searchResults.map((song) => (
@@ -282,6 +383,64 @@ export default function Mp3Page() {
               <span className="text-[10px] font-mono opacity-50 shrink-0">{song.duration}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* TAMPILAN LIRIK SPOTIFY STYLE */}
+      {showLyrics && (
+        <div
+          className="w-full max-w-md border rounded-2xl p-6 mb-4 transition-all duration-300 flex flex-col h-80 overflow-y-auto relative scroll-smooth"
+          style={{
+            backgroundColor: 'var(--card-bg, rgba(24, 24, 27, 0.95))',
+            borderColor: 'var(--card-border, rgba(255, 255, 255, 0.1))',
+            boxShadow: '0 8px 32px var(--accent-glow, rgba(0, 0, 0, 0.3))',
+          }}
+        >
+          <div className="sticky top-0 bg-transparent backdrop-blur-md pb-2 mb-2 border-b border-white/10 flex justify-between items-center z-10">
+            <span className="text-xs font-bold uppercase tracking-wider opacity-70">LIRIK LAGU</span>
+            <button
+              onClick={() => setShowLyrics(false)}
+              className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/20 transition"
+            >
+              ✕ Tutup
+            </button>
+          </div>
+
+          {isLoadingLyrics ? (
+            <div className="flex-1 flex items-center justify-center text-xs opacity-50 animate-pulse">
+              Memuat lirik...
+            </div>
+          ) : lyrics.length > 0 ? (
+            <div ref={lyricsContainerRef} className="flex flex-col gap-5 py-10">
+              {lyrics.map((line, idx) => {
+                const isActive = idx === activeLyricIndex;
+                return (
+                  <p
+                    key={idx}
+                    onClick={() => {
+                      if (playerRef.current) {
+                        playerRef.current.seekTo(line.time, true);
+                        setCurrentTimeSec(line.time);
+                      }
+                    }}
+                    className={`text-lg font-bold transition-all duration-300 cursor-pointer leading-snug ${
+                      isActive ? 'scale-105 opacity-100' : 'opacity-30 hover:opacity-60'
+                    }`}
+                    style={{
+                      color: isActive ? 'var(--accent, #1db954)' : 'inherit',
+                      textShadow: isActive ? '0 0 12px var(--accent-glow, rgba(29, 185, 84, 0.4))' : 'none',
+                    }}
+                  >
+                    {line.text}
+                  </p>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-xs opacity-60 text-center whitespace-pre-line leading-relaxed">
+              {rawLyrics || 'Lirik tidak tersedia.'}
+            </div>
+          )}
         </div>
       )}
 
@@ -337,34 +496,48 @@ export default function Mp3Page() {
           </div>
         </div>
 
-        {/* Kontrol Utama */}
-        <div className="flex items-center justify-center gap-8">
+        {/* Kontrol Utama & Tombol Lirik */}
+        <div className="flex items-center justify-between px-2">
           <button
-            onClick={playPrev}
-            disabled={searchResults.length === 0}
-            className="text-lg opacity-60 hover:opacity-100 transition disabled:opacity-20"
-          >
-            ⏮
-          </button>
-          <button
-            onClick={togglePlayPause}
+            onClick={() => setShowLyrics(!showLyrics)}
             disabled={!currentSong}
-            className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold transition-all transform hover:scale-105 active:scale-95 disabled:opacity-40"
-            style={{
-              backgroundColor: 'var(--accent)',
-              color: '#000000',
-              boxShadow: '0 0 20px var(--accent-glow, transparent)',
-            }}
+            className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all ${
+              showLyrics ? 'bg-white/20 border-white/40' : 'opacity-60 hover:opacity-100 border-white/10'
+            }`}
           >
-            {isPlaying ? '⏸' : '▶'}
+            🎤 Lirik
           </button>
-          <button
-            onClick={playNext}
-            disabled={searchResults.length === 0}
-            className="text-lg opacity-60 hover:opacity-100 transition disabled:opacity-20"
-          >
-            ⏭
-          </button>
+
+          <div className="flex items-center gap-6">
+            <button
+              onClick={playPrev}
+              disabled={searchResults.length === 0}
+              className="text-lg opacity-60 hover:opacity-100 transition disabled:opacity-20"
+            >
+              ⏮
+            </button>
+            <button
+              onClick={togglePlayPause}
+              disabled={!currentSong}
+              className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all transform hover:scale-105 active:scale-95 disabled:opacity-40"
+              style={{
+                backgroundColor: 'var(--accent)',
+                color: '#000000',
+                boxShadow: '0 0 20px var(--accent-glow, transparent)',
+              }}
+            >
+              {isPlaying ? '⏸' : '▶'}
+            </button>
+            <button
+              onClick={playNext}
+              disabled={searchResults.length === 0}
+              className="text-lg opacity-60 hover:opacity-100 transition disabled:opacity-20"
+            >
+              ⏭
+            </button>
+          </div>
+
+          <div className="w-12"></div> {/* Spacer penyeimbang */}
         </div>
       </div>
     </div>
