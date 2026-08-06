@@ -5,7 +5,7 @@ import { useTheme } from '@/app/context/ThemeContext';
 import BearMascot from './BearMascot';
 
 const UserIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>);
-const LockIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>);
+const LockIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 002-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>);
 const CalendarIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>);
 const ScaleIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>);
 const MailIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2 z" /></svg>);
@@ -15,7 +15,7 @@ const EyeOffIcon = () => (<svg className="w-5 h-5 opacity-70 cursor-pointer hove
 const InputField = ({ icon, suffix, readOnly, className, style, type = "text", disabled, ...props }: any) => (
   <div className={`flex items-center w-full rounded-full px-4 py-2.5 sm:py-3 mb-2.5 border transition-all duration-300 ${(readOnly || disabled) ? 'opacity-75 cursor-not-allowed select-none' : ''} ${className}`} style={style}>
     <div className="mr-3 flex-shrink-0 opacity-80" style={{ color: "var(--accent)" }}>{icon}</div>
-    <input type={type} readOnly={readOnly} disabled={disabled} className={`bg-transparent outline-none flex-1 text-xs sm:text-sm font-extrabold w-full placeholder:opacity-50 ${(readOnly || disabled) ? 'cursor-not-allowed select-none' : ''}`} style={{ color: "var(--foreground-heading)" }} {...props} />
+    <input type={type} readOnly={readOnly} disabled={disabled} className={`bg-transparent outline-none flex-1 text-xs sm:text-sm font-medium w-full placeholder:opacity-50 ${(readOnly || disabled) ? 'cursor-not-allowed select-none' : ''}`} style={{ color: "var(--foreground-heading)" }} {...props} />
     {suffix && <div className="ml-2 flex-shrink-0 flex items-center">{suffix}</div>}
   </div>
 );
@@ -23,7 +23,7 @@ const InputField = ({ icon, suffix, readOnly, className, style, type = "text", d
 const SelectField = ({ icon, options, value, onChange, placeholder, className, style, disabled }: any) => (
   <div className={`flex items-center w-full rounded-full px-4 py-2.5 sm:py-3 mb-2.5 border relative transition-all duration-300 ${disabled ? 'opacity-75 cursor-not-allowed' : ''} ${className}`} style={style}>
     <div className="mr-3 flex-shrink-0 opacity-80" style={{ color: "var(--accent)" }}>{icon}</div>
-    <select value={value} onChange={onChange} disabled={disabled} className={`bg-transparent outline-none flex-1 text-xs sm:text-sm font-extrabold w-full appearance-none ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`} style={{ color: "var(--foreground-heading)" }}>
+    <select value={value} onChange={onChange} disabled={disabled} className={`bg-transparent outline-none flex-1 text-xs sm:text-sm font-medium w-full appearance-none ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`} style={{ color: "var(--foreground-heading)" }}>
       <option value="" disabled style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}>{placeholder}</option>
       {options.map((opt: string) => (<option key={opt} value={opt} style={{ backgroundColor: "var(--background)", color: "var(--foreground-heading)" }}>{opt}</option>))}
     </select>
@@ -46,6 +46,11 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const [hasTyped, setHasTyped] = useState(false); 
   const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
+  // Sanitasi username: ubah kapital ke kecil, ubah spasi ke _, izinkan huruf, angka, _ dan -
+  const sanitizeUsername = (val: string) => {
+    return val.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_-]/g, '').slice(0, 20);
+  };
+
   useEffect(() => {
     try {
       const remUser = localStorage.getItem('remembered_username') || localStorage.getItem('username') || localStorage.getItem('active_username');
@@ -56,7 +61,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
         setHasLoggedInBefore(true);
       }
 
-      if (remUser) setUsername(remUser);
+      if (remUser) setUsername(sanitizeUsername(remUser));
       if (remPin) setPin(remPin);
 
       if (remUser && remPin) {
@@ -68,7 +73,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
 
   useEffect(() => {
     if (isSavedDevice) return;
-    const targetPlaceholder = "Username (Maks 20 huruf)"; let index = 0;
+    const targetPlaceholder = "Username (Min 5 karakter)"; let index = 0;
     const interval = setInterval(() => { if (index < targetPlaceholder.length) { setPlaceholderText(targetPlaceholder.slice(0, index + 1)); index++; } else clearInterval(interval); }, 60);
     return () => clearInterval(interval);
   }, [isSavedDevice]);
@@ -84,7 +89,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const visiblePrefix = prefixText.slice(0, Math.max(0, displayedCharCount));
   const visibleName = displayedCharCount > pLen ? currentUserName.slice(0, Math.max(0, displayedCharCount - pLen)) : "";
   const visibleSuffix = displayedCharCount > pLen + uLen ? suffixText.slice(0, Math.max(0, displayedCharCount - pLen - uLen)) : "";
-  const isFormValid = isSavedDevice ? (username?.trim().length > 0 && pin?.length === 6) : (isLoginMode ? (username?.trim().length > 0 && pin?.length === 6) : (username?.trim().length > 0 && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed));
+  const isFormValid = isSavedDevice ? (username?.trim().length >= 5 && pin?.length === 6) : (isLoginMode ? (username?.trim().length >= 5 && pin?.length === 6) : (username?.trim().length >= 5 && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed));
   
   const activeTypingLength = focusedField === 'username' ? (username?.length || 0) : focusedField === 'adminEmail' ? (adminEmail?.length || 0) : (focusedField === 'pin' && showPin) ? (pin?.length || 0) : (focusedField === 'adminPass' && showPin) ? (adminPass?.length || 0) : 0;
   
@@ -121,23 +126,23 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const handleUserLoginWrapper = async () => {
     if (isLocked && !isSavedDevice) return;
     
-    // VERIFIKASI AWAL INPUT
-    const isUserEmpty = !username || username.trim().length === 0;
+    const cleanUser = sanitizeUsername(username || "");
+    const isUserTooShort = cleanUser.length < 5;
     const isPinEmpty = !pin || pin.length !== 6;
 
-    if (isUserEmpty && isPinEmpty) {
-      return setValidationMsg("Username & PIN tidak valid");
+    if (isUserTooShort && isPinEmpty) {
+      return setValidationMsg("Username (min 5 char) & PIN salah");
     }
-    if (isUserEmpty) {
-      return setValidationMsg("Isi username dulu sayang");
+    if (isUserTooShort) {
+      return setValidationMsg("Username minimal 5 karakter");
     }
     if (isPinEmpty) {
-      return setValidationMsg("PIN harus 6 angka sayang");
+      return setValidationMsg("PIN harus 6 angka");
     }
 
     if (!isSavedDevice && !isLoginMode) {
-      if (!umur || !berat) return setValidationMsg("Pilih umur & berat sayang");
-      if (!isUsernameAgreed) return setValidationMsg("Ceklist dulu sayang");
+      if (!umur || !berat) return setValidationMsg("Pilih umur & berat");
+      if (!isUsernameAgreed) return setValidationMsg("Ceklist persetujuan dulu");
     }
     setValidationMsg("");
 
@@ -147,7 +152,6 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
       if (!result || result === false || (typeof result === 'object' && result.error)) {
         if (isSavedDevice) handleResetSavedDevice();
         
-        // MEMBEDAKAN NOTIFIKASI ERROR SESUAI HASIL VERIFIKASI DATABASE
         if (typeof result === 'object' && result.reason) {
           if (result.reason === "USER_NOT_FOUND") return setValidationMsg("Username tidak terdaftar");
           if (result.reason === "INVALID_PIN") return setValidationMsg("PIN yang dimasukkan salah");
@@ -160,7 +164,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
       localStorage.setItem('has_ever_logged_in', 'true');
       setHasLoggedInBefore(true);
 
-      localStorage.setItem('remembered_username', username.trim().toLowerCase());
+      localStorage.setItem('remembered_username', cleanUser);
       localStorage.setItem('remembered_pin', pin);
 
     } catch (err) { 
@@ -171,7 +175,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
 
   const handleAdminLoginWrapper = async () => { try { const result = await handleAdminLogin(); if (result === false || (result && result.error)) return; } catch (err) {} };
 
-  const inputInset = 'shadow-[inset_0_4px_8px_rgba(0,0,0,0.25)]'; 
+  const inputInset = 'shadow-[inset_0_2px_4px_rgba(0,0,0,0.15)]'; 
   
   const normalInputStyle = { backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)" };
   const validInputStyle = { backgroundColor: "color-mix(in srgb, var(--accent) 15%, transparent)", borderColor: "var(--accent)" };
@@ -186,9 +190,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
 
   const active3dSubmitStyle: React.CSSProperties = {
     background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 40%, #ffffff) 0%, color-mix(in srgb, var(--accent) 85%, #ffffff) 50%, var(--accent) 100%)",
-    backgroundSize: "200% 200%",
-    animation: "convexColorShift 3s ease infinite alternate",
-    boxShadow: "inset 0 3px 4px rgba(255, 255, 255, 0.95), inset 0 -3px 5px rgba(0, 0, 0, 0.35), 0 6px 14px rgba(0,0,0,0.3)",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
     color: "#0f172a",
     border: `1px solid ${brightestThemeColor}`
   };
@@ -206,7 +208,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   else if (validationMsg) { 
     buttonStyleObj = { 
       background: "linear-gradient(135deg, #f87171 0%, #ef4444 100%)", 
-      boxShadow: "inset 0 2px 3px rgba(255, 255, 255, 0.6), inset 0 -2px 4px rgba(0, 0, 0, 0.4)",
+      boxShadow: "0 4px 12px rgba(239, 68, 68, 0.3)",
       color: "#ffffff" 
     }; 
     buttonText = validationMsg; 
@@ -219,15 +221,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const shouldHideRegisterTab = hasLoggedInBefore || isExistingUser || isSavedDevice;
 
   return (
-    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-transparent px-4 pb-16 overflow-y-auto pointer-events-auto">
-      <style>{`
-        @keyframes convexColorShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-      `}</style>
-
+    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-transparent px-4 pb-16 overflow-y-auto pointer-events-auto font-sans">
       <div className="relative w-full max-w-[380px] my-auto flex flex-col items-center pointer-events-auto">
         {activeTab === 'user' ? (
           <>
@@ -270,7 +264,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
             </div>
 
             <div 
-              className="relative w-full rounded-[2.2rem] p-[1.5px] transition-all duration-300 shadow-[0_12px_36px_rgba(0,0,0,0.7)]"
+              className="relative w-full rounded-[2.2rem] p-[1.5px] transition-all duration-300 shadow-xl"
               style={{ backgroundColor: brightestThemeColor }}
             >
               <div 
@@ -286,7 +280,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                         setIsLoginMode(false); 
                         setValidationMsg(""); 
                       }} 
-                      className={`flex-1 py-2 rounded-full text-xs font-bold transition-all cursor-pointer relative z-50 ${!isLoginMode ? 'shadow-md' : 'opacity-60'}`} 
+                      className={`flex-1 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer relative z-50 ${!isLoginMode ? 'shadow-md' : 'opacity-60'}`} 
                       style={!isLoginMode ? { backgroundColor: "var(--accent)", color: "var(--background)" } : { color: "var(--foreground-heading)" }}
                     >
                       Register
@@ -298,7 +292,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                         setIsLoginMode(true); 
                         setValidationMsg(""); 
                       }} 
-                      className={`flex-1 py-2 rounded-full text-xs font-bold transition-all cursor-pointer relative z-50 ${isLoginMode ? 'shadow-md' : 'opacity-60'}`} 
+                      className={`flex-1 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer relative z-50 ${isLoginMode ? 'shadow-md' : 'opacity-60'}`} 
                       style={isLoginMode ? { backgroundColor: "var(--accent)", color: "var(--background)" } : { color: "var(--foreground-heading)" }}
                     >
                       Login
@@ -307,7 +301,24 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                 )}
 
                 <div className="w-full flex flex-col items-center relative z-20 pointer-events-auto">
-                  <InputField icon={<UserIcon />} placeholder={isLoginMode || isSavedDevice ? "Username" : (placeholderText || "Username")} value={username || ""} disabled={isLocked || isSavedDevice} readOnly={isLocked || isSavedDevice} onChange={(e: any) => { if (isLocked || isSavedDevice) return; if (!hasTyped) setHasTyped(true); setUsername(e.target.value.slice(0, 20)); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('username')} onBlur={() => setFocusedField(null)} className={inputInset} style={(isLocked || isSavedDevice) ? existingStyle : usernameStyle} autoComplete="off" />
+                  <InputField 
+                    icon={<UserIcon />} 
+                    placeholder={isLoginMode || isSavedDevice ? "Username" : (placeholderText || "Username (Min 5 karakter)")} 
+                    value={username || ""} 
+                    disabled={isLocked || isSavedDevice} 
+                    readOnly={isLocked || isSavedDevice} 
+                    onChange={(e: any) => { 
+                      if (isLocked || isSavedDevice) return; 
+                      if (!hasTyped) setHasTyped(true); 
+                      setUsername(sanitizeUsername(e.target.value)); 
+                      if (validationMsg) setValidationMsg(""); 
+                    }} 
+                    onFocus={() => setFocusedField('username')} 
+                    onBlur={() => setFocusedField(null)} 
+                    className={inputInset} 
+                    style={(isLocked || isSavedDevice) ? existingStyle : usernameStyle} 
+                    autoComplete="off" 
+                  />
                   
                   <InputField icon={<LockIcon />} placeholder={isSavedDevice ? "PIN Tersimpan" : (isLoginMode ? "PIN (6 angka)" : "Buat PIN (6 angka)")} type={showPin ? "text" : "password"} inputMode="numeric" value={pin || ""} disabled={isLocked || isSavedDevice} readOnly={isLocked || isSavedDevice} onChange={(e: any) => { if (isLocked || isSavedDevice) return; const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPin(val); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('pin')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} disabled={isLocked && !isSavedDevice} className="focus:outline-none cursor-pointer">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={inputInset} style={(isLocked || isSavedDevice) ? existingStyle : pinStyle} maxLength={6} />
                   
@@ -320,21 +331,21 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
 
                   {(isSavedDevice || isLocked) && (
                     <div className={`w-full text-xs p-3.5 border rounded-2xl mb-2.5 font-normal text-center whitespace-pre-line leading-relaxed min-h-[55px] flex flex-col items-center justify-center ${inputInset}`} style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)", color: "var(--foreground-heading)" }}>
-                      <span className="w-full block drop-shadow-sm"><span>{visiblePrefix}</span><span className="font-extrabold italic">{visibleName}</span><span>{visibleSuffix}</span>{!isNoteTypingDone && <span className="animate-pulse ml-0.5">|</span>}</span>
+                      <span className="w-full block"><span>{visiblePrefix}</span><span className="font-semibold">{visibleName}</span><span>{visibleSuffix}</span>{!isNoteTypingDone && <span className="animate-pulse ml-0.5">|</span>}</span>
                     </div>
                   )}
 
                   {!isLoginMode && !shouldHideRegisterTab && (
                     <div className="flex items-center justify-start w-full mb-3 px-1 select-none">
                       <input type="checkbox" id="agree" disabled={isLocked} className="w-3.5 h-3.5 cursor-pointer rounded-sm accent-[var(--accent)]" checked={isUsernameAgreed} onChange={(e) => { setIsUsernameAgreed(e.target.checked); if (validationMsg) setValidationMsg(""); }} />
-                      <label htmlFor="agree" className="text-[11px] font-light italic ml-2 select-none leading-none opacity-80 cursor-pointer" style={{ color: "var(--foreground)" }}>*Mengikuti aturan di dalam chat</label>
+                      <label htmlFor="agree" className="text-[11px] font-normal ml-2 select-none leading-none opacity-80 cursor-pointer" style={{ color: "var(--foreground)" }}>*Mengikuti aturan di dalam chat</label>
                     </div>
                   )}
 
                   <button 
                     type="button" 
                     onClick={handleUserLoginWrapper} 
-                    className={`w-full py-2.5 sm:py-3 rounded-full font-black tracking-wider transition-all active:scale-[0.98] cursor-pointer mt-1 pointer-events-auto relative z-40 ${validationMsg ? "animate-pulse" : ""}`} 
+                    className={`w-full py-2.5 sm:py-3 rounded-full font-semibold tracking-wide transition-all active:scale-[0.98] cursor-pointer mt-1 pointer-events-auto relative z-40 ${validationMsg ? "animate-pulse" : ""}`} 
                     style={buttonStyleObj}
                   >
                     {buttonText}
@@ -361,7 +372,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
             </div>
 
             <div 
-              className="relative w-full rounded-[2.2rem] p-[1.5px] transition-all duration-300 shadow-[0_12px_36px_rgba(0,0,0,0.7)]"
+              className="relative w-full rounded-[2.2rem] p-[1.5px] transition-all duration-300 shadow-xl"
               style={{ backgroundColor: brightestThemeColor }}
             >
               <div 
@@ -370,7 +381,7 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
               >
                 <InputField icon={<MailIcon />} placeholder="Email Admin" value={adminEmail || ""} onChange={(e: any) => setAdminEmail(e.target.value)} onFocus={() => setFocusedField('adminEmail')} onBlur={() => setFocusedField(null)} className={inputInset} style={normalInputStyle} autoComplete="off" />
                 <InputField icon={<LockIcon />} placeholder="Password Admin" type={showPin ? "text" : "password"} style={normalInputStyle} value={adminPass || ""} onChange={(e: any) => setAdminPass(e.target.value)} onFocus={() => setFocusedField('adminPass')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} className="focus:outline-none cursor-pointer">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={`${inputInset} mb-4`} />
-                <button type="button" onClick={handleAdminLoginWrapper} className="w-full py-3 rounded-full font-black tracking-wider transition-all active:scale-[0.98] cursor-pointer pointer-events-auto relative z-40" style={active3dSubmitStyle}>Masuk Admin</button>
+                <button type="button" onClick={handleAdminLoginWrapper} className="w-full py-3 rounded-full font-semibold tracking-wide transition-all active:scale-[0.98] cursor-pointer pointer-events-auto relative z-40" style={active3dSubmitStyle}>Masuk Admin</button>
               </div>
             </div>
           </>
