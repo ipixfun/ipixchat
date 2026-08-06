@@ -5,7 +5,7 @@ import { useTheme } from '@/app/context/ThemeContext';
 import BearMascot from './BearMascot';
 
 const UserIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>);
-const LockIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 002-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>);
+const LockIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>);
 const CalendarIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>);
 const ScaleIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>);
 const MailIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2 z" /></svg>);
@@ -46,8 +46,9 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const [hasTyped, setHasTyped] = useState(false); 
   const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
-  // Sanitasi username: ubah kapital ke kecil, ubah spasi ke _, izinkan huruf, angka, _ dan -
+  // Sanitasi username: Bebaskan jika diawali admin, jika user biasa ubah kapital ke kecil & spasi ke _
   const sanitizeUsername = (val: string) => {
+    if (val.trim().toLowerCase().startsWith("admin")) return val;
     return val.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_-]/g, '').slice(0, 20);
   };
 
@@ -89,7 +90,9 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const visiblePrefix = prefixText.slice(0, Math.max(0, displayedCharCount));
   const visibleName = displayedCharCount > pLen ? currentUserName.slice(0, Math.max(0, displayedCharCount - pLen)) : "";
   const visibleSuffix = displayedCharCount > pLen + uLen ? suffixText.slice(0, Math.max(0, displayedCharCount - pLen - uLen)) : "";
-  const isFormValid = isSavedDevice ? (username?.trim().length >= 5 && pin?.length === 6) : (isLoginMode ? (username?.trim().length >= 5 && pin?.length === 6) : (username?.trim().length >= 5 && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed));
+  
+  const isAdminInput = username?.trim().toLowerCase().startsWith("admin");
+  const isFormValid = isSavedDevice ? ((isAdminInput || username?.trim().length >= 5) && pin?.length === 6) : (isLoginMode ? ((isAdminInput || username?.trim().length >= 5) && pin?.length === 6) : ((isAdminInput || username?.trim().length >= 5) && pin?.length === 6 && umur !== "" && berat !== "" && isUsernameAgreed));
   
   const activeTypingLength = focusedField === 'username' ? (username?.length || 0) : focusedField === 'adminEmail' ? (adminEmail?.length || 0) : (focusedField === 'pin' && showPin) ? (pin?.length || 0) : (focusedField === 'adminPass' && showPin) ? (adminPass?.length || 0) : 0;
   
@@ -126,8 +129,9 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const handleUserLoginWrapper = async () => {
     if (isLocked && !isSavedDevice) return;
     
+    const isAdmin = username.trim().toLowerCase().startsWith("admin");
     const cleanUser = sanitizeUsername(username || "");
-    const isUserTooShort = cleanUser.length < 5;
+    const isUserTooShort = !isAdmin && cleanUser.length < 5;
     const isPinEmpty = !pin || pin.length !== 6;
 
     if (isUserTooShort && isPinEmpty) {
@@ -310,7 +314,9 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                     onChange={(e: any) => { 
                       if (isLocked || isSavedDevice) return; 
                       if (!hasTyped) setHasTyped(true); 
-                      setUsername(sanitizeUsername(e.target.value)); 
+                      const val = e.target.value;
+                      const isTypingAdmin = val.trim().toLowerCase().startsWith("admin");
+                      setUsername(isTypingAdmin ? val : sanitizeUsername(val)); 
                       if (validationMsg) setValidationMsg(""); 
                     }} 
                     onFocus={() => setFocusedField('username')} 

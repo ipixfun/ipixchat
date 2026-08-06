@@ -19,7 +19,11 @@ function urlBase64ToUint8Array(base64String: string) { const padding = "=".repea
 export default function Home() {
   const pathname = usePathname(); const [mounted, setMounted] = useState(false); const [msgs, setMsgs] = useState({ all: [] as any[], pub: [] as any[], priv: [] as any[] }); const [auth, setAuth] = useState({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" }); const [ui, setUi] = useState({ tab: "user" as "user" | "admin", mode: "private" as "private", inputFocus: false }); const [counts, setCounts] = useState({ pub: 0, priv: 0 }); const [adminStat, setAdminStat] = useState({ online: false, offlineTime: "", lastActive: 0 }); const [usersInfo, setUsersInfo] = useState({ status: {} as Record<string, any>, blockedList: [] as any[], privUsers: [] as any[], selPriv: null as string | null }); const [censor, setCensor] = useState({ words: [] as string[], newWord: "" }); const [input, setInput] = useState({ text: "", sending: false, blink: false, image: null as string | null, uploadingImage: false }); const [alertModal, setAlertModal] = useState({ isOpen: false, title: "Pemberitahuan", message: "", type: "info" }); const showAlert = (message: string, title = "Pemberitahuan", type = "info") => { setAlertModal({ isOpen: true, title, message, type }); }; const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", confirmText: "Ya, Lanjutkan", cancelText: "Batal", type: "danger", onConfirm: () => {} }); const [promptModal, setPromptModal] = useState({ isOpen: false, title: "", defaultValue: "", onConfirm: (val: string) => {} }); const [adminNoticeModal, setAdminNoticeModal] = useState<{ isOpen: boolean; message: string; newUsername?: string; }>({ isOpen: false, message: "" }); const [interact, setInteract] = useState({ replyTo: null as any, activeMenu: null as number | null, popup: null as any, swipeId: null as number | null, editingMsg: null as any }); const [galleryModal, setGalleryModal] = useState<{ username: string; msgs: any[] } | null>(null); const [currentHash, setCurrentHash] = useState(""); const CLOUDINARY_CLOUD_NAME = "bjamo8ld"; const CLOUDINARY_UPLOAD_PRESET = "ipixchat";
 
-  const sanitizeUsername = (val: string) => val.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_-]/g, '').slice(0, 20);
+  // Sanitasi khusus user biasa. Admin dibebaskan.
+  const sanitizeUsername = (val: string) => {
+    if (val.trim().toLowerCase().startsWith("admin")) return val;
+    return val.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_-]/g, '').slice(0, 20);
+  };
 
   useEffect(() => { setCurrentHash(window.location.hash); const handleHashChange = () => setCurrentHash(window.location.hash); window.addEventListener("hashchange", handleHashChange); return () => window.removeEventListener("hashchange", handleHashChange); }, []);
 
@@ -78,7 +82,8 @@ export default function Home() {
   const handleUsernameChange = async (enteredName: string) => { 
     const trimmed = sanitizeUsername(enteredName); 
     setAuth((p) => ({ ...p, user: trimmed })); 
-    if (trimmed.length >= 5) { 
+    const isAdmin = trimmed.trim().toLowerCase().startsWith("admin");
+    if (isAdmin || trimmed.length >= 5) { 
       try { 
         const { data: pD } = await supabase.from("profiles").select("username").ilike("username", trimmed.trim()).maybeSingle(); 
         setAuth((p) => ({ ...p, isExist: !!pD?.username })); 
@@ -161,9 +166,13 @@ export default function Home() {
         {!auth.isAuth && (
           <motion.div key="login-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.95, filter: "blur(4px)" }} transition={{ duration: 0.35, ease: "easeInOut" }} className="fixed inset-0 z-[80000] flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto">
             <Login activeTab={ui.tab} username={auth.user} setUsername={handleUsernameChange} pin={auth.pin} setPin={(val: string) => setAuth((p) => ({ ...p, pin: val }))} umur={auth.umur} setUmur={(val: string) => setAuth((p) => ({ ...p, umur: val }))} berat={auth.berat} setBerat={(val: string) => setAuth((p) => ({ ...p, berat: val }))} isExistingUser={auth.isExist} adminEmail={auth.adminEmail} setAdminEmail={(e: string) => setAuth((p) => ({ ...p, adminEmail: e }))} adminPass={auth.adminPass} setAdminPass={(ps: string) => setAuth((p) => ({ ...p, adminPass: ps }))} handleUserLogin={async (isLoginMode?: boolean, rememberMe?: boolean) => {
-                const inputName = sanitizeUsername(auth.user.trim()); const plainPin = auth.pin || (typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || "") : ""); 
-                const isUserValid = Boolean(inputName && inputName.length >= 5 && !isCensored(inputName)); 
+                const isAdmin = auth.user.trim().toLowerCase().startsWith("admin");
+                const inputName = sanitizeUsername(auth.user.trim()); 
+                const plainPin = auth.pin || (typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || "") : ""); 
+                
+                const isUserValid = Boolean(inputName && (isAdmin || inputName.length >= 5) && !isCensored(inputName)); 
                 const isPinValid = Boolean(plainPin && plainPin.length === 6); 
+                
                 if (!isUserValid && !isPinValid) return { error: true, reason: "BOTH_INVALID" }; 
                 if (!isUserValid) return { error: true, reason: "USER_NOT_FOUND" }; 
                 if (!isPinValid) return { error: true, reason: "INVALID_PIN" };
