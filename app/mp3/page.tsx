@@ -172,7 +172,7 @@ export default function Mp3Page() {
     setCurrentTime(formatTime(cur));
   };
 
-  // ===== SEEKING HANDLERS (DIPERBAIKI) =====
+  // ===== SEEKING HANDLERS =====
   const handleSeekStart = () => {
     isSeeking.current = true;
   };
@@ -181,7 +181,6 @@ export default function Mp3Page() {
     setProgress(Number(e.target.value));
   };
 
-  // Menggunakan state `progress` langsung tanpa parameter event agar kompatibel dengan onMouseUp & onTouchEnd
   const handleSeekEnd = () => {
     if (!audioRef.current) return;
 
