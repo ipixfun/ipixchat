@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "./context/ThemeContext";
+import BottomNav from "@/components/bottomnav"; // Gunakan @/ agar mengarah ke root folder
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -33,7 +34,10 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <ThemeProvider>
-          {children}
+          <div className="pb-20 min-h-screen">
+            {children}
+          </div>
+          <BottomNav />
         </ThemeProvider>
       </body>
     </html>

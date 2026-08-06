@@ -40,6 +40,15 @@ export default function BottomNav({ isAuth, handleLogout }: BottomNavProps) {
       ),
     },
     {
+      href: "/mp3",
+      label: "MP3",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-5 h-5 sm:w-5.5 sm:h-5.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 0v12m0-12L9 9m10.5 9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-10.5 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+        </svg>
+      ),
+    },
+    {
       href: "/tentang",
       label: "iPiX",
       isImage: true,
@@ -56,7 +65,7 @@ export default function BottomNav({ isAuth, handleLogout }: BottomNavProps) {
       }}
     >
       <div className="max-w-2xl mx-auto h-14 sm:h-[62px] flex items-center px-1 sm:px-1.5 relative z-[100001]">
-        <div className="w-full grid grid-cols-4 relative z-[100002]">
+        <div className="w-full grid grid-cols-5 relative z-[100002]">
           {links.map((link) => {
             const isActive = pathname === link.href;
 
