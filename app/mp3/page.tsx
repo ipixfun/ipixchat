@@ -13,7 +13,7 @@ interface SongItem {
 }
 
 interface LyricLine {
-  time: number; // Dalam detik
+  time: number;
   text: string;
 }
 
@@ -39,7 +39,7 @@ export default function Mp3Page() {
   const [currentTime, setCurrentTime] = useState('0:00');
   const [duration, setDuration] = useState('0:00');
 
-  // Lirik State
+  // State Lirik
   const [showLyrics, setShowLyrics] = useState(false);
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [rawLyrics, setRawLyrics] = useState<string>('');
@@ -58,7 +58,7 @@ export default function Mp3Page() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // Helper Parser Lirik LRC (e.g. [00:12.34] Teks lirik)
+  // Parser Lirik LRC ([00:12.34] Teks)
   const parseLrc = (lrcText: string): LyricLine[] => {
     const lines = lrcText.split('\n');
     const result: LyricLine[] = [];
@@ -80,7 +80,7 @@ export default function Mp3Page() {
     return result.sort((a, b) => a.time - b.time);
   };
 
-  // 1. LOAD YOUTUBE IFRAME API SCRIPT
+  // Load YouTube IFrame API
   useEffect(() => {
     if (!window.YT) {
       const tag = document.createElement('script');
@@ -90,7 +90,7 @@ export default function Mp3Page() {
     }
   }, []);
 
-  // FETCH LIRIK SAAT LAGU BERUBAH
+  // Fetch Lirik
   useEffect(() => {
     if (!currentSong) return;
 
@@ -102,7 +102,7 @@ export default function Mp3Page() {
 
       try {
         const res = await fetch(
-          `/api/lyrics?title=${encodeURIComponent(currentSong.title)}&artist=${encodeURIComponent(currentSong.artist)}&id=${currentSong.id}`
+          `/api/lyrics?title=${encodeURIComponent(currentSong.title)}&artist=${encodeURIComponent(currentSong.artist)}`
         );
         const data = await res.json();
 
@@ -125,7 +125,7 @@ export default function Mp3Page() {
     fetchLyrics();
   }, [currentSong]);
 
-  // UPDATE ACTIVE LYRIC INDEX & AUTO SCROLL
+  // Sync Lirik & Auto-Scroll
   useEffect(() => {
     if (lyrics.length === 0) return;
 
@@ -140,7 +140,6 @@ export default function Mp3Page() {
 
     if (index !== activeLyricIndex) {
       setActiveLyricIndex(index);
-      // Auto-scroll lirik aktif ke tengah layar
       if (lyricsContainerRef.current && index !== -1) {
         const activeElem = lyricsContainerRef.current.children[index] as HTMLElement;
         if (activeElem) {
@@ -150,7 +149,7 @@ export default function Mp3Page() {
     }
   }, [currentTimeSec, lyrics, activeLyricIndex]);
 
-  // 2. TIMELINE PROGRESS TRACKER
+  // Timer Progress
   const startProgressTimer = useCallback(() => {
     stopProgressTimer();
     intervalRef.current = setInterval(() => {
@@ -171,7 +170,7 @@ export default function Mp3Page() {
     if (intervalRef.current) clearInterval(intervalRef.current);
   };
 
-  // 3. INIT OR PLAY SONG IN IFRAME PLAYER
+  // Play Song Function
   const playSong = useCallback(
     (song: SongItem) => {
       setCurrentSong(song);
@@ -189,17 +188,9 @@ export default function Mp3Page() {
           height: '1',
           width: '1',
           videoId: song.id,
-          playerVars: {
-            autoplay: 1,
-            controls: 0,
-            disablekb: 1,
-            fs: 0,
-            rel: 0,
-          },
+          playerVars: { autoplay: 1, controls: 0, disablekb: 1, fs: 0, rel: 0 },
           events: {
-            onReady: (event: any) => {
-              event.target.playVideo();
-            },
+            onReady: (event: any) => event.target.playVideo(),
             onStateChange: (event: any) => {
               if (event.data === 1) {
                 setIsPlaying(true);
@@ -220,7 +211,7 @@ export default function Mp3Page() {
     [startProgressTimer]
   );
 
-  // 4. PENCARIAN LAGU
+  // Search Handler
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputQuery.trim()) return;
@@ -257,7 +248,7 @@ export default function Mp3Page() {
     }
   };
 
-  // 5. KONTROL UTAMA
+  // Play Pause Controls
   const togglePlayPause = () => {
     if (!playerRef.current) return;
     if (isPlaying) {
@@ -267,7 +258,6 @@ export default function Mp3Page() {
     }
   };
 
-  // 6. SEEKING HANDLERS
   const handleSeekStart = () => {
     isSeeking.current = true;
   };
@@ -304,45 +294,53 @@ export default function Mp3Page() {
 
   return (
     <div
-      className="min-h-screen p-4 pb-28 flex flex-col items-center transition-colors duration-300"
+      className="min-h-screen p-4 pb-12 flex flex-col items-center transition-colors duration-300 font-sans"
       style={{
         backgroundColor: 'var(--background, #09090b)',
         color: 'var(--foreground, #f4f4f5)',
       }}
     >
-      {/* Hidden YouTube Player Frame */}
+      {/* Hidden Player */}
       <div className="absolute opacity-0 pointer-events-none -z-50 w-1 h-1 overflow-hidden">
         <div id="yt-hidden-player"></div>
       </div>
 
-      {/* Top Bar */}
-      <div className="w-full max-w-md flex justify-between items-center my-4">
-        <Link href="/" className="text-xs transition opacity-70 hover:opacity-100">
-          ← Kembali
+      {/* Top Header */}
+      <div className="w-full max-w-md flex justify-between items-center my-3 px-1">
+        <Link href="/" className="text-xs opacity-70 hover:opacity-100 transition flex items-center gap-1">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Kembali
         </Link>
-        <span className="text-xs font-semibold tracking-wider uppercase" style={{ color: 'var(--accent)' }}>
-          YT MUSIC ({mounted ? theme : 'DARK'})
+        <span
+          className="text-[11px] font-bold tracking-widest uppercase"
+          style={{ color: 'var(--accent)' }}
+        >
+          MUSIC PRO ({mounted ? theme : 'THEME'})
         </span>
       </div>
 
       {/* Form Pencarian */}
       <form onSubmit={handleSearch} className="w-full max-w-md mb-4 flex gap-2">
-        <input
-          type="text"
-          placeholder="Cari judul lagu / penyanyi / link YT..."
-          value={inputQuery}
-          onChange={(e) => setInputQuery(e.target.value)}
-          className="flex-1 border rounded-xl px-3.5 py-2.5 text-xs focus:outline-none transition"
-          style={{
-            backgroundColor: 'color-mix(in srgb, var(--background) 80%, white 10%)',
-            borderColor: 'var(--card-border, rgba(255,255,255,0.1))',
-            color: 'var(--foreground-heading, #fff)',
-          }}
-        />
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="Cari lagu, artis, atau url YouTube..."
+            value={inputQuery}
+            onChange={(e) => setInputQuery(e.target.value)}
+            className="w-full border rounded-full px-4 py-2.5 text-xs focus:outline-none transition"
+            style={{
+              backgroundColor: 'var(--card-bg, rgba(255, 255, 255, 0.05))',
+              borderColor: 'var(--card-border, rgba(255, 255, 255, 0.1))',
+              color: 'var(--foreground-heading, #fff)',
+            }}
+          />
+        </div>
         <button
           type="submit"
           disabled={isSearching}
-          className="text-xs px-4 py-2.5 rounded-xl transition font-medium text-black disabled:opacity-50"
+          className="text-xs px-5 py-2.5 rounded-full font-bold text-black transition hover:scale-105 active:scale-95 disabled:opacity-50"
           style={{
             backgroundColor: 'var(--accent)',
             boxShadow: '0 0 12px var(--accent-glow, transparent)',
@@ -352,127 +350,167 @@ export default function Mp3Page() {
         </button>
       </form>
 
-      {/* Hasil Pencarian */}
-      {searchResults.length > 0 && !showLyrics && (
-        <div className="w-full max-w-md mb-6 flex flex-col gap-2">
-          <p className="text-[11px] opacity-60 font-medium px-1">Hasil Pencarian:</p>
-          {searchResults.map((song) => (
+      {/* Main Display: Lirik / Hasil Cari / Player Cover */}
+      <div className="w-full max-w-md flex-1 flex flex-col justify-center my-2">
+        {showLyrics ? (
+          /* TAMPILAN LIRIK YT MUSIC PRO STYLE */
+          <div
+            className="w-full rounded-2xl p-6 border shadow-2xl flex flex-col h-[400px] relative overflow-hidden backdrop-blur-md"
+            style={{
+              backgroundColor: 'var(--card-bg, rgba(24, 24, 27, 0.9))',
+              borderColor: 'var(--card-border, rgba(255, 255, 255, 0.1))',
+              boxShadow: '0 8px 32px var(--accent-glow, rgba(0, 0, 0, 0.3))',
+            }}
+          >
+            <div className="flex justify-between items-center pb-3 border-b border-white/10 z-10">
+              <span className="text-xs font-bold tracking-wider uppercase" style={{ color: 'var(--accent)' }}>
+                LIRIK LAGU
+              </span>
+              <button
+                onClick={() => setShowLyrics(false)}
+                className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full transition"
+                style={{ color: 'var(--foreground)' }}
+              >
+                Tutup ✕
+              </button>
+            </div>
+
             <div
-              key={song.id}
-              onClick={() => playSong(song)}
-              className={`p-3 border rounded-xl cursor-pointer transition flex justify-between items-center hover:opacity-80 ${
-                currentSong?.id === song.id ? 'ring-1' : ''
-              }`}
-              style={{
-                backgroundColor: 'var(--card-bg, rgba(255,255,255,0.05))',
-                borderColor:
-                  currentSong?.id === song.id ? 'var(--accent)' : 'var(--card-border, rgba(255,255,255,0.1))',
-              }}
+              ref={lyricsContainerRef}
+              className="flex-1 overflow-y-auto scroll-smooth py-12 flex flex-col gap-6 no-scrollbar"
             >
-              <div className="flex items-center gap-3 overflow-hidden pr-2">
-                {song.thumbnail && (
-                  <img src={song.thumbnail} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
-                )}
-                <div className="overflow-hidden">
-                  <h4 className="text-xs font-semibold truncate" style={{ color: 'var(--foreground-heading)' }}>
-                    {song.title}
-                  </h4>
-                  <p className="text-[10px] opacity-70 truncate">{song.artist}</p>
+              {isLoadingLyrics ? (
+                <div className="flex-1 flex items-center justify-center text-xs opacity-50 animate-pulse">
+                  Mencari lirik...
                 </div>
-              </div>
-              <span className="text-[10px] font-mono opacity-50 shrink-0">{song.duration}</span>
+              ) : lyrics.length > 0 ? (
+                lyrics.map((line, idx) => {
+                  const isActive = idx === activeLyricIndex;
+                  return (
+                    <p
+                      key={idx}
+                      onClick={() => {
+                        if (playerRef.current) {
+                          playerRef.current.seekTo(line.time, true);
+                          setCurrentTimeSec(line.time);
+                        }
+                      }}
+                      className={`text-lg font-bold transition-all duration-300 cursor-pointer leading-snug tracking-tight ${
+                        isActive ? 'scale-105 opacity-100' : 'opacity-30 hover:opacity-70'
+                      }`}
+                      style={{
+                        color: isActive ? 'var(--accent)' : 'var(--foreground)',
+                        textShadow: isActive ? '0 0 12px var(--accent-glow, transparent)' : 'none',
+                      }}
+                    >
+                      {line.text}
+                    </p>
+                  );
+                })
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-xs opacity-60 text-center whitespace-pre-line leading-relaxed">
+                  {rawLyrics || 'Lirik tidak ditemukan.'}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* TAMPILAN LIRIK SPOTIFY STYLE */}
-      {showLyrics && (
-        <div
-          className="w-full max-w-md border rounded-2xl p-6 mb-4 transition-all duration-300 flex flex-col h-80 overflow-y-auto relative scroll-smooth"
-          style={{
-            backgroundColor: 'var(--card-bg, rgba(24, 24, 27, 0.95))',
-            borderColor: 'var(--card-border, rgba(255, 255, 255, 0.1))',
-            boxShadow: '0 8px 32px var(--accent-glow, rgba(0, 0, 0, 0.3))',
-          }}
-        >
-          <div className="sticky top-0 bg-transparent backdrop-blur-md pb-2 mb-2 border-b border-white/10 flex justify-between items-center z-10">
-            <span className="text-xs font-bold uppercase tracking-wider opacity-70">LIRIK LAGU</span>
-            <button
-              onClick={() => setShowLyrics(false)}
-              className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/20 transition"
-            >
-              ✕ Tutup
-            </button>
           </div>
+        ) : searchResults.length > 0 ? (
+          /* HASIL PENCARIAN LAGU */
+          <div
+            className="w-full rounded-2xl p-4 border max-h-[380px] overflow-y-auto flex flex-col gap-2 backdrop-blur-md"
+            style={{
+              backgroundColor: 'var(--card-bg, rgba(24, 24, 27, 0.8))',
+              borderColor: 'var(--card-border, rgba(255, 255, 255, 0.1))',
+            }}
+          >
+            <p className="text-[11px] font-bold opacity-60 px-1 uppercase tracking-wider mb-1">
+              Hasil Pencarian
+            </p>
+            {searchResults.map((song) => (
+              <div
+                key={song.id}
+                onClick={() => playSong(song)}
+                className={`p-2.5 rounded-lg cursor-pointer transition flex justify-between items-center hover:opacity-80 border ${
+                  currentSong?.id === song.id ? 'ring-1' : ''
+                }`}
+                style={{
+                  backgroundColor: 'color-mix(in srgb, var(--card-bg) 70%, white 5%)',
+                  borderColor:
+                    currentSong?.id === song.id ? 'var(--accent)' : 'var(--card-border, rgba(255,255,255,0.05))',
+                }}
+              >
+                <div className="flex items-center gap-3 overflow-hidden">
+                  {song.thumbnail ? (
+                    <img src={song.thumbnail} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-white/10 shrink-0 flex items-center justify-center">
+                      <svg className="w-5 h-5 opacity-40" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className="overflow-hidden">
+                    <h4
+                      className="text-xs font-semibold truncate"
+                      style={{
+                        color: currentSong?.id === song.id ? 'var(--accent)' : 'var(--foreground-heading, #fff)',
+                      }}
+                    >
+                      {song.title}
+                    </h4>
+                    <p className="text-[10px] opacity-70 truncate">{song.artist}</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono opacity-50 shrink-0 ml-2">{song.duration}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* TAMPILAN COVER ART UTAMA YT MUSIC STYLE */
+          <div
+            className="w-full rounded-2xl p-6 border shadow-2xl flex flex-col items-center backdrop-blur-md"
+            style={{
+              backgroundColor: 'var(--card-bg, rgba(24, 24, 27, 0.8))',
+              borderColor: 'var(--card-border, rgba(255, 255, 255, 0.1))',
+              boxShadow: '0 8px 32px var(--accent-glow, rgba(0, 0, 0, 0.3))',
+            }}
+          >
+            <div className="w-60 h-60 rounded-2xl overflow-hidden shadow-2xl bg-black/20 mb-6 flex items-center justify-center relative group border border-white/10">
+              {currentSong?.thumbnail ? (
+                <img
+                  src={currentSong.thumbnail}
+                  alt={currentSong.title}
+                  className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
+                />
+              ) : (
+                <svg className="w-16 h-16 opacity-20" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                </svg>
+              )}
+            </div>
+            <div className="w-full text-left">
+              <h2 className="text-lg font-bold truncate" style={{ color: 'var(--foreground-heading, #fff)' }}>
+                {currentSong?.title || 'Pilih Lagu'}
+              </h2>
+              <p className="text-xs opacity-70 truncate mt-0.5" style={{ color: 'var(--foreground)' }}>
+                {currentSong?.artist || 'Cari judul lagu di atas'}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
 
-          {isLoadingLyrics ? (
-            <div className="flex-1 flex items-center justify-center text-xs opacity-50 animate-pulse">
-              Memuat lirik...
-            </div>
-          ) : lyrics.length > 0 ? (
-            <div ref={lyricsContainerRef} className="flex flex-col gap-5 py-10">
-              {lyrics.map((line, idx) => {
-                const isActive = idx === activeLyricIndex;
-                return (
-                  <p
-                    key={idx}
-                    onClick={() => {
-                      if (playerRef.current) {
-                        playerRef.current.seekTo(line.time, true);
-                        setCurrentTimeSec(line.time);
-                      }
-                    }}
-                    className={`text-lg font-bold transition-all duration-300 cursor-pointer leading-snug ${
-                      isActive ? 'scale-105 opacity-100' : 'opacity-30 hover:opacity-60'
-                    }`}
-                    style={{
-                      color: isActive ? 'var(--accent, #1db954)' : 'inherit',
-                      textShadow: isActive ? '0 0 12px var(--accent-glow, rgba(29, 185, 84, 0.4))' : 'none',
-                    }}
-                  >
-                    {line.text}
-                  </p>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-xs opacity-60 text-center whitespace-pre-line leading-relaxed">
-              {rawLyrics || 'Lirik tidak tersedia.'}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Player Card */}
+      {/* PLAYER CONTROLS YT MUSIC PRO */}
       <div
-        className="w-full max-w-md border rounded-2xl p-6 transition-all duration-300 flex flex-col gap-6 backdrop-blur-md mt-2"
+        className="w-full max-w-md border rounded-2xl p-4 mt-2 shadow-2xl flex flex-col gap-3 backdrop-blur-md"
         style={{
           backgroundColor: 'var(--card-bg, rgba(24, 24, 27, 0.8))',
           borderColor: 'var(--card-border, rgba(255, 255, 255, 0.1))',
           boxShadow: '0 8px 32px var(--accent-glow, rgba(0, 0, 0, 0.3))',
         }}
       >
-        <div className="flex flex-col items-center gap-3">
-          {currentSong?.thumbnail && (
-            <img
-              src={currentSong.thumbnail}
-              alt={currentSong.title}
-              className="w-32 h-32 rounded-xl object-cover shadow-lg"
-            />
-          )}
-          <div className="text-center w-full">
-            <h2 className="text-base font-semibold truncate" style={{ color: 'var(--foreground-heading, #fff)' }}>
-              {currentSong?.title || 'Belum Ada Lagu Diputar'}
-            </h2>
-            <p className="text-xs mt-1 truncate" style={{ color: 'var(--foreground, #a1a1aa)' }}>
-              {currentSong?.artist || 'Ketik judul lagu di atas untuk memutar'}
-            </p>
-          </div>
-        </div>
-
-        {/* Timeline Slider */}
-        <div className="flex flex-col gap-1.5">
+        {/* Progress Slider */}
+        <div className="flex flex-col gap-1">
           <input
             type="range"
             min="0"
@@ -484,60 +522,83 @@ export default function Mp3Page() {
             onTouchStart={handleSeekStart}
             onMouseUp={handleSeekEnd}
             onTouchEnd={handleSeekEnd}
-            className="w-full h-1.5 rounded-lg cursor-pointer appearance-none"
+            className="w-full h-1.5 rounded-lg appearance-none cursor-pointer"
             style={{
               accentColor: 'var(--accent)',
               background: `linear-gradient(to right, var(--accent) ${progress}%, rgba(255,255,255,0.15) ${progress}%)`,
             }}
           />
-          <div className="flex justify-between text-[11px] font-mono" style={{ color: 'var(--foreground, #a1a1aa)' }}>
+          <div className="flex justify-between text-[10px] font-mono opacity-70">
             <span>{currentTime}</span>
             <span>{duration}</span>
           </div>
         </div>
 
-        {/* Kontrol Utama & Tombol Lirik */}
-        <div className="flex items-center justify-between px-2">
+        {/* Action Controls */}
+        <div className="flex items-center justify-between px-2 pt-1">
           <button
             onClick={() => setShowLyrics(!showLyrics)}
             disabled={!currentSong}
-            className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all ${
-              showLyrics ? 'bg-white/20 border-white/40' : 'opacity-60 hover:opacity-100 border-white/10'
+            className={`text-[11px] font-bold px-3.5 py-1.5 rounded-full transition border flex items-center gap-1.5 ${
+              showLyrics ? 'bg-white/20 border-white/40' : 'opacity-70 hover:opacity-100 border-white/10'
             }`}
+            style={{
+              color: showLyrics ? 'var(--accent)' : 'var(--foreground)',
+              borderColor: showLyrics ? 'var(--accent)' : 'var(--card-border, rgba(255,255,255,0.1))',
+            }}
           >
-            🎤 Lirik
+            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+            </svg>
+            LIRIK
           </button>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5">
+            {/* Prev Icon */}
             <button
               onClick={playPrev}
               disabled={searchResults.length === 0}
-              className="text-lg opacity-60 hover:opacity-100 transition disabled:opacity-20"
+              className="opacity-70 hover:opacity-100 transition disabled:opacity-20"
             >
-              ⏮
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+              </svg>
             </button>
+
+            {/* Play/Pause Icon */}
             <button
               onClick={togglePlayPause}
               disabled={!currentSong}
-              className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all transform hover:scale-105 active:scale-95 disabled:opacity-40"
+              className="w-11 h-11 rounded-full text-black font-extrabold flex items-center justify-center transition transform hover:scale-105 active:scale-95 disabled:opacity-40"
               style={{
                 backgroundColor: 'var(--accent)',
-                color: '#000000',
-                boxShadow: '0 0 20px var(--accent-glow, transparent)',
+                boxShadow: '0 0 16px var(--accent-glow, transparent)',
               }}
             >
-              {isPlaying ? '⏸' : '▶'}
+              {isPlaying ? (
+                <svg className="w-5 h-5 fill-black" viewBox="0 0 24 24">
+                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 fill-black ml-0.5" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              )}
             </button>
+
+            {/* Next Icon */}
             <button
               onClick={playNext}
               disabled={searchResults.length === 0}
-              className="text-lg opacity-60 hover:opacity-100 transition disabled:opacity-20"
+              className="opacity-70 hover:opacity-100 transition disabled:opacity-20"
             >
-              ⏭
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+              </svg>
             </button>
           </div>
 
-          <div className="w-12"></div> {/* Spacer penyeimbang */}
+          <div className="w-12"></div>
         </div>
       </div>
     </div>
