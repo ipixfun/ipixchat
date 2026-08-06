@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { SongItem, SyncedLine, searchSongs, fetchLyrics, chunkArray } from './yt';
-import { supabase } from '@/app/lib/supabaseClient'; // Sesuaikan lokasi supabaseClient Anda
+import { supabase } from '@/lib/supabaseClient';
 
 declare global {
   interface Window {
@@ -267,11 +267,11 @@ export default function Mp3Page() {
     [startProgressTimer, handleSongEnded, isAuthenticated]
   );
 
-  // 6. Handler Pencarian Baru (Kunci Jika Belum Login)
+  // 6. Handler Pencarian Baru (Mengarahkan ke /chat Jika Belum Login)
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      router.push('/login');
+      router.push('/chat');
       return;
     }
 
@@ -358,7 +358,7 @@ export default function Mp3Page() {
 
   const handleOpenSearchFromModal = () => {
     if (!isAuthenticated) {
-      router.push('/login');
+      router.push('/chat');
       return;
     }
     setShowLyricsModal(false);
@@ -448,12 +448,12 @@ export default function Mp3Page() {
             placeholder={
               isAuthenticated
                 ? 'Cari lagu, artis, atau album...'
-                : '🔒 Login/Register untuk mencari lagu...'
+                : '🔒 Daftar/Login untuk mencari lagu...'
             }
             value={inputQuery}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputQuery(e.target.value)}
             onClick={() => {
-              if (!isAuthenticated) router.push('/login');
+              if (!isAuthenticated) router.push('/chat');
             }}
             className={`w-full border rounded-full pl-10 pr-4 py-2 text-xs transition shadow-sm ${
               !isAuthenticated ? 'cursor-pointer opacity-70 bg-white/5' : 'focus:outline-none'
@@ -490,11 +490,11 @@ export default function Mp3Page() {
         </form>
       </header>
 
-      {/* BANNER AJAKAN REGISTRASI JIKA UNREGISTERED */}
+      {/* BANNER AJAKAN REGISTRASI - DIARAHKAN KE /chat */}
       {!checkingAuth && !isAuthenticated && (
         <div className="w-full max-w-md px-4 mt-3">
           <div
-            onClick={() => router.push('/login')}
+            onClick={() => router.push('/chat')}
             className="p-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 flex items-center justify-between cursor-pointer hover:bg-rose-500/20 transition"
           >
             <div className="flex items-center gap-2.5">
