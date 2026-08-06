@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { supabase } from "@/app/lib/supabaseClient";
 
 interface AdminProps {
   privateUsers: any[];
@@ -8,8 +9,8 @@ interface AdminProps {
   onDeleteAllMsgs?: (username: string) => void;
   onDeleteUser?: (username: string) => void;
   onBlockUser?: (username: string) => void;
-  onUnblockUser?: (username: string) => void; // Tambahan handler untuk buka blokir
-  blockedList?: any[]; // Tambahan daftar user terblokir
+  onUnblockUser?: (username: string) => void;
+  blockedList?: any[];
   onUpdatePin?: (username: string, newPin: string) => void;
   onUpdateUsername?: (oldUsername: string, newUsername: string) => void;
   onRefresh?: () => void;
@@ -40,13 +41,49 @@ export default function Admin({
   const [dropdownPosition, setDropdownPosition] = useState<"top" | "bottom">("top");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // State Kunci Register
+  const [isRegisterLocked, setIsRegisterLocked] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchRegisterLockStatus = async () => {
+      try {
+        const { data } = await supabase
+          .from("app_settings")
+          .select("value")
+          .eq("key", "register_locked")
+          .maybeSingle();
+
+        if (data) {
+          const isLocked = String(data.value) === "true" || String(data.value) === "1";
+          setIsRegisterLocked(isLocked);
+          localStorage.setItem("is_register_locked", isLocked ? "true" : "false");
+        }
+      } catch (e) {}
+    };
+
+    fetchRegisterLockStatus();
+  }, []);
+
+  const handleToggleRegister = async () => {
+    const nextIsLocked = !isRegisterLocked;
+    setIsRegisterLocked(nextIsLocked);
+
+    localStorage.setItem("is_register_locked", nextIsLocked ? "true" : "false");
+
+    try {
+      await supabase.from("app_settings").upsert({
+        key: "register_locked",
+        value: nextIsLocked ? "true" : "false",
+      });
+    } catch (e) {}
+  };
+
   const filteredUsers = privateUsers.filter((u: any) => {
     const name = (typeof u === "string" ? u : u.username || "").toLowerCase();
     const email = (typeof u === "object" && u.email ? u.email : "").toLowerCase();
     return !name.includes("admin") && !email.includes("admin");
   });
 
-  // Fungsi pembantu untuk mengecek status blokir user
   const isUserBlocked = (username: string) => {
     if (!blockedList || blockedList.length === 0) return false;
     return blockedList.some((b: any) => {
@@ -150,7 +187,6 @@ export default function Admin({
     }
   };
 
-  // EKSEKUSI HAPUS USER
   const handleDeleteUserAccount = (e: React.MouseEvent, username: string) => {
     e.stopPropagation();
     if (onDeleteUser) {
@@ -158,7 +194,6 @@ export default function Admin({
     }
   };
 
-  // EKSEKUSI TOGGLE BLOKIR / UNBLOCK USER
   const handleToggleBlockUserAccount = (e: React.MouseEvent, username: string) => {
     e.stopPropagation();
     const currentlyBlocked = isUserBlocked(username);
@@ -192,7 +227,26 @@ export default function Admin({
         }
       ` }} />
 
-      {/* LIST KARTU USER BESAR */}
+      {/* HEADER BAR DENGAN PILL TOGGLE REGISTER */}
+      <div className="flex justify-end items-center gap-2 px-1 pt-1">
+        <button
+          type="button"
+          onClick={handleToggleRegister}
+          className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer border ${
+            isRegisterLocked
+              ? "bg-rose-600 hover:bg-rose-500 text-white border-rose-400"
+              : "bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400"
+          }`}
+          title={isRegisterLocked ? "Register Ditutup (OFF)" : "Register Dibuka (ON)"}
+        >
+          <span>Reg:</span>
+          <span className="bg-black/30 px-1.5 py-0.5 rounded-full text-[10px]">
+            {isRegisterLocked ? "OFF 🔴" : "ON 🟢"}
+          </span>
+        </button>
+      </div>
+
+      {/* LIST KARTU USER */}
       <div className="space-y-2.5 flex-1">
         {filteredUsers.length === 0 ? (
           <div className="bg-white p-5 rounded-2xl border text-center text-gray-400 font-medium text-xs">
@@ -276,7 +330,7 @@ export default function Admin({
         )}
       </div>
 
-      {/* KOLOM KONTROL UTAMA DI BAWAH */}
+      {/* FOOTER BAR CONTROLS */}
       <div className="fixed bottom-[52px] left-2.5 right-2.5 z-40 bg-white/95 backdrop-blur-md p-2.5 rounded-xl border border-gray-200 shadow-xl flex flex-col gap-1.5">
         <div className="flex items-center gap-1.5">
           <div className="relative flex-1" ref={dropdownRef}>
@@ -291,7 +345,6 @@ export default function Admin({
               </span>
             </button>
 
-            {/* POPUP PULL-DOWN / PULL-UP */}
             {isUserDropdownOpen && (
               <div
                 className={`fixed left-2 right-2 bg-slate-100 border border-slate-300 rounded-xl shadow-2xl max-h-[320px] overflow-y-auto z-[99999] p-1.5 flex flex-col gap-1 transition-all ${
@@ -317,7 +370,6 @@ export default function Admin({
                         key={username || idx}
                         className="w-full px-2 py-1.5 bg-white hover:bg-blue-50/90 rounded-lg text-xs font-bold text-gray-800 flex items-center justify-between transition-colors border border-slate-200/80 gap-1.5"
                       >
-                        {/* KIRI: TOMBOL HAPUS + NAMA USER */}
                         <div className="flex items-center gap-1.5 min-w-0 flex-1">
                           <button
                             type="button"
@@ -337,7 +389,6 @@ export default function Admin({
                           </span>
                         </div>
 
-                        {/* KANAN: STATISTIK & TOMBOL BLOKIR / BUKA BLOKIR */}
                         <div className="flex items-center gap-1 shrink-0">
                           <div
                             onClick={() => handleSelectFromDropdown(username)}

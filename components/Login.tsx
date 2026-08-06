@@ -1,8 +1,12 @@
 'use client';
+
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '@/app/context/ThemeContext';
 import BearMascot from './BearMascot';
+import { supabase } from '@/app/lib/supabaseClient';
 
 const UserIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>);
 const LockIcon = () => (<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>);
@@ -33,6 +37,8 @@ const SelectField = ({ icon, options, value, onChange, placeholder, className, s
 
 export default function Login({ activeTab, username, setUsername, pin, setPin, umur, setUmur, berat, setBerat, isExistingUser, adminEmail, setAdminEmail, adminPass, setAdminPass, handleUserLogin, handleAdminLogin, isLocked }: any) {
   const { theme } = useTheme();
+  const router = useRouter();
+
   const prefixText = "Welcome back, "; const currentUserName = username || "User"; const suffixText = ".\nUbah nama atau PIN hubungi admin di chat.";
   const totalNoteLength = prefixText.length + currentUserName.length + suffixText.length;
   const [displayedCharCount, setDisplayedCharCount] = useState(0); const [isNoteTypingDone, setIsNoteTypingDone] = useState(false);
@@ -46,11 +52,53 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
   const [hasTyped, setHasTyped] = useState(false); 
   const [focusedField, setFocusedField] = useState<'username' | 'pin' | 'adminEmail' | 'adminPass' | null>(null);
 
-  // Sanitasi username: Bebaskan jika diawali admin, jika user biasa ubah kapital ke kecil & spasi ke _
+  const [isRegisterLockedByAdmin, setIsRegisterLockedByAdmin] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const val = localStorage.getItem('is_register_locked');
+      return val === 'true' || val === '1';
+    }
+    return false;
+  });
+
   const sanitizeUsername = (val: string) => {
     if (val.trim().toLowerCase().startsWith("admin")) return val;
     return val.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_-]/g, '').slice(0, 20);
   };
+
+  useEffect(() => {
+    const fetchLockStatus = async () => {
+      try {
+        const { data } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'register_locked')
+          .maybeSingle();
+
+        if (data) {
+          const locked = String(data.value) === 'true' || String(data.value) === '1';
+          setIsRegisterLockedByAdmin(locked);
+          localStorage.setItem('is_register_locked', locked ? 'true' : 'false');
+        }
+      } catch (e) {}
+    };
+
+    fetchLockStatus();
+
+    const channel = supabase
+      .channel('register_lock_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, (payload: any) => {
+        if (payload.new && payload.new.key === 'register_locked') {
+          const locked = String(payload.new.value) === 'true' || String(payload.new.value) === '1';
+          setIsRegisterLockedByAdmin(locked);
+          localStorage.setItem('is_register_locked', locked ? 'true' : 'false');
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -145,6 +193,9 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
     }
 
     if (!isSavedDevice && !isLoginMode) {
+      if (isRegisterLockedByAdmin) {
+        return setValidationMsg("Pendaftaran ditutup sementara");
+      }
       if (!umur || !berat) return setValidationMsg("Pilih umur & berat");
       if (!isUsernameAgreed) return setValidationMsg("Ceklist persetujuan dulu");
     }
@@ -305,57 +356,82 @@ export default function Login({ activeTab, username, setUsername, pin, setPin, u
                 )}
 
                 <div className="w-full flex flex-col items-center relative z-20 pointer-events-auto">
-                  <InputField 
-                    icon={<UserIcon />} 
-                    placeholder={isLoginMode || isSavedDevice ? "Username" : (placeholderText || "Username (Min 5 karakter)")} 
-                    value={username || ""} 
-                    disabled={isLocked || isSavedDevice} 
-                    readOnly={isLocked || isSavedDevice} 
-                    onChange={(e: any) => { 
-                      if (isLocked || isSavedDevice) return; 
-                      if (!hasTyped) setHasTyped(true); 
-                      const val = e.target.value;
-                      const isTypingAdmin = val.trim().toLowerCase().startsWith("admin");
-                      setUsername(isTypingAdmin ? val : sanitizeUsername(val)); 
-                      if (validationMsg) setValidationMsg(""); 
-                    }} 
-                    onFocus={() => setFocusedField('username')} 
-                    onBlur={() => setFocusedField(null)} 
-                    className={inputInset} 
-                    style={(isLocked || isSavedDevice) ? existingStyle : usernameStyle} 
-                    autoComplete="off" 
-                  />
-                  
-                  <InputField icon={<LockIcon />} placeholder={isSavedDevice ? "PIN Tersimpan" : (isLoginMode ? "PIN (6 angka)" : "Buat PIN (6 angka)")} type={showPin ? "text" : "password"} inputMode="numeric" value={pin || ""} disabled={isLocked || isSavedDevice} readOnly={isLocked || isSavedDevice} onChange={(e: any) => { if (isLocked || isSavedDevice) return; const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPin(val); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('pin')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} disabled={isLocked && !isSavedDevice} className="focus:outline-none cursor-pointer">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={inputInset} style={(isLocked || isSavedDevice) ? existingStyle : pinStyle} maxLength={6} />
-                  
-                  {!isLoginMode && !shouldHideRegisterTab && (
-                    <div className="flex gap-2.5 w-full">
-                      <SelectField icon={<CalendarIcon />} placeholder="Umur" options={["25+", "30+", "35+", "40+", "45+"]} value={umur} disabled={isLocked} onChange={(e: any) => { setUmur(e.target.value); if (validationMsg) setValidationMsg(""); }} className={inputInset} style={isLocked ? existingStyle : umurStyle} />
-                      <SelectField icon={<ScaleIcon />} placeholder="Berat" options={["70+", "80+", "90+", "100+"]} value={berat} disabled={isLocked} onChange={(e: any) => { setBerat(e.target.value); if (validationMsg) setValidationMsg(""); }} className={inputInset} style={isLocked ? existingStyle : beratStyle} />
-                    </div>
-                  )}
+                  {!isLoginMode && isRegisterLockedByAdmin ? (
+                    <div className="w-full flex flex-col items-center text-center p-5 rounded-2xl bg-black border border-zinc-800 shadow-2xl my-1 animate-fadeIn">
+                      <div className="text-3xl mb-2">🔒</div>
+                      <h4 className="text-xs font-extrabold text-rose-500 uppercase tracking-wider mb-2">
+                        Pendaftaran Ditutup
+                      </h4>
+                      <p className="text-[11px] leading-relaxed text-zinc-300 font-medium mb-5">
+                        Maaf register ditutup sementara. Jika sudah ada user dan PIN bisa ke <span onClick={() => setIsLoginMode(true)} className="text-rose-400 font-bold underline cursor-pointer">Login</span>. Jika belum / lupa bisa hubungi / inbox / PM / DM iPix di sosmed.
+                      </p>
 
-                  {(isSavedDevice || isLocked) && (
-                    <div className={`w-full text-xs p-3.5 border rounded-2xl mb-2.5 font-normal text-center whitespace-pre-line leading-relaxed min-h-[55px] flex flex-col items-center justify-center ${inputInset}`} style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)", color: "var(--foreground-heading)" }}>
-                      <span className="w-full block"><span>{visiblePrefix}</span><span className="font-semibold">{visibleName}</span><span>{visibleSuffix}</span>{!isNoteTypingDone && <span className="animate-pulse ml-0.5">|</span>}</span>
+                      <Link
+                        href="/tentang"
+                        className="w-full py-2.5 sm:py-3 rounded-full font-bold text-xs tracking-wide transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 shadow-lg"
+                        style={active3dSubmitStyle}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Ke Tentang
+                      </Link>
                     </div>
-                  )}
+                  ) : (
+                    <>
+                      <InputField 
+                        icon={<UserIcon />} 
+                        placeholder={isLoginMode || isSavedDevice ? "Username" : (placeholderText || "Username (Min 5 karakter)")} 
+                        value={username || ""} 
+                        disabled={isLocked || isSavedDevice} 
+                        readOnly={isLocked || isSavedDevice} 
+                        onChange={(e: any) => { 
+                          if (isLocked || isSavedDevice) return; 
+                          if (!hasTyped) setHasTyped(true); 
+                          const val = e.target.value;
+                          const isTypingAdmin = val.trim().toLowerCase().startsWith("admin");
+                          setUsername(isTypingAdmin ? val : sanitizeUsername(val)); 
+                          if (validationMsg) setValidationMsg(""); 
+                        }} 
+                        onFocus={() => setFocusedField('username')} 
+                        onBlur={() => setFocusedField(null)} 
+                        className={inputInset} 
+                        style={(isLocked || isSavedDevice) ? existingStyle : usernameStyle} 
+                        autoComplete="off" 
+                      />
+                      
+                      <InputField icon={<LockIcon />} placeholder={isSavedDevice ? "PIN Tersimpan" : (isLoginMode ? "PIN (6 angka)" : "Buat PIN (6 angka)")} type={showPin ? "text" : "password"} inputMode="numeric" value={pin || ""} disabled={isLocked || isSavedDevice} readOnly={isLocked || isSavedDevice} onChange={(e: any) => { if (isLocked || isSavedDevice) return; const val = e.target.value.replace(/\D/g, '').slice(0, 6); setPin(val); if (validationMsg) setValidationMsg(""); }} onFocus={() => setFocusedField('pin')} onBlur={() => setFocusedField(null)} suffix={<button type="button" onClick={() => setShowPin(!showPin)} disabled={isLocked && !isSavedDevice} className="focus:outline-none cursor-pointer">{showPin ? <EyeOffIcon /> : <EyeIcon />}</button>} className={inputInset} style={(isLocked || isSavedDevice) ? existingStyle : pinStyle} maxLength={6} />
+                      
+                      {!isLoginMode && !shouldHideRegisterTab && (
+                        <div className="flex gap-2.5 w-full">
+                          <SelectField icon={<CalendarIcon />} placeholder="Umur" options={["25+", "30+", "35+", "40+", "45+"]} value={umur} disabled={isLocked} onChange={(e: any) => { setUmur(e.target.value); if (validationMsg) setValidationMsg(""); }} className={inputInset} style={isLocked ? existingStyle : umurStyle} />
+                          <SelectField icon={<ScaleIcon />} placeholder="Berat" options={["70+", "80+", "90+", "100+"]} value={berat} disabled={isLocked} onChange={(e: any) => { setBerat(e.target.value); if (validationMsg) setValidationMsg(""); }} className={inputInset} style={isLocked ? existingStyle : beratStyle} />
+                        </div>
+                      )}
 
-                  {!isLoginMode && !shouldHideRegisterTab && (
-                    <div className="flex items-center justify-start w-full mb-3 px-1 select-none">
-                      <input type="checkbox" id="agree" disabled={isLocked} className="w-3.5 h-3.5 cursor-pointer rounded-sm accent-[var(--accent)]" checked={isUsernameAgreed} onChange={(e) => { setIsUsernameAgreed(e.target.checked); if (validationMsg) setValidationMsg(""); }} />
-                      <label htmlFor="agree" className="text-[11px] font-normal ml-2 select-none leading-none opacity-80 cursor-pointer" style={{ color: "var(--foreground)" }}>*Mengikuti aturan di dalam chat</label>
-                    </div>
-                  )}
+                      {(isSavedDevice || isLocked) && (
+                        <div className={`w-full text-xs p-3.5 border rounded-2xl mb-2.5 font-normal text-center whitespace-pre-line leading-relaxed min-h-[55px] flex flex-col items-center justify-center ${inputInset}`} style={{ backgroundColor: "var(--card-bg)", borderColor: "var(--card-border)", color: "var(--foreground-heading)" }}>
+                          <span className="w-full block"><span>{visiblePrefix}</span><span className="font-semibold">{visibleName}</span><span>{visibleSuffix}</span>{!isNoteTypingDone && <span className="animate-pulse ml-0.5">|</span>}</span>
+                        </div>
+                      )}
 
-                  <button 
-                    type="button" 
-                    onClick={handleUserLoginWrapper} 
-                    className={`w-full py-2.5 sm:py-3 rounded-full font-semibold tracking-wide transition-all active:scale-[0.98] cursor-pointer mt-1 pointer-events-auto relative z-40 ${validationMsg ? "animate-pulse" : ""}`} 
-                    style={buttonStyleObj}
-                  >
-                    {buttonText}
-                  </button>
+                      {!isLoginMode && !shouldHideRegisterTab && (
+                        <div className="flex items-center justify-start w-full mb-3 px-1 select-none">
+                          <input type="checkbox" id="agree" disabled={isLocked} className="w-3.5 h-3.5 cursor-pointer rounded-sm accent-[var(--accent)]" checked={isUsernameAgreed} onChange={(e) => { setIsUsernameAgreed(e.target.checked); if (validationMsg) setValidationMsg(""); }} />
+                          <label htmlFor="agree" className="text-[11px] font-normal ml-2 select-none leading-none opacity-80 cursor-pointer" style={{ color: "var(--foreground)" }}>*Mengikuti aturan di dalam chat</label>
+                        </div>
+                      )}
+
+                      <button 
+                        type="button" 
+                        onClick={handleUserLoginWrapper} 
+                        className={`w-full py-2.5 sm:py-3 rounded-full font-semibold tracking-wide transition-all active:scale-[0.98] cursor-pointer mt-1 pointer-events-auto relative z-40 ${validationMsg ? "animate-pulse" : ""}`} 
+                        style={buttonStyleObj}
+                      >
+                        {buttonText}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
