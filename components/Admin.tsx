@@ -227,25 +227,6 @@ export default function Admin({
         }
       ` }} />
 
-      {/* HEADER BAR DENGAN PILL TOGGLE REGISTER */}
-      <div className="flex justify-end items-center gap-2 px-1 pt-1">
-        <button
-          type="button"
-          onClick={handleToggleRegister}
-          className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer border ${
-            isRegisterLocked
-              ? "bg-rose-600 hover:bg-rose-500 text-white border-rose-400"
-              : "bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400"
-          }`}
-          title={isRegisterLocked ? "Register Ditutup (OFF)" : "Register Dibuka (ON)"}
-        >
-          <span>Reg:</span>
-          <span className="bg-black/30 px-1.5 py-0.5 rounded-full text-[10px]">
-            {isRegisterLocked ? "OFF 🔴" : "ON 🟢"}
-          </span>
-        </button>
-      </div>
-
       {/* LIST KARTU USER */}
       <div className="space-y-2.5 flex-1">
         {filteredUsers.length === 0 ? (
@@ -330,7 +311,7 @@ export default function Admin({
         )}
       </div>
 
-      {/* FOOTER BAR CONTROLS */}
+      {/* FOOTER BAR CONTROLS DENGAN TOGGLE REGISTER DI SAMPING REFRESH */}
       <div className="fixed bottom-[52px] left-2.5 right-2.5 z-40 bg-white/95 backdrop-blur-md p-2.5 rounded-xl border border-gray-200 shadow-xl flex flex-col gap-1.5">
         <div className="flex items-center gap-1.5">
           <div className="relative flex-1" ref={dropdownRef}>
@@ -422,10 +403,28 @@ export default function Admin({
             )}
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <div className="bg-blue-50 text-blue-800 text-[11px] font-extrabold px-2 py-1.5 rounded-lg border border-blue-200 whitespace-nowrap">
               {filteredUsers.length} User
             </div>
+
+            {/* PILL TOGGLE REGISTER DI SAMPING TOMBOL REFRESH */}
+            <button
+              type="button"
+              onClick={handleToggleRegister}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-all flex items-center gap-1 shadow-xs active:scale-95 cursor-pointer border uppercase tracking-wider ${
+                isRegisterLocked
+                  ? "bg-rose-600 hover:bg-rose-500 text-white border-rose-400"
+                  : "bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400"
+              }`}
+              title={isRegisterLocked ? "Register Ditutup (OFF)" : "Register Dibuka (ON)"}
+            >
+              <span>Reg:</span>
+              <span className="bg-black/30 px-1 py-0.5 rounded text-[10px]">
+                {isRegisterLocked ? "OFF 🔴" : "ON 🟢"}
+              </span>
+            </button>
+
             <button
               type="button"
               onClick={() => onRefresh ? onRefresh() : window.location.reload()}
