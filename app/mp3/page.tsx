@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 
 interface SongItem {
@@ -44,9 +45,6 @@ export default function Mp3Page() {
   const [rawLyrics, setRawLyrics] = useState<string>('');
   const [isLoadingLyrics, setIsLoadingLyrics] = useState(false);
   const [activeLyricIndex, setActiveLyricIndex] = useState<number>(-1);
-
-  // Swipe Gesture State
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   const playerRef = useRef<any>(null);
   const isSeeking = useRef(false);
@@ -91,7 +89,7 @@ export default function Mp3Page() {
     }
   }, []);
 
-  // Function Fetch Lagu (Bisa untuk pencarian maupun rekomendasi awal)
+  // Function Fetch Lagu
   const fetchSongs = useCallback(async (query: string) => {
     setIsSearching(true);
     try {
@@ -107,9 +105,8 @@ export default function Mp3Page() {
     }
   }, []);
 
-  // 2. OTOMATIS MEMUAT REKOMENDASI SAAT PERTAMA KALI MEMBUKA HALAMAN
+  // 2. Load Rekomendasi Lagu Saat Pertama Membuka Page
   useEffect(() => {
-    // Memuat daftar lagu populer/trending saat pertama masuk page
     fetchSongs('Lagu Populer Indonesia');
   }, [fetchSongs]);
 
@@ -276,24 +273,6 @@ export default function Mp3Page() {
     playSong(searchResults[prevIndex]);
   }, [currentSong, searchResults, playSong]);
 
-  // Handle Swipe Gesture
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStartX(e.touches[0].clientX);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX === null) return;
-    const touchEndX = e.changedTouches[0].clientX;
-    const diff = touchStartX - touchEndX;
-
-    if (diff > 50) {
-      playNext();
-    } else if (diff < -50) {
-      playPrev();
-    }
-    setTouchStartX(null);
-  };
-
   // Chunking per 4 item
   const chunkedResults = [];
   for (let i = 0; i < searchResults.length; i += 4) {
@@ -350,7 +329,7 @@ export default function Mp3Page() {
       </header>
 
       <main className="w-full max-w-md px-4 flex flex-col gap-6 mt-4">
-        {/* SECTION 1: PILIHAN CEPAT (REKOMENDASI/HASIL CARI) */}
+        {/* SECTION 1: PILIHAN CEPAT */}
         <section className="flex flex-col gap-3">
           <div className="flex justify-between items-center px-1">
             <h2 className="text-lg font-extrabold tracking-tight" style={{ color: 'var(--foreground-heading, #fff)' }}>
@@ -481,41 +460,48 @@ export default function Mp3Page() {
         </section>
       </main>
 
-      {/* BOTTOM MINI PLAYER */}
-      <div className="fixed bottom-16 left-0 right-0 z-50 flex justify-center px-2">
+      {/* FLOATING & DRAGGABLE MINI PLAYER */}
+      <motion.div
+        drag
+        dragMomentum={false}
+        className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-50 cursor-grab active:cursor-grabbing touch-none"
+      >
         <div
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          className="w-full max-w-md border rounded-2xl px-3 py-2 shadow-2xl flex items-center justify-between backdrop-blur-xl transition-all duration-300"
+          className="w-full border rounded-2xl px-3.5 py-2.5 shadow-2xl flex items-center justify-between backdrop-blur-xl transition-all duration-300"
           style={{
             backgroundColor: 'var(--card-bg, rgba(24, 24, 27, 0.95))',
-            borderColor: 'var(--card-border, rgba(255, 255, 255, 0.15))',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
+            borderColor: 'var(--card-border, rgba(255, 255, 255, 0.18))',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.85)',
           }}
         >
-          <div className="flex items-center gap-3 overflow-hidden flex-1 cursor-pointer pr-2">
+          {/* Gagang/Handle Geser */}
+          <div className="absolute top-1 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-white/20" />
+
+          {/* Info Lagu */}
+          <div className="flex items-center gap-3 overflow-hidden flex-1 pr-2 mt-1">
             {currentSong?.thumbnail ? (
               <img
                 src={currentSong.thumbnail}
                 alt=""
-                className="w-10 h-10 rounded-lg object-cover shrink-0"
+                className="w-10 h-10 rounded-lg object-cover shrink-0 pointer-events-none"
               />
             ) : (
-              <div className="w-10 h-10 rounded-lg bg-white/10 shrink-0 flex items-center justify-center text-xs">
+              <div className="w-10 h-10 rounded-lg bg-white/10 shrink-0 flex items-center justify-center text-xs pointer-events-none">
                 🎵
               </div>
             )}
-            <div className="overflow-hidden">
+            <div className="overflow-hidden pointer-events-none">
               <h4 className="text-xs font-semibold truncate" style={{ color: 'var(--foreground-heading, #fff)' }}>
                 {currentSong?.title || 'Tidak ada lagu'}
               </h4>
               <p className="text-[10px] opacity-60 truncate mt-0.5">
-                {currentSong?.artist || 'Geser kiri/kanan untuk ganti'}
+                {currentSong?.artist || 'Bisa digeser bebas'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Tombol Kontrol */}
+          <div className="flex items-center gap-1.5 shrink-0 mt-1">
             <button
               onClick={playPrev}
               disabled={searchResults.length === 0}
@@ -556,7 +542,7 @@ export default function Mp3Page() {
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
