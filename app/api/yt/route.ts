@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
     let contentType = 'audio/webm';
 
     try {
-      const stream = await youtube.download(videoId, {
+      const stream: any = await youtube.download(videoId, {
         type: 'audio',
         quality: 'best',
         client: 'IOS',
@@ -89,7 +89,8 @@ export async function GET(req: NextRequest) {
       audioStream = new ReadableStream({
         async start(controller) {
           try {
-            for await (const chunk of stream) {
+            // Ditambahkan (stream as any) agar lolos kompilasi Vercel TypeScript
+            for await (const chunk of stream as any) {
               controller.enqueue(chunk);
             }
             controller.close();
@@ -99,10 +100,10 @@ export async function GET(req: NextRequest) {
         },
       });
     } catch (ytErr) {
-      console.warn('YouTubei.js diblokir YT! Beralih ke Engine Cadangan Piped...', ytErr);
+      console.warn('YouTubei.js diblokir, beralih ke engine cadangan...', ytErr);
     }
 
-    // 4. ENGINE 2 (FALLBACK): JIKA YOUTUBE MEMBLOKIR, AMBIL DARI PIPED STREAM SERVER
+    // 4. ENGINE 2 (FALLBACK PIPED STREAM)
     if (!audioStream) {
       const pipedRes = await fetch(`https://api.piped.video/streams/${videoId}`, {
         headers: { 'User-Agent': 'Mozilla/5.0' },
