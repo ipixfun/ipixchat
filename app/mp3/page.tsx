@@ -324,6 +324,52 @@ export default function Mp3Page() {
     }, 200);
   };
 
+  // 7. INTEGRASI NOTIFIKASI MEDIA SYSTEM (DENGAN /icon.png)
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || !currentSong) return;
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentSong.title,
+      artist: currentSong.artist,
+      album: 'iPix Chat MP3',
+      artwork: [
+        { src: '/icon.png', sizes: '96x96', type: 'image/png' },
+        { src: '/icon.png', sizes: '128x128', type: 'image/png' },
+        { src: '/icon.png', sizes: '192x192', type: 'image/png' },
+        { src: '/icon.png', sizes: '512x512', type: 'image/png' },
+      ],
+    });
+
+    navigator.mediaSession.setActionHandler('play', () => {
+      if (playerRef.current) playerRef.current.playVideo();
+    });
+
+    navigator.mediaSession.setActionHandler('pause', () => {
+      if (playerRef.current) playerRef.current.pauseVideo();
+    });
+
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      playPrev();
+    });
+
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      playNext();
+    });
+
+    navigator.mediaSession.setActionHandler('seekto', (details) => {
+      if (details.seekTime !== undefined && playerRef.current) {
+        playerRef.current.seekTo(details.seekTime, true);
+        setCurrentTimeSec(details.seekTime);
+      }
+    });
+  }, [currentSong, playNext, playPrev]);
+
+  // Sync Playback State ke Notifikasi HP
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+  }, [isPlaying]);
+
   const chunkedSearchResults: SongItem[][] = chunkArray(searchResults, 5);
   const chunkedQuickPicks: SongItem[][] = chunkArray(quickPicks, 5);
 
