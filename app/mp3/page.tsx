@@ -2,21 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
-
-interface SongItem {
-  id: string;
-  title: string;
-  artist: string;
-  duration: string;
-  thumbnail?: string;
-}
-
-interface LyricLine {
-  time: number;
-  text: string;
-}
+import { SongItem, SyncedLine, searchSongs, fetchLyrics, chunkArray } from './yt';
 
 declare global {
   interface Window {
@@ -26,10 +14,11 @@ declare global {
 }
 
 export default function Mp3Page() {
-  const { theme, mounted } = useTheme();
+  const { theme } = useTheme();
 
   const [inputQuery, setInputQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SongItem[]>([]);
+  const [quickPicks, setQuickPicks] = useState<SongItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
   const [currentSong, setCurrentSong] = useState<SongItem | null>(null);
@@ -40,8 +29,9 @@ export default function Mp3Page() {
   const [currentTime, setCurrentTime] = useState('0:00');
   const [duration, setDuration] = useState('0:00');
 
-  // Lirik State
-  const [lyrics, setLyrics] = useState<LyricLine[]>([]);
+  // State Lirik
+  const [showLyricsModal, setShowLyricsModal] = useState(false);
+  const [syncedLyrics, setSyncedLyrics] = useState<SyncedLine[]>([]);
   const [rawLyrics, setRawLyrics] = useState<string>('');
   const [isLoadingLyrics, setIsLoadingLyrics] = useState(false);
   const [activeLyricIndex, setActiveLyricIndex] = useState<number>(-1);
@@ -50,33 +40,13 @@ export default function Mp3Page() {
   const isSeeking = useRef(false);
   const intervalRef = useRef<any>(null);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const formatTime = (secs: number) => {
     if (isNaN(secs) || !isFinite(secs) || secs < 0) return '0:00';
     const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60);
     return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
-  const parseLrc = (lrcText: string): LyricLine[] => {
-    const lines = lrcText.split('\n');
-    const result: LyricLine[] = [];
-    const timeReg = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]/;
-
-    for (const line of lines) {
-      const match = timeReg.exec(line);
-      if (match) {
-        const min = parseInt(match[1], 10);
-        const sec = parseInt(match[2], 10);
-        const ms = match[3] ? parseInt(match[3], 10) / (match[3].length === 2 ? 100 : 1000) : 0;
-        const timeInSeconds = min * 60 + sec + ms;
-        const text = line.replace(timeReg, '').trim();
-        if (text) {
-          result.push({ time: timeInSeconds, text });
-        }
-      }
-    }
-    return result.sort((a, b) => a.time - b.time);
   };
 
   // 1. YouTube IFrame API Loader
@@ -89,69 +59,45 @@ export default function Mp3Page() {
     }
   }, []);
 
-  // Function Fetch Lagu
-  const fetchSongs = useCallback(async (query: string) => {
-    setIsSearching(true);
-    try {
-      const res = await fetch(`/api/yt?q=${encodeURIComponent(query)}&limit=20`);
-      const data = await res.json();
-      if (data.songs) {
-        setSearchResults(data.songs);
-      }
-    } catch (err) {
-      console.error('Fetch error:', err);
-    } finally {
+  // Load Awal
+  useEffect(() => {
+    (async () => {
+      setIsSearching(true);
+      const songs = await searchSongs('Lagu Populer Indonesia', 20);
+      setSearchResults(songs);
       setIsSearching(false);
-    }
+    })();
   }, []);
 
-  // 2. Load Rekomendasi Lagu Saat Pertama Membuka Page
-  useEffect(() => {
-    fetchSongs('Lagu Populer Indonesia');
-  }, [fetchSongs]);
-
-  // 3. Fetch Lirik
+  // 2. Fetch Lirik saat lagu aktif berganti
   useEffect(() => {
     if (!currentSong) return;
 
-    const fetchLyrics = async () => {
+    const loadLyrics = async () => {
       setIsLoadingLyrics(true);
-      setLyrics([]);
+      setSyncedLyrics([]);
       setRawLyrics('');
       setActiveLyricIndex(-1);
 
-      try {
-        const res = await fetch(
-          `/api/lyrics?title=${encodeURIComponent(currentSong.title)}&artist=${encodeURIComponent(currentSong.artist)}`
-        );
-        const data = await res.json();
-
-        if (data.lrc) {
-          const parsed = parseLrc(data.lrc);
-          setLyrics(parsed);
-        } else if (data.lyrics) {
-          setRawLyrics(data.lyrics);
-        } else {
-          setRawLyrics('Lirik tidak tersedia untuk lagu ini.');
-        }
-      } catch (err) {
-        console.error('Failed to fetch lyrics:', err);
-        setRawLyrics('Gagal memuat lirik.');
-      } finally {
-        setIsLoadingLyrics(false);
+      const res = await fetchLyrics(currentSong);
+      if (res.syncedLyrics) {
+        setSyncedLyrics(res.syncedLyrics);
+      } else {
+        setRawLyrics(res.rawLyrics || 'Lirik tidak tersedia');
       }
+      setIsLoadingLyrics(false);
     };
 
-    fetchLyrics();
+    loadLyrics();
   }, [currentSong]);
 
-  // 4. Auto Scroll & Highlight Lirik
+  // 3. Highlight Lirik Otomatis
   useEffect(() => {
-    if (lyrics.length === 0) return;
+    if (syncedLyrics.length === 0) return;
 
     let index = -1;
-    for (let i = 0; i < lyrics.length; i++) {
-      if (currentTimeSec >= lyrics[i].time) {
+    for (let i = 0; i < syncedLyrics.length; i++) {
+      if (currentTimeSec >= syncedLyrics[i].time) {
         index = i;
       } else {
         break;
@@ -167,9 +113,9 @@ export default function Mp3Page() {
         }
       }
     }
-  }, [currentTimeSec, lyrics, activeLyricIndex]);
+  }, [currentTimeSec, syncedLyrics, activeLyricIndex]);
 
-  // 5. Progress Tracker
+  // 4. Progress Tracker
   const startProgressTimer = useCallback(() => {
     stopProgressTimer();
     intervalRef.current = setInterval(() => {
@@ -190,7 +136,7 @@ export default function Mp3Page() {
     if (intervalRef.current) clearInterval(intervalRef.current);
   };
 
-  // 6. Play Song Callback
+  // 5. Eksekusi Putar Lagu
   const playSong = useCallback(
     (song: SongItem) => {
       setCurrentSong(song);
@@ -198,6 +144,11 @@ export default function Mp3Page() {
       setProgress(0);
       setCurrentTime('0:00');
       setCurrentTimeSec(0);
+
+      setQuickPicks((prev: SongItem[]) => {
+        if (prev.some((item: SongItem) => item.id === song.id)) return prev;
+        return [song, ...prev];
+      });
 
       if (!window.YT || !window.YT.Player) return;
 
@@ -231,7 +182,7 @@ export default function Mp3Page() {
     [startProgressTimer]
   );
 
-  // 7. Pencarian Manual
+  // 6. Handler Pencarian Baru
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputQuery.trim()) return;
@@ -247,52 +198,77 @@ export default function Mp3Page() {
       return;
     }
 
-    fetchSongs(queryOrId);
+    setIsSearching(true);
+    const newSongs = await searchSongs(queryOrId, 20);
+
+    if (searchResults.length > 0) {
+      setQuickPicks((prev: SongItem[]) => {
+        const combined = [...searchResults, ...prev];
+        const unique = combined.filter((v: SongItem, i: number, a: SongItem[]) => a.findIndex((t: SongItem) => t.id === v.id) === i);
+        return unique;
+      });
+    }
+
+    setSearchResults(newSongs);
+    setIsSearching(false);
   };
 
   const togglePlayPause = () => {
     if (!playerRef.current) return;
-    if (isPlaying) {
-      playerRef.current.pauseVideo();
-    } else {
-      playerRef.current.playVideo();
-    }
+    if (isPlaying) playerRef.current.pauseVideo();
+    else playerRef.current.playVideo();
   };
 
   const playNext = useCallback(() => {
     if (!currentSong || searchResults.length === 0) return;
-    const currentIndex = searchResults.findIndex((s) => s.id === currentSong.id);
+    const currentIndex = searchResults.findIndex((s: SongItem) => s.id === currentSong.id);
     const nextIndex = (currentIndex + 1) % searchResults.length;
     playSong(searchResults[nextIndex]);
   }, [currentSong, searchResults, playSong]);
 
   const playPrev = useCallback(() => {
     if (!currentSong || searchResults.length === 0) return;
-    const currentIndex = searchResults.findIndex((s) => s.id === currentSong.id);
+    const currentIndex = searchResults.findIndex((s: SongItem) => s.id === currentSong.id);
     const prevIndex = (currentIndex - 1 + searchResults.length) % searchResults.length;
     playSong(searchResults[prevIndex]);
   }, [currentSong, searchResults, playSong]);
 
-  // Chunking per 4 item
-  const chunkedResults = [];
-  for (let i = 0; i < searchResults.length; i += 4) {
-    chunkedResults.push(searchResults.slice(i, i + 4));
-  }
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newProgress = Number(e.target.value);
+    setProgress(newProgress);
+    if (playerRef.current && typeof playerRef.current.getDuration === 'function') {
+      const dur = playerRef.current.getDuration();
+      if (dur > 0) {
+        const seekTime = (newProgress / 100) * dur;
+        playerRef.current.seekTo(seekTime, true);
+        setCurrentTimeSec(seekTime);
+      }
+    }
+  };
+
+  const handleOpenSearchFromModal = () => {
+    setShowLyricsModal(false);
+    setTimeout(() => {
+      if (searchInputRef.current) searchInputRef.current.focus();
+    }, 200);
+  };
+
+  const chunkedSearchResults: SongItem[][] = chunkArray(searchResults, 5);
+  const chunkedQuickPicks: SongItem[][] = chunkArray(quickPicks, 5);
 
   return (
     <div
-      className="min-h-screen pb-48 flex flex-col items-center transition-colors duration-300 font-sans select-none overflow-x-hidden"
+      className="min-h-screen pb-36 flex flex-col items-center transition-colors duration-300 font-sans select-none overflow-x-hidden"
       style={{
         backgroundColor: 'var(--background, #030303)',
         color: 'var(--foreground, #f4f4f5)',
       }}
     >
-      {/* Hidden YouTube Player */}
       <div className="absolute opacity-0 pointer-events-none -z-50 w-1 h-1 overflow-hidden">
         <div id="yt-hidden-player"></div>
       </div>
 
-      {/* HEADER: KOLOM PENCARIAN */}
+      {/* HEADER */}
       <header className="w-full max-w-md sticky top-0 z-30 px-4 py-3 backdrop-blur-md bg-black/60 border-b border-white/5 flex items-center gap-3">
         <Link href="/" className="opacity-80 hover:opacity-100 transition shrink-0">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -301,10 +277,11 @@ export default function Mp3Page() {
         </Link>
         <form onSubmit={handleSearch} className="flex-1 relative flex items-center">
           <input
+            ref={searchInputRef}
             type="text"
             placeholder="Cari lagu, artis, atau album..."
             value={inputQuery}
-            onChange={(e) => setInputQuery(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputQuery(e.target.value)}
             className="w-full border rounded-full pl-10 pr-4 py-2 text-xs focus:outline-none transition"
             style={{
               backgroundColor: 'var(--card-bg, rgba(255, 255, 255, 0.08))',
@@ -329,32 +306,29 @@ export default function Mp3Page() {
       </header>
 
       <main className="w-full max-w-md px-4 flex flex-col gap-6 mt-4">
-        {/* SECTION 1: PILIHAN CEPAT */}
+        {/* HASIL PENCARIAN (20 Lagu - Tampil 5-5) */}
         <section className="flex flex-col gap-3">
           <div className="flex justify-between items-center px-1">
             <h2 className="text-lg font-extrabold tracking-tight" style={{ color: 'var(--foreground-heading, #fff)' }}>
-              Pilihan cepat
+              Hasil Pencarian
             </h2>
             <button
               onClick={() => searchResults.length > 0 && playSong(searchResults[0])}
-              className="text-xs px-3 py-1 rounded-full border border-white/10 hover:bg-white/10 transition font-medium opacity-80"
+              className="text-xs px-3 py-1 rounded-full border border-white/10 hover:bg-white/10 transition font-medium opacity-80 cursor-pointer"
             >
-              Putar semua
+              Putar Semua
             </button>
           </div>
 
           {isSearching ? (
             <div className="h-48 flex items-center justify-center text-xs opacity-50 animate-pulse">
-              Memuat rekomendasi lagu...
+              Memuat lagu...
             </div>
-          ) : chunkedResults.length > 0 ? (
+          ) : chunkedSearchResults.length > 0 ? (
             <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-2">
-              {chunkedResults.map((column, colIdx) => (
-                <div
-                  key={colIdx}
-                  className="w-[85%] shrink-0 snap-start flex flex-col gap-3"
-                >
-                  {column.map((song) => (
+              {chunkedSearchResults.map((column: SongItem[], colIdx: number) => (
+                <div key={colIdx} className="w-[85%] shrink-0 snap-start flex flex-col gap-3">
+                  {column.map((song: SongItem) => (
                     <div
                       key={song.id}
                       onClick={() => playSong(song)}
@@ -362,11 +336,7 @@ export default function Mp3Page() {
                     >
                       <div className="flex items-center gap-3 overflow-hidden">
                         {song.thumbnail ? (
-                          <img
-                            src={song.thumbnail}
-                            alt=""
-                            className="w-12 h-12 rounded-lg object-cover shrink-0"
-                          />
+                          <img src={song.thumbnail} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
                         ) : (
                           <div className="w-12 h-12 rounded-lg bg-white/10 shrink-0 flex items-center justify-center">
                             🎵
@@ -376,22 +346,17 @@ export default function Mp3Page() {
                           <h4
                             className="text-xs font-semibold truncate"
                             style={{
-                              color: currentSong?.id === song.id ? 'var(--accent, #f43f5e)' : 'var(--foreground-heading, #fff)',
+                              color:
+                                currentSong?.id === song.id
+                                  ? 'var(--accent, #f43f5e)'
+                                  : 'var(--foreground-heading, #fff)',
                             }}
                           >
                             {song.title}
                           </h4>
-                          <p className="text-[11px] opacity-60 truncate mt-0.5">
-                            {song.artist}
-                          </p>
+                          <p className="text-[11px] opacity-60 truncate mt-0.5">{song.artist}</p>
                         </div>
                       </div>
-
-                      <button className="p-2 opacity-50 hover:opacity-100 shrink-0">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
-                        </svg>
-                      </button>
                     </div>
                   ))}
                 </div>
@@ -399,36 +364,122 @@ export default function Mp3Page() {
             </div>
           ) : (
             <div className="p-8 text-center text-xs opacity-50 border border-dashed border-white/10 rounded-2xl">
-              Gagal memuat rekomendasi
+              Tidak ada hasil pencarian
             </div>
           )}
         </section>
 
-        {/* SECTION 2: KOLOM LIRIK */}
-        <section className="flex flex-col gap-3">
-          <div className="flex justify-between items-center px-1">
-            <h2 className="text-lg font-extrabold tracking-tight" style={{ color: 'var(--foreground-heading, #fff)' }}>
-              Lirik
-            </h2>
-          </div>
+        {/* PILIHAN CEAPAT / RIWAYAT */}
+        {quickPicks.length > 0 && (
+          <section className="flex flex-col gap-3 border-t border-white/10 pt-4">
+            <div className="flex justify-between items-center px-1">
+              <h2
+                className="text-lg font-extrabold tracking-tight"
+                style={{ color: 'var(--foreground-heading, #fff)' }}
+              >
+                Pilihan Cepat
+              </h2>
+            </div>
 
-          <div
-            className="w-full rounded-2xl p-5 border shadow-xl flex flex-col h-72 relative overflow-hidden backdrop-blur-md"
+            <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-2">
+              {chunkedQuickPicks.map((column: SongItem[], colIdx: number) => (
+                <div key={colIdx} className="w-[85%] shrink-0 snap-start flex flex-col gap-3">
+                  {column.map((song: SongItem) => (
+                    <div
+                      key={`qp-${song.id}`}
+                      onClick={() => playSong(song)}
+                      className="flex items-center justify-between p-1.5 rounded-xl transition cursor-pointer hover:bg-white/5 active:scale-[0.99]"
+                    >
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        {song.thumbnail ? (
+                          <img src={song.thumbnail} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-white/10 shrink-0 flex items-center justify-center">
+                            🎵
+                          </div>
+                        )}
+                        <div className="overflow-hidden">
+                          <h4
+                            className="text-xs font-semibold truncate"
+                            style={{
+                              color:
+                                currentSong?.id === song.id
+                                  ? 'var(--accent, #f43f5e)'
+                                  : 'var(--foreground-heading, #fff)',
+                            }}
+                          >
+                            {song.title}
+                          </h4>
+                          <p className="text-[11px] opacity-60 truncate mt-0.5">{song.artist}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
+
+      {/* MODAL LIRIK */}
+      <AnimatePresence>
+        {showLyricsModal && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed top-0 bottom-16 left-0 right-0 z-[100] max-w-md mx-auto flex flex-col justify-between backdrop-blur-2xl p-4 sm:p-6 overflow-hidden border-x border-white/10 shadow-2xl"
             style={{
-              backgroundColor: 'var(--card-bg, rgba(24, 24, 27, 0.8))',
-              borderColor: 'var(--card-border, rgba(255, 255, 255, 0.1))',
+              backgroundColor: 'var(--background, #09090b)',
+              color: 'var(--foreground, #f4f4f5)',
             }}
           >
+            <div className="flex justify-between items-center pb-3 border-b border-white/10 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowLyricsModal(false)}
+                title="Tutup Lirik"
+                className="p-2 -ml-2 rounded-full hover:bg-white/10 transition cursor-pointer"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              <div className="text-center overflow-hidden px-2 flex-1">
+                <h3 className="text-xs font-bold truncate">{currentSong?.title || 'Lirik Lagu'}</h3>
+                <p className="text-[10px] opacity-60 truncate">{currentSong?.artist}</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleOpenSearchFromModal}
+                title="Cari Lagu Lain"
+                className="p-2 -mr-2 rounded-full hover:bg-white/10 transition cursor-pointer text-xs flex items-center gap-1 opacity-80 hover:opacity-100"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </button>
+            </div>
+
             <div
               ref={lyricsContainerRef}
-              className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth py-10 flex flex-col gap-5 no-scrollbar w-full"
+              className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth py-8 flex flex-col gap-5 no-scrollbar w-full text-center"
             >
               {isLoadingLyrics ? (
-                <div className="flex-1 flex items-center justify-center text-xs opacity-50 animate-pulse">
-                  Memuat lirik...
+                <div className="flex-1 flex items-center justify-center text-sm opacity-50 animate-pulse">
+                  Mencari lirik...
                 </div>
-              ) : lyrics.length > 0 ? (
-                lyrics.map((line, idx) => {
+              ) : syncedLyrics.length > 0 ? (
+                syncedLyrics.map((line: SyncedLine, idx: number) => {
                   const isActive = idx === activeLyricIndex;
                   return (
                     <p
@@ -439,8 +490,8 @@ export default function Mp3Page() {
                           setCurrentTimeSec(line.time);
                         }
                       }}
-                      className={`text-base transition-all duration-300 cursor-pointer leading-snug break-words max-w-full ${
-                        isActive ? 'opacity-100 font-extrabold' : 'opacity-30 hover:opacity-70 font-semibold'
+                      className={`text-base sm:text-lg transition-all duration-300 cursor-pointer leading-relaxed break-words max-w-full px-2 ${
+                        isActive ? 'opacity-100 font-black scale-105' : 'opacity-30 hover:opacity-70 font-bold'
                       }`}
                       style={{
                         color: isActive ? 'var(--accent, #f43f5e)' : 'var(--foreground)',
@@ -451,61 +502,113 @@ export default function Mp3Page() {
                   );
                 })
               ) : (
-                <div className="flex-1 flex items-center justify-center text-xs opacity-50 text-center whitespace-pre-line leading-relaxed">
-                  {rawLyrics || 'Putar lagu untuk melihat lirik'}
+                <div className="flex-1 flex items-center justify-center text-sm opacity-60 text-center whitespace-pre-line leading-relaxed px-4">
+                  {rawLyrics || 'Lirik tidak tersedia'}
                 </div>
               )}
             </div>
-          </div>
-        </section>
-      </main>
 
-      {/* FLOATING & DRAGGABLE MINI PLAYER */}
-      <motion.div
-        drag
-        dragMomentum={false}
-        className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-50 cursor-grab active:cursor-grabbing touch-none"
-      >
+            <div className="flex flex-col gap-2 pt-3 border-t border-white/10 shrink-0 pb-2">
+              <div className="flex flex-col gap-1">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={progress}
+                  onChange={handleSeek}
+                  className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
+                />
+                <div className="flex justify-between text-[10px] font-mono opacity-60">
+                  <span>{currentTime}</span>
+                  <span>{duration}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-8 py-1">
+                <button onClick={playPrev} className="p-2 opacity-80 hover:opacity-100 transition cursor-pointer">
+                  <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                    <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={togglePlayPause}
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-black font-bold transition transform active:scale-95 cursor-pointer shadow-lg"
+                  style={{ backgroundColor: 'var(--accent, #f43f5e)' }}
+                >
+                  {isPlaying ? (
+                    <svg className="w-6 h-6 fill-black" viewBox="0 0 24 24">
+                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-6 h-6 fill-black ml-0.5" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  )}
+                </button>
+                <button onClick={playNext} className="p-2 opacity-80 hover:opacity-100 transition cursor-pointer">
+                  <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                    <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MINI PLAYER */}
+      <div className="fixed bottom-16 left-0 right-0 z-50 flex justify-center px-3 pointer-events-auto">
         <div
-          className="w-full border rounded-2xl px-3.5 py-2.5 shadow-2xl flex items-center justify-between backdrop-blur-xl transition-all duration-300"
+          className="w-full max-w-md border rounded-2xl px-3.5 py-2 shadow-2xl flex items-center justify-between backdrop-blur-xl transition-all duration-300"
           style={{
             backgroundColor: 'var(--card-bg, rgba(24, 24, 27, 0.95))',
-            borderColor: 'var(--card-border, rgba(255, 255, 255, 0.18))',
+            borderColor: 'var(--card-border, rgba(255, 255, 255, 0.15))',
             boxShadow: '0 10px 30px rgba(0,0,0,0.85)',
           }}
         >
-          {/* Gagang/Handle Geser */}
-          <div className="absolute top-1 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-white/20" />
-
-          {/* Info Lagu */}
-          <div className="flex items-center gap-3 overflow-hidden flex-1 pr-2 mt-1">
+          <div
+            onClick={() => currentSong && setShowLyricsModal(true)}
+            className="flex items-center gap-3 overflow-hidden flex-1 cursor-pointer pr-2"
+          >
             {currentSong?.thumbnail ? (
-              <img
-                src={currentSong.thumbnail}
-                alt=""
-                className="w-10 h-10 rounded-lg object-cover shrink-0 pointer-events-none"
-              />
+              <img src={currentSong.thumbnail} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
             ) : (
-              <div className="w-10 h-10 rounded-lg bg-white/10 shrink-0 flex items-center justify-center text-xs pointer-events-none">
+              <div className="w-10 h-10 rounded-lg bg-white/10 shrink-0 flex items-center justify-center text-xs">
                 🎵
               </div>
             )}
-            <div className="overflow-hidden pointer-events-none">
+            <div className="overflow-hidden">
               <h4 className="text-xs font-semibold truncate" style={{ color: 'var(--foreground-heading, #fff)' }}>
                 {currentSong?.title || 'Tidak ada lagu'}
               </h4>
               <p className="text-[10px] opacity-60 truncate mt-0.5">
-                {currentSong?.artist || 'Bisa digeser bebas'}
+                {currentSong?.artist || 'Klik untuk melihat lirik'}
               </p>
             </div>
           </div>
 
-          {/* Tombol Kontrol */}
-          <div className="flex items-center gap-1.5 shrink-0 mt-1">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
+              type="button"
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                if (currentSong) setShowLyricsModal(true);
+              }}
+              disabled={!currentSong}
+              title="Buka Lirik"
+              className="p-2 opacity-80 hover:opacity-100 active:scale-95 transition disabled:opacity-20 cursor-pointer"
+            >
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+              </svg>
+            </button>
+
+            <button
+              type="button"
               onClick={playPrev}
               disabled={searchResults.length === 0}
-              className="p-2 opacity-80 hover:opacity-100 transition disabled:opacity-20"
+              className="p-1.5 opacity-80 hover:opacity-100 active:scale-95 transition disabled:opacity-20 cursor-pointer"
             >
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                 <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
@@ -513,9 +616,10 @@ export default function Mp3Page() {
             </button>
 
             <button
+              type="button"
               onClick={togglePlayPause}
               disabled={!currentSong}
-              className="p-2 rounded-full transition transform active:scale-90 disabled:opacity-30"
+              className="p-1.5 rounded-full transition transform active:scale-90 disabled:opacity-30 cursor-pointer"
               style={{
                 color: 'var(--foreground-heading, #fff)',
               }}
@@ -532,9 +636,10 @@ export default function Mp3Page() {
             </button>
 
             <button
+              type="button"
               onClick={playNext}
               disabled={searchResults.length === 0}
-              className="p-2 opacity-80 hover:opacity-100 transition disabled:opacity-20"
+              className="p-1.5 opacity-80 hover:opacity-100 active:scale-95 transition disabled:opacity-20 cursor-pointer"
             >
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                 <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
@@ -542,7 +647,7 @@ export default function Mp3Page() {
             </button>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
