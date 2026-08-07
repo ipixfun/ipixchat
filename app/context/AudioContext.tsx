@@ -86,6 +86,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const lyricsContainerRef = useRef<HTMLDivElement>(null) as RefObject<HTMLDivElement>;
   const searchInputRef = useRef<HTMLInputElement>(null) as RefObject<HTMLInputElement>;
 
+  // Playlist aktif untuk memastikan next/prev membaca seluruh hasil pencarian/pilihan cepat
   const activePlaylistRef = useRef<SongItem[]>([]);
 
   const formatTime = (secs: number) => {
@@ -137,9 +138,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!checkingAuth) refreshQuickPicks();
   }, [checkingAuth, refreshQuickPicks]);
 
+  // Sinkronkan playlist aktif setiap kali searchResults atau quickPicks berubah
   useEffect(() => {
-    activePlaylistRef.current = searchResults;
-  }, [searchResults]);
+    if (searchResults.length > 0) {
+      activePlaylistRef.current = searchResults;
+    } else if (quickPicks.length > 0) {
+      activePlaylistRef.current = quickPicks;
+    }
+  }, [searchResults, quickPicks]);
 
   useEffect(() => {
     if (!currentSong) return;
@@ -191,34 +197,32 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setProgress((timeSec / dur) * 100);
         setCurrentTime(formatTime(timeSec));
 
-        if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
-          try {
-            navigator.mediaSession.setPositionState({
-              duration: dur,
-              playbackRate: 1,
-              position: Math.min(timeSec, dur),
-            });
-          } catch (e) {}
-        }
+        try {
+          MediaSession.setPositionState({
+            duration: dur,
+            playbackRate: 1,
+            position: Math.min(timeSec, dur),
+          });
+        } catch (e) {}
       }
     }
   }, []);
 
   const syncMediaSessionState = useCallback(() => {
-    if (!playerRef.current || !('mediaSession' in navigator) || !currentSong) return;
+    if (!playerRef.current) return;
     try {
       const cur = typeof playerRef.current.getCurrentTime === 'function' ? playerRef.current.getCurrentTime() : 0;
       const dur = typeof playerRef.current.getDuration === 'function' ? playerRef.current.getDuration() : 0;
 
       if (dur > 0 && isFinite(dur)) {
-        navigator.mediaSession.setPositionState({
+        MediaSession.setPositionState({
           duration: dur,
           playbackRate: isPlaying ? 1 : 0,
           position: Math.min(cur, dur),
         });
       }
     } catch (e) {}
-  }, [currentSong, isPlaying]);
+  }, [isPlaying]);
 
   const startProgressTimer = useCallback(() => {
     stopProgressTimer();
@@ -243,37 +247,41 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (isPlaying) {
       playerRef.current.pauseVideo();
       setIsPlaying(false);
-      try { MediaSession.setPlaybackState({ playbackState: 'paused' } as any); } catch (e) {}
+      try { MediaSession.setPlaybackState({ playbackState: 'paused' }); } catch (e) {}
     } else {
       playerRef.current.playVideo();
       setIsPlaying(true);
-      try { MediaSession.setPlaybackState({ playbackState: 'playing' } as any); } catch (e) {}
+      try { MediaSession.setPlaybackState({ playbackState: 'playing' }); } catch (e) {}
     }
   }, [isPlaying]);
 
   const playNext = useCallback(() => {
-    if (!currentSong || searchResults.length === 0) return;
+    const playlist = activePlaylistRef.current;
+    if (!currentSong || playlist.length === 0) return;
+
     if (playMode === 'shuffle') {
-      const randomIndex = Math.floor(Math.random() * searchResults.length);
-      playSong(searchResults[randomIndex]);
+      const randomIndex = Math.floor(Math.random() * playlist.length);
+      playSong(playlist[randomIndex]);
       return;
     }
-    const currentIndex = searchResults.findIndex((s: SongItem) => s.id === currentSong.id);
-    const nextIndex = (currentIndex + 1) % searchResults.length;
-    playSong(searchResults[nextIndex]);
-  }, [currentSong, searchResults, playMode]);
+    const currentIndex = playlist.findIndex((s: SongItem) => s.id === currentSong.id);
+    const nextIndex = (currentIndex + 1) % playlist.length;
+    playSong(playlist[nextIndex]);
+  }, [currentSong, playMode]);
 
   const playPrev = useCallback(() => {
-    if (!currentSong || searchResults.length === 0) return;
+    const playlist = activePlaylistRef.current;
+    if (!currentSong || playlist.length === 0) return;
+
     if (playMode === 'shuffle') {
-      const randomIndex = Math.floor(Math.random() * searchResults.length);
-      playSong(searchResults[randomIndex]);
+      const randomIndex = Math.floor(Math.random() * playlist.length);
+      playSong(playlist[randomIndex]);
       return;
     }
-    const currentIndex = searchResults.findIndex((s: SongItem) => s.id === currentSong.id);
-    const prevIndex = (currentIndex - 1 + searchResults.length) % searchResults.length;
-    playSong(searchResults[prevIndex]);
-  }, [currentSong, searchResults, playMode]);
+    const currentIndex = playlist.findIndex((s: SongItem) => s.id === currentSong.id);
+    const prevIndex = (currentIndex - 1 + playlist.length) % playlist.length;
+    playSong(playlist[prevIndex]);
+  }, [currentSong, playMode]);
 
   const handleSongEnded = useCallback(() => {
     if (!currentSong) return;
@@ -314,13 +322,42 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ]
       });
 
-      await MediaSession.setPlaybackState({ playbackState: 'playing' } as any);
-      await MediaSession.setActionHandler({ action: 'play' }, () => togglePlayPause());
-      await MediaSession.setActionHandler({ action: 'pause' }, () => togglePlayPause());
-      await MediaSession.setActionHandler({ action: 'nexttrack' }, () => playNext());
-      await MediaSession.setActionHandler({ action: 'previoustrack' }, () => playPrev());
-    } catch (e) {}
-  }, [togglePlayPause, playNext, playPrev]);
+      await MediaSession.setPlaybackState({ playbackState: 'playing' });
+
+      // Mendaftarkan Handler tombol dari Plugin Native
+      await MediaSession.setActionHandler({ action: 'play' }, () => {
+        if (playerRef.current) {
+          playerRef.current.playVideo();
+          setIsPlaying(true);
+          try { MediaSession.setPlaybackState({ playbackState: 'playing' }); } catch (e) {}
+        }
+      });
+
+      await MediaSession.setActionHandler({ action: 'pause' }, () => {
+        if (playerRef.current) {
+          playerRef.current.pauseVideo();
+          setIsPlaying(false);
+          try { MediaSession.setPlaybackState({ playbackState: 'paused' }); } catch (e) {}
+        }
+      });
+
+      await MediaSession.setActionHandler({ action: 'nexttrack' }, () => {
+        playNext();
+      });
+
+      await MediaSession.setActionHandler({ action: 'previoustrack' }, () => {
+        playPrev();
+      });
+
+      await MediaSession.setActionHandler({ action: 'seekto' }, (details: any) => {
+        if (details && details.seekTime !== undefined && playerRef.current) {
+          seekToTime(details.seekTime);
+        }
+      });
+    } catch (e) {
+      console.log('MediaSession native error:', e);
+    }
+  }, [playNext, playPrev, seekToTime]);
 
   const playSong = useCallback(
     async (song: SongItem) => {
@@ -360,11 +397,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               if (event.data === 1) { // PLAYING
                 setIsPlaying(true);
                 startProgressTimer();
-                try { MediaSession.setPlaybackState({ playbackState: 'playing' } as any); } catch (e) {}
+                try { MediaSession.setPlaybackState({ playbackState: 'playing' }); } catch (e) {}
               } else if (event.data === 2) { // PAUSED
                 setIsPlaying(false);
                 stopProgressTimer();
-                try { MediaSession.setPlaybackState({ playbackState: 'paused' } as any); } catch (e) {}
+                try { MediaSession.setPlaybackState({ playbackState: 'paused' }); } catch (e) {}
               } else if (event.data === 0) { // ENDED
                 setIsPlaying(false);
                 stopProgressTimer();
@@ -435,46 +472,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   useEffect(() => {
-    if (!('mediaSession' in navigator) || !currentSong) return;
-
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentSong.title,
-      artist: currentSong.artist,
-      album: 'iPix Chat MP3',
-      artwork: [
-        { src: currentSong.thumbnail || '/icon.png', sizes: '512x512', type: 'image/png' },
-      ],
-    });
-
-    navigator.mediaSession.setActionHandler('play', () => {
-      if (playerRef.current) {
-        playerRef.current.playVideo();
-        setIsPlaying(true);
-      }
-    });
-
-    navigator.mediaSession.setActionHandler('pause', () => {
-      if (playerRef.current) {
-        playerRef.current.pauseVideo();
-        setIsPlaying(false);
-      }
-    });
-
-    navigator.mediaSession.setActionHandler('previoustrack', () => playPrev());
-    navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
-
-    navigator.mediaSession.setActionHandler('seekto', (details) => {
-      if (details.seekTime !== undefined && playerRef.current) {
-        playerRef.current.seekTo(details.seekTime, true);
-        syncMediaSessionState();
-      }
-    });
-  }, [currentSong, playNext, playPrev, syncMediaSessionState]);
-
-  useEffect(() => {
-    if (!('mediaSession' in navigator)) return;
-    navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
-    syncMediaSessionState();
+    try {
+      MediaSession.setPlaybackState({ playbackState: isPlaying ? 'playing' : 'paused' });
+      syncMediaSessionState();
+    } catch (e) {}
   }, [isPlaying, syncMediaSessionState]);
 
   return (
