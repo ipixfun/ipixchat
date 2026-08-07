@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAudio } from '@/app/context/AudioContext';
@@ -14,6 +14,7 @@ export default function Mp3Page() {
     inputQuery,
     setInputQuery,
     searchResults,
+    setSearchResults,
     quickPicks,
     isSearching,
     hasSearched,
@@ -54,6 +55,15 @@ export default function Mp3Page() {
     setTimeout(() => searchInputRef.current?.focus(), 200);
   };
 
+  const handleRefreshClick = () => {
+    if (hasSearched && searchResults.length > 0) {
+      const shuffled = [...searchResults].sort(() => Math.random() - 0.5);
+      setSearchResults(shuffled);
+    } else {
+      refreshQuickPicks();
+    }
+  };
+
   return (
     <div
       className="min-h-screen pb-36 flex flex-col items-center transition-colors duration-300 font-sans select-none overflow-x-hidden"
@@ -62,15 +72,9 @@ export default function Mp3Page() {
         color: 'var(--foreground, #f4f4f5)',
       }}
     >
-      {/* HEADER */}
-      <header className="w-full max-w-md sticky top-0 z-30 px-4 py-3 backdrop-blur-md bg-black/60 border-b border-white/5 flex items-center gap-3">
-        <Link href="/" className="opacity-80 hover:opacity-100 transition shrink-0">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </Link>
-        
-        <form onSubmit={(e) => handleSearch(e, () => router.push('/chat'))} className="flex-1 relative flex items-center">
+      {/* AREA PENCARIAN - HANYA PILL INPUT MURNI */}
+      <div className="w-full max-w-md px-4 pt-3 pb-1 flex items-center justify-center">
+        <form onSubmit={(e) => handleSearch(e, () => router.push('/chat'))} className="w-full relative flex items-center">
           <input
             ref={searchInputRef}
             type="text"
@@ -83,8 +87,8 @@ export default function Mp3Page() {
             value={inputQuery}
             onChange={(e) => setInputQuery(e.target.value)}
             onClick={() => !isAuthenticated && router.push('/chat')}
-            className={`w-full border rounded-full pl-10 pr-4 py-2 text-xs transition shadow-sm ${
-              !isAuthenticated ? 'cursor-pointer opacity-70 bg-white/5' : 'focus:outline-none'
+            className={`w-full border rounded-full pl-10 pr-4 py-2 text-xs transition shadow-xs ${
+              !isAuthenticated ? 'cursor-pointer opacity-70' : 'focus:outline-none'
             }`}
             style={{
               backgroundColor: 'var(--card-bg, rgba(255, 255, 255, 0.08))',
@@ -93,7 +97,7 @@ export default function Mp3Page() {
             }}
           />
           <svg
-            className="w-4 h-4 absolute left-3.5 opacity-60 pointer-events-none"
+            className="w-4 h-4 absolute left-3.5 opacity-70 pointer-events-none"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -106,7 +110,7 @@ export default function Mp3Page() {
             )}
           </svg>
         </form>
-      </header>
+      </div>
 
       {/* BANNER AJAKAN REGISTRASI */}
       {!checkingAuth && !isAuthenticated && (
@@ -130,7 +134,7 @@ export default function Mp3Page() {
       )}
 
       <main className="w-full max-w-md px-4 flex flex-col gap-6 mt-4">
-        {/* UTAMA: HASIL PENCARIAN / PILIHAN CEAPAT */}
+        {/* HASIL PENCARIAN / PILIHAN CEAPAT */}
         <section className="flex flex-col gap-3">
           <div className="flex justify-between items-center px-1">
             <h2 className="text-lg font-extrabold tracking-tight" style={{ color: 'var(--foreground-heading, #fff)' }}>
@@ -139,9 +143,9 @@ export default function Mp3Page() {
             </h2>
 
             <button
-              onClick={refreshQuickPicks}
-              title="Refresh Pilihan Cepat"
-              className="text-xs px-3 py-1.5 rounded-full border border-white/10 hover:bg-white/10 transition font-medium opacity-80 cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
+              onClick={handleRefreshClick}
+              title={hasSearched ? "Acak Hasil Pencarian" : "Refresh Pilihan Cepat"}
+              className="text-xs px-3 py-1.5 rounded-full border border-white/10 hover:bg-white/10 transition font-medium opacity-80 cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
               style={{ backgroundColor: 'var(--card-bg, rgba(255,255,255,0.05))' }}
             >
               <svg className={`w-3.5 h-3.5 ${isSearching ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -242,7 +246,7 @@ export default function Mp3Page() {
           >
             <div className="flex justify-between items-center pb-3 border-b border-white/10 shrink-0 gap-2">
               {currentSong?.thumbnail ? (
-                <img src={currentSong.thumbnail} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0 shadow-sm border border-white/10" />
+                <img src={currentSong.thumbnail} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0 shadow-xs border border-white/10" />
               ) : (
                 <div className="w-9 h-9 rounded-lg bg-white/10 shrink-0 flex items-center justify-center text-white/50 border border-white/10">
                   <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>
@@ -306,16 +310,27 @@ export default function Mp3Page() {
               </div>
 
               <div className="flex items-center justify-between px-2 py-1">
-                <button type="button" onClick={togglePlayMode} className="p-2 rounded-full hover:bg-white/10 transition cursor-pointer relative" style={{ color: playMode !== 'normal' ? 'var(--accent, #f43f5e)' : 'inherit', opacity: playMode !== 'normal' ? 1 : 0.5 }}>
+                <button 
+                  type="button" 
+                  onClick={togglePlayMode} 
+                  className="p-2 rounded-full hover:bg-white/10 transition cursor-pointer relative" 
+                  style={{ color: playMode !== 'normal' ? 'var(--accent, #f43f5e)' : 'inherit', opacity: playMode !== 'normal' ? 1 : 0.5 }}
+                >
                   {playMode === 'repeat-one' && (
                     <div className="flex items-center">
                       <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" /></svg>
                       <span className="text-[9px] font-bold absolute -top-1 -right-1 bg-white/20 px-1 rounded-full">1</span>
                     </div>
                   )}
-                  {playMode === 'repeat-all' && <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" /></svg>}
-                  {playMode === 'shuffle' && <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.45 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" /></svg>}
-                  {playMode === 'normal' && <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" /></svg>}
+                  {playMode === 'repeat-all' && (
+                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" /></svg>
+                  )}
+                  {playMode === 'shuffle' && (
+                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.45 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" /></svg>
+                  )}
+                  {playMode === 'normal' && (
+                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" /></svg>
+                  )}
                 </button>
 
                 <div className="flex items-center gap-6">

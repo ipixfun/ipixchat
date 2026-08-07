@@ -45,6 +45,8 @@ interface AudioContextType {
   playNext: () => void;
   playPrev: () => void;
   togglePlayMode: () => void;
+  setPlayMode: React.Dispatch<React.SetStateAction<PlayMode>>;
+  setSearchResults: React.Dispatch<React.SetStateAction<SongItem[]>>;
   handleSeek: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSearch: (e: React.FormEvent, onUnauth?: () => void) => Promise<void>;
   refreshQuickPicks: () => Promise<void>;
@@ -83,7 +85,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const isSeeking = useRef(false);
   const intervalRef = useRef<any>(null);
   
-  // Ref diketik sebagai RefObject standar untuk elemen HTML
   const lyricsContainerRef = useRef<HTMLDivElement>(null) as RefObject<HTMLDivElement>;
   const searchInputRef = useRef<HTMLInputElement>(null) as RefObject<HTMLInputElement>;
 
@@ -480,6 +481,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         playNext,
         playPrev,
         togglePlayMode,
+        setPlayMode,
+        setSearchResults,
         handleSeek,
         handleSearch,
         refreshQuickPicks,
