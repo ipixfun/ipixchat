@@ -63,12 +63,12 @@ export default function GlobalMiniPlayer() {
   // Posisi presisi per rute
   const getPositionClass = () => {
     if (isChatTab) {
-      // Pas di sebelah kiri tombol Keluar di Chat Header
-      return "top-1.5 right-24 max-w-[160px] sm:max-w-[200px]"; 
+      // Diturunkan ke top-2, rapat ke kanan mendekati tombol 'Keluar' (right-16 / sm:right-20)
+      return "top-2 right-16 sm:right-20 w-[185px] sm:w-[220px]"; 
     }
     if (isTemaTab) {
-      // Ditinggikan ke top-1 agar sejajar dengan judul "Pengaturan Tema" di kanan
-      return "top-1 right-3 max-w-[170px] sm:max-w-[210px]"; 
+      // Diturunkan sedikit ke top-2, pas di kanan atas tanpa border
+      return "top-2 right-3 w-[190px] sm:w-[230px]"; 
     }
     return "bottom-16 left-0 right-0 px-3 w-full max-w-md mx-auto"; // Di bawah untuk Home
   };
@@ -79,20 +79,18 @@ export default function GlobalMiniPlayer() {
     <div className={`fixed z-40 flex justify-center pointer-events-auto transition-all duration-200 ${getPositionClass()}`}>
       <div
         onClick={handlePlayerClick}
-        className={`w-full border shadow-lg flex items-center justify-between backdrop-blur-md cursor-pointer select-none transition-all duration-200 ${
+        className={`w-full shadow-md flex items-center justify-between backdrop-blur-md cursor-pointer select-none transition-all duration-200 ${
           isHeaderMode
-            ? "rounded-xl px-2 py-0.5"
-            : "rounded-2xl px-3.5 py-2"
+            ? "rounded-2xl px-2.5 py-1.5 border-0" // Tanpa border untuk mode header (Chat & Tema)
+            : "rounded-2xl px-3.5 py-2 border border-[var(--card-border)]" // Pakai border halus untuk Home
         }`}
         style={{
-          // Mengikuti warna TEMA aplikasi secara otomatis
-          backgroundColor: 'var(--card-bg, rgba(24, 24, 27, 0.9))',
-          borderColor: 'var(--card-border, rgba(255, 255, 255, 0.2))',
+          backgroundColor: 'var(--card-bg, rgba(24, 24, 27, 0.95))',
           color: 'var(--foreground-heading, #ffffff)',
         }}
       >
         {/* Info Lagu */}
-        <div className="flex items-center gap-1.5 overflow-hidden flex-1 min-w-0 pr-1">
+        <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0 pr-1">
           {/* Cover Gambar HANYA TAMPIL di Home, SEMBUNYI di Chat & Tema */}
           {!isHeaderMode && (
             currentSong.thumbnail ? (
@@ -112,13 +110,13 @@ export default function GlobalMiniPlayer() {
 
           <div className="overflow-hidden min-w-0 flex-1">
             <h4 
-              className={`${isHeaderMode ? "text-[9px]" : "text-xs"} font-bold truncate leading-tight`} 
+              className={`${isHeaderMode ? "text-[10px]" : "text-xs"} font-bold truncate leading-tight`} 
               style={{ color: 'var(--foreground-heading, #fff)' }}
             >
               {currentSong.title}
             </h4>
             <p 
-              className={`${isHeaderMode ? "text-[7.5px]" : "text-[10px]"} opacity-70 truncate mt-0.5`}
+              className={`${isHeaderMode ? "text-[8.5px]" : "text-[10px]"} opacity-70 truncate mt-0.5`}
               style={{ color: 'var(--foreground, #aaa)' }}
             >
               {currentSong.artist}
@@ -128,7 +126,7 @@ export default function GlobalMiniPlayer() {
 
         {/* Kontrol Musik */}
         <div
-          className="flex items-center gap-0.5 shrink-0"
+          className="flex items-center gap-1 shrink-0"
           onClick={(e) => e.stopPropagation()} // Supaya tombol play/next tidak mentrigger pindah rute
         >
           <button
@@ -138,7 +136,7 @@ export default function GlobalMiniPlayer() {
             className="p-1 opacity-80 hover:opacity-100 transition cursor-pointer disabled:opacity-20"
             style={{ color: 'var(--foreground-heading, #fff)' }}
           >
-            <svg className={`${isHeaderMode ? "w-2.5 h-2.5" : "w-4 h-4"} fill-current`} viewBox="0 0 24 24">
+            <svg className={`${isHeaderMode ? "w-3 h-3" : "w-4 h-4"} fill-current`} viewBox="0 0 24 24">
               <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
             </svg>
           </button>
@@ -150,11 +148,11 @@ export default function GlobalMiniPlayer() {
             style={{ color: 'var(--foreground-heading, #fff)' }}
           >
             {isPlaying ? (
-              <svg className={`${isHeaderMode ? "w-3 h-3" : "w-5 h-5"} fill-current`} viewBox="0 0 24 24">
+              <svg className={`${isHeaderMode ? "w-3.5 h-3.5" : "w-5 h-5"} fill-current`} viewBox="0 0 24 24">
                 <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
               </svg>
             ) : (
-              <svg className={`${isHeaderMode ? "w-3 h-3" : "w-5 h-5"} fill-current ml-0.5`} viewBox="0 0 24 24">
+              <svg className={`${isHeaderMode ? "w-3.5 h-3.5" : "w-5 h-5"} fill-current ml-0.5`} viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             )}
@@ -167,7 +165,7 @@ export default function GlobalMiniPlayer() {
             className="p-1 opacity-80 hover:opacity-100 transition cursor-pointer disabled:opacity-20"
             style={{ color: 'var(--foreground-heading, #fff)' }}
           >
-            <svg className={`${isHeaderMode ? "w-2.5 h-2.5" : "w-4 h-4"} fill-current`} viewBox="0 0 24 24">
+            <svg className={`${isHeaderMode ? "w-3 h-3" : "w-4 h-4"} fill-current`} viewBox="0 0 24 24">
               <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
             </svg>
           </button>
