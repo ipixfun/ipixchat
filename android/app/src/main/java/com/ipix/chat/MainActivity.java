@@ -88,6 +88,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        setIntent(intent); // Update intent agar selalu segar ketika notifikasi diklik
         handleIntent(intent);
     }
 
@@ -163,6 +164,6 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onPause() {
-        // Biarkan kosong
+        super.onPause(); // Wajib dipanggil agar Android & Capacitor tidak crash!
     }
 }

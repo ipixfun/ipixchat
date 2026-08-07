@@ -4,7 +4,6 @@ import React, { createContext, useContext, useState, useRef, useEffect, useCallb
 import { KeepAwake } from '@capacitor-community/keep-awake';
 import { MediaSession } from '@jofr/capacitor-media-session';
 
-// Import helper dari yt.ts lokal
 import { SongItem, SyncedLine, fetchLyrics, searchSongs } from '@/app/mp3/yt';
 
 declare global {
@@ -74,7 +73,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [currentTime, setCurrentTime] = useState('0:00');
   const [duration, setDuration] = useState('0:00');
 
-  // State Lirik
   const [showLyricsModal, setShowLyricsModal] = useState(false);
   const [syncedLyrics, setSyncedLyrics] = useState<SyncedLine[]>([]);
   const [rawLyrics, setRawLyrics] = useState<string>('');
@@ -97,7 +95,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // 1. Cek Status Login
   useEffect(() => {
     try {
       const localUser =
@@ -112,7 +109,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
-  // 2. Load YouTube IFrame API
   useEffect(() => {
     if (!window.YT) {
       const tag = document.createElement('script');
@@ -145,7 +141,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     activePlaylistRef.current = searchResults;
   }, [searchResults]);
 
-  // 3. Fetch Lirik saat lagu berganti
   useEffect(() => {
     if (!currentSong) return;
 
@@ -164,7 +159,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     loadLyrics();
   }, [currentSong]);
 
-  // 4. Highlight Lirik
   useEffect(() => {
     if (syncedLyrics.length === 0) return;
 
@@ -183,10 +177,33 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [currentTimeSec, syncedLyrics, activeLyricIndex]);
 
-  // 5. Progress Timer
   const stopProgressTimer = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
   };
+
+  const seekToTime = useCallback((timeSec: number) => {
+    if (playerRef.current) {
+      playerRef.current.seekTo(timeSec, true);
+      setCurrentTimeSec(timeSec);
+
+      const dur = playerRef.current.getDuration() || 0;
+      if (dur > 0) {
+        setProgress((timeSec / dur) * 100);
+        setCurrentTime(formatTime(timeSec));
+
+        // Sync langsung ke notifikasi sistem Android
+        if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+          try {
+            navigator.mediaSession.setPositionState({
+              duration: dur,
+              playbackRate: 1,
+              position: Math.min(timeSec, dur),
+            });
+          } catch (e) {}
+        }
+      }
+    }
+  }, []);
 
   const startProgressTimer = useCallback(() => {
     stopProgressTimer();
@@ -200,20 +217,21 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setProgress((cur / dur) * 100);
           setDuration(formatTime(dur));
 
+          // UPDATE STATE WAKTU KE NOTIFIKASI SYSTEM NATIVE
           if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
             try {
               navigator.mediaSession.setPositionState({
                 duration: dur,
-                playbackRate: 1,
-                position: cur,
+                playbackRate: isPlaying ? 1 : 0,
+                position: Math.min(cur, dur),
               });
             } catch (e) {}
           }
         }
         setCurrentTime(formatTime(cur));
       }
-    }, 1000);
-  }, []);
+    }, 800); // Dipercepat ke 800ms agar slider notifikasi berjalan mulus
+  }, [isPlaying]);
 
   const togglePlayPause = useCallback(() => {
     if (!playerRef.current) return;
@@ -399,13 +417,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     else setPlayMode('normal');
   };
 
-  const seekToTime = (timeSec: number) => {
-    if (playerRef.current) {
-      playerRef.current.seekTo(timeSec, true);
-      setCurrentTimeSec(timeSec);
-    }
-  };
-
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newProgress = Number(e.target.value);
     setProgress(newProgress);
@@ -418,7 +429,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // 6. Native Browser MediaSession Effect
+  // HANDLER MEDIA SESSION UNTUK SINKRONISASI NOTIFIKASI SYSTEM (WAKTU & SEEKER)
   useEffect(() => {
     if (!('mediaSession' in navigator) || !currentSong) return;
 
@@ -427,10 +438,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       artist: currentSong.artist,
       album: 'iPix Chat MP3',
       artwork: [
-        { src: '/icon.png', sizes: '96x96', type: 'image/png' },
-        { src: '/icon.png', sizes: '128x128', type: 'image/png' },
-        { src: '/icon.png', sizes: '192x192', type: 'image/png' },
-        { src: '/icon.png', sizes: '512x512', type: 'image/png' },
+        { src: currentSong.thumbnail || '/icon.png', sizes: '512x512', type: 'image/png' },
       ],
     });
 
@@ -438,12 +446,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     navigator.mediaSession.setActionHandler('pause', () => playerRef.current?.pauseVideo());
     navigator.mediaSession.setActionHandler('previoustrack', () => playPrev());
     navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
+    
+    // ACTION HANDLER AGAR DRAG/GESER SEEKBAR DI NOTIFIKASI BERJALAN
     navigator.mediaSession.setActionHandler('seekto', (details) => {
       if (details.seekTime !== undefined && playerRef.current) {
         seekToTime(details.seekTime);
       }
     });
-  }, [currentSong, playNext, playPrev]);
+  }, [currentSong, playNext, playPrev, seekToTime]);
 
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;
