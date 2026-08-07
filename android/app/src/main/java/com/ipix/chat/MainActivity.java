@@ -31,30 +31,21 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 1. Buat Notification Channel untuk Player Musik
         createNotificationChannel();
-
-        // 2. Inisialisasi MediaSession Native AndroidX
         initMediaSession();
 
-        // Ambil instance WebView bawaan Capacitor
         WebView webView = this.bridge.getWebView();
         if (webView != null) {
             WebSettings settings = webView.getSettings();
 
-            // Izinkan audio diputar otomatis & tetap jalan di background
             settings.setMediaPlaybackRequiresUserGesture(false);
-
-            // Izinkan penyimpanan lokal & JavaScript
             settings.setDomStorageEnabled(true);
             settings.setJavaScriptEnabled(true);
             settings.setJavaScriptCanOpenWindowsAutomatically(true);
             settings.setSupportMultipleWindows(true);
 
-            // Interface khusus untuk menangani Blob/Base64 dari JavaScript
             webView.addJavascriptInterface(new BlobDownloader(this), "AndroidBlobDownloader");
 
-            // Fitur Unduh Langsung dari Dalam APK
             webView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
                 if (url.startsWith("blob:")) {
                     String js = "var xhr = new XMLHttpRequest();" +
@@ -80,7 +71,6 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    // Inisialisasi MediaSession Native berbasis AndroidX
     private void initMediaSession() {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -102,7 +92,6 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    // Buat Channel Notifikasi Musik
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
@@ -118,7 +107,6 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    // Fungsi internal untuk mengunduh URL standar via DownloadManager Android
     private void downloadDirectFile(String url, String userAgent, String contentDisposition, String mimetype) {
         try {
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
@@ -153,7 +141,6 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    // Class khusus untuk menyimpan data Blob/Base64 menjadi file .mp3 di folder Download
     public class BlobDownloader {
         private Context context;
 
@@ -183,9 +170,8 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    // JANGAN panggil super.onPause() milik WebView agar audio TIDAK MATI saat di-minimize
     @Override
     public void onPause() {
-        // Dibiarkan kosong tanpa super.onPause()
+        // Kosongkan agar audio tidak mati saat app di-minimize
     }
 }

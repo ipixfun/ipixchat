@@ -24,16 +24,7 @@ export default function Mp3Page() {
   const { theme } = useTheme();
   const router = useRouter();
 
-  // 0. POIN PERTAMA DEEPSEEK: Minta Izin Notifikasi (Android 13+ Wajib Minta Izin)
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-        Notification.requestPermission();
-      }
-    }
-  }, []);
-
-  // State Autentikasi / Registration (Disamakan dengan Lock Tema)
+  // State Autentikasi / Registration
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
 
@@ -67,7 +58,16 @@ export default function Mp3Page() {
 
   const activePlaylistRef = useRef<SongItem[]>([]);
 
-  // 0. CEK STATUS LOGIN (PERSIS SISTEM LOCK TEMA)
+  // 1. MINTA IZIN NOTIFIKASI (Android 13+ Wajib)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
+  // 2. CEK STATUS LOGIN YANG AMAN (AGAR TIDAK MENTAL/RE-RENDER)
   useEffect(() => {
     const checkAuthStatus = () => {
       try {
@@ -77,20 +77,17 @@ export default function Mp3Page() {
           localStorage.getItem('session') ||
           localStorage.getItem('isLoggedIn');
 
-        setIsAuthenticated(!!localUser);
+        if (localUser) {
+          setIsAuthenticated(true);
+        }
       } catch (err) {
-        setIsAuthenticated(false);
+        // Biarkan jika gagal membaca localStorage
       } finally {
         setCheckingAuth(false);
       }
     };
 
     checkAuthStatus();
-
-    window.addEventListener('storage', checkAuthStatus);
-    return () => {
-      window.removeEventListener('storage', checkAuthStatus);
-    };
   }, []);
 
   const formatTime = (secs: number) => {
@@ -100,7 +97,7 @@ export default function Mp3Page() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // 1. YouTube IFrame API Loader
+  // 3. YouTube IFrame API Loader
   useEffect(() => {
     if (!window.YT) {
       const tag = document.createElement('script');
@@ -135,7 +132,7 @@ export default function Mp3Page() {
     activePlaylistRef.current = searchResults;
   }, [searchResults]);
 
-  // 2. Fetch Lirik saat lagu aktif berganti
+  // 4. Fetch Lirik saat lagu aktif berganti
   useEffect(() => {
     if (!currentSong) return;
 
@@ -157,7 +154,7 @@ export default function Mp3Page() {
     loadLyrics();
   }, [currentSong]);
 
-  // 3. Highlight Lirik Otomatis
+  // 5. Highlight Lirik Otomatis
   useEffect(() => {
     if (syncedLyrics.length === 0) return;
 
@@ -181,7 +178,7 @@ export default function Mp3Page() {
     }
   }, [currentTimeSec, syncedLyrics, activeLyricIndex]);
 
-  // 4. Progress Tracker & Playback Control
+  // 6. Progress Tracker & Playback Control
   const stopProgressTimer = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
   };
@@ -277,10 +274,8 @@ export default function Mp3Page() {
         ]
       });
 
-      // Poin 1 DeepSeek: Wajib panggil playbackState 'playing' secara eksplisit
       await MediaSession.setPlaybackState({ playbackState: 'playing' } as any);
 
-      // Poin 2 DeepSeek: Mendaftarkan action handler
       await MediaSession.setActionHandler({ action: 'play' }, () => {
         togglePlayPause();
       });
@@ -301,7 +296,7 @@ export default function Mp3Page() {
     }
   }, [togglePlayPause, playNext, playPrev]);
 
-  // 5. Eksekusi Putar Lagu
+  // 7. Eksekusi Putar Lagu
   const playSong = useCallback(
     async (song: SongItem) => {
       try {
@@ -316,7 +311,6 @@ export default function Mp3Page() {
       setCurrentTime('0:00');
       setCurrentTimeSec(0);
 
-      // Panggil Notifikasi Player Native
       await updateNativeMediaSession(song);
 
       setQuickPicks((prev: SongItem[]) => {
@@ -338,15 +332,15 @@ export default function Mp3Page() {
           events: {
             onReady: (event: any) => event.target.playVideo(),
             onStateChange: (event: any) => {
-              if (event.data === 1) { // 1 = PLAYING
+              if (event.data === 1) { // PLAYING
                 setIsPlaying(true);
                 startProgressTimer();
                 try { MediaSession.setPlaybackState({ playbackState: 'playing' } as any); } catch (e) {}
-              } else if (event.data === 2) { // 2 = PAUSED
+              } else if (event.data === 2) { // PAUSED
                 setIsPlaying(false);
                 stopProgressTimer();
                 try { MediaSession.setPlaybackState({ playbackState: 'paused' } as any); } catch (e) {}
-              } else if (event.data === 0) { // 0 = ENDED
+              } else if (event.data === 0) { // ENDED
                 setIsPlaying(false);
                 stopProgressTimer();
                 setProgress(0);
@@ -360,7 +354,7 @@ export default function Mp3Page() {
     [startProgressTimer, handleSongEnded, isAuthenticated, updateNativeMediaSession]
   );
 
-  // 6. Handler Pencarian
+  // 8. Handler Pencarian
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
@@ -430,7 +424,7 @@ export default function Mp3Page() {
     }, 200);
   };
 
-  // 7. INTEGRASI NOTIFIKASI MEDIA SESSION (Browser/PWA Fallback)
+  // 9. INTEGRASI NOTIFIKASI MEDIA SESSION (Browser/PWA Fallback)
   useEffect(() => {
     if (!('mediaSession' in navigator) || !currentSong) return;
 
