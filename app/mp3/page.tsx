@@ -7,8 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { SongItem, SyncedLine, searchSongs, fetchLyrics, chunkArray } from './yt';
 
-// Import Capacitor KeepAwake jika tersedia di lingkungan native APK
+// Import Plugin Native Capacitor
 import { KeepAwake } from '@capacitor-community/keep-awake';
+import { MusicControls } from '@awesome-cordova-plugins/music-controls';
 
 declare global {
   interface Window {
@@ -23,7 +24,7 @@ export default function Mp3Page() {
   const { theme } = useTheme();
   const router = useRouter();
 
-  // State Autentikasi / Registration
+  // State Autentikasi / Registration (Sama seperti Lock Tema)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
 
@@ -61,14 +62,12 @@ export default function Mp3Page() {
   useEffect(() => {
     const checkAuthStatus = () => {
       try {
-        // Cek localStorage yang sama dengan yang dipakai sistem Tema & Chat kamu
         const localUser = 
           localStorage.getItem('user') || 
           localStorage.getItem('username') || 
           localStorage.getItem('session') ||
           localStorage.getItem('isLoggedIn');
 
-        // Jika data login ada di localStorage, maka UNLOCK!
         setIsAuthenticated(!!localUser);
       } catch (err) {
         setIsAuthenticated(false);
@@ -79,7 +78,6 @@ export default function Mp3Page() {
 
     checkAuthStatus();
 
-    // Event listener jika user login/logout di tab/halaman lain
     window.addEventListener('storage', checkAuthStatus);
     return () => {
       window.removeEventListener('storage', checkAuthStatus);
@@ -103,7 +101,6 @@ export default function Mp3Page() {
     }
   }, []);
 
-  // Refresh Pilihan Cepat (Jika belum login, batasi hanya 5 lagu)
   const refreshQuickPicks = useCallback(async () => {
     setIsSearching(true);
     const keywords = [
@@ -119,14 +116,12 @@ export default function Mp3Page() {
     setIsSearching(false);
   }, [isAuthenticated]);
 
-  // Load Awal untuk Pilihan Cepat
   useEffect(() => {
     if (!checkingAuth) {
       refreshQuickPicks();
     }
   }, [checkingAuth, refreshQuickPicks]);
 
-  // Update Active Playlist Ref
   useEffect(() => {
     activePlaylistRef.current = searchResults;
   }, [searchResults]);
@@ -177,7 +172,7 @@ export default function Mp3Page() {
     }
   }, [currentTimeSec, syncedLyrics, activeLyricIndex]);
 
-  // 4. Progress Tracker
+  // 4. Progress Tracker & Playback Control
   const stopProgressTimer = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
   };
@@ -226,23 +221,99 @@ export default function Mp3Page() {
     }
   }, [currentSong, playMode]);
 
+  const togglePlayPause = useCallback(() => {
+    if (!playerRef.current) return;
+    if (isPlaying) {
+      playerRef.current.pauseVideo();
+      try { MusicControls.updateIsPlaying(false); } catch (e) {}
+    } else {
+      playerRef.current.playVideo();
+      try { MusicControls.updateIsPlaying(true); } catch (e) {}
+    }
+  }, [isPlaying]);
+
+  const playNext = useCallback(() => {
+    if (!currentSong || searchResults.length === 0) return;
+    if (playMode === 'shuffle') {
+      const randomIndex = Math.floor(Math.random() * searchResults.length);
+      playSong(searchResults[randomIndex]);
+      return;
+    }
+    const currentIndex = searchResults.findIndex((s: SongItem) => s.id === currentSong.id);
+    const nextIndex = (currentIndex + 1) % searchResults.length;
+    playSong(searchResults[nextIndex]);
+  }, [currentSong, searchResults, playMode]);
+
+  const playPrev = useCallback(() => {
+    if (!currentSong || searchResults.length === 0) return;
+    if (playMode === 'shuffle') {
+      const randomIndex = Math.floor(Math.random() * searchResults.length);
+      playSong(searchResults[randomIndex]);
+      return;
+    }
+    const currentIndex = searchResults.findIndex((s: SongItem) => s.id === currentSong.id);
+    const prevIndex = (currentIndex - 1 + searchResults.length) % searchResults.length;
+    playSong(searchResults[prevIndex]);
+  }, [currentSong, searchResults, playMode]);
+
+  // Fungsi Menampilkan Notifikasi Native Music Player
+  const updateNativeMusicControls = useCallback((song: SongItem) => {
+    try {
+      MusicControls.create({
+        track: song.title,
+        artist: song.artist,
+        cover: song.thumbnail || '/icon.png',
+        isPlaying: true,
+        dismissable: false,
+        hasPrev: true,
+        hasNext: true,
+        hasClose: true,
+        ticker: `Memutar ${song.title}`,
+      });
+
+      MusicControls.subscribe().subscribe((action) => {
+        const message = JSON.parse(action).message;
+        switch (message) {
+          case 'music-controls-next':
+            playNext();
+            break;
+          case 'music-controls-previous':
+            playPrev();
+            break;
+          case 'music-controls-pause':
+          case 'music-controls-play':
+            togglePlayPause();
+            break;
+          case 'music-controls-destroy':
+            if (playerRef.current) playerRef.current.pauseVideo();
+            MusicControls.destroy();
+            break;
+        }
+      });
+
+      MusicControls.listen();
+    } catch (e) {
+      console.log('Music Controls Native not active in browser:', e);
+    }
+  }, [playNext, playPrev, togglePlayPause]);
+
   // 5. Eksekusi Putar Lagu
   const playSong = useCallback(
     async (song: SongItem) => {
-      // Mencegah HP menangguhkan audio saat di-background via Capacitor KeepAwake
       try {
         if (typeof KeepAwake !== 'undefined' && KeepAwake.keepAwake) {
           await KeepAwake.keepAwake();
         }
-      } catch (e) {
-        console.log('KeepAwake error/not native:', e);
-      }
+      } catch (e) {}
 
       setCurrentSong(song);
       setIsPlaying(false);
       setProgress(0);
       setCurrentTime('0:00');
       setCurrentTimeSec(0);
+
+      // Tampilkan Player Notifikasi Native
+      updateNativeMusicControls(song);
 
       setQuickPicks((prev: SongItem[]) => {
         if (prev.some((item: SongItem) => item.id === song.id)) return prev;
@@ -280,7 +351,7 @@ export default function Mp3Page() {
         });
       }
     },
-    [startProgressTimer, handleSongEnded, isAuthenticated]
+    [startProgressTimer, handleSongEnded, isAuthenticated, updateNativeMusicControls]
   );
 
   // 6. Handler Pencarian
@@ -322,36 +393,6 @@ export default function Mp3Page() {
     setIsSearching(false);
   };
 
-  const togglePlayPause = () => {
-    if (!playerRef.current) return;
-    if (isPlaying) playerRef.current.pauseVideo();
-    else playerRef.current.playVideo();
-  };
-
-  const playNext = useCallback(() => {
-    if (!currentSong || searchResults.length === 0) return;
-    if (playMode === 'shuffle') {
-      const randomIndex = Math.floor(Math.random() * searchResults.length);
-      playSong(searchResults[randomIndex]);
-      return;
-    }
-    const currentIndex = searchResults.findIndex((s: SongItem) => s.id === currentSong.id);
-    const nextIndex = (currentIndex + 1) % searchResults.length;
-    playSong(searchResults[nextIndex]);
-  }, [currentSong, searchResults, playMode, playSong]);
-
-  const playPrev = useCallback(() => {
-    if (!currentSong || searchResults.length === 0) return;
-    if (playMode === 'shuffle') {
-      const randomIndex = Math.floor(Math.random() * searchResults.length);
-      playSong(searchResults[randomIndex]);
-      return;
-    }
-    const currentIndex = searchResults.findIndex((s: SongItem) => s.id === currentSong.id);
-    const prevIndex = (currentIndex - 1 + searchResults.length) % searchResults.length;
-    playSong(searchResults[prevIndex]);
-  }, [currentSong, searchResults, playMode, playSong]);
-
   const togglePlayMode = () => {
     if (playMode === 'normal') setPlayMode('repeat-one');
     else if (playMode === 'repeat-one') setPlayMode('repeat-all');
@@ -383,7 +424,7 @@ export default function Mp3Page() {
     }, 200);
   };
 
-  // 7. INTEGRASI NOTIFIKASI MEDIA SYSTEM
+  // 7. INTEGRASI NOTIFIKASI MEDIA SESSION (PWA / Chrome)
   useEffect(() => {
     if (!('mediaSession' in navigator) || !currentSong) return;
 
@@ -428,7 +469,6 @@ export default function Mp3Page() {
     navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
   }, [isPlaying]);
 
-  // Batasi daftar lagu menjadi maksimal 5 jika belum terautentikasi
   const visibleSearchResults = isAuthenticated ? searchResults : searchResults.slice(0, 5);
   const visibleQuickPicks = isAuthenticated ? quickPicks : quickPicks.slice(0, 5);
 
