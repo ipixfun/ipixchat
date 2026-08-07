@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "./context/ThemeContext";
-import BottomNav from "@/components/bottomnav"; // Gunakan @/ agar mengarah ke root folder
+import { AudioProvider } from "./context/AudioContext";
+import BottomNav from "@/components/bottomnav";
+import GlobalMiniPlayer from "@/components/GlobalMiniPlayer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,7 +19,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Script anti-flash: set tema sebelum React render */}
         <script
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
@@ -34,10 +35,13 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <ThemeProvider>
-          <div className="pb-20 min-h-screen">
-            {children}
-          </div>
-          <BottomNav />
+          <AudioProvider>
+            <div className="pb-20 min-h-screen">
+              {children}
+            </div>
+            <GlobalMiniPlayer />
+            <BottomNav />
+          </AudioProvider>
         </ThemeProvider>
       </body>
     </html>
