@@ -4,12 +4,12 @@ import android.app.DownloadManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
+import android.media.session.MediaSession;
+import android.media.session.PlaybackState;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Base64;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
@@ -25,16 +25,16 @@ import java.io.OutputStream;
 
 public class MainActivity extends BridgeActivity {
 
-    private MediaSessionCompat mediaSession;
+    private MediaSession mediaSession;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 1. Buat Notification Channel untuk Player Musik (Wajib Android 8.0+)
+        // 1. Buat Notification Channel untuk Player Musik
         createNotificationChannel();
 
-        // 2. Inisialisasi MediaSession Native agar Notifikasi Pemutar Musik Diizinkan OS Android
+        // 2. Inisialisasi MediaSession Native AndroidX
         initMediaSession();
 
         // Ambil instance WebView bawaan Capacitor
@@ -42,22 +42,21 @@ public class MainActivity extends BridgeActivity {
         if (webView != null) {
             WebSettings settings = webView.getSettings();
 
-            // 1. Izinkan audio diputar otomatis & tetap jalan di background
+            // Izinkan audio diputar otomatis & tetap jalan di background
             settings.setMediaPlaybackRequiresUserGesture(false);
 
-            // 2. Izinkan penyimpanan lokal & JavaScript
+            // Izinkan penyimpanan lokal & JavaScript
             settings.setDomStorageEnabled(true);
             settings.setJavaScriptEnabled(true);
             settings.setJavaScriptCanOpenWindowsAutomatically(true);
             settings.setSupportMultipleWindows(true);
 
-            // 3. Interface khusus untuk menangani Blob/Base64 dari JavaScript
+            // Interface khusus untuk menangani Blob/Base64 dari JavaScript
             webView.addJavascriptInterface(new BlobDownloader(this), "AndroidBlobDownloader");
 
-            // 4. Fitur Unduh Langsung dari Dalam APK
+            // Fitur Unduh Langsung dari Dalam APK
             webView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
                 if (url.startsWith("blob:")) {
-                    // Konversi Blob URL menjadi Base64 melalui JavaScript
                     String js = "var xhr = new XMLHttpRequest();" +
                             "xhr.open('GET', '" + url + "', true);" +
                             "xhr.responseType = 'blob';" +
@@ -75,29 +74,29 @@ public class MainActivity extends BridgeActivity {
                             "xhr.send();";
                     webView.loadUrl("javascript:" + js);
                 } else {
-                    // Unduh Direct Link / URL Biasa via DownloadManager
                     downloadDirectFile(url, userAgent, contentDisposition, mimetype);
                 }
             });
         }
     }
 
-    // Inisialisasi MediaSession Native agar Notifikasi Player Mengenali Aplikasi Ini
+    // Inisialisasi MediaSession Native berbasis AndroidX
     private void initMediaSession() {
         try {
-            mediaSession = new MediaSessionCompat(this, "iPixChatMediaSession");
-            mediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLI_POP) {
+                mediaSession = new MediaSession(this, "iPixChatMediaSession");
 
-            PlaybackStateCompat.Builder stateBuilder = new PlaybackStateCompat.Builder()
-                    .setActions(
-                            PlaybackStateCompat.ACTION_PLAY |
-                            PlaybackStateCompat.ACTION_PAUSE |
-                            PlaybackStateCompat.ACTION_SKIP_TO_NEXT |
-                            PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
-                            PlaybackStateCompat.ACTION_SEEK_TO
-                    );
-            mediaSession.setPlaybackState(stateBuilder.build());
-            mediaSession.setActive(true);
+                PlaybackState.Builder stateBuilder = new PlaybackState.Builder()
+                        .setActions(
+                                PlaybackState.ACTION_PLAY |
+                                PlaybackState.ACTION_PAUSE |
+                                PlaybackState.ACTION_SKIP_TO_NEXT |
+                                PlaybackState.ACTION_SKIP_TO_PREVIOUS |
+                                PlaybackState.ACTION_SEEK_TO
+                        );
+                mediaSession.setPlaybackState(stateBuilder.build());
+                mediaSession.setActive(true);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -184,7 +183,7 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    // 5. JANGAN panggil super.onPause() milik WebView agar audio TIDAK MATI saat di-minimize
+    // JANGAN panggil super.onPause() milik WebView agar audio TIDAK MATI saat di-minimize
     @Override
     public void onPause() {
         // Dibiarkan kosong tanpa super.onPause()
