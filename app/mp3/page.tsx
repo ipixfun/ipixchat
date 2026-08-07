@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { SongItem, SyncedLine, searchSongs, fetchLyrics, chunkArray } from './yt';
-import { supabase } from '@/app/lib/supabaseClient';
 
 declare global {
   interface Window {
@@ -55,12 +54,20 @@ export default function Mp3Page() {
 
   const activePlaylistRef = useRef<SongItem[]>([]);
 
-  // 0. Cek Status Login / Registrasi User
+  // 0. CEK STATUS LOGIN (DISAMAKAN DENGAN SISTEM LOCK TEMA / CHAT)
   useEffect(() => {
-    const checkUser = async () => {
+    const checkAuthStatus = () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setIsAuthenticated(!!session?.user);
+        // Cek localStorage yang sama dengan yang dipakai sistem Tema & Chat kamu
+        // (Mengecek 'user', 'username', 'session', atau token yang ada di browser)
+        const localUser = 
+          localStorage.getItem('user') || 
+          localStorage.getItem('username') || 
+          localStorage.getItem('session') ||
+          localStorage.getItem('isLoggedIn');
+
+        // Jika data login ada di localStorage, maka UNLOCK!
+        setIsAuthenticated(!!localUser);
       } catch (err) {
         setIsAuthenticated(false);
       } finally {
@@ -68,14 +75,12 @@ export default function Mp3Page() {
       }
     };
 
-    checkUser();
+    checkAuthStatus();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session?.user);
-    });
-
+    // Event listener jika user login/logout di tab/halaman lain
+    window.addEventListener('storage', checkAuthStatus);
     return () => {
-      authListener.subscription.unsubscribe();
+      window.removeEventListener('storage', checkAuthStatus);
     };
   }, []);
 
@@ -171,6 +176,10 @@ export default function Mp3Page() {
   }, [currentTimeSec, syncedLyrics, activeLyricIndex]);
 
   // 4. Progress Tracker
+  const stopProgressTimer = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  };
+
   const startProgressTimer = useCallback(() => {
     stopProgressTimer();
     intervalRef.current = setInterval(() => {
@@ -186,10 +195,6 @@ export default function Mp3Page() {
       }
     }, 300);
   }, []);
-
-  const stopProgressTimer = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-  };
 
   const handleSongEnded = useCallback(() => {
     if (!currentSong) return;
@@ -267,7 +272,7 @@ export default function Mp3Page() {
     [startProgressTimer, handleSongEnded, isAuthenticated]
   );
 
-  // 6. Handler Pencarian Baru (Mengarahkan ke /chat Jika Belum Login)
+  // 6. Handler Pencarian
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
@@ -367,7 +372,7 @@ export default function Mp3Page() {
     }, 200);
   };
 
-  // 7. INTEGRASI NOTIFIKASI MEDIA SYSTEM (DENGAN /icon.png)
+  // 7. INTEGRASI NOTIFIKASI MEDIA SYSTEM
   useEffect(() => {
     if (!('mediaSession' in navigator) || !currentSong) return;
 
@@ -407,7 +412,6 @@ export default function Mp3Page() {
     });
   }, [currentSong, playNext, playPrev]);
 
-  // Sync Playback State ke Notifikasi HP
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;
     navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
@@ -432,7 +436,7 @@ export default function Mp3Page() {
         <div id="yt-hidden-player"></div>
       </div>
 
-      {/* HEADER: KOLOM PENCARIAN TERKUNCI JIKA BELUM REGISTER */}
+      {/* HEADER */}
       <header className="w-full max-w-md sticky top-0 z-30 px-4 py-3 backdrop-blur-md bg-black/60 border-b border-white/5 flex items-center gap-3">
         <Link href="/" className="opacity-80 hover:opacity-100 transition shrink-0">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -490,7 +494,7 @@ export default function Mp3Page() {
         </form>
       </header>
 
-      {/* BANNER AJAKAN REGISTRASI - DIARAHKAN KE /chat */}
+      {/* BANNER AJAKAN REGISTRASI */}
       {!checkingAuth && !isAuthenticated && (
         <div className="w-full max-w-md px-4 mt-3">
           <div
@@ -520,7 +524,6 @@ export default function Mp3Page() {
               {!isAuthenticated && <span className="text-xs font-normal opacity-50 ml-2">(Maks 5 Lagu)</span>}
             </h2>
 
-            {/* PILL REFRESH DENGAN SVG */}
             <button
               onClick={refreshQuickPicks}
               title="Refresh Pilihan Cepat"
@@ -595,7 +598,7 @@ export default function Mp3Page() {
           )}
         </section>
 
-        {/* SECTION RIWAYAT / PILIHAN CEAPAT LAMA */}
+        {/* SECTION RIWAYAT */}
         {hasSearched && visibleQuickPicks.length > 0 && (
           <section className="flex flex-col gap-3 border-t border-white/10 pt-4">
             <div className="flex justify-between items-center px-1">
@@ -664,9 +667,7 @@ export default function Mp3Page() {
               color: 'var(--foreground, #f4f4f5)',
             }}
           >
-            {/* HEADER MODAL LIRIK */}
             <div className="flex justify-between items-center pb-3 border-b border-white/10 shrink-0 gap-2">
-              {/* KIRI ATAS: FOTO COVER ALBUM/LAGU */}
               {currentSong?.thumbnail ? (
                 <img
                   src={currentSong.thumbnail}
@@ -681,13 +682,11 @@ export default function Mp3Page() {
                 </div>
               )}
 
-              {/* TENGAH: JUDUL & ARTIS */}
               <div className="text-center overflow-hidden px-2 flex-1">
                 <h3 className="text-xs font-bold truncate">{currentSong?.title || 'Lirik Lagu'}</h3>
                 <p className="text-[10px] opacity-60 truncate mt-0.5">{currentSong?.artist}</p>
               </div>
 
-              {/* KANAN ATAS: TOMBOL CARI LAGU LAIN */}
               <button
                 type="button"
                 onClick={handleOpenSearchFromModal}
@@ -705,7 +704,6 @@ export default function Mp3Page() {
               </button>
             </div>
 
-            {/* CONTAINER TEKS LIRIK */}
             <div
               ref={lyricsContainerRef}
               className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth py-8 flex flex-col gap-5 no-scrollbar w-full text-center"
@@ -744,7 +742,6 @@ export default function Mp3Page() {
               )}
             </div>
 
-            {/* CONTROLS DI DALAM MODAL LIRIK */}
             <div className="flex flex-col gap-2 pt-3 border-t border-white/10 shrink-0 pb-2">
               <div className="flex flex-col gap-1">
                 <input
@@ -766,7 +763,6 @@ export default function Mp3Page() {
                 </div>
               </div>
 
-              {/* FOOTER CONTROLS */}
               <div className="flex items-center justify-between px-2 py-1">
                 <button
                   type="button"
