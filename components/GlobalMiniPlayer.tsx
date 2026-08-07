@@ -7,42 +7,41 @@ import { useAudio } from '@/app/context/AudioContext';
 export default function GlobalMiniPlayer() {
   const pathname = usePathname();
   const { currentSong, isPlaying, togglePlayPause, playNext, playPrev, setShowLyricsModal, searchResults } = useAudio();
-  const [isChatActive, setIsChatActive] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
+  // Deteksi ketika pengguna sedang fokus mengetik pesan di input/textarea
   useEffect(() => {
-    // Fungsi cek langsung ke DOM: Apakah ada input chat di layar?
-    const checkChatAndFocus = () => {
-      const chatInputEl = document.getElementById('chat-input');
-      const isFocused = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
-      
-      // Jika halaman adalah /chat ATAU / ATAU ditemukannya #chat-input di layar, aktifkan status chat
-      const isInChat = pathname === '/chat' || pathname === '/' || !!chatInputEl || isFocused;
-      setIsChatActive(isInChat);
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        setIsInputFocused(true);
+      }
     };
 
-    // Jalankan cek saat komponen mount & setiap kali ada perubahan fokus/interaksi
-    checkChatAndFocus();
-    
-    const observer = new MutationObserver(checkChatAndFocus);
-    observer.observe(document.body, { childList: true, subtree: true });
+    const handleFocusOut = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        setIsInputFocused(false);
+      }
+    };
 
-    window.addEventListener('focusin', checkChatAndFocus);
-    window.addEventListener('focusout', checkChatAndFocus);
+    window.addEventListener('focusin', handleFocusIn);
+    window.addEventListener('focusout', handleFocusOut);
 
     return () => {
-      observer.disconnect();
-      window.removeEventListener('focusin', checkChatAndFocus);
-      window.removeEventListener('focusout', checkChatAndFocus);
+      window.removeEventListener('focusin', handleFocusIn);
+      window.removeEventListener('focusout', handleFocusOut);
     };
-  }, [pathname]);
+  }, []);
 
-  // JIKA DI CHAT, DI HALAMAN MP3, ATAU TIDAK ADA LAGU -> MATIKAN TOTAL MINI PLAYER (RETURN NULL)
-  if (pathname === '/mp3' || isChatActive || !currentSong) {
+  // HANYA sembunyi jika berada di rute spesifik /chat saat keyboard/input aktif, atau tidak ada lagu.
+  // Di Home ('/'), /mp3, dan halaman lainnya TETAP TAMPIL.
+  if (isInputFocused || !currentSong) {
     return null;
   }
 
   return (
-    <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center px-3 pointer-events-auto transition-all duration-300">
+    <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center px-3 pointer-events-auto">
       <div
         className="w-full max-w-md border rounded-2xl px-3.5 py-2 shadow-2xl flex items-center justify-between backdrop-blur-xl transition-all duration-300"
         style={{
@@ -83,7 +82,7 @@ export default function GlobalMiniPlayer() {
           </button>
 
           <button type="button" onClick={playNext} disabled={searchResults.length === 0} className="p-1.5 opacity-80 hover:opacity-100 transition cursor-pointer disabled:opacity-20">
-            <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" /></svg>
+            <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" /></svg>
           </button>
         </div>
       </div>
