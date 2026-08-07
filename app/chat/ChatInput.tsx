@@ -123,10 +123,6 @@ export default function ChatInput({
 
       if (currentHeight >= initialHeight - 120) {
         setUi((p: any) => ({ ...p, inputFocus: false }));
-        const inputEl = document.getElementById("chat-input");
-        if (inputEl && document.activeElement === inputEl) {
-          inputEl.blur();
-        }
       } else {
         setUi((p: any) => ({ ...p, inputFocus: true }));
       }
@@ -140,7 +136,6 @@ export default function ChatInput({
 
   const selectedUser = usersInfo?.selPriv || usersInfo?.selectedUser;
 
-  // Sembunyikan chat input ketika di tab admin dan belum memilih user
   if (ui?.tab === "admin" && !selectedUser) {
     return null;
   }
@@ -173,7 +168,11 @@ export default function ChatInput({
   return (
     <InputThemeWrapper>
       {(styles) => (
-        <div className={`shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-[100] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative transition-all duration-150 ${ui?.inputFocus ? "mb-0" : "mb-16"}`}>
+        <div 
+          className={`shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-[100] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative ${
+            ui?.inputFocus ? "mb-0" : "mb-16 focus-within:mb-0"
+          }`}
+        >
           <style>{`
             @keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.3); } 30% { transform: scale(1); } 45% { transform: scale(1.2); } }
             .anim-heartbeat { animation: heartbeat 1.2s infinite ease-in-out; }
@@ -192,6 +191,19 @@ export default function ChatInput({
 
             @keyframes pulseSoft { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
             .anim-pulse-soft { animation: pulseSoft 1.3s infinite ease-in-out; }
+
+            /* Sembunyikan BottomNav secara instan saat input dalam kondisi FOKUS (Native CSS) */
+            div:focus-within ~ div nav,
+            div:focus-within ~ nav,
+            body:has(#chat-input:focus) nav,
+            body:has(#chat-input:focus) [class*="bottomnav"],
+            body:has(#chat-input:focus) [class*="bottom-nav"] {
+              display: none !important;
+              visibility: hidden !important;
+              height: 0 !important;
+              opacity: 0 !important;
+              pointer-events: none !important;
+            }
           `}</style>
 
           {ui?.inputFocus && (
@@ -245,7 +257,7 @@ export default function ChatInput({
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="shrink-0 p-2 sm:p-3 bg-transparent flex flex-col gap-1.5 w-full relative transition-all duration-300">
+          <form onSubmit={handleSubmit} className="shrink-0 p-2 sm:p-3 bg-transparent flex flex-col gap-1.5 w-full relative">
             <div className="flex items-center gap-1.5 sm:gap-2 w-full">
               <div className={`flex-1 text-[9px] h-[36px] sm:h-[40px] flex items-center min-w-0 ${styles.labelText}`}>
                 {showEmoji ? (
@@ -374,10 +386,6 @@ export default function ChatInput({
                   id="chat-input"
                   onFocus={() => {
                     setUi((p: any) => ({ ...p, inputFocus: true }));
-                    setTimeout(() => {
-                      const el = document.getElementById("chat-input");
-                      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-                    }, 200);
                   }}
                   onBlur={() => {
                     setTimeout(() => {
