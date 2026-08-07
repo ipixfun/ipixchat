@@ -64,11 +64,11 @@ export default function GlobalMiniPlayer() {
   const getPositionClass = () => {
     if (isChatTab) {
       // Diturunkan ke top-2, rapat ke kanan mendekati tombol 'Keluar' (right-16 / sm:right-20)
-      return "top-2 right-16 sm:right-20 w-[185px] sm:w-[220px]"; 
+      return "top-2 right-19 sm:right-20 w-[185px] sm:w-[220px]"; 
     }
     if (isTemaTab) {
       // Diturunkan sedikit ke top-2, pas di kanan atas tanpa border
-      return "top-2 right-3 w-[190px] sm:w-[230px]"; 
+      return "top-1 right-3 w-[190px] sm:w-[230px]"; 
     }
     return "bottom-16 left-0 right-0 px-3 w-full max-w-md mx-auto"; // Di bawah untuk Home
   };
