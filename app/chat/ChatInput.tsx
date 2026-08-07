@@ -140,7 +140,7 @@ export default function ChatInput({
 
   const selectedUser = usersInfo?.selPriv || usersInfo?.selectedUser;
 
-  // RULE LOGIKA: SEMBUNYIKAN CHAT INPUT KETIKA DI TAB ADMIN DAN BELUM MEMILIH USER
+  // Sembunyikan chat input ketika di tab admin dan belum memilih user
   if (ui?.tab === "admin" && !selectedUser) {
     return null;
   }

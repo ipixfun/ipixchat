@@ -1,18 +1,47 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAudio } from '@/app/context/AudioContext';
 
 export default function GlobalMiniPlayer() {
   const pathname = usePathname();
   const { currentSong, isPlaying, togglePlayPause, playNext, playPrev, setShowLyricsModal, searchResults } = useAudio();
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
-  // Mini player global disembunyikan saat sedang berada di halaman mp3
-  if (pathname === '/mp3' || !currentSong) return null;
+  // Deteksi jika pengguna sedang mengetik di input/textarea
+  useEffect(() => {
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        setIsInputFocused(true);
+      }
+    };
+
+    const handleFocusOut = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        setIsInputFocused(false);
+      }
+    };
+
+    window.addEventListener('focusin', handleFocusIn);
+    window.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      window.removeEventListener('focusin', handleFocusIn);
+      window.removeEventListener('focusout', handleFocusOut);
+    };
+  }, []);
+
+  // HANYA sembunyi jika berada di halaman /chat, atau saat mengetik/fokus input, atau tidak ada lagu aktif.
+  // Di /mp3 dan halaman lainnya tetap TAMPIL.
+  if (pathname === '/chat' || isInputFocused || !currentSong) {
+    return null;
+  }
 
   return (
-    <div className="fixed bottom-16 left-0 right-0 z-50 flex justify-center px-3 pointer-events-auto">
+    <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center px-3 pointer-events-auto transition-all duration-300">
       <div
         className="w-full max-w-md border rounded-2xl px-3.5 py-2 shadow-2xl flex items-center justify-between backdrop-blur-xl transition-all duration-300"
         style={{

@@ -20,11 +20,6 @@ interface LinkItem {
   icon: string;
 }
 
-interface Track {
-  name: string;
-  url: string;
-}
-
 interface PillRef {
   el: HTMLDivElement | null;
   x: number;
@@ -49,11 +44,6 @@ const LINKS: LinkItem[] = [
   { label: "ipix.my.id", url: "https://ipix.my.id", icon: "https://cdn.simpleicons.org/telegram/white" },
   { label: "Growlr@pix", url: "https://growlrapp.com", icon: "https://cdn.simpleicons.org/bun/white" },
   { label: "iPix.Fun", url: "https://ipix.fun", icon: "https://cdn.simpleicons.org/facebook/white" },
-];
-
-const PLAYLIST: Track[] = [
-  { name: "Lagu 1", url: "https://raw.githubusercontent.com/iopix/ipix/main/lagu1.mp3" },
-  { name: "Lagu 2", url: "https://raw.githubusercontent.com/iopix/ipix/main/lagu2.mp3" },
 ];
 
 const W = 139;
@@ -97,9 +87,8 @@ export default function IpixFun(): JSX.Element | null {
   const { theme, customColors, mounted } = useTheme();
 
   // ---------- Refs ----------
-  const containerRef = useRef<HTMLDivElement | null>(null); // ✅ Tambahan Ref Utama
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const targetRef = useRef<HTMLDivElement | null>(null);
 
   const pillRefs = useRef<PillRef[]>(
@@ -113,30 +102,25 @@ export default function IpixFun(): JSX.Element | null {
   const offsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const isPausedRef = useRef<boolean>(false);
   const appStateRef = useRef<AppState>("moving");
-  const hasStartedRef = useRef<boolean>(false);
-  const currentTrackRef = useRef<number>(0);
 
   // ---------- State ----------
   const [modalOpen, setModalOpen] = useState(false);
-  const [trackName, setTrackName] = useState("Paused");
-  const [btnLabel, setBtnLabel] = useState("Play");
   const [targetText, setTargetText] = useState("Menuju Link");
   const [targetBg, setTargetBg] = useState("var(--card-bg)");
   const [targetGlow, setTargetGlow] = useState(false);
 
-  // ---------- ✅ Helper: Bounds (Kini mengukur dari container internal, bukan window) ----------
+  // ---------- Helper: Bounds ----------
   const getBounds = useCallback(() => {
-    const music = document.querySelector(".music-player") as HTMLElement | null;
+    const headerGroup = document.querySelector(".header-group") as HTMLElement | null;
     const tgt = targetRef.current;
     const container = containerRef.current;
 
-    const mRect = music?.getBoundingClientRect() ?? new DOMRect();
+    const hRect = headerGroup?.getBoundingClientRect() ?? new DOMRect();
     const tRect = tgt?.getBoundingClientRect() ?? new DOMRect();
     const cRect = container?.getBoundingClientRect() ?? new DOMRect();
 
-    // Mapping semua posisi agar RELATIF terhadap sisi dalam Container
     return {
-      musicBottom: mRect.bottom - cRect.top,
+      musicBottom: hRect.bottom - cRect.top,
       tgtTop: tRect.top - cRect.top,
       tgtBottom: tRect.bottom - cRect.top,
       tgtCenterX: tRect.left - cRect.left + tRect.width / 2,
@@ -226,7 +210,7 @@ export default function IpixFun(): JSX.Element | null {
     }
   }, [getBounds]);
 
-  // ---------- ✅ Resize Canvas (Presisi sesuai container, bukan window) ----------
+  // ---------- Resize Canvas ----------
   useEffect(() => {
     const resize = () => {
       const canvas = canvasRef.current;
@@ -276,36 +260,7 @@ export default function IpixFun(): JSX.Element | null {
     });
   }, [theme, customColors, applyPillStyle]);
 
-  // ---------- Audio ----------
-  const toggleAudio = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (!hasStartedRef.current) {
-      audio.src = PLAYLIST[currentTrackRef.current].url;
-      hasStartedRef.current = true;
-    }
-    if (audio.paused) {
-      audio.play();
-      setBtnLabel("Pause");
-      setTrackName(PLAYLIST[currentTrackRef.current].name);
-    } else {
-      audio.pause();
-      setBtnLabel("Play");
-      setTrackName("Paused");
-    }
-  }, []);
-
-  const nextTrack = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    currentTrackRef.current = (currentTrackRef.current + 1) % PLAYLIST.length;
-    audio.src = PLAYLIST[currentTrackRef.current].url;
-    audio.play();
-    setTrackName(PLAYLIST[currentTrackRef.current].name);
-    setBtnLabel("Pause");
-  }, []);
-
-  // ---------- ✅ Drag Handlers (Fix Offset X/Y Screen to Container) ----------
+  // ---------- Drag Handlers ----------
   const startDrag = useCallback(
     (obj: PillRef, clientX: number, clientY: number) => {
       const container = containerRef.current;
@@ -316,7 +271,6 @@ export default function IpixFun(): JSX.Element | null {
       setTargetText("Menuju " + obj.label);
       setTargetBg(`linear-gradient(135deg, ${obj.c1}, ${obj.c2})`);
       
-      // Kurangi posisi asli cursor dengan posisi Container terlebih dahulu
       offsetRef.current = { 
         x: (clientX - cRect.left) - obj.x, 
         y: (clientY - cRect.top) - obj.y 
@@ -345,7 +299,7 @@ export default function IpixFun(): JSX.Element | null {
 
     if (tgt && container) {
       const cRect = container.getBoundingClientRect();
-      const cx = active.x + W / 2 + cRect.left; // Mapping pill center ke view port
+      const cx = active.x + W / 2 + cRect.left;
       const cy = active.y + H / 2 + cRect.top;
       if (cx > tgt.left && cx < tgt.right && cy > tgt.top && cy < tgt.bottom) {
         window.open(active.url, "_blank");
@@ -365,7 +319,6 @@ export default function IpixFun(): JSX.Element | null {
       
       const cRect = container.getBoundingClientRect();
 
-      // Kalkulasi posisi kursor relatif terhadap Box Container
       const newX = clientX - cRect.left - offsetRef.current.x;
       const newY = clientY - cRect.top - offsetRef.current.y;
 
@@ -456,9 +409,8 @@ export default function IpixFun(): JSX.Element | null {
       const target = e.target as HTMLElement | null;
       const id = target?.id ?? "";
 
-      if (!hasStartedRef.current) toggleAudio();
       if (id === "reload-btn") return;
-      if (target?.closest("a, button, .pill, .header-capsule, .music-player, #modal-card, .bottom-nav")) return;
+      if (target?.closest("a, button, .pill, .header-capsule, #modal-card, .bottom-nav")) return;
 
       if (appStateRef.current === "moving") {
         isPausedRef.current = true;
@@ -470,7 +422,7 @@ export default function IpixFun(): JSX.Element | null {
     };
     window.addEventListener("mousedown", onClick);
     return () => window.removeEventListener("mousedown", onClick);
-  }, [toggleAudio, alignPills, randomizeAllColors]);
+  }, [alignPills, randomizeAllColors]);
 
   const pillBaseStyle: CSSProperties = { width: W, height: H };
 
@@ -478,7 +430,7 @@ export default function IpixFun(): JSX.Element | null {
 
   return (
     <div 
-      ref={containerRef} // ✅ Hubungkan div ini sebagai pusat kordinat
+      ref={containerRef}
       className="w-full max-w-2xl mx-auto h-dvh flex flex-col transition-colors duration-300 relative overflow-hidden"
       style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}
     >
@@ -487,21 +439,15 @@ export default function IpixFun(): JSX.Element | null {
         * { box-sizing: border-box; }
         html, body { height: 100dvh; margin: 0; overflow: hidden; touch-action: none; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
         
-        /* ✅ Posisinya kini ABSOLUTE, menempel penuh pada div Wrapper max-w-2xl */
         #fx-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
         
         .pill { will-change: transform; }
 
-        /* ✅ Header Group dan Control kini pakai absolute biar tak lari dari tengah layar container */
         .header-group { position: absolute; top: 12px; left: 0; width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 1005; }
         
         .header-capsule { padding: 9px 18px; background: var(--card-bg); backdrop-filter: blur(15px); border-radius: 45px; color: var(--accent); text-decoration: none; font-size: 0.81rem; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.2); white-space: nowrap; transition: all 0.3s ease; display: flex; align-items: center; height: 36px; position: relative; overflow: hidden; z-index: 0; border: 1px solid var(--card-border); }
         .header-capsule:active { box-shadow: 0 0 20px var(--accent-glow); transform: scale(0.95); }
 
-        .music-player { padding: 9px 13px; background: var(--card-bg); backdrop-filter: blur(15px); border: 1px solid var(--card-border); border-radius: 45px; color: var(--foreground); display: flex; align-items: center; gap: 9px; font-size: 0.81rem; box-shadow: 0 5px 15px rgba(0,0,0,0.2); height: 36px; }
-        .music-player button { background: var(--card-border); border: none; color: var(--foreground); padding: 4px 9px; border-radius: 13px; cursor: pointer; font-weight: bold; }
-
-        /* ✅ Target Menuju Link center via absolute */
         #control-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 10px; z-index: 998; width: max-content; }
         #reload-btn, #info-trigger { padding: 9px 18px; border-radius: 18px; cursor: pointer; font-weight: bold; backdrop-filter: blur(10px); border: 1px solid var(--card-border); font-size: 0.81rem; user-select: none; color: var(--foreground); background: var(--card-bg); }
         #reload-btn { background: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--foreground-heading); }
@@ -527,13 +473,9 @@ export default function IpixFun(): JSX.Element | null {
         <a href="https://ipix.my.id" className="header-capsule" target="_blank" rel="noreferrer">
           www.ipix.my.id
         </a>
-        <div className="music-player">
-          <span id="track-name">{trackName}</span>
-          <button id="btn-play-pause" onClick={toggleAudio}>
-            {btnLabel}
-          </button>
-          <button onClick={nextTrack}>Next</button>
-        </div>
+        <a href="https://sukachub.my.id" className="header-capsule" target="_blank" rel="noreferrer">
+          sukachub.my.id
+        </a>
       </div>
 
       <div id="control-panel">
@@ -605,7 +547,6 @@ export default function IpixFun(): JSX.Element | null {
         </div>
       </div>
 
-      <audio ref={audioRef} preload="none" />
       <BottomNav />
     </div>
   );
