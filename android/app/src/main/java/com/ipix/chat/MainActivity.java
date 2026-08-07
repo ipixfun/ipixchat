@@ -30,7 +30,6 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Minta Izin Notifikasi Native Android (Android 13+) tanpa bikin app ke-minimize
         requestNotificationPermission();
 
         WebView webView = this.bridge.getWebView();
@@ -88,7 +87,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        setIntent(intent); // Update intent agar selalu segar ketika notifikasi diklik
+        setIntent(intent);
         handleIntent(intent);
     }
 
@@ -164,6 +163,17 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onPause() {
-        super.onPause(); // Wajib dipanggil agar Android & Capacitor tidak crash!
+        super.onPause();
+        if (this.bridge != null && this.bridge.getWebView() != null) {
+            this.bridge.getWebView().onResume(); // Mencegah WebView tertidur saat minimize
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (this.bridge != null && this.bridge.getWebView() != null) {
+            this.bridge.getWebView().onResume();
+        }
     }
 }

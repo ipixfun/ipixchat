@@ -191,7 +191,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setProgress((timeSec / dur) * 100);
         setCurrentTime(formatTime(timeSec));
 
-        // Sync langsung ke notifikasi sistem Android
         if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
           try {
             navigator.mediaSession.setPositionState({
@@ -205,6 +204,22 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
+  const syncMediaSessionState = useCallback(() => {
+    if (!playerRef.current || !('mediaSession' in navigator) || !currentSong) return;
+    try {
+      const cur = typeof playerRef.current.getCurrentTime === 'function' ? playerRef.current.getCurrentTime() : 0;
+      const dur = typeof playerRef.current.getDuration === 'function' ? playerRef.current.getDuration() : 0;
+
+      if (dur > 0 && isFinite(dur)) {
+        navigator.mediaSession.setPositionState({
+          duration: dur,
+          playbackRate: isPlaying ? 1 : 0,
+          position: Math.min(cur, dur),
+        });
+      }
+    } catch (e) {}
+  }, [currentSong, isPlaying]);
+
   const startProgressTimer = useCallback(() => {
     stopProgressTimer();
     intervalRef.current = setInterval(() => {
@@ -216,30 +231,22 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (dur > 0) {
           setProgress((cur / dur) * 100);
           setDuration(formatTime(dur));
-
-          // UPDATE STATE WAKTU KE NOTIFIKASI SYSTEM NATIVE
-          if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
-            try {
-              navigator.mediaSession.setPositionState({
-                duration: dur,
-                playbackRate: isPlaying ? 1 : 0,
-                position: Math.min(cur, dur),
-              });
-            } catch (e) {}
-          }
+          syncMediaSessionState();
         }
         setCurrentTime(formatTime(cur));
       }
-    }, 800); // Dipercepat ke 800ms agar slider notifikasi berjalan mulus
-  }, [isPlaying]);
+    }, 800);
+  }, [syncMediaSessionState]);
 
   const togglePlayPause = useCallback(() => {
     if (!playerRef.current) return;
     if (isPlaying) {
       playerRef.current.pauseVideo();
+      setIsPlaying(false);
       try { MediaSession.setPlaybackState({ playbackState: 'paused' } as any); } catch (e) {}
     } else {
       playerRef.current.playVideo();
+      setIsPlaying(true);
       try { MediaSession.setPlaybackState({ playbackState: 'playing' } as any); } catch (e) {}
     }
   }, [isPlaying]);
@@ -312,9 +319,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await MediaSession.setActionHandler({ action: 'pause' }, () => togglePlayPause());
       await MediaSession.setActionHandler({ action: 'nexttrack' }, () => playNext());
       await MediaSession.setActionHandler({ action: 'previoustrack' }, () => playPrev());
-    } catch (e) {
-      console.log('MediaSession plugin error:', e);
-    }
+    } catch (e) {}
   }, [togglePlayPause, playNext, playPrev]);
 
   const playSong = useCallback(
@@ -429,7 +434,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // HANDLER MEDIA SESSION UNTUK SINKRONISASI NOTIFIKASI SYSTEM (WAKTU & SEEKER)
   useEffect(() => {
     if (!('mediaSession' in navigator) || !currentSong) return;
 
@@ -442,23 +446,36 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ],
     });
 
-    navigator.mediaSession.setActionHandler('play', () => playerRef.current?.playVideo());
-    navigator.mediaSession.setActionHandler('pause', () => playerRef.current?.pauseVideo());
-    navigator.mediaSession.setActionHandler('previoustrack', () => playPrev());
-    navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
-    
-    // ACTION HANDLER AGAR DRAG/GESER SEEKBAR DI NOTIFIKASI BERJALAN
-    navigator.mediaSession.setActionHandler('seekto', (details) => {
-      if (details.seekTime !== undefined && playerRef.current) {
-        seekToTime(details.seekTime);
+    navigator.mediaSession.setActionHandler('play', () => {
+      if (playerRef.current) {
+        playerRef.current.playVideo();
+        setIsPlaying(true);
       }
     });
-  }, [currentSong, playNext, playPrev, seekToTime]);
+
+    navigator.mediaSession.setActionHandler('pause', () => {
+      if (playerRef.current) {
+        playerRef.current.pauseVideo();
+        setIsPlaying(false);
+      }
+    });
+
+    navigator.mediaSession.setActionHandler('previoustrack', () => playPrev());
+    navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
+
+    navigator.mediaSession.setActionHandler('seekto', (details) => {
+      if (details.seekTime !== undefined && playerRef.current) {
+        playerRef.current.seekTo(details.seekTime, true);
+        syncMediaSessionState();
+      }
+    });
+  }, [currentSong, playNext, playPrev, syncMediaSessionState]);
 
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;
     navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
-  }, [isPlaying]);
+    syncMediaSessionState();
+  }, [isPlaying, syncMediaSessionState]);
 
   return (
     <AudioContext.Provider
