@@ -7,36 +7,37 @@ import { useAudio } from '@/app/context/AudioContext';
 export default function GlobalMiniPlayer() {
   const pathname = usePathname();
   const { currentSong, isPlaying, togglePlayPause, playNext, playPrev, setShowLyricsModal, searchResults } = useAudio();
-  const [isInputFocused, setIsInputFocused] = useState(false);
+  const [isChatActive, setIsChatActive] = useState(false);
 
-  // Deteksi jika pengguna sedang mengetik di input/textarea
   useEffect(() => {
-    const handleFocusIn = (e: FocusEvent) => {
-      const target = e.target as HTMLElement;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-        setIsInputFocused(true);
-      }
+    // Fungsi cek langsung ke DOM: Apakah ada input chat di layar?
+    const checkChatAndFocus = () => {
+      const chatInputEl = document.getElementById('chat-input');
+      const isFocused = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
+      
+      // Jika halaman adalah /chat ATAU / ATAU ditemukannya #chat-input di layar, aktifkan status chat
+      const isInChat = pathname === '/chat' || pathname === '/' || !!chatInputEl || isFocused;
+      setIsChatActive(isInChat);
     };
 
-    const handleFocusOut = (e: FocusEvent) => {
-      const target = e.target as HTMLElement;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-        setIsInputFocused(false);
-      }
-    };
+    // Jalankan cek saat komponen mount & setiap kali ada perubahan fokus/interaksi
+    checkChatAndFocus();
+    
+    const observer = new MutationObserver(checkChatAndFocus);
+    observer.observe(document.body, { childList: true, subtree: true });
 
-    window.addEventListener('focusin', handleFocusIn);
-    window.addEventListener('focusout', handleFocusOut);
+    window.addEventListener('focusin', checkChatAndFocus);
+    window.addEventListener('focusout', checkChatAndFocus);
 
     return () => {
-      window.removeEventListener('focusin', handleFocusIn);
-      window.removeEventListener('focusout', handleFocusOut);
+      observer.disconnect();
+      window.removeEventListener('focusin', checkChatAndFocus);
+      window.removeEventListener('focusout', checkChatAndFocus);
     };
-  }, []);
+  }, [pathname]);
 
-  // HANYA sembunyi jika berada di halaman /chat, atau saat mengetik/fokus input, atau tidak ada lagu aktif.
-  // Di /mp3 dan halaman lainnya tetap TAMPIL.
-  if (pathname === '/chat' || isInputFocused || !currentSong) {
+  // JIKA DI CHAT, DI HALAMAN MP3, ATAU TIDAK ADA LAGU -> MATIKAN TOTAL MINI PLAYER (RETURN NULL)
+  if (pathname === '/mp3' || isChatActive || !currentSong) {
     return null;
   }
 
