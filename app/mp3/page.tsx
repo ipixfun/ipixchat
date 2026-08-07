@@ -9,7 +9,7 @@ import { SongItem, SyncedLine, searchSongs, fetchLyrics, chunkArray } from './yt
 
 // Import Plugin Native Capacitor
 import { KeepAwake } from '@capacitor-community/keep-awake';
-import { MusicControls } from '@awesome-cordova-plugins/music-controls';
+import { MediaSession } from '@jofr/capacitor-media-session';
 
 declare global {
   interface Window {
@@ -24,7 +24,7 @@ export default function Mp3Page() {
   const { theme } = useTheme();
   const router = useRouter();
 
-  // State Autentikasi / Registration (Sama seperti Lock Tema)
+  // State Autentikasi / Registration (Disamakan dengan Lock Tema)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
 
@@ -58,7 +58,7 @@ export default function Mp3Page() {
 
   const activePlaylistRef = useRef<SongItem[]>([]);
 
-  // 0. CEK STATUS LOGIN (DISAMAKAN DENGAN SISTEM LOCK TEMA / CHAT)
+  // 0. CEK STATUS LOGIN (PERSIS SISTEM LOCK TEMA)
   useEffect(() => {
     const checkAuthStatus = () => {
       try {
@@ -225,10 +225,10 @@ export default function Mp3Page() {
     if (!playerRef.current) return;
     if (isPlaying) {
       playerRef.current.pauseVideo();
-      try { MusicControls.updateIsPlaying(false); } catch (e) {}
+      try { MediaSession.setPlaybackState({ state: 'paused' }); } catch (e) {}
     } else {
       playerRef.current.playVideo();
-      try { MusicControls.updateIsPlaying(true); } catch (e) {}
+      try { MediaSession.setPlaybackState({ state: 'playing' }); } catch (e) {}
     }
   }, [isPlaying]);
 
@@ -256,46 +256,39 @@ export default function Mp3Page() {
     playSong(searchResults[prevIndex]);
   }, [currentSong, searchResults, playMode]);
 
-  // Fungsi Menampilkan Notifikasi Native Music Player
-  const updateNativeMusicControls = useCallback((song: SongItem) => {
+  // FUNGSI UPDATE NOTIFIKASI MEDIA SESSION NATIVE CAPACITOR
+  const updateNativeMediaSession = useCallback(async (song: SongItem) => {
     try {
-      MusicControls.create({
-        track: song.title,
+      await MediaSession.setMetadata({
+        title: song.title,
         artist: song.artist,
-        cover: song.thumbnail || '/icon.png',
-        isPlaying: true,
-        dismissable: false,
-        hasPrev: true,
-        hasNext: true,
-        hasClose: true,
-        ticker: `Memutar ${song.title}`,
+        album: 'iPix Chat MP3',
+        artwork: [
+          { src: song.thumbnail || '/icon.png', sizes: '512x512', type: 'image/png' }
+        ]
       });
 
-      MusicControls.subscribe().subscribe((action) => {
-        const message = JSON.parse(action).message;
-        switch (message) {
-          case 'music-controls-next':
-            playNext();
-            break;
-          case 'music-controls-previous':
-            playPrev();
-            break;
-          case 'music-controls-pause':
-          case 'music-controls-play':
-            togglePlayPause();
-            break;
-          case 'music-controls-destroy':
-            if (playerRef.current) playerRef.current.pauseVideo();
-            MusicControls.destroy();
-            break;
-        }
+      await MediaSession.setPlaybackState({ state: 'playing' });
+
+      await MediaSession.setActionHandler({ action: 'play' }, () => {
+        togglePlayPause();
       });
 
-      MusicControls.listen();
+      await MediaSession.setActionHandler({ action: 'pause' }, () => {
+        togglePlayPause();
+      });
+
+      await MediaSession.setActionHandler({ action: 'nexttrack' }, () => {
+        playNext();
+      });
+
+      await MediaSession.setActionHandler({ action: 'previoustrack' }, () => {
+        playPrev();
+      });
     } catch (e) {
-      console.log('Music Controls Native not active in browser:', e);
+      console.log('MediaSession plugin error/not running natively:', e);
     }
-  }, [playNext, playPrev, togglePlayPause]);
+  }, [togglePlayPause, playNext, playPrev]);
 
   // 5. Eksekusi Putar Lagu
   const playSong = useCallback(
@@ -312,8 +305,8 @@ export default function Mp3Page() {
       setCurrentTime('0:00');
       setCurrentTimeSec(0);
 
-      // Tampilkan Player Notifikasi Native
-      updateNativeMusicControls(song);
+      // Panggil Notifikasi Player Native
+      await updateNativeMediaSession(song);
 
       setQuickPicks((prev: SongItem[]) => {
         if (prev.some((item: SongItem) => item.id === song.id)) return prev;
@@ -351,7 +344,7 @@ export default function Mp3Page() {
         });
       }
     },
-    [startProgressTimer, handleSongEnded, isAuthenticated, updateNativeMusicControls]
+    [startProgressTimer, handleSongEnded, isAuthenticated, updateNativeMediaSession]
   );
 
   // 6. Handler Pencarian
@@ -424,7 +417,7 @@ export default function Mp3Page() {
     }, 200);
   };
 
-  // 7. INTEGRASI NOTIFIKASI MEDIA SESSION (PWA / Chrome)
+  // 7. INTEGRASI NOTIFIKASI MEDIA SESSION (Browser/PWA Fallback)
   useEffect(() => {
     if (!('mediaSession' in navigator) || !currentSong) return;
 
