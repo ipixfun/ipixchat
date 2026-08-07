@@ -1,10 +1,15 @@
 package com.ipix.chat;
 
 import android.app.DownloadManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Base64;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
@@ -20,9 +25,17 @@ import java.io.OutputStream;
 
 public class MainActivity extends BridgeActivity {
 
+    private MediaSessionCompat mediaSession;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // 1. Buat Notification Channel untuk Player Musik (Wajib Android 8.0+)
+        createNotificationChannel();
+
+        // 2. Inisialisasi MediaSession Native agar Notifikasi Pemutar Musik Diizinkan OS Android
+        initMediaSession();
 
         // Ambil instance WebView bawaan Capacitor
         WebView webView = this.bridge.getWebView();
@@ -66,6 +79,43 @@ public class MainActivity extends BridgeActivity {
                     downloadDirectFile(url, userAgent, contentDisposition, mimetype);
                 }
             });
+        }
+    }
+
+    // Inisialisasi MediaSession Native agar Notifikasi Player Mengenali Aplikasi Ini
+    private void initMediaSession() {
+        try {
+            mediaSession = new MediaSessionCompat(this, "iPixChatMediaSession");
+            mediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
+
+            PlaybackStateCompat.Builder stateBuilder = new PlaybackStateCompat.Builder()
+                    .setActions(
+                            PlaybackStateCompat.ACTION_PLAY |
+                            PlaybackStateCompat.ACTION_PAUSE |
+                            PlaybackStateCompat.ACTION_SKIP_TO_NEXT |
+                            PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
+                            PlaybackStateCompat.ACTION_SEEK_TO
+                    );
+            mediaSession.setPlaybackState(stateBuilder.build());
+            mediaSession.setActive(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Buat Channel Notifikasi Musik
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    "ipix_music_channel",
+                    "iPix Music Player",
+                    NotificationManager.IMPORTANCE_LOW
+            );
+            channel.setDescription("Notifikasi Kontrol Pemutar Musik");
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager != null) {
+                manager.createNotificationChannel(channel);
+            }
         }
     }
 

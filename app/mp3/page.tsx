@@ -24,6 +24,15 @@ export default function Mp3Page() {
   const { theme } = useTheme();
   const router = useRouter();
 
+  // 0. POIN PERTAMA DEEPSEEK: Minta Izin Notifikasi (Android 13+ Wajib Minta Izin)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
   // State Autentikasi / Registration (Disamakan dengan Lock Tema)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
@@ -256,7 +265,7 @@ export default function Mp3Page() {
     playSong(searchResults[prevIndex]);
   }, [currentSong, searchResults, playMode]);
 
-  // FUNGSI UPDATE NOTIFIKASI MEDIA SESSION NATIVE CAPACITOR (PERBAIKAN TYPE ERROR)
+  // FUNGSI UPDATE NOTIFIKASI MEDIA SESSION NATIVE CAPACITOR
   const updateNativeMediaSession = useCallback(async (song: SongItem) => {
     try {
       await MediaSession.setMetadata({
@@ -268,8 +277,10 @@ export default function Mp3Page() {
         ]
       });
 
+      // Poin 1 DeepSeek: Wajib panggil playbackState 'playing' secara eksplisit
       await MediaSession.setPlaybackState({ playbackState: 'playing' } as any);
 
+      // Poin 2 DeepSeek: Mendaftarkan action handler
       await MediaSession.setActionHandler({ action: 'play' }, () => {
         togglePlayPause();
       });
@@ -327,13 +338,15 @@ export default function Mp3Page() {
           events: {
             onReady: (event: any) => event.target.playVideo(),
             onStateChange: (event: any) => {
-              if (event.data === 1) {
+              if (event.data === 1) { // 1 = PLAYING
                 setIsPlaying(true);
                 startProgressTimer();
-              } else if (event.data === 2) {
+                try { MediaSession.setPlaybackState({ playbackState: 'playing' } as any); } catch (e) {}
+              } else if (event.data === 2) { // 2 = PAUSED
                 setIsPlaying(false);
                 stopProgressTimer();
-              } else if (event.data === 0) {
+                try { MediaSession.setPlaybackState({ playbackState: 'paused' } as any); } catch (e) {}
+              } else if (event.data === 0) { // 0 = ENDED
                 setIsPlaying(false);
                 stopProgressTimer();
                 setProgress(0);
