@@ -225,10 +225,10 @@ export default function Mp3Page() {
     if (!playerRef.current) return;
     if (isPlaying) {
       playerRef.current.pauseVideo();
-      try { MediaSession.setPlaybackState({ state: 'paused' }); } catch (e) {}
+      try { MediaSession.setPlaybackState({ playbackState: 'paused' } as any); } catch (e) {}
     } else {
       playerRef.current.playVideo();
-      try { MediaSession.setPlaybackState({ state: 'playing' }); } catch (e) {}
+      try { MediaSession.setPlaybackState({ playbackState: 'playing' } as any); } catch (e) {}
     }
   }, [isPlaying]);
 
@@ -256,7 +256,7 @@ export default function Mp3Page() {
     playSong(searchResults[prevIndex]);
   }, [currentSong, searchResults, playMode]);
 
-  // FUNGSI UPDATE NOTIFIKASI MEDIA SESSION NATIVE CAPACITOR
+  // FUNGSI UPDATE NOTIFIKASI MEDIA SESSION NATIVE CAPACITOR (PERBAIKAN TYPE ERROR)
   const updateNativeMediaSession = useCallback(async (song: SongItem) => {
     try {
       await MediaSession.setMetadata({
@@ -268,7 +268,7 @@ export default function Mp3Page() {
         ]
       });
 
-      await MediaSession.setPlaybackState({ state: 'playing' });
+      await MediaSession.setPlaybackState({ playbackState: 'playing' } as any);
 
       await MediaSession.setActionHandler({ action: 'play' }, () => {
         togglePlayPause();
