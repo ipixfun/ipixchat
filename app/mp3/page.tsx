@@ -7,6 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { SongItem, SyncedLine, searchSongs, fetchLyrics, chunkArray } from './yt';
 
+// Import Capacitor KeepAwake jika tersedia di lingkungan native APK
+import { KeepAwake } from '@capacitor-community/keep-awake';
+
 declare global {
   interface Window {
     onYouTubeIframeAPIReady: () => void;
@@ -59,7 +62,6 @@ export default function Mp3Page() {
     const checkAuthStatus = () => {
       try {
         // Cek localStorage yang sama dengan yang dipakai sistem Tema & Chat kamu
-        // (Mengecek 'user', 'username', 'session', atau token yang ada di browser)
         const localUser = 
           localStorage.getItem('user') || 
           localStorage.getItem('username') || 
@@ -226,7 +228,16 @@ export default function Mp3Page() {
 
   // 5. Eksekusi Putar Lagu
   const playSong = useCallback(
-    (song: SongItem) => {
+    async (song: SongItem) => {
+      // Mencegah HP menangguhkan audio saat di-background via Capacitor KeepAwake
+      try {
+        if (typeof KeepAwake !== 'undefined' && KeepAwake.keepAwake) {
+          await KeepAwake.keepAwake();
+        }
+      } catch (e) {
+        console.log('KeepAwake error/not native:', e);
+      }
+
       setCurrentSong(song);
       setIsPlaying(false);
       setProgress(0);
