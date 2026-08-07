@@ -1,11 +1,10 @@
 package com.ipix.chat;
 
+import android.Manifest;
 import android.app.DownloadManager;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.content.Context;
-import android.media.session.MediaSession;
-import android.media.session.PlaybackState;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,6 +16,8 @@ import android.webkit.URLUtil;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.Toast;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import com.getcapacitor.BridgeActivity;
 
 import java.io.File;
@@ -25,14 +26,12 @@ import java.io.OutputStream;
 
 public class MainActivity extends BridgeActivity {
 
-    private MediaSession mediaSession;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        createNotificationChannel();
-        initMediaSession();
+        // Minta Izin Notifikasi Native Android (Android 13+) tanpa bikin app ke-minimize
+        requestNotificationPermission();
 
         WebView webView = this.bridge.getWebView();
         if (webView != null) {
@@ -69,41 +68,33 @@ public class MainActivity extends BridgeActivity {
                 }
             });
         }
+
+        handleIntent(getIntent());
     }
 
-    private void initMediaSession() {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                mediaSession = new MediaSession(this, "iPixChatMediaSession");
-
-                PlaybackState.Builder stateBuilder = new PlaybackState.Builder()
-                        .setActions(
-                                PlaybackState.ACTION_PLAY |
-                                PlaybackState.ACTION_PAUSE |
-                                PlaybackState.ACTION_SKIP_TO_NEXT |
-                                PlaybackState.ACTION_SKIP_TO_PREVIOUS |
-                                PlaybackState.ACTION_SEEK_TO
-                        );
-                mediaSession.setPlaybackState(stateBuilder.build());
-                mediaSession.setActive(true);
+    private void requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                        this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        101
+                );
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    "ipix_music_channel",
-                    "iPix Music Player",
-                    NotificationManager.IMPORTANCE_LOW
-            );
-            channel.setDescription("Notifikasi Kontrol Pemutar Musik");
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) {
-                manager.createNotificationChannel(channel);
-            }
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        handleIntent(intent);
+    }
+
+    private void handleIntent(Intent intent) {
+        if (intent != null && this.bridge != null && this.bridge.getWebView() != null) {
+            WebView webView = this.bridge.getWebView();
+            webView.post(() -> webView.loadUrl("javascript:if(window.location.pathname !== '/mp3') { window.location.href = '/mp3'; }"));
         }
     }
 
@@ -172,6 +163,6 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onPause() {
-        // Kosongkan agar audio tidak mati saat app di-minimize
+        // Biarkan kosong
     }
 }

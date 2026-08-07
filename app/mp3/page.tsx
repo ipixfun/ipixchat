@@ -58,16 +58,7 @@ export default function Mp3Page() {
 
   const activePlaylistRef = useRef<SongItem[]>([]);
 
-  // 1. MINTA IZIN NOTIFIKASI (Android 13+ Wajib)
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-        Notification.requestPermission();
-      }
-    }
-  }, []);
-
-  // 2. CEK STATUS LOGIN YANG AMAN (AGAR TIDAK MENTAL/RE-RENDER)
+  // 1. CEK STATUS LOGIN YANG AMAN (AGAR TIDAK MENTAL/RE-RENDER)
   useEffect(() => {
     const checkAuthStatus = () => {
       try {
@@ -97,7 +88,7 @@ export default function Mp3Page() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // 3. YouTube IFrame API Loader
+  // 2. YouTube IFrame API Loader
   useEffect(() => {
     if (!window.YT) {
       const tag = document.createElement('script');
@@ -132,7 +123,7 @@ export default function Mp3Page() {
     activePlaylistRef.current = searchResults;
   }, [searchResults]);
 
-  // 4. Fetch Lirik saat lagu aktif berganti
+  // 3. Fetch Lirik saat lagu aktif berganti
   useEffect(() => {
     if (!currentSong) return;
 
@@ -154,7 +145,7 @@ export default function Mp3Page() {
     loadLyrics();
   }, [currentSong]);
 
-  // 5. Highlight Lirik Otomatis
+  // 4. Highlight Lirik Otomatis
   useEffect(() => {
     if (syncedLyrics.length === 0) return;
 
@@ -178,7 +169,7 @@ export default function Mp3Page() {
     }
   }, [currentTimeSec, syncedLyrics, activeLyricIndex]);
 
-  // 6. Progress Tracker & Playback Control
+  // 5. Progress Tracker & Playback Control (UPDATE POSISI SEEKBAR NOTIFIKASI)
   const stopProgressTimer = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
   };
@@ -190,13 +181,25 @@ export default function Mp3Page() {
         const cur = playerRef.current.getCurrentTime() || 0;
         const dur = playerRef.current.getDuration() || 0;
         setCurrentTimeSec(cur);
+
         if (dur > 0) {
           setProgress((cur / dur) * 100);
           setDuration(formatTime(dur));
+
+          // UPDATE SEEKBAR / DETIK LAGU KE NOTIFIKASI STATUS BAR ANDROID
+          if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+            try {
+              navigator.mediaSession.setPositionState({
+                duration: dur,
+                playbackRate: 1,
+                position: cur,
+              });
+            } catch (e) {}
+          }
         }
         setCurrentTime(formatTime(cur));
       }
-    }, 300);
+    }, 1000);
   }, []);
 
   const handleSongEnded = useCallback(() => {
@@ -296,7 +299,7 @@ export default function Mp3Page() {
     }
   }, [togglePlayPause, playNext, playPrev]);
 
-  // 7. Eksekusi Putar Lagu
+  // 6. Eksekusi Putar Lagu
   const playSong = useCallback(
     async (song: SongItem) => {
       try {
@@ -354,7 +357,7 @@ export default function Mp3Page() {
     [startProgressTimer, handleSongEnded, isAuthenticated, updateNativeMediaSession]
   );
 
-  // 8. Handler Pencarian
+  // 7. Handler Pencarian
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
@@ -424,7 +427,7 @@ export default function Mp3Page() {
     }, 200);
   };
 
-  // 9. INTEGRASI NOTIFIKASI MEDIA SESSION (Browser/PWA Fallback)
+  // 8. INTEGRASI NOTIFIKASI MEDIA SESSION (Browser/PWA Fallback & Seek)
   useEffect(() => {
     if (!('mediaSession' in navigator) || !currentSong) return;
 
@@ -983,7 +986,7 @@ export default function Mp3Page() {
               disabled={visibleSearchResults.length === 0}
               className="p-1.5 opacity-80 hover:opacity-100 active:scale-95 transition disabled:opacity-20 cursor-pointer"
             >
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
                 <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
               </svg>
             </button>
