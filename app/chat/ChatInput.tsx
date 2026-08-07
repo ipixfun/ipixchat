@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import GlobalMiniPlayer from "@/components/GlobalMiniPlayer"; // Sesuaikan path jika berbeda
 
 const EMOJIS = [
   { char: "😊", anim: "anim-pulse-soft" },
@@ -170,7 +169,7 @@ export default function ChatInput({
     <InputThemeWrapper>
       {(styles) => (
         <div 
-          className={`shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-[100] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative ${
+          className={`shrink-0 bg-[var(--card-bg)] z-[100] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative ${
             ui?.inputFocus ? "mb-0" : "mb-16"
           }`}
         >
@@ -194,10 +193,9 @@ export default function ChatInput({
             .anim-pulse-soft { animation: pulseSoft 1.3s infinite ease-in-out; }
           `}</style>
 
-          {/* Sembunyikan Navigasi & Player Musik ketika keyboard naik */}
           {ui?.inputFocus && (
             <style>{`
-              nav, footer, [class*="bottomnav"], [class*="bottom-nav"], [class*="BottomNav"], [class*="GlobalMiniPlayer"], [class*="mini-player"], .z-\\[999\\] {
+              nav, footer, [class*="bottomnav"], [class*="bottom-nav"], [class*="BottomNav"], .z-\\[999\\] {
                 display: none !important;
                 visibility: hidden !important;
                 height: 0 !important;
@@ -250,7 +248,7 @@ export default function ChatInput({
             <div className="flex items-center gap-1.5 sm:gap-2 w-full">
               <div className={`flex-1 text-[9px] h-[36px] sm:h-[40px] flex items-center min-w-0 ${styles.labelText}`}>
                 {showEmoji ? (
-                  <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden animate-in fade-in zoom-in-95 duration-150 py-1 px-3 w-full bg-[var(--card-bg)]/80 border border-[var(--card-border)] rounded-xl shadow-inner backdrop-blur-md">
+                  <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden animate-in fade-in zoom-in-95 duration-150 py-1 px-3 w-full bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl shadow-inner">
                     {EMOJIS.map((item, idx) => (
                       <button
                         key={idx}
