@@ -83,7 +83,7 @@ public class MainActivity extends BridgeActivity {
     // Inisialisasi MediaSession Native berbasis AndroidX
     private void initMediaSession() {
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLI_POP) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 mediaSession = new MediaSession(this, "iPixChatMediaSession");
 
                 PlaybackState.Builder stateBuilder = new PlaybackState.Builder()
