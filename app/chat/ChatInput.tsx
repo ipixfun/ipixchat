@@ -169,9 +169,7 @@ export default function ChatInput({
     <InputThemeWrapper>
       {(styles) => (
         <div 
-          className={`shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-[100] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative ${
-            ui?.inputFocus ? "mb-0" : "mb-16 focus-within:mb-0"
-          }`}
+          className="shrink-0 bg-[var(--card-bg)] backdrop-blur-xl z-[100] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative mb-0"
         >
           <style>{`
             @keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.3); } 30% { transform: scale(1); } 45% { transform: scale(1.2); } }
@@ -192,17 +190,13 @@ export default function ChatInput({
             @keyframes pulseSoft { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
             .anim-pulse-soft { animation: pulseSoft 1.3s infinite ease-in-out; }
 
-            /* Sembunyikan BottomNav secara instan saat input dalam kondisi FOKUS (Native CSS) */
-            div:focus-within ~ div nav,
-            div:focus-within ~ nav,
+            /* Sembunyikan BottomNav jika keyboard aktif / input fokus */
             body:has(#chat-input:focus) nav,
             body:has(#chat-input:focus) [class*="bottomnav"],
             body:has(#chat-input:focus) [class*="bottom-nav"] {
               display: none !important;
               visibility: hidden !important;
               height: 0 !important;
-              opacity: 0 !important;
-              pointer-events: none !important;
             }
           `}</style>
 
