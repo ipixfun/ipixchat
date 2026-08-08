@@ -49,6 +49,7 @@ export default function ChatInput({
   scrollMsg,
   sendMsg,
   handleLogout,
+  refreshChat,
   isCredentialsChanged: externalIsCredentialsChanged,
   isAccountChangedByAdmin,
 }: {
@@ -67,6 +68,7 @@ export default function ChatInput({
   scrollMsg: (id: number) => void;
   sendMsg: (e: React.FormEvent) => void;
   handleLogout?: () => void;
+  refreshChat?: () => void;
   isCredentialsChanged?: boolean;
   isAccountChangedByAdmin?: boolean;
 }) {
@@ -169,9 +171,7 @@ export default function ChatInput({
     <InputThemeWrapper>
       {(styles) => (
         <div 
-          className={`shrink-0 bg-[var(--card-bg)] z-[100] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative transition-all duration-75 ${
-            ui?.inputFocus ? "pb-1 sm:pb-2" : "pb-16 sm:pb-16"
-          }`}
+          className="shrink-0 bg-[var(--card-bg)] z-[100] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative pb-1 sm:pb-2"
         >
           <style>{`
             @keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.3); } 30% { transform: scale(1); } 45% { transform: scale(1.2); } }
@@ -192,18 +192,6 @@ export default function ChatInput({
             @keyframes pulseSoft { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
             .anim-pulse-soft { animation: pulseSoft 1.3s infinite ease-in-out; }
           `}</style>
-
-          {ui?.inputFocus && (
-            <style>{`
-              nav, footer, [class*="bottomnav"], [class*="bottom-nav"], [class*="BottomNav"], .z-\\[999\\] {
-                display: none !important;
-                visibility: hidden !important;
-                height: 0 !important;
-                opacity: 0 !important;
-                pointer-events: none !important;
-              }
-            `}</style>
-          )}
 
           {interact?.replyTo && (
             <div 
@@ -355,7 +343,11 @@ export default function ChatInput({
                           }));
                           setInteract((p: any) => ({ ...p, replyTo: null, editingMsg: null }));
                         } else {
-                          window.location.reload();
+                          if (refreshChat) {
+                            refreshChat();
+                          } else {
+                            window.location.reload();
+                          }
                         }
                       }}
                       className={`w-full h-full rounded-lg font-black tracking-wider text-[8px] sm:text-[9px] border shadow-xs active:scale-95 transition-all flex items-center justify-center select-none uppercase ${hasInputReady || interact?.editingMsg ? styles.cancelBtn : styles.refreshBtn}`}

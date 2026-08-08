@@ -58,14 +58,14 @@ export default function BottomNav({ isAuth, handleLogout }: BottomNavProps) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-[100000] border-t backdrop-blur-2xl transition-colors duration-300 pb-[env(safe-area-inset-bottom)] pointer-events-auto"
+      className="relative w-full border-t backdrop-blur-2xl transition-colors duration-300 pb-[env(safe-area-inset-bottom)] pointer-events-auto"
       style={{
         backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)",
         borderColor: "color-mix(in srgb, var(--accent) 20%, var(--card-border, transparent))",
       }}
     >
-      <div className="max-w-2xl mx-auto h-14 sm:h-[62px] flex items-center px-1 sm:px-1.5 relative z-[100001]">
-        <div className="w-full grid grid-cols-5 relative z-[100002]">
+      <div className="max-w-2xl mx-auto h-14 sm:h-[62px] flex items-center px-1 sm:px-1.5 relative">
+        <div className="w-full grid grid-cols-5 relative">
           {links.map((link) => {
             const isActive = pathname === link.href;
 
@@ -76,7 +76,7 @@ export default function BottomNav({ isAuth, handleLogout }: BottomNavProps) {
                 onClick={(e) => {
                   e.stopPropagation();
                 }}
-                className="flex flex-col items-center justify-center h-12 sm:h-[50px] rounded-xl transition-all duration-200 select-none active:scale-95 touch-manipulation group min-w-0 cursor-pointer pointer-events-auto relative z-[100003]"
+                className="flex flex-col items-center justify-center h-12 sm:h-[50px] rounded-xl transition-all duration-200 select-none active:scale-95 touch-manipulation group min-w-0 cursor-pointer pointer-events-auto relative"
               >
                 <div
                   className={`transition-all duration-300 flex items-center justify-center shrink-0 pointer-events-none ${

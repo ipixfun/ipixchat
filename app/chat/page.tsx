@@ -19,7 +19,6 @@ function urlBase64ToUint8Array(base64String: string) { const padding = "=".repea
 export default function Home() {
   const pathname = usePathname(); const [mounted, setMounted] = useState(false); const [msgs, setMsgs] = useState({ all: [] as any[], pub: [] as any[], priv: [] as any[] }); const [auth, setAuth] = useState({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" }); const [ui, setUi] = useState({ tab: "user" as "user" | "admin", mode: "private" as "private", inputFocus: false }); const [counts, setCounts] = useState({ pub: 0, priv: 0 }); const [adminStat, setAdminStat] = useState({ online: false, offlineTime: "", lastActive: 0 }); const [usersInfo, setUsersInfo] = useState({ status: {} as Record<string, any>, blockedList: [] as any[], privUsers: [] as any[], selPriv: null as string | null }); const [censor, setCensor] = useState({ words: [] as string[], newWord: "" }); const [input, setInput] = useState({ text: "", sending: false, blink: false, image: null as string | null, uploadingImage: false }); const [alertModal, setAlertModal] = useState({ isOpen: false, title: "Pemberitahuan", message: "", type: "info" }); const showAlert = (message: string, title = "Pemberitahuan", type = "info") => { setAlertModal({ isOpen: true, title, message, type }); }; const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", confirmText: "Ya, Lanjutkan", cancelText: "Batal", type: "danger", onConfirm: () => {} }); const [promptModal, setPromptModal] = useState({ isOpen: false, title: "", defaultValue: "", onConfirm: (val: string) => {} }); const [accountChangedByAdmin, setAccountChangedByAdmin] = useState(false); const [interact, setInteract] = useState({ replyTo: null as any, activeMenu: null as number | null, popup: null as any, swipeId: null as number | null, editingMsg: null as any }); const [galleryModal, setGalleryModal] = useState<{ username: string; msgs: any[] } | null>(null); const [currentHash, setCurrentHash] = useState(""); const CLOUDINARY_CLOUD_NAME = "bjamo8ld"; const CLOUDINARY_UPLOAD_PRESET = "ipixchat";
 
-  // Sanitasi khusus user biasa. Admin dibebaskan.
   const sanitizeUsername = (val: string) => {
     if (val.trim().toLowerCase().startsWith("admin")) return val;
     return val.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_-]/g, '').slice(0, 20);
@@ -176,7 +175,8 @@ export default function Home() {
         <PinnedMessage adminPinnedMsg={adminPinnedMsg} userPinnedMsg={userPinnedMsg} uiTab={ui.tab} onEditPinned={dbActions.editPinned} onScrollToMsg={scrollMsg} />
       )}
 
-      <div className="flex-1 w-full relative flex overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
+      {/* AREA CHAT UTAMA: min-h-0 & flex-1 memastikannya dapat di-scroll tanpa menutupi input */}
+      <div className="flex-1 min-h-0 w-full relative flex overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
         {ui.tab === "admin" && currentHash === "#block" && auth.isAuth ? (
           <Block blockedList={usersInfo.blockedList} unblock={async (identifier: string) => { await supabase.from("blocked_users").delete().eq("username", identifier); if (!isNaN(Number(identifier))) await supabase.from("blocked_users").delete().eq("id", Number(identifier)); fetchData(); }} blockedWords={censor.words} newWord={censor.newWord} setNewWord={(w: string) => setCensor((p) => ({ ...p, newWord: w }))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} />
         ) : (
@@ -184,7 +184,36 @@ export default function Home() {
         )}
       </div>
 
-      {currentHash !== "#block" && auth.isAuth && <ChatInput input={input} setInput={setInput} interact={interact} setInteract={setInteract} ui={ui} setUi={setUi} auth={auth} usersInfo={usersInfo} currentHash={currentHash} isBlocked={usersInfo.blockedList.some((b) => b.username === auth.user)} isAccountChangedByAdmin={accountChangedByAdmin} hasInputReady={input.text.trim().length > 0 || input.image !== null} handleImageUpload={handleImageUpload} scrollMsg={scrollMsg} sendMsg={sendMsg} handleLogout={handleLogout} />}
+      {/* WRAPPER BAWAH FLEX-COL: CHAT INPUT + BOTTOM NAV DISUSUN LURUS KEBAWAH */}
+      <div className="shrink-0 w-full flex flex-col bg-[var(--card-bg)]">
+        {currentHash !== "#block" && auth.isAuth && (
+          <ChatInput 
+            input={input} 
+            setInput={setInput} 
+            interact={interact} 
+            setInteract={setInteract} 
+            ui={ui} 
+            setUi={setUi} 
+            auth={auth} 
+            usersInfo={usersInfo} 
+            currentHash={currentHash} 
+            isBlocked={usersInfo.blockedList.some((b) => b.username === auth.user)} 
+            isAccountChangedByAdmin={accountChangedByAdmin} 
+            hasInputReady={input.text.trim().length > 0 || input.image !== null} 
+            handleImageUpload={handleImageUpload} 
+            scrollMsg={scrollMsg} 
+            sendMsg={sendMsg} 
+            handleLogout={handleLogout} 
+            refreshChat={fetchData}
+          />
+        )}
+
+        {!ui?.inputFocus && (
+          <div className="w-full shrink-0 border-t border-[var(--card-border)]">
+            <BottomNav isAuth={auth.isAuth} handleLogout={handleLogout} />
+          </div>
+        )}
+      </div>
 
       {alertModal.isOpen && (
         <div className="fixed inset-0 z-[100000] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn select-none" onClick={() => setAlertModal((p) => ({ ...p, isOpen: false }))}>
@@ -273,10 +302,6 @@ export default function Home() {
           </div>
         </div>
       )}
-
-      <div className="relative z-[100000] w-full shrink-0 bg-transparent pointer-events-auto">
-        <BottomNav isAuth={auth.isAuth} handleLogout={handleLogout} />
-      </div>
     </div>
   );
 }
