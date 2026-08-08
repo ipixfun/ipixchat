@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -10,55 +10,6 @@ interface BottomNavProps {
 
 export default function BottomNav({ isAuth, handleLogout }: BottomNavProps) {
   const pathname = usePathname();
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-
-  useEffect(() => {
-    // Sembunyikan BottomNav secara instan ketika elemen input / textarea di-focus (HP)
-    const handleFocusIn = (e: FocusEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target &&
-        (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
-      ) {
-        setIsKeyboardOpen(true);
-      }
-    };
-
-    const handleFocusOut = (e: FocusEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target &&
-        (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
-      ) {
-        setIsKeyboardOpen(false);
-      }
-    };
-
-    // Deteksi resize viewport (Keyboard HP Android/Capacitor)
-    const handleResize = () => {
-      if (window.visualViewport) {
-        const isKeyboard = window.innerHeight - window.visualViewport.height > 150;
-        setIsKeyboardOpen(isKeyboard);
-      }
-    };
-
-    document.addEventListener("focusin", handleFocusIn);
-    document.addEventListener("focusout", handleFocusOut);
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", handleResize);
-    }
-
-    return () => {
-      document.removeEventListener("focusin", handleFocusIn);
-      document.removeEventListener("focusout", handleFocusOut);
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener("resize", handleResize);
-      }
-    };
-  }, []);
-
-  // Jika sedang ngetik / keyboard naik di HP, BottomNav tidak dirender
-  if (isKeyboardOpen) return null;
 
   const links = [
     {
@@ -107,7 +58,7 @@ export default function BottomNav({ isAuth, handleLogout }: BottomNavProps) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-[100000] border-t backdrop-blur-2xl transition-colors duration-300 pb-[env(safe-area-inset-bottom)] pointer-events-auto"
+      className="bottom-nav-bar fixed bottom-0 left-0 right-0 z-[100000] border-t backdrop-blur-2xl transition-all duration-150 pb-[env(safe-area-inset-bottom)] pointer-events-auto"
       style={{
         backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)",
         borderColor: "color-mix(in srgb, var(--accent) 20%, var(--card-border, transparent))",
