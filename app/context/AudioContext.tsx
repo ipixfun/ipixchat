@@ -96,19 +96,54 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  useEffect(() => {
+  // Fungsi Pengecekan Autentikasi yang Komprehensif
+  const checkAuthStatus = useCallback(() => {
     try {
+      if (typeof window === 'undefined') return false;
+
+      const isAuthFlag =
+        localStorage.getItem('is_auth') === 'true' ||
+        sessionStorage.getItem('is_auth') === 'true';
+
       const localUser =
-        localStorage.getItem('user') ||
+        localStorage.getItem('remembered_username') ||
+        localStorage.getItem('active_username') ||
         localStorage.getItem('username') ||
-        localStorage.getItem('session') ||
-        localStorage.getItem('isLoggedIn');
-      if (localUser) setIsAuthenticated(true);
+        localStorage.getItem('user') ||
+        sessionStorage.getItem('active_username') ||
+        sessionStorage.getItem('username');
+
+      const isAuth = Boolean(isAuthFlag || localUser);
+      setIsAuthenticated(isAuth);
+      return isAuth;
     } catch (err) {
+      return false;
     } finally {
       setCheckingAuth(false);
     }
   }, []);
+
+  // Effect untuk Pengecekan Awal dan Pasang Listener Realtime
+  useEffect(() => {
+    checkAuthStatus();
+
+    const handleStorageOrAuthChange = () => {
+      const authState = checkAuthStatus();
+      if (authState) {
+        refreshQuickPicks();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageOrAuthChange);
+    window.addEventListener('user-logged-in', handleStorageOrAuthChange);
+    window.addEventListener('focus', handleStorageOrAuthChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageOrAuthChange);
+      window.removeEventListener('user-logged-in', handleStorageOrAuthChange);
+      window.removeEventListener('focus', handleStorageOrAuthChange);
+    };
+  }, [checkAuthStatus]);
 
   useEffect(() => {
     if (!window.YT) {
@@ -129,10 +164,20 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       'Indie Indonesia Terbaru',
     ];
     const randomKeyword = keywords[Math.floor(Math.random() * keywords.length)];
-    const songs = await searchSongs(randomKeyword, isAuthenticated ? 20 : 5);
+    
+    // Mengecek ulang status autentikasi lokal
+    const isAuthLocal =
+      localStorage.getItem('is_auth') === 'true' ||
+      Boolean(
+        localStorage.getItem('remembered_username') ||
+        localStorage.getItem('active_username') ||
+        localStorage.getItem('username')
+      );
+
+    const songs = await searchSongs(randomKeyword, isAuthLocal ? 20 : 5);
     setSearchResults(songs);
     setIsSearching(false);
-  }, [isAuthenticated]);
+  }, []);
 
   useEffect(() => {
     if (!checkingAuth) refreshQuickPicks();
@@ -418,7 +463,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const handleSearch = async (e: React.FormEvent, onUnauth?: () => void) => {
     e.preventDefault();
-    if (!isAuthenticated) {
+
+    // Memeriksa status auth saat menekan tombol cari
+    const isAuthNow = checkAuthStatus();
+
+    if (!isAuthNow) {
       if (onUnauth) onUnauth();
       return;
     }
