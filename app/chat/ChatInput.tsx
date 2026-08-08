@@ -74,7 +74,7 @@ export default function ChatInput({
 }) {
   const [showEmoji, setShowEmoji] = useState(false);
   const [isCredentialsChanged, setIsCredentialsChanged] = useState(false);
-  const isSubmittingRef = useRef(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (externalIsCredentialsChanged || isAccountChangedByAdmin) {
@@ -131,39 +131,34 @@ export default function ChatInput({
       text: (p.text || "") + emoji,
     }));
 
-    setTimeout(() => {
-      const inputEl = document.getElementById("chat-input") as HTMLTextAreaElement;
-      if (inputEl) {
-        inputEl.focus();
-      }
-    }, 0);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
   };
 
-  // EKSEKUSI PENGIRIMAN PRO
-  const handleProSubmit = (e: React.SyntheticEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (isCredentialsChanged || isSubmittingRef.current) return;
+  // FUNGSI SUBMIT KHUSUS STYLE WHATSAPP (KEYBOARD KETAHAN FOKUS)
+  const handleWASubmit = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-    isSubmittingRef.current = true;
+    if (isCredentialsChanged || (!input.text.trim() && !input.image)) return;
+
     setShowEmoji(false);
-
-    // Jalankan submit
     sendMsg(e as any);
 
-    // Lepas lock setelah jeda singkat
-    setTimeout(() => {
-      isSubmittingRef.current = false;
-    }, 400);
+    // KUNCI UTAMA WHATSAPP: PAKSA TEXTAREA TETAP FOCUS BIAR KEYBOARD GAK TURUN!
+    requestAnimationFrame(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    });
   };
 
   return (
     <InputThemeWrapper>
       {(styles) => (
         <div 
-          className="shrink-0 bg-[var(--card-bg)] z-[999999] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative pb-1 sm:pb-2 touch-none"
+          className="shrink-0 bg-[var(--card-bg)] z-[999999] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative pb-1 sm:pb-2"
         >
           <style>{`
             @keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.3); } 30% { transform: scale(1); } 45% { transform: scale(1.2); } }
@@ -224,7 +219,7 @@ export default function ChatInput({
             </div>
           )}
 
-          <form onSubmit={handleProSubmit} className="shrink-0 p-2 sm:p-3 bg-[var(--card-bg)] flex flex-col gap-1.5 w-full relative">
+          <form onSubmit={handleWASubmit} className="shrink-0 p-2 sm:p-3 bg-[var(--card-bg)] flex flex-col gap-1.5 w-full relative">
             <div className="flex items-center gap-1.5 sm:gap-2 w-full">
               <div className={`flex-1 text-[9px] h-[36px] sm:h-[40px] flex items-center min-w-0 ${styles.labelText}`}>
                 {showEmoji ? (
@@ -270,8 +265,7 @@ export default function ChatInput({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   setShowEmoji((prev) => !prev);
-                  const inputEl = document.getElementById("chat-input");
-                  if (inputEl) inputEl.focus();
+                  if (textareaRef.current) textareaRef.current.focus();
                 }}
                 disabled={isInputDisabled}
                 className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] transition-all active:scale-90 flex items-center justify-center shrink-0 ${showEmoji ? "text-[var(--accent)] border-[var(--accent)] bg-white/10" : styles.uploadIcon} ${isInputDisabled ? "opacity-30 pointer-events-none" : ""}`}
@@ -356,6 +350,7 @@ export default function ChatInput({
               <div className="relative flex-1 w-full min-w-0">
                 <textarea
                   id="chat-input"
+                  ref={textareaRef}
                   className={`w-full border p-2 sm:p-2.5 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm resize-none focus:outline-none min-h-[42px] sm:min-h-[48px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${input.blink ? styles.inputBlink : styles.input} ${isInputDisabled ? "opacity-30 cursor-not-allowed select-none" : ""}`}
                   value={isCredentialsChanged ? "" : input.text}
                   onChange={(e) => {
@@ -367,7 +362,7 @@ export default function ChatInput({
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      handleProSubmit(e as any);
+                      handleWASubmit(e as any);
                     }
                   }}
                   placeholder={
@@ -385,20 +380,15 @@ export default function ChatInput({
                 <div className={`absolute right-3 bottom-1.5 text-[9px] font-mono select-none bg-black/20 px-1 rounded ${styles.counter}`}>{200 - (input.text?.length || 0)}</div>
               </div>
 
-              {/* TOMBOL KIRIM DENGAN POINTER LOCK & EVENT CAPTURE (100% TIDAK TEMBUS KE TENTANG) */}
+              {/* TOMBOL KIRIM ALA WHATSAPP: PAKAI onMouseDown + e.preventDefault() BIAR KEYBOARD TETAP NGAMBANG */}
               <button 
                 type="button"
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleProSubmit(e);
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
+                onMouseDown={(e) => {
+                  e.preventDefault(); // Mencegah keyboard kehilangan fokus!
+                  handleWASubmit(e);
                 }}
                 disabled={isInputDisabled || input.sending || (!input.text.trim() && !input.image)} 
-                className={`shrink-0 w-[80px] sm:w-[100px] rounded-xl font-bold text-[11px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm cursor-pointer z-[999999] relative touch-none select-none ${isInputDisabled ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}
+                className={`shrink-0 w-[80px] sm:w-[100px] rounded-xl font-bold text-[11px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm cursor-pointer select-none ${isInputDisabled ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}
               >
                 {input.sending ? "..." : (interact?.editingMsg ? "Simpan" : "Kirim")}
               </button>
