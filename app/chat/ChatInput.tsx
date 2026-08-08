@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 const EMOJIS = [
@@ -74,6 +74,7 @@ export default function ChatInput({
 }) {
   const [showEmoji, setShowEmoji] = useState(false);
   const [isCredentialsChanged, setIsCredentialsChanged] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     if (externalIsCredentialsChanged || isAccountChangedByAdmin) {
@@ -138,18 +139,31 @@ export default function ChatInput({
     }, 0);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isCredentialsChanged) return;
+  // EKSEKUSI PENGIRIMAN PRO
+  const handleProSubmit = (e: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (isCredentialsChanged || isSubmittingRef.current) return;
+
+    isSubmittingRef.current = true;
     setShowEmoji(false);
-    sendMsg(e);
+
+    // Jalankan submit
+    sendMsg(e as any);
+
+    // Lepas lock setelah jeda singkat
+    setTimeout(() => {
+      isSubmittingRef.current = false;
+    }, 400);
   };
 
   return (
     <InputThemeWrapper>
       {(styles) => (
         <div 
-          className="shrink-0 bg-[var(--card-bg)] z-[100000] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative pb-1 sm:pb-2"
+          className="shrink-0 bg-[var(--card-bg)] z-[999999] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative pb-1 sm:pb-2 touch-none"
         >
           <style>{`
             @keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.3); } 30% { transform: scale(1); } 45% { transform: scale(1.2); } }
@@ -210,7 +224,7 @@ export default function ChatInput({
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="shrink-0 p-2 sm:p-3 bg-[var(--card-bg)] flex flex-col gap-1.5 w-full relative">
+          <form onSubmit={handleProSubmit} className="shrink-0 p-2 sm:p-3 bg-[var(--card-bg)] flex flex-col gap-1.5 w-full relative">
             <div className="flex items-center gap-1.5 sm:gap-2 w-full">
               <div className={`flex-1 text-[9px] h-[36px] sm:h-[40px] flex items-center min-w-0 ${styles.labelText}`}>
                 {showEmoji ? (
@@ -353,7 +367,7 @@ export default function ChatInput({
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      handleSubmit(e as any);
+                      handleProSubmit(e as any);
                     }
                   }}
                   placeholder={
@@ -371,11 +385,20 @@ export default function ChatInput({
                 <div className={`absolute right-3 bottom-1.5 text-[9px] font-mono select-none bg-black/20 px-1 rounded ${styles.counter}`}>{200 - (input.text?.length || 0)}</div>
               </div>
 
-              {/* TOMBOL KIRIM BERSIH */}
+              {/* TOMBOL KIRIM DENGAN POINTER LOCK & EVENT CAPTURE (100% TIDAK TEMBUS KE TENTANG) */}
               <button 
-                type="submit" 
+                type="button"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleProSubmit(e);
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
                 disabled={isInputDisabled || input.sending || (!input.text.trim() && !input.image)} 
-                className={`shrink-0 w-[80px] sm:w-[100px] rounded-xl font-bold text-[11px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm cursor-pointer select-none ${isInputDisabled ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}
+                className={`shrink-0 w-[80px] sm:w-[100px] rounded-xl font-bold text-[11px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm cursor-pointer z-[999999] relative touch-none select-none ${isInputDisabled ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}
               >
                 {input.sending ? "..." : (interact?.editingMsg ? "Simpan" : "Kirim")}
               </button>
