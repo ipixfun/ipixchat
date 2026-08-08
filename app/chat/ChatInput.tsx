@@ -114,28 +114,6 @@ export default function ChatInput({
     };
   }, [auth?.user]);
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.visualViewport) return;
-
-    const initialHeight = window.innerHeight;
-
-    const handleResize = () => {
-      if (!window.visualViewport) return;
-      const currentHeight = window.visualViewport.height;
-
-      if (currentHeight >= initialHeight - 120) {
-        setUi((p: any) => ({ ...p, inputFocus: false }));
-      } else {
-        setUi((p: any) => ({ ...p, inputFocus: true }));
-      }
-    };
-
-    window.visualViewport.addEventListener("resize", handleResize);
-    return () => {
-      window.visualViewport?.removeEventListener("resize", handleResize);
-    };
-  }, [setUi]);
-
   const selectedUser = usersInfo?.selPriv || usersInfo?.selectedUser;
 
   if (ui?.tab === "admin" && !selectedUser) {
@@ -171,7 +149,7 @@ export default function ChatInput({
     <InputThemeWrapper>
       {(styles) => (
         <div 
-          className="shrink-0 bg-[var(--card-bg)] z-[999999] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative pb-1 sm:pb-2 touch-manipulation"
+          className="shrink-0 bg-[var(--card-bg)] z-[100000] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative pb-1 sm:pb-2"
         >
           <style>{`
             @keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.3); } 30% { transform: scale(1); } 45% { transform: scale(1.2); } }
@@ -364,14 +342,6 @@ export default function ChatInput({
               <div className="relative flex-1 w-full min-w-0">
                 <textarea
                   id="chat-input"
-                  onFocus={() => {
-                    setUi((p: any) => ({ ...p, inputFocus: true }));
-                  }}
-                  onBlur={() => {
-                    setTimeout(() => {
-                      setUi((p: any) => ({ ...p, inputFocus: false }));
-                    }, 150);
-                  }}
                   className={`w-full border p-2 sm:p-2.5 rounded-xl px-3 sm:px-4 pb-5 sm:pb-6 text-sm resize-none focus:outline-none min-h-[42px] sm:min-h-[48px] max-h-[100px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${input.blink ? styles.inputBlink : styles.input} ${isInputDisabled ? "opacity-30 cursor-not-allowed select-none" : ""}`}
                   value={isCredentialsChanged ? "" : input.text}
                   onChange={(e) => {
@@ -401,16 +371,11 @@ export default function ChatInput({
                 <div className={`absolute right-3 bottom-1.5 text-[9px] font-mono select-none bg-black/20 px-1 rounded ${styles.counter}`}>{200 - (input.text?.length || 0)}</div>
               </div>
 
-              {/* TOMBOL KIRIM AMAN TANPA DISRUPSI EVENT SENTUHAN */}
+              {/* TOMBOL KIRIM BERSIH */}
               <button 
-                type="button" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleSubmit(e);
-                }}
+                type="submit" 
                 disabled={isInputDisabled || input.sending || (!input.text.trim() && !input.image)} 
-                className={`shrink-0 w-[80px] sm:w-[100px] rounded-xl font-bold text-[11px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm cursor-pointer z-[999999] relative touch-manipulation select-none ${isInputDisabled ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}
+                className={`shrink-0 w-[80px] sm:w-[100px] rounded-xl font-bold text-[11px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm cursor-pointer select-none ${isInputDisabled ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}
               >
                 {input.sending ? "..." : (interact?.editingMsg ? "Simpan" : "Kirim")}
               </button>
