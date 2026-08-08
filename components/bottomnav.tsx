@@ -10,33 +10,55 @@ interface BottomNavProps {
 
 export default function BottomNav({ isAuth, handleLogout }: BottomNavProps) {
   const pathname = usePathname();
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
-    // Deteksi keyboard HP buka/tutup menggunakan VisualViewport
-    const handleResize = () => {
-      if (window.visualViewport) {
-        // Jika tinggi layar berkurang > 150px, berarti keyboard sedang terbuka
-        const isKeyboard = window.innerHeight - window.visualViewport.height > 150;
-        setIsKeyboardOpen(isKeyboard);
+    // Sembunyikan BottomNav secara INSTAN jika ada input/textarea yang sedang di-focus di HP
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
+      ) {
+        setIsFocused(true);
       }
     };
 
+    const handleFocusOut = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
+      ) {
+        setIsFocused(false);
+      }
+    };
+
+    // Deteksi juga perubahan ukuran viewport (Keyboard HP)
+    const handleResize = () => {
+      if (window.visualViewport) {
+        const isKeyboard = window.innerHeight - window.visualViewport.height > 150;
+        if (isKeyboard) setIsFocused(true);
+      }
+    };
+
+    document.addEventListener("focusin", handleFocusIn);
+    document.addEventListener("focusout", handleFocusOut);
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", handleResize);
     }
-    window.addEventListener("resize", handleResize);
 
     return () => {
+      document.removeEventListener("focusin", handleFocusIn);
+      document.removeEventListener("focusout", handleFocusOut);
       if (window.visualViewport) {
         window.visualViewport.removeEventListener("resize", handleResize);
       }
-      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
-  // Jika keyboard sedang terbuka, jangan render BottomNav sama sekali
-  if (isKeyboardOpen) return null;
+  // Kalo keyboard naik / input di-focus, sembunyikan total
+  if (isFocused) return null;
 
   const links = [
     {

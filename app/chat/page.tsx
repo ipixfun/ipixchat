@@ -184,8 +184,8 @@ export default function Home() {
         )}
       </div>
 
-      {/* CHAT INPUT CONTAINER */}
-      <div className={`shrink-0 w-full flex flex-col z-[90000] ${!ui?.inputFocus ? "pb-[60px] sm:pb-[66px]" : "pb-0"}`}>
+      {/* CHAT INPUT CONTAINER: PADDING BOTTOM DIBUAT DINAMIS */}
+      <div className="chat-input-wrapper shrink-0 w-full flex flex-col z-[90000] pb-[60px] sm:pb-[66px]">
         {currentHash !== "#block" && auth.isAuth && (
           <ChatInput 
             input={input} 
@@ -209,7 +209,16 @@ export default function Home() {
         )}
       </div>
 
-      {/* RENDER BOTTOMNAV (OTOMATIS HILANG PAS KEYBOARD TERBUKA) */}
+      <style jsx global>{`
+        div:has(textarea:focus) .chat-input-wrapper,
+        div:has(input:focus) .chat-input-wrapper,
+        .chat-input-wrapper:has(textarea:focus),
+        .chat-input-wrapper:has(input:focus) {
+          padding-bottom: 0px !important;
+        }
+      `}</style>
+
+      {/* RENDER BOTTOMNAV NATIVE EVENT-LISTENED */}
       <BottomNav isAuth={auth.isAuth} handleLogout={handleLogout} />
 
       {alertModal.isOpen && (
