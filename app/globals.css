@@ -202,16 +202,18 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent);
 }
-/* MATIKAN TOTAL BOTTOMNAV DAN PADDING CHAT KETIKA MANAPUN INPUT/TEXTAREA DIFOKUSKAN (KEYBOARD HP NAIK) */
-body:has(textarea:focus) .bottom-nav-bar,
-body:has(input:focus) .bottom-nav-bar {
+
+/* ============================================
+   KHUSUS CHAT INPUT SAJA
+   ============================================ */
+/* BottomNav HANYA sembunyi jika textarea #chat-input difokuskan (Ngetik Chat) */
+body:has(#chat-input:focus) .bottom-nav-bar {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
 }
 
-body:has(textarea:focus) .chat-input-wrapper,
-body:has(input:focus) .chat-input-wrapper {
+body:has(#chat-input:focus) .chat-input-wrapper {
   padding-bottom: 0px !important;
 }
