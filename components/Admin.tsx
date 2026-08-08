@@ -92,6 +92,37 @@ export default function Admin({
     });
   };
 
+  // Helper untuk format pesan terakhir (termasuk deteksi pesan gambar)
+  const formatLastMessage = (user: any, isCleared: boolean, totalMsgs: number) => {
+    if (isCleared) return "-";
+    const msg = user.last_message;
+
+    if (msg === "___DELETED___") return "(Pesan dihapus)";
+
+    // Jika pesan string kosong/null tapi total pesan user > 0, anggap sebagai gambar
+    if ((!msg || msg.trim() === "") && totalMsgs > 0) {
+      return "📷 [Gambar]";
+    }
+
+    if (msg) {
+      const lower = msg.toLowerCase();
+      const isUrlOrImage = 
+        lower.startsWith("http://") || 
+        lower.startsWith("https://") || 
+        lower.startsWith("data:image") ||
+        lower.includes("supabase.co/storage") ||
+        /\.(jpg|jpeg|png|webp|gif)$/i.test(lower) ||
+        msg.includes("[Gambar]");
+
+      if (isUrlOrImage) {
+        return "📷 [Gambar]";
+      }
+      return msg;
+    }
+
+    return "(Belum ada pesan)";
+  };
+
   useEffect(() => {
     setReadBaselines((prev) => {
       let hasChanges = false;
@@ -213,6 +244,15 @@ export default function Admin({
   return (
     <div className="flex flex-col min-h-full p-2.5 gap-3 relative pb-32">
       <style dangerouslySetInnerHTML={{ __html: `
+        /* Sembunyikan Player MP3 Khusus di Tampilan Admin */
+        audio, 
+        .audio-player, 
+        .mp3-player, 
+        [class*="player"], 
+        [class*="audio"] {
+          display: none !important;
+        }
+
         @keyframes shakeGlow {
           0%, 100% { transform: scale(1); box-shadow: 0 0 0px transparent; }
           10%, 30%, 50%, 70%, 90% { transform: scale(1.02) translateX(-4px); }
@@ -249,11 +289,9 @@ export default function Admin({
               : (baseline !== undefined ? Math.max(0, totalUserMsgs - baseline) : (user.count || 0));
             
             const hasUnread = displayCount > 0;
-            const lastMsg = isCleared 
-              ? "-" 
-              : (user.last_message === "___DELETED___" 
-                  ? "(Pesan dihapus)" 
-                  : user.last_message || "(Belum ada pesan)");
+            
+            // Menggunakan helper untuk format pesan terakhir
+            const lastMsg = formatLastMessage(user, isCleared, totalUserMsgs);
 
             return (
               <div 
@@ -425,9 +463,10 @@ export default function Admin({
               </span>
             </button>
 
+            {/* TOMBOL REFRESH MEMUAT ULANG SELURUH LAYAR */}
             <button
               type="button"
-              onClick={() => onRefresh ? onRefresh() : window.location.reload()}
+              onClick={() => window.location.reload()}
               className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-black text-[11px] px-2.5 py-1.5 rounded-lg shadow-xs transition-all tracking-wider uppercase cursor-pointer whitespace-nowrap"
             >
               REFRESH
