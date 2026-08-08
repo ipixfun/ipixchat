@@ -162,7 +162,6 @@ export default function ChatInput({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    e.stopPropagation();
     if (isCredentialsChanged) return;
     setShowEmoji(false);
     sendMsg(e);
@@ -172,7 +171,7 @@ export default function ChatInput({
     <InputThemeWrapper>
       {(styles) => (
         <div 
-          className="shrink-0 bg-[var(--card-bg)] z-[100000] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative pb-1 sm:pb-2"
+          className="shrink-0 bg-[var(--card-bg)] z-[999999] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative pb-1 sm:pb-2 touch-manipulation"
         >
           <style>{`
             @keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.3); } 30% { transform: scale(1); } 45% { transform: scale(1.2); } }
@@ -402,26 +401,16 @@ export default function ChatInput({
                 <div className={`absolute right-3 bottom-1.5 text-[9px] font-mono select-none bg-black/20 px-1 rounded ${styles.counter}`}>{200 - (input.text?.length || 0)}</div>
               </div>
 
-              {/* TOMBOL KIRIM DILENGKAPI STOPPROPAGATION BIAR GAK TEMBUS KE BOTTOMNAV */}
+              {/* TOMBOL KIRIM AMAN TANPA DISRUPSI EVENT SENTUHAN */}
               <button 
-                type="submit" 
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleSubmit(e);
-                }}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleSubmit(e);
-                }}
+                type="button" 
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleSubmit(e);
                 }}
                 disabled={isInputDisabled || input.sending || (!input.text.trim() && !input.image)} 
-                className={`shrink-0 w-[80px] sm:w-[100px] rounded-xl font-bold text-[11px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm cursor-pointer z-[100005] relative ${isInputDisabled ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}
+                className={`shrink-0 w-[80px] sm:w-[100px] rounded-xl font-bold text-[11px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm cursor-pointer z-[999999] relative touch-manipulation select-none ${isInputDisabled ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}
               >
                 {input.sending ? "..." : (interact?.editingMsg ? "Simpan" : "Kirim")}
               </button>
