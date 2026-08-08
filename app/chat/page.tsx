@@ -39,7 +39,7 @@ export default function Home() {
   const handleLogout = async () => { await supabase.auth.signOut(); const remUser = localStorage.getItem("remembered_username"), remPin = localStorage.getItem("remembered_pin"); localStorage.clear(); sessionStorage.clear(); localStorage.setItem("hide_register", "true"); localStorage.setItem("has_ever_logged_in", "true"); if (remUser) localStorage.setItem("remembered_username", remUser); if (remPin) localStorage.setItem("remembered_pin", remPin); setAuth({ isAuth: false, isExist: false, user: "", adminEmail: "", adminPass: "", pin: "", umur: "", berat: "" }); setAccountChangedByAdmin(false); window.location.reload(); };
 
   const fetchData = useCallback(async () => {
-    const savedUser = typeof window !== "undefined" ? (localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username") || sessionStorage.getItem("active_username")) : ""; const savedPin = typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || sessionStorage.getItem("saved_pin")) : ""; const targetUser = auth.user || savedUser; if (!auth.isAuth || !targetUser) return;
+    const savedUser = typeof window !== "undefined" ? (localStorage.getItem("remembered_username") || localStorage.getItem("active_username") || localStorage.getItem("username") || sessionStorage.getItem("active_username")) : ""; const savedPin = typeof window !== "undefined" ? (localStorage.getItem("remembered_pin") || localStorage.getItem("saved_pin") || sessionStorage.getItem("saved_pin") || localStorage.getItem("user_pin") || localStorage.getItem("pin") || "") : ""; const targetUser = auth.user || savedUser; if (!auth.isAuth || !targetUser) return;
     try {
       if (targetUser !== "Admin●ipix.my.id") { 
         const cleanTargetUser = targetUser.split("●")[0]; 
@@ -184,7 +184,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* CHAT INPUT CONTAINER: PADDING BOTTOM DINAMIS SESUAI TINGGI BOTTOMNAV */}
+      {/* CHAT INPUT CONTAINER */}
       <div className={`shrink-0 w-full flex flex-col z-[90000] ${!ui?.inputFocus ? "pb-[60px] sm:pb-[66px]" : "pb-0"}`}>
         {currentHash !== "#block" && auth.isAuth && (
           <ChatInput 
@@ -209,10 +209,8 @@ export default function Home() {
         )}
       </div>
 
-      {/* RENDER BOTTOMNAV FIXED HANYA SAAT KEYBOARD/INPUT TIDAK FOCUS */}
-      {!ui?.inputFocus && (
-        <BottomNav isAuth={auth.isAuth} handleLogout={handleLogout} />
-      )}
+      {/* RENDER BOTTOMNAV (OTOMATIS HILANG PAS KEYBOARD TERBUKA) */}
+      <BottomNav isAuth={auth.isAuth} handleLogout={handleLogout} />
 
       {alertModal.isOpen && (
         <div className="fixed inset-0 z-[100000] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn select-none" onClick={() => setAlertModal((p) => ({ ...p, isOpen: false }))}>
