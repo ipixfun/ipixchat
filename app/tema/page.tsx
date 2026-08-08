@@ -263,7 +263,6 @@ export default function TemaPage() {
   const [showToast, setShowToast] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>("Tema Berhasil Diterapkan!");
 
-  // LOGIKA STATUS AUTH IDENTIK DENGAN AUDIOCONTEXT & MP3 PAGE
   const checkAuthStatus = useCallback(() => {
     try {
       if (typeof window === "undefined") return false;
@@ -331,7 +330,6 @@ export default function TemaPage() {
 
     checkAuthStatus();
 
-    // REAL-TIME EVENT LISTENER (Buka Kunci Instan Tanpa Refresh)
     const handleAuthChange = () => {
       checkAuthStatus();
     };
@@ -447,7 +445,7 @@ export default function TemaPage() {
         }
       `}</style>
 
-      {/* POP-UP DINAMIS TENTU PRESISI DI TENGAH */}
+      {/* POP-UP TOAST NOTIFIKASI */}
       {showToast && (
         <div className="fixed top-4 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
           <div className="pointer-events-auto animate-toast-pop flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-xl border border-[var(--accent)] bg-[color-mix(in_srgb,var(--card-bg)_92%,transparent)] text-[var(--foreground-heading)] w-full max-w-xs sm:max-w-sm">
@@ -468,6 +466,7 @@ export default function TemaPage() {
 
       <div className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px] transition-colors duration-300 bg-[var(--background)] text-[var(--foreground)]">
         
+        {/* HEADER */}
         <div className="sticky top-0 z-20 p-3 sm:p-4 backdrop-blur-xl border-b transition-colors duration-300 bg-[color-mix(in_srgb,var(--background)_80%,transparent)] border-[var(--card-border)]">
           <div className="flex items-center justify-between">
             <h1 className="text-base sm:text-lg font-semibold tracking-tight" style={{ color: "var(--accent)" }}>
@@ -477,33 +476,9 @@ export default function TemaPage() {
           </div>
         </div>
 
-        {/* BANNER AJAKAN REGISTRASI (SAMA DENGAN PAGE MP3) */}
-        {!loadingAuth && !isLoggedIn && (
-          <div className="w-full max-w-2xl px-3 sm:px-4 mt-3">
-            <div
-              onClick={() => router.push('/chat')}
-              className="p-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 flex items-center justify-between cursor-pointer hover:bg-rose-500/20 transition active:scale-[0.99]"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 shrink-0 flex items-center justify-center">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-rose-400">Akses Terbatas</p>
-                  <p className="text-[10px] opacity-70">Daftar sekarang untuk membuka kustomisasi tema & warna lanjutan.</p>
-                </div>
-              </div>
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-rose-500 text-white shrink-0">
-                Daftar
-              </span>
-            </div>
-          </div>
-        )}
-
         <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-5">
           
+          {/* KUSTOMISASI LANJUTAN */}
           <div 
             className="relative rounded-xl border transition-all duration-300 overflow-hidden shadow-sm"
             style={{ backgroundColor: "var(--card-bg)", borderColor: activeThemeId === "custom" ? "var(--accent)" : "var(--card-border)" }}
@@ -787,7 +762,7 @@ export default function TemaPage() {
 
             </div>
 
-            {/* OVERLAY AKSES TERBATAS SAAT UNATMENTICATED (KLIK LANGSUNG PUSH KE /CHAT) */}
+            {/* SATU-SATUNYA BANNER DAFTAR/LOG IN (OVERLAY UNTUK KUSTOMISASI LANJUTAN) */}
             {!isLoggedIn && !loadingAuth && (
               <div 
                 onClick={() => router.push("/chat")}
@@ -816,6 +791,7 @@ export default function TemaPage() {
             )}
           </div>
 
+          {/* PRESET TEMA CEPAT */}
           <div>
             <div className="flex items-center justify-between mb-3 px-1 gap-2">
               <h3 className="font-semibold text-[13px]" style={{ color: "var(--foreground-heading)" }}>
