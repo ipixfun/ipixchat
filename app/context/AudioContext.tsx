@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback, RefObject } from 'react';
+import { usePathname } from 'next/navigation'; // <-- 1. IMPORT usePathname
 import { KeepAwake } from '@capacitor-community/keep-awake';
 import { MediaSession } from '@jofr/capacitor-media-session';
 
@@ -13,11 +14,20 @@ declare global {
   }
 }
 
+export const notifyAuthChange = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('auth-change'));
+    window.dispatchEvent(new Event('user-logged-in'));
+    window.dispatchEvent(new Event('storage'));
+  }
+};
+
 type PlayMode = 'normal' | 'repeat-one' | 'repeat-all' | 'shuffle';
 
 interface AudioContextType {
   isAuthenticated: boolean;
   checkingAuth: boolean;
+  checkAuthStatus: () => boolean;
   currentSong: SongItem | null;
   isPlaying: boolean;
   playMode: PlayMode;
@@ -55,6 +65,8 @@ interface AudioContextType {
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const pathname = usePathname(); // <-- 2. AMBIL PATHNAME SAAT INI
+
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
 
@@ -82,7 +94,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const playerRef = useRef<any>(null);
   const isSeeking = useRef(false);
   const intervalRef = useRef<any>(null);
-  
+
   const lyricsContainerRef = useRef<HTMLDivElement>(null) as RefObject<HTMLDivElement>;
   const searchInputRef = useRef<HTMLInputElement>(null) as RefObject<HTMLInputElement>;
 
@@ -115,6 +127,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setIsAuthenticated(isAuth);
       return isAuth;
     } catch (err) {
+      setIsAuthenticated(false);
       return false;
     } finally {
       setCheckingAuth(false);
@@ -131,13 +144,16 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       'Indie Indonesia Terbaru',
     ];
     const randomKeyword = keywords[Math.floor(Math.random() * keywords.length)];
-    
+
     const isAuthLocal =
       localStorage.getItem('is_auth') === 'true' ||
       Boolean(
         localStorage.getItem('remembered_username') ||
         localStorage.getItem('active_username') ||
-        localStorage.getItem('username')
+        localStorage.getItem('username') ||
+        localStorage.getItem('user') ||
+        sessionStorage.getItem('active_username') ||
+        sessionStorage.getItem('username')
       );
 
     const songs = await searchSongs(randomKeyword, isAuthLocal ? 20 : 5);
@@ -145,6 +161,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsSearching(false);
   }, []);
 
+  // DETEKSI AUTH REAKSIF (Termasuk saat perpindahan halaman Next.js / route change)
   useEffect(() => {
     checkAuthStatus();
 
@@ -157,14 +174,18 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     window.addEventListener('storage', handleStorageOrAuthChange);
     window.addEventListener('user-logged-in', handleStorageOrAuthChange);
+    window.addEventListener('auth-change', handleStorageOrAuthChange);
     window.addEventListener('focus', handleStorageOrAuthChange);
+    document.addEventListener('visibilitychange', handleStorageOrAuthChange);
 
     return () => {
       window.removeEventListener('storage', handleStorageOrAuthChange);
       window.removeEventListener('user-logged-in', handleStorageOrAuthChange);
+      window.removeEventListener('auth-change', handleStorageOrAuthChange);
       window.removeEventListener('focus', handleStorageOrAuthChange);
+      document.removeEventListener('visibilitychange', handleStorageOrAuthChange);
     };
-  }, [checkAuthStatus, refreshQuickPicks]);
+  }, [pathname, checkAuthStatus, refreshQuickPicks]); // <-- 3. MASUKKAN pathname DI DEPENDENCY
 
   useEffect(() => {
     if (!window.YT) {
@@ -227,7 +248,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (intervalRef.current) clearInterval(intervalRef.current);
   };
 
-  // KODE PERBAIKAN: playbackRate selalu bernilai 1 (TIDAK BOLEH 0)
   const seekToTime = useCallback((timeSec: number) => {
     if (playerRef.current) {
       playerRef.current.seekTo(timeSec, true);
@@ -249,7 +269,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
-  // KODE PERBAIKAN: playbackRate diubah dari `isPlaying ? 1 : 0` menjadi `1`
   const syncMediaSessionState = useCallback(() => {
     if (!playerRef.current) return;
     try {
@@ -527,6 +546,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       value={{
         isAuthenticated,
         checkingAuth,
+        checkAuthStatus,
         currentSong,
         isPlaying,
         playMode,

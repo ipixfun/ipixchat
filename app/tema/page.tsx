@@ -1,6 +1,6 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import Link from "next/link";
+import React, { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import BottomNav from "../../components/bottomnav";
 import { useTheme } from "../context/ThemeContext";
 
@@ -220,6 +220,7 @@ const ColorInput = ({
 };
 
 export default function TemaPage() {
+  const router = useRouter();
   const { theme, setTheme, customColors, setCustomColors } = useTheme();
   const [isMounted, setIsMounted] = useState<boolean>(false);
   
@@ -262,6 +263,47 @@ export default function TemaPage() {
   const [showToast, setShowToast] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>("Tema Berhasil Diterapkan!");
 
+  // LOGIKA STATUS AUTH IDENTIK DENGAN AUDIOCONTEXT & MP3 PAGE
+  const checkAuthStatus = useCallback(() => {
+    try {
+      if (typeof window === "undefined") return false;
+
+      const isAuthFlag =
+        localStorage.getItem("is_auth") === "true" ||
+        sessionStorage.getItem("is_auth") === "true";
+
+      const localUser =
+        localStorage.getItem("remembered_username") ||
+        localStorage.getItem("active_username") ||
+        localStorage.getItem("username") ||
+        localStorage.getItem("user") ||
+        sessionStorage.getItem("active_username") ||
+        sessionStorage.getItem("username");
+
+      const isAuth = Boolean(isAuthFlag || localUser);
+      setIsLoggedIn(isAuth);
+
+      const isAdminFlag =
+        localStorage.getItem("admin") === "true" ||
+        localStorage.getItem("role") === "admin" ||
+        (localUser && String(localUser).includes('"role":"admin"'));
+      setIsAdmin(Boolean(isAdminFlag));
+
+      if (!isAuth) {
+        setIsThemeCollapsed(true);
+        setIsWaveCollapsed(true);
+        setIsChatCollapsed(true);
+      }
+
+      return isAuth;
+    } catch (err) {
+      setIsLoggedIn(false);
+      return false;
+    } finally {
+      setLoadingAuth(false);
+    }
+  }, []);
+
   useEffect(() => {
     setIsMounted(true);
     
@@ -287,39 +329,27 @@ export default function TemaPage() {
       setDraftCustomColors(customColors);
     }
 
-    const checkAuth = () => {
-      try {
-        const commonKeys = ["user", "username", "admin", "session", "token", "auth", "role", "sb-access-token", "supabase.auth.token"];
-        let foundLogin = false;
-        let foundAdmin = false;
+    checkAuthStatus();
 
-        for (const key of commonKeys) {
-          const val = localStorage.getItem(key);
-          if (val && val !== "null" && val !== "undefined" && val !== "{}") {
-            if (key !== "role" && key !== "admin") foundLogin = true;
-            if (key === "admin" && val === "true") foundAdmin = true;
-            if (key === "role" && val === "admin") foundAdmin = true;
-            if (val.includes('"role":"admin"') || val.includes('"is_admin":true') || val.includes('"isAdmin":true')) foundAdmin = true;
-          }
-        }
-
-        setIsLoggedIn(foundLogin);
-        setIsAdmin(foundAdmin);
-
-        if (!foundLogin) {
-          setIsThemeCollapsed(true);
-          setIsWaveCollapsed(true);
-          setIsChatCollapsed(true);
-        }
-      } catch (err) {
-        console.error("Auth check failed:", err);
-      } finally {
-        setLoadingAuth(false);
-      }
+    // REAL-TIME EVENT LISTENER (Buka Kunci Instan Tanpa Refresh)
+    const handleAuthChange = () => {
+      checkAuthStatus();
     };
 
-    checkAuth();
-  }, [customColors]);
+    window.addEventListener("storage", handleAuthChange);
+    window.addEventListener("user-logged-in", handleAuthChange);
+    window.addEventListener("auth-change", handleAuthChange);
+    window.addEventListener("focus", handleAuthChange);
+    document.addEventListener("visibilitychange", handleAuthChange);
+
+    return () => {
+      window.removeEventListener("storage", handleAuthChange);
+      window.removeEventListener("user-logged-in", handleAuthChange);
+      window.removeEventListener("auth-change", handleAuthChange);
+      window.removeEventListener("focus", handleAuthChange);
+      document.removeEventListener("visibilitychange", handleAuthChange);
+    };
+  }, [customColors, checkAuthStatus]);
 
   const activeThemeId = isMounted ? theme : "dark";
 
@@ -328,6 +358,7 @@ export default function TemaPage() {
   };
 
   const handleWaveToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isLoggedIn) return router.push('/chat');
     const disabledState = !e.target.checked;
     setIsWaveDisabled(disabledState);
     localStorage.setItem("global_disable_wave", disabledState.toString());
@@ -335,6 +366,7 @@ export default function TemaPage() {
   };
 
   const handleCustomWaveToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isLoggedIn) return router.push('/chat');
     setIsCustomWaveEnabled(e.target.checked);
   };
 
@@ -347,6 +379,8 @@ export default function TemaPage() {
   };
 
   const handleApplyCustom = () => {
+    if (!isLoggedIn) return router.push('/chat');
+
     localStorage.setItem("global_enable_custom_ui", isCustomUiEnabled.toString());
     localStorage.setItem("global_enable_custom_chat", isCustomChatEnabled.toString());
     localStorage.setItem("global_disable_wave", isWaveDisabled.toString());
@@ -442,6 +476,31 @@ export default function TemaPage() {
             {isAdmin && <span className="text-[9px] px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold tracking-widest">ADMIN</span>}
           </div>
         </div>
+
+        {/* BANNER AJAKAN REGISTRASI (SAMA DENGAN PAGE MP3) */}
+        {!loadingAuth && !isLoggedIn && (
+          <div className="w-full max-w-2xl px-3 sm:px-4 mt-3">
+            <div
+              onClick={() => router.push('/chat')}
+              className="p-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 flex items-center justify-between cursor-pointer hover:bg-rose-500/20 transition active:scale-[0.99]"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 shrink-0 flex items-center justify-center">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-rose-400">Akses Terbatas</p>
+                  <p className="text-[10px] opacity-70">Daftar sekarang untuk membuka kustomisasi tema & warna lanjutan.</p>
+                </div>
+              </div>
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-rose-500 text-white shrink-0">
+                Daftar
+              </span>
+            </div>
+          </div>
+        )}
 
         <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-5">
           
@@ -728,29 +787,30 @@ export default function TemaPage() {
 
             </div>
 
+            {/* OVERLAY AKSES TERBATAS SAAT UNATMENTICATED (KLIK LANGSUNG PUSH KE /CHAT) */}
             {!isLoggedIn && !loadingAuth && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 backdrop-blur-[2px]" style={{ backgroundColor: "color-mix(in srgb, var(--background) 70%, transparent)" }}>
-                <div 
-                  className="text-center p-5 rounded-2xl border shadow-2xl max-w-[280px] w-full"
-                  style={{
-                    backgroundColor: "var(--card-bg)",
-                    borderColor: "var(--card-border)"
-                  }}
+              <div 
+                onClick={() => router.push("/chat")}
+                className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 backdrop-blur-[2px] cursor-pointer" 
+                style={{ backgroundColor: "color-mix(in srgb, var(--background) 70%, transparent)" }}
+              >
+                <div
+                  className="p-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 flex items-center justify-between shadow-2xl max-w-[290px] w-full hover:bg-rose-500/20 transition active:scale-[0.99]"
                 >
-                  <h4 className="text-xs font-bold mb-2" style={{ color: "var(--foreground-heading)" }}>Akses Dibatasi</h4>
-                  <p className="text-[10px] mb-4 leading-relaxed opacity-70" style={{ color: "var(--foreground)" }}>
-                    Fitur racik warna lanjutan ini eksklusif hanya untuk member yang telah terdaftar.
-                  </p>
-                  <Link
-                    href="/"
-                    className="inline-flex w-full items-center justify-center px-4 py-2.5 text-[11px] font-bold rounded-lg transition-all active:scale-95 shadow-md"
-                    style={{
-                      backgroundColor: "var(--accent)",
-                      color: "var(--background)"
-                    }}
-                  >
-                    Masuk Sekarang
-                  </Link>
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 shrink-0 flex items-center justify-center">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-rose-400">Akses Terbatas</p>
+                      <p className="text-[10px] opacity-70">Daftar sekarang untuk kustom warna.</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-rose-500 text-white shrink-0">
+                    Daftar
+                  </span>
                 </div>
               </div>
             )}

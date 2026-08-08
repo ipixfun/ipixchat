@@ -82,7 +82,7 @@ export default function Mp3Page() {
             placeholder={
               isAuthenticated
                 ? 'Cari lagu, artis, atau album...'
-                : '🔒 Daftar/Login untuk mencari lagu...'
+                : 'Daftar / Login untuk mencari lagu...'
             }
             value={inputQuery}
             onChange={(e) => setInputQuery(e.target.value)}
@@ -96,8 +96,9 @@ export default function Mp3Page() {
               color: 'var(--foreground, #fff)',
             }}
           />
+          {/* SVG DINAMIS (Kaca Pembesar saat Auth / Gembok Terkunci saat Unauth) */}
           <svg
-            className="w-4 h-4 absolute left-3.5 opacity-70 pointer-events-none"
+            className="w-4 h-4 absolute left-3.5 opacity-70 pointer-events-none transition-all duration-300"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -112,15 +113,19 @@ export default function Mp3Page() {
         </form>
       </div>
 
-      {/* BANNER AJAKAN REGISTRASI */}
+      {/* BANNER AJAKAN REGISTRASI (SVG TERBUKA DINAMIS) */}
       {!checkingAuth && !isAuthenticated && (
         <div className="w-full max-w-md px-4 mt-3">
           <div
             onClick={() => router.push('/chat')}
-            className="p-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 flex items-center justify-between cursor-pointer hover:bg-rose-500/20 transition"
+            className="p-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 flex items-center justify-between cursor-pointer hover:bg-rose-500/20 transition active:scale-[0.99]"
           >
             <div className="flex items-center gap-2.5">
-              <span className="text-base">🔓</span>
+              <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 shrink-0 flex items-center justify-center">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                </svg>
+              </div>
               <div>
                 <p className="text-xs font-bold text-rose-400">Akses Terbatas</p>
                 <p className="text-[10px] opacity-70">Daftar sekarang untuk mencari & putar lagu tanpa batas.</p>
@@ -134,10 +139,10 @@ export default function Mp3Page() {
       )}
 
       <main className="w-full max-w-md px-4 flex flex-col gap-6 mt-4">
-        {/* HASIL PENCARIAN / PILIHAN CEAPAT */}
+        {/* HASIL PENCARIAN / PILIHAN CEPAT */}
         <section className="flex flex-col gap-3">
           <div className="flex justify-between items-center px-1">
-            <h2 className="text-lg font-extrabold tracking-tight" style={{ color: 'var(--foreground-heading, #fff)' }}>
+            <h2 className="text-lg font-extrabold tracking-tight flex items-center" style={{ color: 'var(--foreground-heading, #fff)' }}>
               {hasSearched ? 'Hasil Pencarian' : 'Pilihan Cepat'}
               {!isAuthenticated && <span className="text-xs font-normal opacity-50 ml-2">(Maks 5 Lagu)</span>}
             </h2>
@@ -358,7 +363,7 @@ export default function Mp3Page() {
         )}
       </AnimatePresence>
 
-      {/* MINI PLAYER (MELAYANG TEPAT DI ATAS BOTTOM NAV) */}
+      {/* MINI PLAYER */}
       <div className="fixed bottom-[64px] left-0 right-0 z-50 flex justify-center px-3 pointer-events-auto">
         <div
           className="w-full max-w-md border rounded-2xl px-3.5 py-2 shadow-2xl flex items-center justify-between backdrop-blur-xl transition-all duration-300"
@@ -416,8 +421,6 @@ export default function Mp3Page() {
           </div>
         </div>
       </div>
-
-      {/* BottomNav dipanggil oleh layout.tsx secara terpusat */}
     </div>
   );
 }
