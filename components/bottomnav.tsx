@@ -10,17 +10,17 @@ interface BottomNavProps {
 
 export default function BottomNav({ isAuth, handleLogout }: BottomNavProps) {
   const pathname = usePathname();
-  const [isFocused, setIsFocused] = useState(false);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
   useEffect(() => {
-    // Sembunyikan BottomNav secara INSTAN jika ada input/textarea yang sedang di-focus di HP
+    // Sembunyikan BottomNav secara instan ketika elemen input / textarea di-focus (HP)
     const handleFocusIn = (e: FocusEvent) => {
       const target = e.target as HTMLElement;
       if (
         target &&
         (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
       ) {
-        setIsFocused(true);
+        setIsKeyboardOpen(true);
       }
     };
 
@@ -30,15 +30,15 @@ export default function BottomNav({ isAuth, handleLogout }: BottomNavProps) {
         target &&
         (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
       ) {
-        setIsFocused(false);
+        setIsKeyboardOpen(false);
       }
     };
 
-    // Deteksi juga perubahan ukuran viewport (Keyboard HP)
+    // Deteksi resize viewport (Keyboard HP Android/Capacitor)
     const handleResize = () => {
       if (window.visualViewport) {
         const isKeyboard = window.innerHeight - window.visualViewport.height > 150;
-        if (isKeyboard) setIsFocused(true);
+        setIsKeyboardOpen(isKeyboard);
       }
     };
 
@@ -57,8 +57,8 @@ export default function BottomNav({ isAuth, handleLogout }: BottomNavProps) {
     };
   }, []);
 
-  // Kalo keyboard naik / input di-focus, sembunyikan total
-  if (isFocused) return null;
+  // Jika sedang ngetik / keyboard naik di HP, BottomNav tidak dirender
+  if (isKeyboardOpen) return null;
 
   const links = [
     {

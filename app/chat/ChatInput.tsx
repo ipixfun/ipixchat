@@ -333,6 +333,7 @@ export default function ChatInput({
                     <button
                       type="button"
                       id="btn-refresh-delete"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
                         if (hasInputReady || interact?.editingMsg) {
                           setInput((p: any) => ({
@@ -400,10 +401,19 @@ export default function ChatInput({
                 <div className={`absolute right-3 bottom-1.5 text-[9px] font-mono select-none bg-black/20 px-1 rounded ${styles.counter}`}>{200 - (input.text?.length || 0)}</div>
               </div>
 
+              {/* TOMBOL KIRIM TERUBAH DENGAN e.preventDefault() ONTOUCHSTART & ONMOUSEDOWN */}
               <button 
                 type="submit" 
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }}
                 disabled={isInputDisabled || input.sending || (!input.text.trim() && !input.image)} 
-                className={`shrink-0 w-[80px] sm:w-[100px] rounded-xl font-bold text-[11px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm ${isInputDisabled ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}
+                className={`shrink-0 w-[80px] sm:w-[100px] rounded-xl font-bold text-[11px] sm:text-xs active:scale-95 disabled:opacity-50 flex items-center justify-center shadow-sm cursor-pointer ${isInputDisabled ? "bg-white/10 text-white/30 cursor-not-allowed" : styles.button}`}
               >
                 {input.sending ? "..." : (interact?.editingMsg ? "Simpan" : "Kirim")}
               </button>

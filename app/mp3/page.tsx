@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAudio } from '@/app/context/AudioContext';
 import { SongItem, SyncedLine, chunkArray } from './yt';
-import BottomNav from '../../components/bottomnav';
 
 export default function Mp3Page() {
   const router = useRouter();
@@ -359,7 +358,7 @@ export default function Mp3Page() {
         )}
       </AnimatePresence>
 
-      {/* MINI PLAYER (MELAYANG TEPAT DI ATAS BOTTOM NAV: bottom-[64px]) */}
+      {/* MINI PLAYER (MELAYANG TEPAT DI ATAS BOTTOM NAV) */}
       <div className="fixed bottom-[64px] left-0 right-0 z-50 flex justify-center px-3 pointer-events-auto">
         <div
           className="w-full max-w-md border rounded-2xl px-3.5 py-2 shadow-2xl flex items-center justify-between backdrop-blur-xl transition-all duration-300"
@@ -418,8 +417,7 @@ export default function Mp3Page() {
         </div>
       </div>
 
-      {/* COMPONENT BOTTOM NAV TEPAT DI BAGIAN BAWAH */}
-      <BottomNav isAuth={isAuthenticated} />
+      {/* BottomNav dipanggil oleh layout.tsx secara terpusat */}
     </div>
   );
 }

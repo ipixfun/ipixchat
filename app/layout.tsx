@@ -33,14 +33,16 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="antialiased">
+      <body className="antialiased overflow-hidden">
         <ThemeProvider>
           <AudioProvider>
-            <div className="pb-20 min-h-screen">
-              {children}
+            <div className="w-full h-dvh flex flex-col justify-between overflow-hidden relative">
+              <main className="flex-1 w-full min-h-0 overflow-y-auto">
+                {children}
+              </main>
+              <GlobalMiniPlayer />
+              <BottomNav />
             </div>
-            <GlobalMiniPlayer />
-            <BottomNav />
           </AudioProvider>
         </ThemeProvider>
       </body>

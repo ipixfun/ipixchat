@@ -10,7 +10,6 @@ import ChatInput from "./ChatInput";
 import Head from "./Head";
 import { MessageItem, PinnedMessage, ImagePopupModal } from "./MessageItem";
 import Loading from "../loading";
-import BottomNav from "../../components/bottomnav";
 import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 
@@ -184,7 +183,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* CHAT INPUT CONTAINER: PADDING BOTTOM DIBUAT DINAMIS */}
+      {/* CHAT INPUT CONTAINER: PADDING BOTTOM BERJARAK DARI BOTTOMNAV SAAT TIDAK FOCUS */}
       <div className="chat-input-wrapper shrink-0 w-full flex flex-col z-[90000] pb-[60px] sm:pb-[66px]">
         {currentHash !== "#block" && auth.isAuth && (
           <ChatInput 
@@ -210,16 +209,12 @@ export default function Home() {
       </div>
 
       <style jsx global>{`
-        div:has(textarea:focus) .chat-input-wrapper,
-        div:has(input:focus) .chat-input-wrapper,
-        .chat-input-wrapper:has(textarea:focus),
-        .chat-input-wrapper:has(input:focus) {
+        /* Hilangkan padding bawah HANYA saat input/textarea sedang fokus (Keyboard HP aktif) */
+        body:has(textarea:focus) .chat-input-wrapper,
+        body:has(input:focus) .chat-input-wrapper {
           padding-bottom: 0px !important;
         }
       `}</style>
-
-      {/* RENDER BOTTOMNAV NATIVE EVENT-LISTENED */}
-      <BottomNav isAuth={auth.isAuth} handleLogout={handleLogout} />
 
       {alertModal.isOpen && (
         <div className="fixed inset-0 z-[100000] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn select-none" onClick={() => setAlertModal((p) => ({ ...p, isOpen: false }))}>
