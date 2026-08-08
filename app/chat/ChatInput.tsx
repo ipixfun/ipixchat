@@ -169,8 +169,8 @@ export default function ChatInput({
     <InputThemeWrapper>
       {(styles) => (
         <div 
-          className={`shrink-0 bg-[var(--card-bg)] z-[100] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative ${
-            ui?.inputFocus ? "mb-0" : "mb-16"
+          className={`shrink-0 bg-[var(--card-bg)] z-[100] w-full flex flex-col shadow-[0_-4px_15px_rgba(0,0,0,0.2)] border-t border-[var(--card-border)] relative transition-all duration-75 ${
+            ui?.inputFocus ? "pb-1 sm:pb-2" : "pb-16 sm:pb-16"
           }`}
         >
           <style>{`
