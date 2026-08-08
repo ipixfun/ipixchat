@@ -84,6 +84,29 @@ export default function Admin({
     return !name.includes("admin") && !email.includes("admin");
   });
 
+  // LOGIKA SORTING: User dengan pesan baru / waktu aktif terbaru akan NAIK KE ATAS
+  const sortedUsers = [...filteredUsers].sort((a: any, b: any) => {
+    const aCleared = clearedUserMsgs[a.username];
+    const aTotalUser = aCleared ? 0 : (a.totalUserMsgs || 0);
+    const aBaseline = readBaselines[a.username];
+    const aUnread = aCleared ? 0 : (aBaseline !== undefined ? Math.max(0, aTotalUser - aBaseline) : (a.count || 0));
+
+    const bCleared = clearedUserMsgs[b.username];
+    const bTotalUser = bCleared ? 0 : (b.totalUserMsgs || 0);
+    const bBaseline = readBaselines[b.username];
+    const bUnread = bCleared ? 0 : (bBaseline !== undefined ? Math.max(0, bTotalUser - bBaseline) : (b.count || 0));
+
+    // Prioritas 1: Jika 'a' punya pesan baru dan 'b' tidak, 'a' naik ke atas
+    if (aUnread > 0 && bUnread === 0) return -1;
+    if (bUnread > 0 && aUnread === 0) return 1;
+
+    // Prioritas 2: Urutkan berdasarkan waktu last_active terbaru (paling baru di atas)
+    const timeA = a.last_active ? new Date(a.last_active).getTime() : 0;
+    const timeB = b.last_active ? new Date(b.last_active).getTime() : 0;
+
+    return timeB - timeA;
+  });
+
   const isUserBlocked = (username: string) => {
     if (!blockedList || blockedList.length === 0) return false;
     return blockedList.some((b: any) => {
@@ -267,14 +290,14 @@ export default function Admin({
         }
       ` }} />
 
-      {/* LIST KARTU USER */}
+      {/* LIST KARTU USER (MENGGUNAKAN sortedUsers AGAR PESAN BARU DENGAN CEPAT NAIK KE ATAS) */}
       <div className="space-y-2.5 flex-1">
-        {filteredUsers.length === 0 ? (
+        {sortedUsers.length === 0 ? (
           <div className="bg-white p-5 rounded-2xl border text-center text-gray-400 font-medium text-xs">
             Belum ada user terdaftar.
           </div>
         ) : (
-          filteredUsers.map((user: any, index: number) => {
+          sortedUsers.map((user: any, index: number) => {
             const identifier = user.username || `anonymous-${index}`;
             const isCleared = clearedUserMsgs[user.username];
             const isHighlighted = highlightedUser === user.username;
@@ -289,8 +312,6 @@ export default function Admin({
               : (baseline !== undefined ? Math.max(0, totalUserMsgs - baseline) : (user.count || 0));
             
             const hasUnread = displayCount > 0;
-            
-            // Menggunakan helper untuk format pesan terakhir
             const lastMsg = formatLastMessage(user, isCleared, totalUserMsgs);
 
             return (
@@ -358,7 +379,7 @@ export default function Admin({
               onClick={() => setIsUserDropdownOpen((p) => !p)}
               className="w-full bg-gray-50 border border-gray-300 text-gray-800 text-xs font-semibold rounded-lg px-2.5 py-1.5 flex items-center justify-between text-left truncate active:scale-95 transition-all cursor-pointer"
             >
-              <span className="truncate">Pilih user ({filteredUsers.length})...</span>
+              <span className="truncate">Pilih user ({sortedUsers.length})...</span>
               <span className="text-gray-400 text-[10px] ml-1 shrink-0">
                 {isUserDropdownOpen ? (dropdownPosition === "top" ? "▲" : "▼") : "▼"}
               </span>
@@ -370,12 +391,12 @@ export default function Admin({
                   dropdownPosition === "top" ? "bottom-[95px]" : "top-[calc(100vh-100px)]"
                 }`}
               >
-                {filteredUsers.length === 0 ? (
+                {sortedUsers.length === 0 ? (
                   <div className="p-2.5 text-center text-xs text-gray-400 font-medium">
                     Tidak ada user terdaftar
                   </div>
                 ) : (
-                  filteredUsers.map((u: any, idx: number) => {
+                  sortedUsers.map((u: any, idx: number) => {
                     const username = typeof u === "string" ? u : u.username;
                     const umur = typeof u === "object" && u.umur ? u.umur : "-";
                     const berat = typeof u === "object" && u.berat ? u.berat : "-";
@@ -443,7 +464,7 @@ export default function Admin({
 
           <div className="flex items-center gap-1.5 shrink-0">
             <div className="bg-blue-50 text-blue-800 text-[11px] font-extrabold px-2 py-1.5 rounded-lg border border-blue-200 whitespace-nowrap">
-              {filteredUsers.length} User
+              {sortedUsers.length} User
             </div>
 
             {/* PILL TOGGLE REGISTER DI SAMPING TOMBOL REFRESH */}
