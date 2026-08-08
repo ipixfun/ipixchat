@@ -175,7 +175,7 @@ export default function Home() {
         <PinnedMessage adminPinnedMsg={adminPinnedMsg} userPinnedMsg={userPinnedMsg} uiTab={ui.tab} onEditPinned={dbActions.editPinned} onScrollToMsg={scrollMsg} />
       )}
 
-      {/* AREA CHAT UTAMA: min-h-0 & flex-1 memastikannya dapat di-scroll tanpa menutupi input */}
+      {/* AREA CHAT UTAMA */}
       <div className="flex-1 min-h-0 w-full relative flex overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
         {ui.tab === "admin" && currentHash === "#block" && auth.isAuth ? (
           <Block blockedList={usersInfo.blockedList} unblock={async (identifier: string) => { await supabase.from("blocked_users").delete().eq("username", identifier); if (!isNaN(Number(identifier))) await supabase.from("blocked_users").delete().eq("id", Number(identifier)); fetchData(); }} blockedWords={censor.words} newWord={censor.newWord} setNewWord={(w: string) => setCensor((p) => ({ ...p, newWord: w }))} addBlockedWord={dbActions.addWrd} removeBlockedWord={dbActions.rmWrd} formatMessageTime={getFmt.time} />
@@ -184,8 +184,8 @@ export default function Home() {
         )}
       </div>
 
-      {/* WRAPPER BAWAH FLEX-COL: CHAT INPUT + BOTTOM NAV DISUSUN LURUS KEBAWAH */}
-      <div className="shrink-0 w-full flex flex-col bg-[var(--card-bg)]">
+      {/* CHAT INPUT CONTAINER: PADDING BOTTOM DINAMIS SESUAI TINGGI BOTTOMNAV */}
+      <div className={`shrink-0 w-full flex flex-col z-[90000] ${!ui?.inputFocus ? "pb-[60px] sm:pb-[66px]" : "pb-0"}`}>
         {currentHash !== "#block" && auth.isAuth && (
           <ChatInput 
             input={input} 
@@ -207,13 +207,12 @@ export default function Home() {
             refreshChat={fetchData}
           />
         )}
-
-        {!ui?.inputFocus && (
-          <div className="w-full shrink-0 border-t border-[var(--card-border)]">
-            <BottomNav isAuth={auth.isAuth} handleLogout={handleLogout} />
-          </div>
-        )}
       </div>
+
+      {/* RENDER BOTTOMNAV FIXED HANYA SAAT KEYBOARD/INPUT TIDAK FOCUS */}
+      {!ui?.inputFocus && (
+        <BottomNav isAuth={auth.isAuth} handleLogout={handleLogout} />
+      )}
 
       {alertModal.isOpen && (
         <div className="fixed inset-0 z-[100000] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn select-none" onClick={() => setAlertModal((p) => ({ ...p, isOpen: false }))}>

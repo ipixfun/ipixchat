@@ -86,7 +86,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const lyricsContainerRef = useRef<HTMLDivElement>(null) as RefObject<HTMLDivElement>;
   const searchInputRef = useRef<HTMLInputElement>(null) as RefObject<HTMLInputElement>;
 
-  // Playlist aktif untuk memastikan next/prev membaca seluruh hasil pencarian/pilihan cepat
   const activePlaylistRef = useRef<SongItem[]>([]);
 
   const formatTime = (secs: number) => {
@@ -96,7 +95,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // Fungsi Pengecekan Autentikasi yang Komprehensif
   const checkAuthStatus = useCallback(() => {
     try {
       if (typeof window === 'undefined') return false;
@@ -123,7 +121,30 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
-  // Effect untuk Pengecekan Awal dan Pasang Listener Realtime
+  const refreshQuickPicks = useCallback(async () => {
+    setIsSearching(true);
+    const keywords = [
+      'Lagu Populer Indonesia',
+      'Hits Indonesia 2026',
+      'Lagu Viral Tiktok',
+      'Pop Hits Indonesia',
+      'Indie Indonesia Terbaru',
+    ];
+    const randomKeyword = keywords[Math.floor(Math.random() * keywords.length)];
+    
+    const isAuthLocal =
+      localStorage.getItem('is_auth') === 'true' ||
+      Boolean(
+        localStorage.getItem('remembered_username') ||
+        localStorage.getItem('active_username') ||
+        localStorage.getItem('username')
+      );
+
+    const songs = await searchSongs(randomKeyword, isAuthLocal ? 20 : 5);
+    setSearchResults(songs);
+    setIsSearching(false);
+  }, []);
+
   useEffect(() => {
     checkAuthStatus();
 
@@ -143,7 +164,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       window.removeEventListener('user-logged-in', handleStorageOrAuthChange);
       window.removeEventListener('focus', handleStorageOrAuthChange);
     };
-  }, [checkAuthStatus]);
+  }, [checkAuthStatus, refreshQuickPicks]);
 
   useEffect(() => {
     if (!window.YT) {
@@ -154,36 +175,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
-  const refreshQuickPicks = useCallback(async () => {
-    setIsSearching(true);
-    const keywords = [
-      'Lagu Populer Indonesia',
-      'Hits Indonesia 2026',
-      'Lagu Viral Tiktok',
-      'Pop Hits Indonesia',
-      'Indie Indonesia Terbaru',
-    ];
-    const randomKeyword = keywords[Math.floor(Math.random() * keywords.length)];
-    
-    // Mengecek ulang status autentikasi lokal
-    const isAuthLocal =
-      localStorage.getItem('is_auth') === 'true' ||
-      Boolean(
-        localStorage.getItem('remembered_username') ||
-        localStorage.getItem('active_username') ||
-        localStorage.getItem('username')
-      );
-
-    const songs = await searchSongs(randomKeyword, isAuthLocal ? 20 : 5);
-    setSearchResults(songs);
-    setIsSearching(false);
-  }, []);
-
   useEffect(() => {
     if (!checkingAuth) refreshQuickPicks();
   }, [checkingAuth, refreshQuickPicks]);
 
-  // Sinkronkan playlist aktif setiap kali searchResults atau quickPicks berubah
   useEffect(() => {
     if (searchResults.length > 0) {
       activePlaylistRef.current = searchResults;
@@ -232,6 +227,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (intervalRef.current) clearInterval(intervalRef.current);
   };
 
+  // KODE PERBAIKAN: playbackRate selalu bernilai 1 (TIDAK BOLEH 0)
   const seekToTime = useCallback((timeSec: number) => {
     if (playerRef.current) {
       playerRef.current.seekTo(timeSec, true);
@@ -246,13 +242,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           MediaSession.setPositionState({
             duration: dur,
             playbackRate: 1,
-            position: Math.min(timeSec, dur),
+            position: Math.min(Math.max(0, timeSec), dur),
           });
         } catch (e) {}
       }
     }
   }, []);
 
+  // KODE PERBAIKAN: playbackRate diubah dari `isPlaying ? 1 : 0` menjadi `1`
   const syncMediaSessionState = useCallback(() => {
     if (!playerRef.current) return;
     try {
@@ -262,12 +259,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (dur > 0 && isFinite(dur)) {
         MediaSession.setPositionState({
           duration: dur,
-          playbackRate: isPlaying ? 1 : 0,
-          position: Math.min(cur, dur),
+          playbackRate: 1,
+          position: Math.min(Math.max(0, cur), dur),
         });
       }
     } catch (e) {}
-  }, [isPlaying]);
+  }, []);
 
   const startProgressTimer = useCallback(() => {
     stopProgressTimer();
@@ -369,7 +366,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       await MediaSession.setPlaybackState({ playbackState: 'playing' });
 
-      // Mendaftarkan Handler tombol dari Plugin Native
       await MediaSession.setActionHandler({ action: 'play' }, () => {
         if (playerRef.current) {
           playerRef.current.playVideo();
@@ -464,7 +460,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const handleSearch = async (e: React.FormEvent, onUnauth?: () => void) => {
     e.preventDefault();
 
-    // Memeriksa status auth saat menekan tombol cari
     const isAuthNow = checkAuthStatus();
 
     if (!isAuthNow) {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAudio } from '@/app/context/AudioContext';
 import { SongItem, SyncedLine, chunkArray } from './yt';
+import BottomNav from '../../components/bottomnav';
 
 export default function Mp3Page() {
   const router = useRouter();
@@ -66,13 +67,13 @@ export default function Mp3Page() {
 
   return (
     <div
-      className="min-h-screen pb-36 flex flex-col items-center transition-colors duration-300 font-sans select-none overflow-x-hidden"
+      className="min-h-screen pb-44 flex flex-col items-center transition-colors duration-300 font-sans select-none overflow-x-hidden relative"
       style={{
         backgroundColor: 'var(--background, #030303)',
         color: 'var(--foreground, #f4f4f5)',
       }}
     >
-      {/* AREA PENCARIAN - HANYA PILL INPUT MURNI */}
+      {/* AREA PENCARIAN */}
       <div className="w-full max-w-md px-4 pt-3 pb-1 flex items-center justify-center">
         <form onSubmit={(e) => handleSearch(e, () => router.push('/chat'))} className="w-full relative flex items-center">
           <input
@@ -241,7 +242,7 @@ export default function Mp3Page() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed top-0 bottom-16 left-0 right-0 z-[100] max-w-md mx-auto flex flex-col justify-between backdrop-blur-2xl p-4 sm:p-6 overflow-hidden border-x border-white/10 shadow-2xl"
+            className="fixed top-0 bottom-16 left-0 right-0 z-[200000] max-w-md mx-auto flex flex-col justify-between backdrop-blur-2xl p-4 sm:p-6 overflow-hidden border-x border-white/10 shadow-2xl"
             style={{ backgroundColor: 'var(--background, #09090b)', color: 'var(--foreground, #f4f4f5)' }}
           >
             <div className="flex justify-between items-center pb-3 border-b border-white/10 shrink-0 gap-2">
@@ -358,8 +359,8 @@ export default function Mp3Page() {
         )}
       </AnimatePresence>
 
-      {/* MINI PLAYER (Halaman MP3) */}
-      <div className="fixed bottom-16 left-0 right-0 z-50 flex justify-center px-3 pointer-events-auto">
+      {/* MINI PLAYER (MELAYANG TEPAT DI ATAS BOTTOM NAV: bottom-[64px]) */}
+      <div className="fixed bottom-[64px] left-0 right-0 z-50 flex justify-center px-3 pointer-events-auto">
         <div
           className="w-full max-w-md border rounded-2xl px-3.5 py-2 shadow-2xl flex items-center justify-between backdrop-blur-xl transition-all duration-300"
           style={{
@@ -416,6 +417,9 @@ export default function Mp3Page() {
           </div>
         </div>
       </div>
+
+      {/* COMPONENT BOTTOM NAV TEPAT DI BAGIAN BAWAH */}
+      <BottomNav isAuth={isAuthenticated} />
     </div>
   );
 }
