@@ -4,40 +4,45 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
+// Import Theme Context langsung dari konteks aplikasi
+import { useTheme } from '@/app/context/ThemeContext';
+
 const SLIDES = [
   {
     id: 'chat',
     src: '/1.webp',
     text: 'CHAT',
-    bg: '#F4845F',
     link: '/chat',
   },
   {
     id: 'tema',
     src: '/2.webp',
     text: 'TEMA',
-    bg: '#6EB5FF',
     link: '/tema',
   },
   {
     id: 'mp3',
     src: '/3.webp',
     text: 'MP3',
-    bg: '#6BBF7A',
     link: '/mp3',
   },
   {
     id: 'ipix',
     src: '/4.webp',
     text: 'iPiX',
-    bg: '#E882B4',
     link: '/tentang',
   },
 ];
 
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E")`;
 
+const TRANSITION_DURATION = 350;
+const CUBIC_BEZIER = 'cubic-bezier(0.16, 1, 0.3, 1)';
+
 export default function HeroBanner() {
+  // Mengambil state/context tema aktif
+  const { theme, customColors } = useTheme();
+
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -51,7 +56,6 @@ export default function HeroBanner() {
     });
   }, []);
 
-  // Timer diubah ke 'prev' agar slide bergerak ke kanan
   useEffect(() => {
     const timer = setInterval(() => {
       navigate('prev');
@@ -71,7 +75,7 @@ export default function HeroBanner() {
 
     setTimeout(() => {
       setIsAnimating(false);
-    }, 650);
+    }, TRANSITION_DURATION);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -92,7 +96,12 @@ export default function HeroBanner() {
 
   return (
     <div
-      className="relative w-full overflow-hidden font-['Inter',sans-serif] rounded-3xl border border-white/10 shadow-lg select-none touch-pan-y bg-black/30 backdrop-blur-md"
+      className="relative w-full overflow-hidden font-['Inter',sans-serif] rounded-3xl border shadow-lg select-none touch-pan-y backdrop-blur-md transition-all duration-300"
+      style={{
+        backgroundColor: "var(--card-bg)",
+        borderColor: "var(--card-border)",
+        color: "var(--foreground)",
+      }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -107,7 +116,7 @@ export default function HeroBanner() {
 
       <div className="relative w-full h-[220px] sm:h-[240px] overflow-hidden">
 
-        {/* 1. Noise Grain overlay */}
+        {/* 1. Grain Noise Overlay */}
         <div
           className="absolute inset-0 pointer-events-none z-50 opacity-40 mix-blend-overlay"
           style={{
@@ -117,29 +126,30 @@ export default function HeroBanner() {
           }}
         />
 
-        {/* 2. Glow Blur Belakang (Transparan + Radial Blur Warna Slide) */}
+        {/* 2. Glow Blur Latar Belakang (Mengikuti var(--accent) Tema Aktif) */}
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] h-[240px] rounded-full blur-[60px] pointer-events-none opacity-60 z-[1]"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] h-[240px] rounded-full blur-[60px] pointer-events-none opacity-40 z-[1] transition-colors duration-300"
           style={{
-            backgroundColor: SLIDES[activeIndex].bg,
-            transition: 'background-color 650ms cubic-bezier(0.4,0,0.2,1)',
+            backgroundColor: "var(--accent)",
           }}
         />
 
-        {/* 3. Giant ghost text "IPIXCHAT" (Dipindah ke atas pas bawah garis) */}
+        {/* 3. Teks Raksasa Latar Belakang (Mengikuti var(--foreground-heading) Tema Aktif) */}
         <div
-          className="absolute inset-x-0 top-2 sm:top-3 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase text-white/10 whitespace-nowrap"
+          className="absolute inset-x-0 top-2 sm:top-3 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase whitespace-nowrap transition-colors duration-300"
           style={{
             fontSize: 'clamp(50px, 16vw, 100px)',
             fontWeight: 900,
             lineHeight: 1,
             letterSpacing: '-0.02em',
+            color: "var(--foreground-heading)",
+            opacity: 0.12,
           }}
         >
           IPIXCHAT
         </div>
 
-        {/* 4. Carousel Items (Kiri & Kanan dengan Blur) */}
+        {/* 4. Carousel Slide Items */}
         <div className="absolute inset-0 z-[3]">
           {SLIDES.map((item, index) => {
             let role = 'back';
@@ -194,12 +204,12 @@ export default function HeroBanner() {
                   height,
                   bottom,
                   transition: `
-                    transform 650ms cubic-bezier(0.4,0,0.2,1),
-                    filter 650ms cubic-bezier(0.4,0,0.2,1),
-                    opacity 650ms cubic-bezier(0.4,0,0.2,1),
-                    left 650ms cubic-bezier(0.4,0,0.2,1),
-                    height 650ms cubic-bezier(0.4,0,0.2,1),
-                    bottom 650ms cubic-bezier(0.4,0,0.2,1)
+                    transform ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
+                    filter ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
+                    opacity ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
+                    left ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
+                    height ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
+                    bottom ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}
                   `,
                 }}
               >
@@ -214,19 +224,29 @@ export default function HeroBanner() {
           })}
         </div>
 
-        {/* 5. Bottom-left Nav buttons */}
+        {/* 5. Tombol Navigasi Kiri Bawah */}
         <div className="absolute bottom-3 left-4 z-[60]">
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => navigate('prev')}
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-white/30 bg-black/30 backdrop-blur-md text-white transition-all duration-150 ease-out hover:scale-110 active:scale-95"
+              className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--foreground) 10%, transparent)",
+                borderColor: "color-mix(in srgb, var(--foreground) 20%, transparent)",
+                color: "var(--foreground)",
+              }}
               aria-label="Previous Slide"
             >
               <ArrowLeft size={16} strokeWidth={2.5} />
             </button>
             <button
               onClick={() => navigate('next')}
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-white/30 bg-black/30 backdrop-blur-md text-white transition-all duration-150 ease-out hover:scale-110 active:scale-95"
+              className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--foreground) 10%, transparent)",
+                borderColor: "color-mix(in srgb, var(--foreground) 20%, transparent)",
+                color: "var(--foreground)",
+              }}
               aria-label="Next Slide"
             >
               <ArrowRight size={16} strokeWidth={2.5} />
@@ -234,24 +254,33 @@ export default function HeroBanner() {
           </div>
         </div>
 
-        {/* 6. Bottom-right link */}
-        <div className="absolute bottom-3 right-4 z-[60] bg-black/40 px-3.5 py-1.5 rounded-full backdrop-blur-md border border-white/20">
+        {/* 6. Tombol Explore Kanan Bawah */}
+        <div
+          className="absolute bottom-3 right-4 z-[60] px-3.5 py-1.5 rounded-full backdrop-blur-md border transition-colors duration-300"
+          style={{
+            backgroundColor: "color-mix(in srgb, var(--background) 60%, transparent)",
+            borderColor: "var(--card-border)",
+          }}
+        >
           <Link
             href={SLIDES[activeIndex].link}
             className="group flex items-center gap-1.5 transition-opacity duration-200"
           >
-            <span className="text-[11px] font-medium text-white/70 tracking-wide uppercase">
+            <span
+              className="text-[11px] font-medium tracking-wide uppercase opacity-70"
+              style={{ color: "var(--foreground)" }}
+            >
               explore
             </span>
             <span
               className="text-sm font-black tracking-wide uppercase"
-              style={{ color: SLIDES[activeIndex].bg }}
+              style={{ color: "var(--accent)" }}
             >
               {SLIDES[activeIndex].text}
             </span>
             <ArrowRight
               className="w-3.5 h-3.5 anim-bounce-right ml-0.5"
-              style={{ color: SLIDES[activeIndex].bg }}
+              style={{ color: "var(--accent)" }}
               strokeWidth={3}
             />
           </Link>
