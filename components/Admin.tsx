@@ -44,38 +44,85 @@ export default function Admin({
   // State Kunci Register
   const [isRegisterLocked, setIsRegisterLocked] = useState<boolean>(false);
 
+  // 1. Fetch data dari Supabase & Pasang Listener Realtime
   useEffect(() => {
     const fetchRegisterLockStatus = async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("app_settings")
           .select("value")
           .eq("key", "register_locked")
           .maybeSingle();
 
+        if (error) {
+          console.error("⛔ Error Supabase Settings:", error.message);
+          return;
+        }
+
         if (data) {
-          const isLocked = String(data.value) === "true" || String(data.value) === "1";
+          const val = String(data.value).toLowerCase().trim();
+          const isLocked = val === "true" || val === "1";
           setIsRegisterLocked(isLocked);
           localStorage.setItem("is_register_locked", isLocked ? "true" : "false");
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error("Exception Fetch Settings:", e);
+      }
     };
 
     fetchRegisterLockStatus();
+
+    // Realtime Listener dari Supabase
+    const channel = supabase
+      .channel("admin_register_lock_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "app_settings" },
+        (payload: any) => {
+          if (payload.new && payload.new.key === "register_locked") {
+            const val = String(payload.new.value).toLowerCase().trim();
+            const isLocked = val === "true" || val === "1";
+            setIsRegisterLocked(isLocked);
+            localStorage.setItem("is_register_locked", isLocked ? "true" : "false");
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
+  // 2. Fungsi Toggle Mengubah Langsung Database Supabase
   const handleToggleRegister = async () => {
     const nextIsLocked = !isRegisterLocked;
+    const valueStr = nextIsLocked ? "true" : "false";
+
+    // Ubah UI Lokal dulu agar tombol terasa responsif
     setIsRegisterLocked(nextIsLocked);
 
-    localStorage.setItem("is_register_locked", nextIsLocked ? "true" : "false");
-
     try {
-      await supabase.from("app_settings").upsert({
-        key: "register_locked",
-        value: nextIsLocked ? "true" : "false",
-      });
-    } catch (e) {}
+      // Jalankan UPDATE langsung ke baris register_locked di app_settings
+      const { data, error } = await supabase
+        .from("app_settings")
+        .update({ value: valueStr })
+        .eq("key", "register_locked")
+        .select();
+
+      if (error) {
+        console.error("⛔ Supabase Error:", error.message);
+        // Kembalikan posisi tombol jika ditolak RLS / Database Error
+        setIsRegisterLocked(!nextIsLocked);
+        alert("Gagal update database: " + error.message);
+      } else {
+        console.log("✅ Berhasil update Supabase:", data);
+        localStorage.setItem("is_register_locked", valueStr);
+      }
+    } catch (err: any) {
+      console.error("⛔ Exception:", err);
+      setIsRegisterLocked(!nextIsLocked);
+    }
   };
 
   const filteredUsers = privateUsers.filter((u: any) => {
@@ -96,11 +143,9 @@ export default function Admin({
     const bBaseline = readBaselines[b.username];
     const bUnread = bCleared ? 0 : (bBaseline !== undefined ? Math.max(0, bTotalUser - bBaseline) : (b.count || 0));
 
-    // Prioritas 1: Jika 'a' punya pesan baru dan 'b' tidak, 'a' naik ke atas
     if (aUnread > 0 && bUnread === 0) return -1;
     if (bUnread > 0 && aUnread === 0) return 1;
 
-    // Prioritas 2: Urutkan berdasarkan waktu last_active terbaru (paling baru di atas)
     const timeA = a.last_active ? new Date(a.last_active).getTime() : 0;
     const timeB = b.last_active ? new Date(b.last_active).getTime() : 0;
 
@@ -115,14 +160,12 @@ export default function Admin({
     });
   };
 
-  // Helper untuk format pesan terakhir (termasuk deteksi pesan gambar)
   const formatLastMessage = (user: any, isCleared: boolean, totalMsgs: number) => {
     if (isCleared) return "-";
     const msg = user.last_message;
 
     if (msg === "___DELETED___") return "(Pesan dihapus)";
 
-    // Jika pesan string kosong/null tapi total pesan user > 0, anggap sebagai gambar
     if ((!msg || msg.trim() === "") && totalMsgs > 0) {
       return "📷 [Gambar]";
     }
@@ -267,7 +310,6 @@ export default function Admin({
   return (
     <div className="flex flex-col min-h-full p-2.5 gap-3 relative pb-32">
       <style dangerouslySetInnerHTML={{ __html: `
-        /* Sembunyikan Player MP3 Khusus di Tampilan Admin */
         audio, 
         .audio-player, 
         .mp3-player, 
@@ -290,7 +332,7 @@ export default function Admin({
         }
       ` }} />
 
-      {/* LIST KARTU USER (MENGGUNAKAN sortedUsers AGAR PESAN BARU DENGAN CEPAT NAIK KE ATAS) */}
+      {/* LIST KARTU USER */}
       <div className="space-y-2.5 flex-1">
         {sortedUsers.length === 0 ? (
           <div className="bg-white p-5 rounded-2xl border text-center text-gray-400 font-medium text-xs">
@@ -370,7 +412,7 @@ export default function Admin({
         )}
       </div>
 
-      {/* FOOTER BAR CONTROLS DENGAN TOGGLE REGISTER DI SAMPING REFRESH */}
+      {/* FOOTER BAR CONTROLS */}
       <div className="fixed bottom-[52px] left-2.5 right-2.5 z-40 bg-white/95 backdrop-blur-md p-2.5 rounded-xl border border-gray-200 shadow-xl flex flex-col gap-1.5">
         <div className="flex items-center gap-1.5">
           <div className="relative flex-1" ref={dropdownRef}>
@@ -467,7 +509,7 @@ export default function Admin({
               {sortedUsers.length} User
             </div>
 
-            {/* PILL TOGGLE REGISTER DI SAMPING TOMBOL REFRESH */}
+            {/* TOMBOL TOGGLE REGISTER */}
             <button
               type="button"
               onClick={handleToggleRegister}
@@ -484,7 +526,7 @@ export default function Admin({
               </span>
             </button>
 
-            {/* TOMBOL REFRESH MEMUAT ULANG SELURUH LAYAR */}
+            {/* TOMBOL REFRESH */}
             <button
               type="button"
               onClick={() => window.location.reload()}
