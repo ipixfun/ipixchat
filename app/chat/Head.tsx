@@ -39,6 +39,42 @@ export default function Head({
   const displayUserName = auth.user ? auth.user.split("●")[0] : "Pengunjung";
   const userPinName = userPinnedMsg ? userPinnedMsg.username.split("●")[0] : displayUserName;
 
+  const renderContentWithIcon = (msg: any) => {
+    if (!msg) return "Belum ada sematan";
+
+    return (
+      <span className="flex items-center gap-1.5 truncate">
+        {/* Icon SVG Gambar */}
+        {msg.image_url && (
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+        )}
+
+        {/* Icon SVG Voice Note */}
+        {msg.audio_url && (
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" y1="19" x2="12" y2="22" />
+          </svg>
+        )}
+
+        <span className="truncate">
+          {msg.pesan && !msg.pesan.startsWith("___")
+            ? msg.pesan
+            : msg.image_url
+            ? "Gambar"
+            : msg.audio_url
+            ? "Voice Note"
+            : "Sematkan"}
+        </span>
+      </span>
+    );
+  };
+
   return (
     <header className="w-full shrink-0 p-3 sm:p-4 border-b transition-colors duration-300 z-30 relative" style={{ backgroundColor: "var(--background)", borderColor: "var(--card-border)" }}>
       <div className="relative z-10">
@@ -62,26 +98,26 @@ export default function Head({
                 <button
                   type="button"
                   onClick={onBlockMgr}
-                  className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all active:scale-95"
+                  className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all active:scale-95 cursor-pointer"
                 >
                   Blokir
                 </button>
                 <button
                   type="button"
                   onClick={onTrashMgr}
-                  className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 transition-all active:scale-95"
+                  className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 transition-all active:scale-95 cursor-pointer"
                 >
                   Sampah
                 </button>
               </>
             )}
 
-            {/* TOMBOL KELUAR (Hanya tampil jika auth.user terisi, berlaku untuk Admin & User) */}
+            {/* TOMBOL KELUAR */}
             {auth.user && (
               <button
                 type="button"
                 onClick={handleLogout}
-                className="px-3 py-1 rounded-full text-[10px] font-bold bg-red-600 hover:bg-red-700 text-white shadow-sm transition-all active:scale-95"
+                className="px-3 py-1 rounded-full text-[10px] font-bold bg-red-600 hover:bg-red-700 text-white shadow-sm transition-all active:scale-95 cursor-pointer"
               >
                 Keluar
               </button>
@@ -89,7 +125,7 @@ export default function Head({
           </div>
         </div>
 
-        {/* HEADER ADMIN: STATUS ONLINE DENGAN SEGITIGA PULL DOWN & TANPA TEKS ADMIN ONLINE / KELIP HIJAU */}
+        {/* HEADER ADMIN: STATUS ONLINE */}
         {isMsgAdmin && (
           <div className="mt-1">
             <div className="flex items-center gap-2">
@@ -139,27 +175,32 @@ export default function Head({
           </div>
         )}
 
-        {/* HEADER USER: SEMATAN DUA KOLOM + STATUS ADMIN DINAMIS */}
+        {/* HEADER USER: SEMATAN DUA KOLOM DENGAN ICON SVG KONSISTEN */}
         {!isMsgAdmin && (
           <div className="grid grid-cols-2 gap-2 w-full mt-2">
             {/* KOLOM KIRI: SEMATAN ADMIN */}
-            <div 
-              onClick={() => adminPinnedMsg && onScrollToMsg?.(adminPinnedMsg.id)} 
+            <div
+              onClick={() => adminPinnedMsg && onScrollToMsg?.(adminPinnedMsg.id)}
               className={`p-2 rounded-xl transition-all border backdrop-blur-md relative shadow-sm flex items-center gap-1.5 ${adminPinnedMsg ? "cursor-pointer active:scale-[0.98]" : "opacity-40"}`}
-              style={{ 
-                backgroundColor: "var(--card-bg, rgba(255,255,255,0.05))", 
-                borderColor: "var(--card-border)" 
+              style={{
+                backgroundColor: "var(--card-bg, rgba(255,255,255,0.05))",
+                borderColor: "var(--card-border)",
               }}
             >
+              {/* Icon SVG Jarum Pin */}
               <div className="shrink-0 opacity-90" style={{ color: "var(--accent)" }}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 17v5" />
-                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 1 1 1z" />
                 </svg>
               </div>
-              <div className="flex flex-col flex-1 overflow-hidden">
-                <div className="flex items-center gap-1 max-w-full overflow-hidden">
-                  <span className="text-[9px] font-bold uppercase tracking-wider shrink-0" style={{ color: "var(--accent)" }}>
+              <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+                <div className="flex items-center gap-1 max-w-full overflow-hidden" style={{ color: "var(--accent)" }}>
+                  {/* Icon SVG Shield Admin */}
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                  <span className="text-[9px] font-bold uppercase tracking-wider shrink-0">
                     Admin
                   </span>
                   <span className={`text-[8px] font-bold truncate ${adminStat.online ? "text-emerald-400" : "opacity-60"}`} style={{ color: adminStat.online ? undefined : "var(--foreground)" }}>
@@ -167,32 +208,40 @@ export default function Head({
                   </span>
                 </div>
                 <p className="text-[11px] truncate font-medium leading-tight opacity-90" style={{ color: "var(--foreground)" }}>
-                  {adminPinnedMsg ? adminPinnedMsg.pesan : "Belum ada sematan"}
+                  {renderContentWithIcon(adminPinnedMsg)}
                 </p>
               </div>
             </div>
 
             {/* KOLOM KANAN: SEMATAN USER */}
-            <div 
-              onClick={() => userPinnedMsg && onScrollToMsg?.(userPinnedMsg.id)} 
+            <div
+              onClick={() => userPinnedMsg && onScrollToMsg?.(userPinnedMsg.id)}
               className={`p-2 rounded-xl transition-all border backdrop-blur-md relative shadow-sm flex items-center gap-1.5 ${userPinnedMsg ? "cursor-pointer active:scale-[0.98]" : "opacity-40"}`}
-              style={{ 
-                backgroundColor: "var(--card-bg, rgba(255,255,255,0.05))", 
-                borderColor: "var(--card-border)" 
+              style={{
+                backgroundColor: "var(--card-bg, rgba(255,255,255,0.05))",
+                borderColor: "var(--card-border)",
               }}
             >
+              {/* Icon SVG Jarum Pin */}
               <div className="shrink-0 opacity-90" style={{ color: "var(--accent)" }}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 17v5" />
-                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 1 1 1z" />
                 </svg>
               </div>
-              <div className="flex flex-col flex-1 overflow-hidden">
-                <span className="text-[9px] font-bold uppercase tracking-wider truncate" style={{ color: "var(--accent)" }}>
-                  {userPinName}
-                </span>
+              <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+                <div className="flex items-center gap-1" style={{ color: "var(--accent)" }}>
+                  {/* Icon SVG User Avatar */}
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  <span className="text-[9px] font-bold uppercase tracking-wider truncate">
+                    {userPinName}
+                  </span>
+                </div>
                 <p className="text-[11px] truncate font-medium leading-tight opacity-90" style={{ color: "var(--foreground)" }}>
-                  {userPinnedMsg ? userPinnedMsg.pesan : "Belum ada sematan"}
+                  {renderContentWithIcon(userPinnedMsg)}
                 </p>
               </div>
             </div>
