@@ -51,9 +51,10 @@ export default function HeroBanner() {
     });
   }, []);
 
+  // Timer diubah ke 'prev' agar slide bergerak ke kanan
   useEffect(() => {
     const timer = setInterval(() => {
-      navigate('next');
+      navigate('prev');
     }, 4500);
 
     return () => clearInterval(timer);
@@ -125,11 +126,11 @@ export default function HeroBanner() {
           }}
         />
 
-        {/* 3. Giant ghost text "IPIXCHAT" */}
+        {/* 3. Giant ghost text "IPIXCHAT" (Dipindah ke atas pas bawah garis) */}
         <div
-          className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase text-white/10 whitespace-nowrap"
+          className="absolute inset-x-0 top-2 sm:top-3 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase text-white/10 whitespace-nowrap"
           style={{
-            fontSize: 'clamp(60px, 18vw, 120px)',
+            fontSize: 'clamp(50px, 16vw, 100px)',
             fontWeight: 900,
             lineHeight: 1,
             letterSpacing: '-0.02em',
@@ -233,7 +234,7 @@ export default function HeroBanner() {
           </div>
         </div>
 
-        {/* 6. Bottom-right link: "explore" kecil + NAMA SLIDE Tebal & Berwarna */}
+        {/* 6. Bottom-right link */}
         <div className="absolute bottom-3 right-4 z-[60] bg-black/40 px-3.5 py-1.5 rounded-full backdrop-blur-md border border-white/20">
           <Link
             href={SLIDES[activeIndex].link}
