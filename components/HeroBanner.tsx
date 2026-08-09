@@ -3,54 +3,30 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-
-// Import Theme Context dari aplikasi
 import { useTheme } from '@/app/context/ThemeContext';
 
 const SLIDES = [
-  {
-    id: 'chat',
-    src: '/1.webp',
-    text: 'CHAT',
-    link: '/chat',
-  },
-  {
-    id: 'tema',
-    src: '/2.webp',
-    text: 'TEMA',
-    link: '/tema',
-  },
-  {
-    id: 'mp3',
-    src: '/3.webp',
-    text: 'MP3',
-    link: '/mp3',
-  },
-  {
-    id: 'ipix',
-    src: '/4.webp',
-    text: 'iPiX',
-    link: '/tentang',
-  },
+  { id: 'chat', src: '/1.webp', text: 'CHAT', link: '/chat' },
+  { id: 'tema', src: '/2.webp', text: 'TEMA', link: '/tema' },
+  { id: 'mp3', src: '/3.webp', text: 'MP3', link: '/mp3' },
+  { id: 'ipix', src: '/4.webp', text: 'iPiX', link: '/tentang' },
 ];
 
-// Map warna teks khusus per slide jika tema yang aktif adalah 'dark'
 const DARK_SLIDE_COLORS: Record<string, string> = {
-  chat: '#F97316', // Orange
-  tema: '#06B6D4', // Biru Cyan
-  mp3: '#22C55E',  // Hijau
-  ipix: '#881337', // Merah Maroon
+  chat: '#F97316',
+  tema: '#06B6D4',
+  mp3: '#22C55E',
+  ipix: '#881337',
 };
 
-const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E")`;
+// Data SVG dipersingkat & ringan tanpa heavy filter
+const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")`;
 
-// Durasi transisi dipercepat ke 250ms & cubic bezier ultra smooth
 const TRANSITION_DURATION = 250;
 const CUBIC_BEZIER = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
 export default function HeroBanner() {
   const { theme } = useTheme();
-
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -60,7 +36,6 @@ export default function HeroBanner() {
   const isDark = theme === 'dark';
   const currentSlide = SLIDES[activeIndex];
 
-  // Menentukan warna teks aktif (khusus jika tema dark)
   const activeTextColor = isDark
     ? DARK_SLIDE_COLORS[currentSlide.id] || 'var(--accent)'
     : 'var(--accent)';
@@ -112,7 +87,7 @@ export default function HeroBanner() {
 
   return (
     <div
-      className="relative w-full overflow-hidden font-['Inter',sans-serif] rounded-3xl border shadow-lg select-none touch-pan-y backdrop-blur-md"
+      className="relative w-full overflow-hidden font-['Inter',sans-serif] rounded-3xl border shadow-lg select-none touch-pan-y backdrop-blur-md will-change-transform"
       style={{
         backgroundColor: "var(--card-bg)",
         borderColor: "var(--card-border)",
@@ -133,17 +108,17 @@ export default function HeroBanner() {
 
       <div className="relative w-full h-[220px] sm:h-[240px] overflow-hidden">
 
-        {/* 1. Grain Noise Overlay */}
+        {/* 1. Grain Noise Overlay (Dihapus mix-blend-overlay & diturunkan z-index agar tidak memblokir render paint) */}
         <div
-          className="absolute inset-0 pointer-events-none z-50 opacity-40 mix-blend-overlay"
+          className="absolute inset-0 pointer-events-none z-[4] opacity-25"
           style={{
             backgroundImage: NOISE_SVG,
-            backgroundSize: '200px 200px',
+            backgroundSize: '150px 150px',
             backgroundRepeat: 'repeat',
           }}
         />
 
-        {/* 2. Glow Blur Belakang Tengah (Ditransparansikan ke opacity 0.2 / 20%) */}
+        {/* 2. Glow Blur Belakang Tengah */}
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[260px] h-[260px] rounded-full blur-[70px] pointer-events-none opacity-20 z-[1]"
           style={{
@@ -168,7 +143,7 @@ export default function HeroBanner() {
           IPIXCHAT
         </div>
 
-        {/* 4. Carousel Slide Items (Kiri & Kanan Tetap Blur 3px & Opacity 0.65) */}
+        {/* 4. Carousel Slide Items */}
         <div className="absolute inset-0 z-[3]">
           {SLIDES.map((item, index) => {
             let role = 'back';
@@ -236,6 +211,9 @@ export default function HeroBanner() {
                   src={item.src}
                   alt={`Slide ${item.text}`}
                   draggable={false}
+                  loading={role === 'center' ? 'eager' : 'lazy'}
+                  // @ts-ignore
+                  fetchpriority={role === 'center' ? 'high' : 'low'}
                   className="w-full h-full object-contain object-bottom pointer-events-none select-none"
                 />
               </div>
