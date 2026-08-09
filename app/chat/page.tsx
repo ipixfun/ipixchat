@@ -750,67 +750,85 @@ export default function Home() {
         </div>
       )}
 
-      {/* GALERI USER POP-UP MODAL */}
+      {/* GALERI USER POP-UP MODAL (MINIMALIS & MOBILE-FRIENDLY) */}
       {galleryModal && (
-        <div className="fixed inset-0 z-[300] bg-black/80 flex items-center justify-center p-4 animate-fadeIn" onClick={() => setGalleryModal(null)}>
-          <div className="w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl p-4 shadow-2xl flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
-              <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+        <div 
+          className="fixed inset-0 z-[100000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 pb-24 animate-fadeIn" 
+          onClick={() => setGalleryModal(null)}
+        >
+          <div 
+            className="w-full max-w-xs sm:max-w-sm bg-slate-900/95 border border-slate-700/80 rounded-2xl p-3 shadow-2xl flex flex-col max-h-[60vh] sm:max-h-[65vh]" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
+              <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5 truncate">
                 Galeri @{galleryModal.username.split("●")[0]}
-                <span className="text-[10px] bg-amber-500/20 px-2 py-0.5 rounded-full text-amber-300 font-mono">{galleryModal.msgs.length} media</span>
+                <span className="text-[9px] bg-amber-500/20 px-1.5 py-0.5 rounded-full text-amber-300 font-mono">
+                  {galleryModal.msgs.length}
+                </span>
               </span>
-              <button type="button" onClick={() => setGalleryModal(null)} className="w-6 h-6 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold text-xs">✕</button>
+              <button 
+                type="button" 
+                onClick={() => setGalleryModal(null)} 
+                className="w-6 h-6 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold text-xs shrink-0 cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto pr-1 max-h-[60vh] [scrollbar-width:thin]">
+
+            {/* Compact Grid 3 Kolom */}
+            <div className="grid grid-cols-3 gap-2 overflow-y-auto pr-0.5 max-h-[50vh] [scrollbar-width:thin]">
               {galleryModal.msgs.map((mediaMsg) => (
-                <div key={mediaMsg.id} className="flex flex-col gap-1.5 bg-slate-950/60 p-2 rounded-xl border border-slate-800 hover:border-amber-500/50 transition-all shadow-md">
-                  {/* Media Thumbnail Box */}
+                <div 
+                  key={mediaMsg.id} 
+                  className="relative group aspect-square rounded-xl overflow-hidden border border-slate-800 hover:border-amber-400/80 bg-black/50 shadow-sm flex flex-col justify-between p-1 transition-all"
+                >
+                  {/* Thumbnail Box */}
                   <div
                     onClick={() => {
                       setGalleryModal(null);
                       setInteract((p) => ({ ...p, popup: { ...mediaMsg, popupMode: mediaMsg.audio_url ? "audio_only" : "image_only" } }));
                     }}
-                    className="aspect-square relative group cursor-pointer rounded-lg overflow-hidden border border-slate-700 hover:border-amber-400 transition-all active:scale-95 bg-black/40 shadow-sm flex items-center justify-center"
+                    className="absolute inset-0 z-0 cursor-pointer flex items-center justify-center"
                   >
                     {mediaMsg.image_url ? (
                       <img src={mediaMsg.image_url} alt="Gallery item" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
                     ) : (
-                      <div className="flex flex-col items-center justify-center gap-1 p-2 text-amber-400">
-                        <span className="text-2xl animate-pulse">🎤</span>
-                        <span className="text-[9px] font-mono font-bold text-slate-300">{mediaMsg.duration ? `${Math.floor(mediaMsg.duration)}s` : "VN"}</span>
+                      <div className="flex flex-col items-center justify-center text-amber-400 gap-0.5">
+                        <span className="text-xl animate-pulse">🎤</span>
+                        <span className="text-[8px] font-mono font-bold text-slate-300">{mediaMsg.duration ? `${Math.floor(mediaMsg.duration)}s` : "VN"}</span>
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-[9px] text-white font-bold text-center p-1">
-                      <span>Buka Media</span>
-                      <span className="text-[8px] text-amber-300 font-mono mt-0.5">{getFmt.time(mediaMsg.created_at)}</span>
-                    </div>
                   </div>
 
-                  {/* Tombol Link ke Asal Chat dengan SVG Pin Dinamis */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setGalleryModal(null);
-                      scrollMsg(mediaMsg.id);
-                    }}
-                    className="w-full py-1 px-1.5 bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 hover:text-white rounded-lg text-[9px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm group"
-                    title="Lompat ke pesan asli"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-3.5 h-3.5 fill-amber-400/20 stroke-amber-300 group-hover:stroke-white group-hover:fill-amber-400/50 group-hover:scale-125 group-hover:-translate-y-0.5 transition-all duration-300 drop-shadow-[0_0_5px_rgba(245,158,11,0.9)] animate-pulse shrink-0"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                  {/* Overlay Tombol Ke Asal Chat */}
+                  <div className="z-10 mt-auto w-full">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setGalleryModal(null);
+                        scrollMsg(mediaMsg.id);
+                      }}
+                      className="w-full py-0.5 bg-black/70 hover:bg-amber-500/80 backdrop-blur-xs text-amber-300 hover:text-white rounded-lg text-[8px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer border border-white/10"
+                      title="Lompat ke asal chat"
                     >
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    <span>Ke Asal Chat</span>
-                  </button>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-2.5 h-2.5 fill-amber-400/30 stroke-amber-300 shrink-0"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      <span>Lompat</span>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

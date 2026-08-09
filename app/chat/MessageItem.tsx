@@ -168,7 +168,7 @@ export function AudioPopupModal({
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex flex-col">
             <span className="text-xs font-black text-amber-400">
-              🎤 Voice Note @{popupMsg.username ? popupMsg.username.split("●")[0] : "User"}
+               Voice Note @{popupMsg.username ? popupMsg.username.split("●")[0] : "User"}
             </span>
             {formatMessageTime && (
               <span className="text-[10px] text-slate-400 font-mono">
@@ -252,12 +252,50 @@ export function PinnedMessage({
   onScrollToMsg?: (id: number) => void;
 }) {
   if (!adminPinnedMsg && !userPinnedMsg && uiTab !== "admin") return null;
+
+  const renderContentWithIcon = (msg: any) => {
+    if (!msg) return "Belum ada sematan";
+    
+    return (
+      <span className="flex items-center gap-1.5 truncate">
+        {/* Icon SVG Gambar */}
+        {msg.image_url && (
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        )}
+        
+        {/* Icon SVG Voice Note */}
+        {msg.audio_url && (
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+          </svg>
+        )}
+
+        <span className="truncate">
+          {msg.pesan && !msg.pesan.startsWith("___") 
+            ? msg.pesan 
+            : msg.image_url 
+            ? "Gambar" 
+            : msg.audio_url 
+            ? "Voice Note" 
+            : "Sematkan"}
+        </span>
+      </span>
+    );
+  };
+
   return (
     <div
       className="w-full px-3 py-1.5 z-10 shrink-0 border-b transition-all duration-300"
       style={{ backgroundColor: "var(--background)", borderColor: "var(--card-border)" }}
     >
       <div className="grid grid-cols-2 gap-2 w-full">
+        {/* Admin Pin Box */}
         <div
           onClick={() => adminPinnedMsg && onScrollToMsg?.(adminPinnedMsg.id)}
           className={`p-2 rounded-xl transition-all border backdrop-blur-md relative shadow-sm flex items-center gap-2 min-w-0 ${
@@ -276,7 +314,7 @@ export function PinnedMessage({
               Admin Pin
             </span>
             <p className="text-[11px] truncate font-medium leading-tight opacity-90" style={{ color: "var(--foreground)" }}>
-              {adminPinnedMsg ? adminPinnedMsg.pesan : "Belum ada sematan"}
+              {renderContentWithIcon(adminPinnedMsg)}
             </p>
           </div>
           {uiTab === "admin" && onEditPinned && adminPinnedMsg && (
@@ -296,6 +334,8 @@ export function PinnedMessage({
             </button>
           )}
         </div>
+
+        {/* User Pin Box */}
         <div
           onClick={() => userPinnedMsg && onScrollToMsg?.(userPinnedMsg.id)}
           className={`p-2 rounded-xl transition-all border backdrop-blur-md relative shadow-sm flex items-center gap-2 min-w-0 ${
@@ -314,7 +354,7 @@ export function PinnedMessage({
               {userPinnedMsg ? userPinnedMsg.username.split("●")[0] : "User Pin"}
             </span>
             <p className="text-[11px] truncate font-medium leading-tight opacity-90" style={{ color: "var(--foreground)" }}>
-              {userPinnedMsg ? userPinnedMsg.pesan : "Belum ada sematan"}
+              {renderContentWithIcon(userPinnedMsg)}
             </p>
           </div>
         </div>
