@@ -1023,7 +1023,7 @@ export function MessageItem({
           )}
 
           {/* 3. TEKS PESAN */}
-          {m.pesan && m.pesan !== "Voice Note" && m.pesan !== "🎤 Voice Note" && (() => {
+          {m.pesan && m.pesan !== "Voice Note" && m.pesan !== "Voice Note" && (() => {
             const isPage2Private = colType === "private",
               maxLines = isPage2Private ? 4 : 2,
               maxChars = isPage2Private ? 120 : 60,
