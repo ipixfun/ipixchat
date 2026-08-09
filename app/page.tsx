@@ -2,11 +2,21 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/bottomnav';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/app/lib/supabaseClient';
-import mascotGif from './B.webp';
+
+// Import HeroBanner secara dinamis dengan SSR nonaktif
+const HeroBanner = dynamic(() => import('@/components/HeroBanner'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[220px] bg-black/20 rounded-3xl animate-pulse flex items-center justify-center text-white/50 text-xs border border-white/10">
+      Memuat 3D Canvas...
+    </div>
+  ),
+});
 
 let memoryCache: any = null;
 
@@ -138,12 +148,10 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* HERO BANNER 3D - Sekarang dirender sebagai Card */}
         {!isEditMode && (
-          <div className="w-full flex justify-center items-center py-0.5">
-            <div className="w-full aspect-[16/9] min-h-[180px] overflow-hidden rounded-3xl flex justify-center items-center border border-white/5 shadow-md bg-black/20" style={{ borderColor: "var(--card-border)" }}>
-              <img src={typeof mascotGif === 'string' ? mascotGif : mascotGif.src} alt="Mascot Animasi Ipixchat" width={600} height={337} // @ts-ignore
-                fetchPriority="high" className="w-full h-full object-cover block" style={{ filter: "drop-shadow(0 10px 20px color-mix(in srgb, var(--accent) 25%, transparent))" }} />
-            </div>
+          <div className="w-full relative z-10 mb-1">
+            <HeroBanner />
           </div>
         )}
         
