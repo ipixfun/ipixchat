@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 // Import Theme Context dari aplikasi
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '@/app/context/ThemeContext';
 
 const SLIDES = [
   {
