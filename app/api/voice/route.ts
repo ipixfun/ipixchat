@@ -9,15 +9,24 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 const MAX_DURATION_SECONDS = 300; // 5 menit
 
 export async function POST(req: Request) {
   try {
+    // 1. Inisialisasi Supabase secara aman di dalam fungsi POST
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json(
+        { error: 'Environment variables Supabase (URL / Key) belum terpasang di Vercel/.env.local' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // 2. Ambil Data Form
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const username = formData.get('username') as string;
@@ -40,7 +49,7 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Upload ke Cloudinary dengan batas potong otomatis (trim) 300 detik
+    // 3. Upload ke Cloudinary
     const uploadResult = await new Promise<any>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
@@ -66,7 +75,7 @@ export async function POST(req: Request) {
       format: uploadResult.format,
     });
 
-    // Simpan ke Supabase DB
+    // 4. Simpan ke Supabase DB
     const { data: messageData, error: dbError } = await supabase
       .from('messages')
       .insert([
