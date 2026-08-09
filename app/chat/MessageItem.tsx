@@ -303,6 +303,7 @@ export function PinnedMessage({
           }`}
           style={{ backgroundColor: "var(--card-bg, rgba(255,255,255,0.03))", borderColor: "var(--card-border)" }}
         >
+          {/* Icon SVG Sematan Pin */}
           <div className="shrink-0 opacity-90" style={{ color: "var(--accent)" }}>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 17v5" />
@@ -310,9 +311,15 @@ export function PinnedMessage({
             </svg>
           </div>
           <div className="flex flex-col flex-1 overflow-hidden pr-3 min-w-0">
-            <span className="text-[8px] font-bold uppercase tracking-wider" style={{ color: "var(--accent)" }}>
-              Admin Pin
-            </span>
+            <div className="flex items-center gap-1" style={{ color: "var(--accent)" }}>
+              {/* Icon SVG Shield Admin */}
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <span className="text-[8px] font-bold uppercase tracking-wider truncate">
+                Admin Pin
+              </span>
+            </div>
             <p className="text-[11px] truncate font-medium leading-tight opacity-90" style={{ color: "var(--foreground)" }}>
               {renderContentWithIcon(adminPinnedMsg)}
             </p>
@@ -343,6 +350,7 @@ export function PinnedMessage({
           }`}
           style={{ backgroundColor: "var(--card-bg, rgba(255,255,255,0.03))", borderColor: "var(--card-border)" }}
         >
+          {/* Icon SVG Sematan Pin */}
           <div className="shrink-0 opacity-90" style={{ color: "var(--accent)" }}>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 17v5" />
@@ -350,9 +358,16 @@ export function PinnedMessage({
             </svg>
           </div>
           <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-            <span className="text-[8px] font-bold uppercase tracking-wider truncate max-w-full" style={{ color: "var(--accent)" }}>
-              {userPinnedMsg ? userPinnedMsg.username.split("●")[0] : "User Pin"}
-            </span>
+            <div className="flex items-center gap-1" style={{ color: "var(--accent)" }}>
+              {/* Icon SVG User Avatar */}
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span className="text-[8px] font-bold uppercase tracking-wider truncate max-w-full">
+                {userPinnedMsg ? userPinnedMsg.username.split("●")[0] : "User Pin"}
+              </span>
+            </div>
             <p className="text-[11px] truncate font-medium leading-tight opacity-90" style={{ color: "var(--foreground)" }}>
               {renderContentWithIcon(userPinnedMsg)}
             </p>
