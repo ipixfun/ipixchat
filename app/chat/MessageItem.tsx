@@ -168,7 +168,7 @@ export function AudioPopupModal({
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex flex-col">
             <span className="text-xs font-black text-amber-400">
-               Voice Note @{popupMsg.username ? popupMsg.username.split("●")[0] : "User"}
+              Voice Note @{popupMsg.username ? popupMsg.username.split("●")[0] : "User"}
             </span>
             {formatMessageTime && (
               <span className="text-[10px] text-slate-400 font-mono">
@@ -1023,7 +1023,7 @@ export function MessageItem({
           )}
 
           {/* 3. TEKS PESAN */}
-          {m.pesan && m.pesan !== "🎤 Voice Note" && (() => {
+          {m.pesan && m.pesan !== "Voice Note" && m.pesan !== "🎤 Voice Note" && (() => {
             const isPage2Private = colType === "private",
               maxLines = isPage2Private ? 4 : 2,
               maxChars = isPage2Private ? 120 : 60,
