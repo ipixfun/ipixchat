@@ -11,7 +11,6 @@ const SLIDES = [
     text: 'CHAT',
     bg: '#F4845F',
     link: '/chat',
-    animClass: 'anim-wave',
   },
   {
     id: 'tema',
@@ -19,7 +18,6 @@ const SLIDES = [
     text: 'TEMA',
     bg: '#6EB5FF',
     link: '/tema',
-    animClass: 'anim-splash',
   },
   {
     id: 'mp3',
@@ -27,7 +25,6 @@ const SLIDES = [
     text: 'MP3',
     bg: '#6BBF7A',
     link: '/mp3',
-    animClass: 'anim-bounce',
   },
   {
     id: 'ipix',
@@ -35,22 +32,18 @@ const SLIDES = [
     text: 'iPiX',
     bg: '#E882B4',
     link: '/tentang',
-    animClass: 'anim-brutal',
   },
 ];
 
-// Data URI untuk efek Noise/Grain SVG
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E")`;
 
 export default function HeroBanner() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  // Ref untuk swipe gesture
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  // Preload gambar lokal
   useEffect(() => {
     SLIDES.forEach((slide) => {
       const image = new Image();
@@ -58,7 +51,6 @@ export default function HeroBanner() {
     });
   }, []);
 
-  // Auto Slide setiap 4.5 detik
   useEffect(() => {
     const timer = setInterval(() => {
       navigate('next');
@@ -67,7 +59,6 @@ export default function HeroBanner() {
     return () => clearInterval(timer);
   }, [activeIndex, isAnimating]);
 
-  // Fungsi Navigasi
   const navigate = (dir: 'next' | 'prev') => {
     if (isAnimating) return;
     setIsAnimating(true);
@@ -82,7 +73,6 @@ export default function HeroBanner() {
     }, 650);
   };
 
-  // Handlers untuk Swipe Mobile (Touch)
   const handleTouchStart = (e: React.TouchEvent) => {
     touchEndX.current = null;
     touchStartX.current = e.targetTouches[0].clientX;
@@ -95,67 +85,28 @@ export default function HeroBanner() {
   const handleTouchEnd = () => {
     if (!touchStartX.current || !touchEndX.current) return;
     const distance = touchStartX.current - touchEndX.current;
-    const isLeftSwipe = distance > 40;
-    const isRightSwipe = distance < -40;
-
-    if (isLeftSwipe) {
-      navigate('next');
-    } else if (isRightSwipe) {
-      navigate('prev');
-    }
+    if (distance > 40) navigate('next');
+    else if (distance < -40) navigate('prev');
   };
 
   return (
     <div
-      className="relative w-full overflow-hidden font-['Inter',sans-serif] rounded-3xl border border-white/10 shadow-lg select-none touch-pan-y"
-      style={{
-        backgroundColor: SLIDES[activeIndex].bg,
-        transition: 'background-color 650ms cubic-bezier(0.4,0,0.2,1)',
-      }}
+      className="relative w-full overflow-hidden font-['Inter',sans-serif] rounded-3xl border border-white/10 shadow-lg select-none touch-pan-y bg-black/30 backdrop-blur-md"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Dynamic Keyframe Animations */}
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes animWave {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          50% { transform: translateY(-4px) rotate(-2deg); }
-        }
-        @keyframes animSplash {
-          0%, 100% { filter: hue-rotate(0deg) saturate(1); transform: scale(1); text-shadow: 0 0 0 transparent; }
-          50% { filter: hue-rotate(50deg) saturate(1.8); transform: scale(1.05); text-shadow: 0 0 12px rgba(255,255,255,0.9); }
-        }
-        @keyframes animBounce {
-          0%, 100% { transform: translateY(0) scaleY(1); }
-          50% { transform: translateY(-8px) scaleY(1.05); }
-        }
-        @keyframes animBrutal {
-          0%, 100% { transform: translate(0,0) rotate(0deg); }
-          25% { transform: translate(2px,-2px) rotate(3deg); }
-          50% { transform: translate(-2px,2px) rotate(-3deg); }
-          75% { transform: translate(2px,2px) rotate(2deg); }
-        }
         @keyframes bounceRight {
           0%, 100% { transform: translateX(0); }
-          50% { transform: translateX(6px); }
+          50% { transform: translateX(5px); }
         }
-
-        .anim-wave { display: inline-block; animation: animWave 2.8s ease-in-out infinite; }
-        .anim-splash { display: inline-block; animation: animSplash 2s ease-in-out infinite; }
-        .anim-bounce { display: inline-block; animation: animBounce 0.75s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
-        .anim-brutal { display: inline-block; animation: animBrutal 0.22s steps(2) infinite; }
         .anim-bounce-right { display: inline-block; animation: bounceRight 0.8s ease-in-out infinite; }
-
-        @keyframes floatFast { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-8px) rotate(6deg); } }
-        @keyframes floatSlow { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-5px) rotate(-6deg); } }
-        .anim-float-fast { animation: floatFast 1.8s ease-in-out infinite; }
-        .anim-float-slow { animation: floatSlow 2.8s ease-in-out infinite; }
       ` }} />
 
       <div className="relative w-full h-[220px] sm:h-[240px] overflow-hidden">
 
-        {/* 1. Grain overlay */}
+        {/* 1. Noise Grain overlay */}
         <div
           className="absolute inset-0 pointer-events-none z-50 opacity-40 mix-blend-overlay"
           style={{
@@ -165,9 +116,18 @@ export default function HeroBanner() {
           }}
         />
 
-        {/* 2. Giant ghost text "IPIXCHAT" */}
+        {/* 2. Glow Blur Belakang (Transparan + Radial Blur Warna Slide) */}
         <div
-          className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase text-white/15 whitespace-nowrap"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] h-[240px] rounded-full blur-[60px] pointer-events-none opacity-60 z-[1]"
+          style={{
+            backgroundColor: SLIDES[activeIndex].bg,
+            transition: 'background-color 650ms cubic-bezier(0.4,0,0.2,1)',
+          }}
+        />
+
+        {/* 3. Giant ghost text "IPIXCHAT" */}
+        <div
+          className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase text-white/10 whitespace-nowrap"
           style={{
             fontSize: 'clamp(60px, 18vw, 120px)',
             fontWeight: 900,
@@ -178,7 +138,7 @@ export default function HeroBanner() {
           IPIXCHAT
         </div>
 
-        {/* 3. Carousel Items (Gambar + Teks Kecil di Atas Kepala + 4 SVG Dekoratif) */}
+        {/* 4. Carousel Items (Kiri & Kanan dengan Blur) */}
         <div className="absolute inset-0 z-[3]">
           {SLIDES.map((item, index) => {
             let role = 'back';
@@ -204,7 +164,7 @@ export default function HeroBanner() {
               bottom = '-2%';
             } else if (role === 'left') {
               transform = 'translateX(-50%) scale(0.85)';
-              filter = 'blur(2px)';
+              filter = 'blur(3px)';
               opacity = 0.65;
               zIndex = 10;
               left = '20%';
@@ -212,15 +172,13 @@ export default function HeroBanner() {
               bottom = '10%';
             } else if (role === 'right') {
               transform = 'translateX(-50%) scale(0.85)';
-              filter = 'blur(2px)';
+              filter = 'blur(3px)';
               opacity = 0.65;
               zIndex = 10;
               left = '80%';
               height = '55%';
               bottom = '10%';
             }
-
-            const isActive = role === 'center';
 
             return (
               <div
@@ -244,131 +202,30 @@ export default function HeroBanner() {
                   `,
                 }}
               >
-                {/* Gambar Karakter Lokal (1.webp - 4.webp) */}
                 <img
                   src={item.src}
                   alt={`Slide ${item.text}`}
                   draggable={false}
                   className="w-full h-full object-contain object-bottom pointer-events-none select-none"
                 />
-
-                {/* Teks Kecil & 4 SVG Lucu di Atas Kepala Karakter */}
-                {isActive && (
-                  <div className="absolute top-[6%] inset-x-0 flex justify-center items-center pointer-events-none z-30">
-                    <div
-                      className={`relative font-['Anton',sans-serif] uppercase text-white tracking-wider text-xl sm:text-2xl ${item.animClass}`}
-                      style={{ textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}
-                    >
-                      {item.text}
-
-                      {/* 4 SVG Lucu untuk CHAT */}
-                      {item.id === 'chat' && (
-                        <>
-                          {/* 1. Atas-Kanan: Pesan Chat */}
-                          <svg className="absolute -top-3.5 -right-5 w-5 h-5 text-yellow-300 drop-shadow-md anim-float-fast" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-3.5 8c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5.67-1.5 1.5-1.5 1.5.67 1.5 1.5zm-6 0c0 .83-.67 1.5-1.5 1.5S7.5 10.83 7.5 10s.67-1.5 1.5-1.5 1.5.67 1.5 1.5z"/>
-                          </svg>
-                          {/* 2. Atas-Kiri: Bintang Kilau */}
-                          <svg className="absolute -top-3 -left-5 w-4 h-4 text-amber-200 drop-shadow-md anim-float-slow" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/>
-                          </svg>
-                          {/* 3. Bawah-Kiri: Gelembung Chat */}
-                          <svg className="absolute -bottom-2 -left-5 w-4 h-4 text-white drop-shadow-md anim-float-slow" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2C6.48 2 2 5.92 2 10.75c0 2.82 1.54 5.3 3.94 6.84L5.5 22l3.8-1.55c.86.23 1.77.35 2.7.35 5.52 0 10-3.92 10-8.75S17.52 2 12 2z"/>
-                          </svg>
-                          {/* 4. Bawah-Kanan: Love Lucu */}
-                          <svg className="absolute -bottom-2 -right-4 w-4 h-4 text-pink-300 drop-shadow-md anim-float-fast" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                          </svg>
-                        </>
-                      )}
-
-                      {/* 4 SVG Lucu untuk TEMA */}
-                      {item.id === 'tema' && (
-                        <>
-                          {/* 1. Atas-Kiri: Palet Cat */}
-                          <svg className="absolute -top-3.5 -left-6 w-5 h-5 text-pink-300 drop-shadow-md anim-float-slow" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12z"/>
-                          </svg>
-                          {/* 2. Atas-Kanan: Bintang Ceria */}
-                          <svg className="absolute -top-3 -right-5 w-4 h-4 text-cyan-200 drop-shadow-md anim-float-fast" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/>
-                          </svg>
-                          {/* 3. Bawah-Kanan: Bintang Warna-Warni */}
-                          <svg className="absolute -bottom-2 -right-5 w-4 h-4 text-yellow-200 drop-shadow-md anim-float-fast" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61z"/>
-                          </svg>
-                          {/* 4. Bawah-Kiri: Sparkle imut */}
-                          <svg className="absolute -bottom-2 -left-4 w-4 h-4 text-purple-300 drop-shadow-md anim-float-slow" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                          </svg>
-                        </>
-                      )}
-
-                      {/* 4 SVG Lucu untuk MP3 */}
-                      {item.id === 'mp3' && (
-                        <>
-                          {/* 1. Atas-Kanan: Nada Musik Utama */}
-                          <svg className="absolute -top-4 -right-5 w-5 h-5 text-emerald-200 drop-shadow-md anim-bounce" viewBox="0 0 24 24" fill="currentColor" style={{ animationDuration: '0.8s' }}>
-                            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                          </svg>
-                          {/* 2. Atas-Kiri: Nada Musik Kedua */}
-                          <svg className="absolute -top-3 -left-5 w-4 h-4 text-teal-200 drop-shadow-md anim-float-fast" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                          </svg>
-                          {/* 3. Bawah-Kiri: Nada Bouncing */}
-                          <svg className="absolute -bottom-2 -left-5 w-4 h-4 text-white drop-shadow-md anim-bounce" viewBox="0 0 24 24" fill="currentColor" style={{ animationDuration: '1.1s' }}>
-                            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                          </svg>
-                          {/* 4. Bawah-Kanan: Bintang Sparkle */}
-                          <svg className="absolute -bottom-2 -right-4 w-4 h-4 text-yellow-300 drop-shadow-md anim-float-slow" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/>
-                          </svg>
-                        </>
-                      )}
-
-                      {/* 4 SVG Lucu untuk iPiX */}
-                      {item.id === 'ipix' && (
-                        <>
-                          {/* 1. Atas-Kanan: Heart Brutal */}
-                          <svg className="absolute -top-3.5 -right-5 w-5 h-5 text-yellow-300 drop-shadow-md anim-brutal" viewBox="0 0 24 24" fill="currentColor" style={{ animationDuration: '0.3s' }}>
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                          </svg>
-                          {/* 2. Atas-Kiri: Kamera/Kamera Mini */}
-                          <svg className="absolute -top-3 -left-5 w-4 h-4 text-pink-200 drop-shadow-md anim-float-fast" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 15c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm9-8h-3.17L16 5H8L6.17 7H3c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/>
-                          </svg>
-                          {/* 3. Bawah-Kiri: Logo Sosmed Brutal */}
-                          <svg className="absolute -bottom-2 -left-5 w-4 h-4 text-cyan-200 drop-shadow-md anim-brutal" viewBox="0 0 24 24" fill="currentColor" style={{ animationDuration: '0.2s' }}>
-                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069z"/>
-                          </svg>
-                          {/* 4. Bawah-Kanan: Petir/Kilat Mini */}
-                          <svg className="absolute -bottom-2 -right-4 w-4 h-4 text-amber-300 drop-shadow-md anim-float-slow" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
-                          </svg>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
         </div>
 
-        {/* 4. Bottom-left Nav buttons */}
+        {/* 5. Bottom-left Nav buttons */}
         <div className="absolute bottom-3 left-4 z-[60]">
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => navigate('prev')}
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-white/40 bg-black/20 backdrop-blur-md text-white transition-all duration-150 ease-out hover:scale-110 active:scale-95"
+              className="w-8 h-8 flex items-center justify-center rounded-full border border-white/30 bg-black/30 backdrop-blur-md text-white transition-all duration-150 ease-out hover:scale-110 active:scale-95"
               aria-label="Previous Slide"
             >
               <ArrowLeft size={16} strokeWidth={2.5} />
             </button>
             <button
               onClick={() => navigate('next')}
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-white/40 bg-black/20 backdrop-blur-md text-white transition-all duration-150 ease-out hover:scale-110 active:scale-95"
+              className="w-8 h-8 flex items-center justify-center rounded-full border border-white/30 bg-black/30 backdrop-blur-md text-white transition-all duration-150 ease-out hover:scale-110 active:scale-95"
               aria-label="Next Slide"
             >
               <ArrowRight size={16} strokeWidth={2.5} />
@@ -376,19 +233,26 @@ export default function HeroBanner() {
           </div>
         </div>
 
-        {/* 5. Bottom-right link "EXPLORE [NAMA SLIDE]" dengan Animasi Bouncing ke Kanan */}
-        <div className="absolute bottom-3 right-4 z-[60] bg-black/20 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/20">
+        {/* 6. Bottom-right link: "explore" kecil + NAMA SLIDE Tebal & Berwarna */}
+        <div className="absolute bottom-3 right-4 z-[60] bg-black/40 px-3.5 py-1.5 rounded-full backdrop-blur-md border border-white/20">
           <Link
             href={SLIDES[activeIndex].link}
-            className="group flex items-center gap-1.5 font-['Anton',sans-serif] text-white opacity-95 hover:opacity-100 transition-opacity duration-200 uppercase"
-            style={{
-              fontSize: '14px',
-              letterSpacing: '0.02em',
-              lineHeight: 1,
-            }}
+            className="group flex items-center gap-1.5 transition-opacity duration-200"
           >
-            <span>EXPLORE {SLIDES[activeIndex].text}</span>
-            <ArrowRight className="w-3.5 h-3.5 anim-bounce-right" strokeWidth={3} />
+            <span className="text-[11px] font-medium text-white/70 tracking-wide uppercase">
+              explore
+            </span>
+            <span
+              className="text-sm font-black tracking-wide uppercase"
+              style={{ color: SLIDES[activeIndex].bg }}
+            >
+              {SLIDES[activeIndex].text}
+            </span>
+            <ArrowRight
+              className="w-3.5 h-3.5 anim-bounce-right ml-0.5"
+              style={{ color: SLIDES[activeIndex].bg }}
+              strokeWidth={3}
+            />
           </Link>
         </div>
 
