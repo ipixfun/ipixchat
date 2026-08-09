@@ -4,8 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
-// Import Theme Context langsung dari konteks aplikasi
-import { useTheme } from '@/app/context/ThemeContext';
+// Import Theme Context dari aplikasi
+import { useTheme } from '../context/ThemeContext';
 
 const SLIDES = [
   {
@@ -34,20 +34,36 @@ const SLIDES = [
   },
 ];
 
+// Map warna teks khusus per slide jika tema yang aktif adalah 'dark'
+const DARK_SLIDE_COLORS: Record<string, string> = {
+  chat: '#F97316', // Orange
+  tema: '#06B6D4', // Biru Cyan
+  mp3: '#22C55E',  // Hijau
+  ipix: '#881337', // Merah Maroon
+};
+
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E")`;
 
-const TRANSITION_DURATION = 350;
+// Durasi transisi dipercepat ke 250ms & cubic bezier ultra smooth
+const TRANSITION_DURATION = 250;
 const CUBIC_BEZIER = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
 export default function HeroBanner() {
-  // Mengambil state/context tema aktif
-  const { theme, customColors } = useTheme();
+  const { theme } = useTheme();
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
+
+  const isDark = theme === 'dark';
+  const currentSlide = SLIDES[activeIndex];
+
+  // Menentukan warna teks aktif (khusus jika tema dark)
+  const activeTextColor = isDark
+    ? DARK_SLIDE_COLORS[currentSlide.id] || 'var(--accent)'
+    : 'var(--accent)';
 
   useEffect(() => {
     SLIDES.forEach((slide) => {
@@ -59,7 +75,7 @@ export default function HeroBanner() {
   useEffect(() => {
     const timer = setInterval(() => {
       navigate('prev');
-    }, 4500);
+    }, 3500);
 
     return () => clearInterval(timer);
   }, [activeIndex, isAnimating]);
@@ -96,11 +112,12 @@ export default function HeroBanner() {
 
   return (
     <div
-      className="relative w-full overflow-hidden font-['Inter',sans-serif] rounded-3xl border shadow-lg select-none touch-pan-y backdrop-blur-md transition-all duration-300"
+      className="relative w-full overflow-hidden font-['Inter',sans-serif] rounded-3xl border shadow-lg select-none touch-pan-y backdrop-blur-md"
       style={{
         backgroundColor: "var(--card-bg)",
         borderColor: "var(--card-border)",
         color: "var(--foreground)",
+        transition: `background-color ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}, border-color ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}`,
       }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -126,30 +143,32 @@ export default function HeroBanner() {
           }}
         />
 
-        {/* 2. Glow Blur Latar Belakang (Mengikuti var(--accent) Tema Aktif) */}
+        {/* 2. Glow Blur Belakang Tengah (Ditransparansikan ke opacity 0.2 / 20%) */}
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] h-[240px] rounded-full blur-[60px] pointer-events-none opacity-40 z-[1] transition-colors duration-300"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[260px] h-[260px] rounded-full blur-[70px] pointer-events-none opacity-20 z-[1]"
           style={{
-            backgroundColor: "var(--accent)",
+            backgroundColor: activeTextColor,
+            transition: `background-color ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}`,
           }}
         />
 
-        {/* 3. Teks Raksasa Latar Belakang (Mengikuti var(--foreground-heading) Tema Aktif) */}
+        {/* 3. Teks Raksasa Latar Belakang */}
         <div
-          className="absolute inset-x-0 top-2 sm:top-3 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase whitespace-nowrap transition-colors duration-300"
+          className="absolute inset-x-0 top-2 sm:top-3 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase whitespace-nowrap"
           style={{
             fontSize: 'clamp(50px, 16vw, 100px)',
             fontWeight: 900,
             lineHeight: 1,
             letterSpacing: '-0.02em',
-            color: "var(--foreground-heading)",
-            opacity: 0.12,
+            color: activeTextColor,
+            opacity: 0.15,
+            transition: `color ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}`,
           }}
         >
           IPIXCHAT
         </div>
 
-        {/* 4. Carousel Slide Items */}
+        {/* 4. Carousel Slide Items (Kiri & Kanan Tetap Blur 3px & Opacity 0.65) */}
         <div className="absolute inset-0 z-[3]">
           {SLIDES.map((item, index) => {
             let role = 'back';
@@ -231,9 +250,9 @@ export default function HeroBanner() {
               onClick={() => navigate('prev')}
               className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--foreground) 10%, transparent)",
-                borderColor: "color-mix(in srgb, var(--foreground) 20%, transparent)",
-                color: "var(--foreground)",
+                backgroundColor: 'color-mix(in srgb, var(--foreground) 10%, transparent)',
+                borderColor: 'color-mix(in srgb, var(--foreground) 20%, transparent)',
+                color: 'var(--foreground)',
               }}
               aria-label="Previous Slide"
             >
@@ -243,9 +262,9 @@ export default function HeroBanner() {
               onClick={() => navigate('next')}
               className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--foreground) 10%, transparent)",
-                borderColor: "color-mix(in srgb, var(--foreground) 20%, transparent)",
-                color: "var(--foreground)",
+                backgroundColor: 'color-mix(in srgb, var(--foreground) 10%, transparent)',
+                borderColor: 'color-mix(in srgb, var(--foreground) 20%, transparent)',
+                color: 'var(--foreground)',
               }}
               aria-label="Next Slide"
             >
@@ -256,31 +275,31 @@ export default function HeroBanner() {
 
         {/* 6. Tombol Explore Kanan Bawah */}
         <div
-          className="absolute bottom-3 right-4 z-[60] px-3.5 py-1.5 rounded-full backdrop-blur-md border transition-colors duration-300"
+          className="absolute bottom-3 right-4 z-[60] px-3.5 py-1.5 rounded-full backdrop-blur-md border transition-colors duration-250"
           style={{
-            backgroundColor: "color-mix(in srgb, var(--background) 60%, transparent)",
-            borderColor: "var(--card-border)",
+            backgroundColor: 'color-mix(in srgb, var(--background) 60%, transparent)',
+            borderColor: 'var(--card-border)',
           }}
         >
           <Link
-            href={SLIDES[activeIndex].link}
+            href={currentSlide.link}
             className="group flex items-center gap-1.5 transition-opacity duration-200"
           >
             <span
               className="text-[11px] font-medium tracking-wide uppercase opacity-70"
-              style={{ color: "var(--foreground)" }}
+              style={{ color: 'var(--foreground)' }}
             >
               explore
             </span>
             <span
-              className="text-sm font-black tracking-wide uppercase"
-              style={{ color: "var(--accent)" }}
+              className="text-sm font-black tracking-wide uppercase transition-colors duration-250"
+              style={{ color: activeTextColor }}
             >
-              {SLIDES[activeIndex].text}
+              {currentSlide.text}
             </span>
             <ArrowRight
-              className="w-3.5 h-3.5 anim-bounce-right ml-0.5"
-              style={{ color: "var(--accent)" }}
+              className="w-3.5 h-3.5 anim-bounce-right ml-0.5 transition-colors duration-250"
+              style={{ color: activeTextColor }}
               strokeWidth={3}
             />
           </Link>
