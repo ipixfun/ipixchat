@@ -209,6 +209,15 @@ export default function Admin({
     return !name.includes("admin") && !email.includes("admin");
   });
 
+  const checkUserOnlineStatus = (user: any) => {
+    if (user.is_online || user.online) return true;
+    if (!user.last_active) return false;
+    const activeTime = new Date(user.last_active).getTime();
+    if (isNaN(activeTime)) return false;
+    const diffInMinutes = (new Date().getTime() - activeTime) / 1000 / 60;
+    return diffInMinutes <= 15;
+  };
+
   const sortedUsers = [...filteredUsers].sort((a: any, b: any) => {
     const aCleared = clearedUserMsgs[a.username];
     const aTotalUser = aCleared ? 0 : (a.totalUserMsgs || 0);
@@ -422,6 +431,7 @@ export default function Admin({
             const isCleared = clearedUserMsgs[user.username];
             const isHighlighted = highlightedUser === user.username;
             const blocked = isUserBlocked(user.username);
+            const isOnline = checkUserOnlineStatus(user);
             
             const totalUserMsgs = isCleared ? 0 : (user.totalUserMsgs || 0);
             const totalAdminMsgs = isCleared ? 0 : (user.totalAdminMsgs || 0);
@@ -454,19 +464,34 @@ export default function Admin({
                 style={{ borderColor: isHighlighted ? "#f59e0b" : "var(--card-border)" }}
               >
                 <div className="flex justify-between items-center w-full gap-1.5">
-                  <div className="flex items-center gap-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
                     <button onClick={(e) => handleEditUsername(e, user)} className="text-gray-400 hover:text-blue-600 p-0.5 rounded transition-colors text-xs shrink-0" title="Edit Username">✏️</button>
+                    
+                    {/* BOLA HIJAU ONLINE / ABU-ABU OFFLINE */}
+                    <span 
+                      className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} 
+                      title={isOnline ? "Online" : "Offline"}
+                    />
+
                     <span className="font-bold text-blue-700 text-xs tracking-tight truncate max-w-[150px] sm:max-w-[220px]" title={user.username || 'User Tanpa Nama'}>
                       {user.username || 'User Tanpa Nama'}
                     </span>
+
                     {blocked && (
                       <span className="text-[8px] bg-red-100 text-red-600 font-bold px-1 py-0.5 rounded border border-red-200 shrink-0">
                         BLOKIR
                       </span>
                     )}
                   </div>
-                  <div className={`text-[9px] font-medium whitespace-nowrap shrink-0 text-right ${hasUnread ? 'text-emerald-600 font-semibold' : 'text-gray-400'}`}>
-                    {user.last_active ? formatMessageTime(user.last_active) : "-"}
+
+                  {/* WAKTU LAST ACTIVE / JAM OFFLINE */}
+                  <div className={`text-[9px] font-medium whitespace-nowrap shrink-0 text-right flex items-center gap-1 ${hasUnread ? 'text-emerald-600 font-semibold' : 'text-gray-400'}`}>
+                    {!isOnline && (
+                      <span className="text-[8px] font-normal text-gray-400">
+                        Offline
+                      </span>
+                    )}
+                    <span>{user.last_active ? formatMessageTime(user.last_active) : "-"}</span>
                   </div>
                 </div>
 
@@ -536,7 +561,8 @@ export default function Admin({
               onClick={() => setIsUserDropdownOpen((p) => !p)}
               className="w-full bg-gray-50 border border-gray-300 text-gray-800 text-[11px] font-semibold rounded-lg px-2 py-1.5 flex items-center justify-between text-left truncate active:scale-95 transition-all cursor-pointer"
             >
-              <span className="truncate">Pilih user ({sortedUsers.length})...</span>
+              {/* TEKS DIUBAH MENJADI Jumlah User [ x ] */}
+              <span className="truncate">Jumlah User [ {sortedUsers.length} ]</span>
               <span className="text-gray-400 text-[9px] ml-1 shrink-0">
                 {isUserDropdownOpen ? (dropdownPosition === "top" ? "▲" : "▼") : "▼"}
               </span>
@@ -617,10 +643,6 @@ export default function Admin({
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
-            <div className="bg-blue-50 text-blue-800 text-[10px] font-extrabold px-2 py-1 rounded-lg border border-blue-200 whitespace-nowrap">
-              {sortedUsers.length} U
-            </div>
-
             <button
               type="button"
               onClick={handleToggleRegister}
