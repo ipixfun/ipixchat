@@ -137,6 +137,85 @@ export function VoiceNotePlayer({ audioUrl, duration }: { audioUrl: string; dura
 }
 
 // ==========================================
+// KOMPONEN POPUP MODAL VOICE NOTE
+// ==========================================
+export function AudioPopupModal({
+  popupMsg,
+  onClose,
+  formatMessageTime,
+  onDeleteAudio,
+  authUser,
+}: {
+  popupMsg: any;
+  onClose: () => void;
+  formatMessageTime?: (t: any) => string;
+  onDeleteAudio?: (msg: any) => void;
+  authUser?: string;
+}) {
+  if (!popupMsg || !popupMsg.audio_url) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4 select-none animate-fadeIn"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl flex flex-col gap-4 relative animate-scaleUp"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex flex-col">
+            <span className="text-xs font-black text-amber-400">
+              🎤 Voice Note @{popupMsg.username ? popupMsg.username.split("●")[0] : "User"}
+            </span>
+            {formatMessageTime && (
+              <span className="text-[10px] text-slate-400 font-mono">
+                {formatMessageTime(popupMsg.created_at)}
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-7 h-7 rounded-full bg-slate-800 hover:bg-red-600 text-white flex items-center justify-center font-bold text-xs active:scale-90 transition-all cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="w-full py-2 flex justify-center">
+          <VoiceNotePlayer audioUrl={popupMsg.audio_url} duration={popupMsg.duration} />
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          {onDeleteAudio && authUser === "Admin●ipix.my.id" && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteAudio(popupMsg);
+                onClose();
+              }}
+              className="px-3 py-1.5 bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/50 text-xs font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+            >
+              🗑️ Hapus VN
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl border border-slate-700 active:scale-95 transition-all cursor-pointer"
+          >
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
 // KOMPONEN PINNED MESSAGE
 // ==========================================
 export function PinnedMessage({
@@ -603,7 +682,7 @@ export function MessageItem({
 
   if (m.pesan && m.pesan.startsWith("___DELETED")) {
     const isDeletedByAdmin = m.deleted_by_admin === true;
-    let deletedNoticeText = m.pesan === "___DELETED_IMAGE___" ? "🚫 Gambar Dihapus" : m.pesan === "___DELETED_BOTH___" ? "🚫 Gambar & Teks Dihapus" : "🚫 Dihapus";
+    let deletedNoticeText = m.pesan === "___DELETED_IMAGE___" ? "🚫 Gambar Dihapus" : m.pesan === "___DELETED_AUDIO___" ? "🚫 Voice Note Dihapus" : m.pesan === "___DELETED_BOTH___" ? "🚫 Media & Teks Dihapus" : "🚫 Dihapus";
     return (
       <div id={`msg-${m.id}`} className="relative w-full mb-2 z-10 group">
         <div className="bg-white/10 backdrop-blur-md border rounded-xl p-2.5 flex flex-col w-full shadow-sm relative" style={{ borderColor: "var(--card-border)", backgroundColor: "var(--card-bg)" }}>
@@ -872,7 +951,15 @@ export function MessageItem({
 
           {/* 2. VOICE NOTE */}
           {m.audio_url && (
-            <VoiceNotePlayer audioUrl={m.audio_url} duration={m.duration} />
+            <div
+              className="cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPopupMsg({ ...m, popupMode: "audio_only" });
+              }}
+            >
+              <VoiceNotePlayer audioUrl={m.audio_url} duration={m.duration} />
+            </div>
           )}
 
           {/* 3. TEKS PESAN */}
@@ -955,7 +1042,7 @@ export function MessageItem({
                   color: pillColor && pillColor !== "transparent" ? pillColor : "var(--accent, #eab308)",
                   borderColor: pillColor && pillColor !== "transparent" ? `${pillColor}66` : "var(--accent, rgba(234, 179, 8, 0.4))",
                 }}
-                title={`Buka Galeri Foto @${displayCleanUsername}`}
+                title={`Buka Galeri Media @${displayCleanUsername}`}
               >
                 Galeri {userImagesCount}
               </button>
