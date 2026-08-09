@@ -16,7 +16,7 @@ const DARK_SLIDE_COLORS: Record<string, string> = {
   chat: '#F97316',
   tema: '#06B6D4',
   mp3: '#22C55E',
-  ipix: '#881337',
+  ipix: '#ac020b',
 };
 
 // Data SVG dipersingkat & ringan tanpa heavy filter
