@@ -823,7 +823,7 @@ export default function Home() {
       )}
 
       {auth.isAuth && interact.popup && interact.popup.popupMode === "audio_only" && (
-        <AudioPopupModal popupMsg={interact.popup} onClose={() => setInteract((p) => ({ ...p, popup: null }))} formatMessageTime={getFmt.time} onDeleteAudio={dbActions.deleteAudioOnly} authUser={auth.user} />
+        <AudioPopupModal popupMsg={interact.popup} onClose={() => setInteract((p) => ({ ...p, popup: null }))} formatMessageTime={getFmt.time} onPin={dbActions.togglePin} onDeleteAudio={dbActions.deleteAudioOnly} authUser={auth.user} />
       )}
 
       {auth.isAuth && interact.popup && interact.popup.popupMode === "text_only" && (
@@ -843,7 +843,7 @@ export default function Home() {
             <div className="flex items-center gap-2 border-b pb-2 mb-3" style={{ borderColor: "var(--card-border)" }}><span className={`px-2 py-0.5 rounded-full text-white text-[10px] font-bold shadow-sm ${interact.popup.username === "Admin●ipix.my.id" ? "bg-red-600" : interact.popup.username === auth.user ? "bg-blue-600" : "bg-gray-700"}`}>{interact.popup.username}</span><span className="text-[10px] opacity-70" style={{ color: "var(--foreground)" }}>{getFmt.time(interact.popup.created_at)}</span></div>
             <div className="overflow-y-auto pr-2 pb-2 text-sm flex flex-col break-words break-all whitespace-pre-wrap" style={{ color: "var(--foreground)" }}>
               {interact.popup.image_url && <div className="relative mb-3 w-full"><img src={interact.popup.image_url} alt="Uploaded Image" className="w-full h-auto max-h-[50vh] object-contain rounded-lg border shadow-sm" style={{ backgroundColor: "var(--background)", borderColor: "var(--card-border)" }} /></div>}
-              {interact.popup.audio_url && <div className="my-2"><AudioPopupModal popupMsg={interact.popup} onClose={() => setInteract((p) => ({ ...p, popup: null }))} formatMessageTime={getFmt.time} onDeleteAudio={dbActions.deleteAudioOnly} authUser={auth.user} /></div>}
+              {interact.popup.audio_url && <div className="my-2"><AudioPopupModal popupMsg={interact.popup} onClose={() => setInteract((p) => ({ ...p, popup: null }))} formatMessageTime={getFmt.time} onPin={dbActions.togglePin} onDeleteAudio={dbActions.deleteAudioOnly} authUser={auth.user} /></div>}
               {interact.popup.pesan && applyCensor(interact.popup.pesan)}
             </div>
             <div className="flex items-center gap-1.5 overflow-x-auto w-full pt-3 mt-3 border-t [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden shrink-0 justify-start sm:justify-end" style={{ borderColor: "var(--card-border)" }}>

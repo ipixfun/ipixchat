@@ -143,12 +143,14 @@ export function AudioPopupModal({
   popupMsg,
   onClose,
   formatMessageTime,
+  onPin,
   onDeleteAudio,
   authUser,
 }: {
   popupMsg: any;
   onClose: () => void;
   formatMessageTime?: (t: any) => string;
+  onPin?: (msg: any) => void;
   onDeleteAudio?: (msg: any) => void;
   authUser?: string;
 }) {
@@ -187,7 +189,25 @@ export function AudioPopupModal({
           <VoiceNotePlayer audioUrl={popupMsg.audio_url} duration={popupMsg.duration} />
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800 flex-wrap">
+          {onPin && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPin(popupMsg);
+                onClose();
+              }}
+              className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 17v5" />
+                <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 1 1 1z" />
+              </svg>
+              {popupMsg.is_pinned ? "Lepas Pin" : "Sematkan"}
+            </button>
+          )}
+
           {onDeleteAudio && authUser === "Admin●ipix.my.id" && (
             <button
               type="button"
@@ -196,7 +216,7 @@ export function AudioPopupModal({
                 onDeleteAudio(popupMsg);
                 onClose();
               }}
-              className="px-3 py-1.5 bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/50 text-xs font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+              className="px-3 py-1.5 bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/50 text-xs font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
             >
               🗑️ Hapus VN
             </button>
@@ -205,7 +225,7 @@ export function AudioPopupModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl border border-slate-700 active:scale-95 transition-all cursor-pointer"
+            className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl border border-slate-700 active:scale-95 transition-all cursor-pointer shrink-0"
           >
             Tutup
           </button>
