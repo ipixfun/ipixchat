@@ -474,21 +474,39 @@ export default function Admin({
                   <div className={`text-[11px] font-medium truncate flex-1 min-w-0 ${hasUnread ? 'text-emerald-600 font-semibold' : 'text-gray-500'}`}>
                     {lastMsg}
                   </div>
+
+                  {/* IKON SVG GAMBAR & VOICE NOTE */}
                   <div className="flex gap-1 shrink-0 items-center">
-                    {/* USER (BIRU) */}
-                    <span className="text-[8px] font-bold bg-blue-50 text-blue-600 px-1 py-0.5 rounded border border-blue-200 whitespace-nowrap" title="Gambar User">
-                      G: {userImages}
-                    </span>
-                    <span className="text-[8px] font-bold bg-blue-50 text-blue-600 px-1 py-0.5 rounded border border-blue-200 whitespace-nowrap" title="Voice Note User">
-                      V: {userVoices}
+                    {/* GAMBAR USER (BIRU) */}
+                    <span className="text-[8px] font-bold bg-blue-50 text-blue-600 px-1 py-0.5 rounded border border-blue-200 whitespace-nowrap flex items-center gap-0.5" title="Gambar User">
+                      <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5.04-6.71l-2.75 3.54-1.96-2.36L6.5 17h11l-3.54-4.71z"/>
+                      </svg>
+                      {userImages}
                     </span>
 
-                    {/* ADMIN (MERAH) */}
-                    <span className="text-[8px] font-bold bg-red-50 text-red-600 px-1 py-0.5 rounded border border-red-200 whitespace-nowrap" title="Gambar Admin">
-                      G: {adminImages}
+                    {/* VOICE USER (BIRU) */}
+                    <span className="text-[8px] font-bold bg-blue-50 text-blue-600 px-1 py-0.5 rounded border border-blue-200 whitespace-nowrap flex items-center gap-0.5" title="Voice Note User">
+                      <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
+                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                      </svg>
+                      {userVoices}
                     </span>
-                    <span className="text-[8px] font-bold bg-red-50 text-red-600 px-1 py-0.5 rounded border border-red-200 whitespace-nowrap" title="Voice Note Admin">
-                      V: {adminVoices}
+
+                    {/* GAMBAR ADMIN (MERAH) */}
+                    <span className="text-[8px] font-bold bg-red-50 text-red-600 px-1 py-0.5 rounded border border-red-200 whitespace-nowrap flex items-center gap-0.5" title="Gambar Admin">
+                      <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5.04-6.71l-2.75 3.54-1.96-2.36L6.5 17h11l-3.54-4.71z"/>
+                      </svg>
+                      {adminImages}
+                    </span>
+
+                    {/* VOICE ADMIN (MERAH) */}
+                    <span className="text-[8px] font-bold bg-red-50 text-red-600 px-1 py-0.5 rounded border border-red-200 whitespace-nowrap flex items-center gap-0.5" title="Voice Note Admin">
+                      <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
+                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                      </svg>
+                      {adminVoices}
                     </span>
                   </div>
                 </div>
