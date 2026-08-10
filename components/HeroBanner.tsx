@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useTheme } from '@/app/context/ThemeContext';
 
 const SLIDES = [
+  { id: 'welcome', src: '/0.webm', audio: '/0.mp3', text: 'WELCOME', link: '#', isVideo: true },
   { id: 'chat', src: '/1.webp', audio: '/1.mp3', text: 'CHAT', link: '/chat' },
   { id: 'tema', src: '/2.webp', audio: '/2.mp3', text: 'TEMA', link: '/tema' },
   { id: 'mp3', src: '/3.webp', audio: '/3.mp3', text: 'MP3', link: '/mp3' },
@@ -13,10 +14,11 @@ const SLIDES = [
 ];
 
 const SLIDE_COLORS: Record<string, string> = {
-  chat: '#F97316', // Orange
-  tema: '#06B6D4', // Biru Cyan
-  mp3: '#22C55E',  // Hijau
-  ipix: '#EF4444', // Merah Terang
+  welcome: '#FACC15', // Kuning/Gold Terang
+  chat: '#F97316',    // Orange
+  tema: '#06B6D4',    // Biru Cyan
+  mp3: '#22C55E',     // Hijau
+  ipix: '#EF4444',    // Merah Terang
 };
 
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E")`;
@@ -32,7 +34,6 @@ export default function HeroBanner() {
   const [isMuted, setIsMuted] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const [typedCount, setTypedCount] = useState(0);
-  const [isWelcome, setIsWelcome] = useState(true); // State status awal masuk "SELAMAT DATANG"
 
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
@@ -54,23 +55,23 @@ export default function HeroBanner() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Preload gambar dan audio (termasuk 0.mp3)
+  // Preload audio & media
   useEffect(() => {
-    ['/0.mp3', '/1.mp3', '/2.mp3', '/3.mp3', '/4.mp3'].forEach((src) => {
-      const audio = new Audio();
-      audio.src = src;
-    });
-
     SLIDES.forEach((slide) => {
-      const image = new Image();
-      image.src = slide.src;
+      const audio = new Audio();
+      audio.src = slide.audio;
+      if (!slide.isVideo) {
+        const image = new Image();
+        image.src = slide.src;
+      }
     });
   }, []);
 
-  // Efek Ketikan Teks "SELAMAT DATANG" / "EXPLORE ..."
+  // Efek Ketikan Teks Dinamis
   useEffect(() => {
     setTypedCount(0);
-    const fullText = isWelcome ? 'SELAMAT DATANG' : `EXPLORE ${SLIDES[activeIndex].text}`;
+    const isWelcomeSlide = SLIDES[activeIndex].id === 'welcome';
+    const fullText = isWelcomeSlide ? 'SELAMAT DATANG' : `EXPLORE ${SLIDES[activeIndex].text}`;
     let current = 0;
 
     const timer = setInterval(() => {
@@ -82,9 +83,9 @@ export default function HeroBanner() {
     }, 65);
 
     return () => clearInterval(timer);
-  }, [activeIndex, isWelcome]);
+  }, [activeIndex]);
 
-  // Audio Analyser Setup (0.mp3 di awal, dilanjutkan 1.mp3 - 4.mp3)
+  // Audio Setup & Analyser
   useEffect(() => {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
@@ -97,7 +98,7 @@ export default function HeroBanner() {
 
     const audio = audioRef.current;
     audio.pause();
-    audio.src = isWelcome ? '/0.mp3' : SLIDES[activeIndex].audio;
+    audio.src = SLIDES[activeIndex].audio;
     audio.currentTime = 0;
     audio.volume = 0.7;
 
@@ -109,7 +110,7 @@ export default function HeroBanner() {
             initAudioAnalyser(audio);
           })
           .catch(() => {
-            // Autoplay policy fallback
+            // Autoplay browser fallback
           });
       }
     } else {
@@ -122,7 +123,7 @@ export default function HeroBanner() {
         cancelAnimationFrame(animFrameRef.current);
       }
     };
-  }, [activeIndex, isWelcome, isMuted]);
+  }, [activeIndex, isMuted]);
 
   const initAudioAnalyser = (audioElement: HTMLAudioElement) => {
     try {
@@ -171,27 +172,17 @@ export default function HeroBanner() {
     }
   };
 
-  // Timer slide otomatis (Awal masuk 5 detik untuk 0.mp3, lalu berputar dinamis 1, 2, 3, 4)
+  // Loop Slide Otomatis (0 -> 1 -> 2 -> 3 -> 4 -> 0)
   useEffect(() => {
-    if (isWelcome) {
-      const welcomeTimer = setTimeout(() => {
-        setIsWelcome(false);
-      }, 5000);
-      return () => clearTimeout(welcomeTimer);
-    }
-
     const timer = setInterval(() => {
-      navigate('prev');
+      navigate('next');
     }, 5000);
 
     return () => clearInterval(timer);
-  }, [isWelcome, activeIndex, isAnimating]);
+  }, [activeIndex, isAnimating]);
 
   const navigate = (dir: 'next' | 'prev') => {
     if (isAnimating) return;
-    if (isWelcome) {
-      setIsWelcome(false);
-    }
     setIsAnimating(true);
 
     setActiveIndex((prev) => {
@@ -231,11 +222,12 @@ export default function HeroBanner() {
     else if (distance < -40) navigate('prev');
   };
 
-  // Kalkulasi teks ketikan dinamis
-  const fullTargetText = isWelcome ? 'SELAMAT DATANG' : `EXPLORE ${currentSlide.text}`;
+  // Kalkulasi teks ketikan
+  const isWelcomeSlide = currentSlide.id === 'welcome';
+  const fullTargetText = isWelcomeSlide ? 'SELAMAT DATANG' : `EXPLORE ${currentSlide.text}`;
   const currentTypedString = fullTargetText.slice(0, typedCount);
-  const word1 = currentTypedString.slice(0, 7); // "SELAMAT" atau "EXPLORE"
-  const word2 = currentTypedString.length > 8 ? currentTypedString.slice(8) : ''; // "DATANG" atau Nama Menu
+  const word1 = currentTypedString.slice(0, 7); // "SELAMAT" / "EXPLORE"
+  const word2 = currentTypedString.length > 8 ? currentTypedString.slice(8) : ''; // "DATANG" / Nama menu
 
   return (
     <div
@@ -318,6 +310,15 @@ export default function HeroBanner() {
         .anim-typing-cursor {
           animation: blinkCursor 0.6s infinite;
         }
+
+        @keyframes floatHeader {
+          0%, 100% { transform: translate(-50%, 0px); }
+          50% { transform: translate(-50%, -6px); }
+        }
+
+        .anim-float-welcome {
+          animation: floatHeader 1.8s ease-in-out infinite;
+        }
       ` }} />
 
       <div className="relative w-full h-[220px] sm:h-[250px] overflow-hidden">
@@ -376,13 +377,13 @@ export default function HeroBanner() {
           ))}
         </div>
 
-        {/* 4. Carousel 3D Characters */}
+        {/* 4. Carousel 3D Characters (Dinamis 0, 1, 2, 3, 4) */}
         <div className="absolute inset-0 z-[3]">
           {SLIDES.map((item, index) => {
             let role = 'back';
             if (index === activeIndex) role = 'center';
-            else if (index === (activeIndex + 3) % 4) role = 'left';
-            else if (index === (activeIndex + 1) % 4) role = 'right';
+            else if (index === (activeIndex + SLIDES.length - 1) % SLIDES.length) role = 'left';
+            else if (index === (activeIndex + 1) % SLIDES.length) role = 'right';
 
             if (role === 'back') return null;
 
@@ -437,6 +438,23 @@ export default function HeroBanner() {
                   `,
                 }}
               >
+                {/* TEKS WELCOME DINAMIS DI ATAS KEPALA HERO TENGAH (KHUSUS SLIDE 0 / WELCOME) */}
+                {role === 'center' && item.id === 'welcome' && (
+                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-[35] pointer-events-none whitespace-nowrap anim-float-welcome">
+                    <span
+                      className="px-3 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase italic border shadow-lg backdrop-blur-md transition-colors duration-300"
+                      style={{
+                        backgroundColor: 'rgba(10, 14, 23, 0.75)',
+                        borderColor: activeTextColor,
+                        color: activeTextColor,
+                        boxShadow: `0 0 12px ${activeTextColor}80`,
+                      }}
+                    >
+                      WELCOME
+                    </span>
+                  </div>
+                )}
+
                 {/* EFEK KHUSUS HERO TENGAH */}
                 {role === 'center' && (
                   <>
@@ -524,28 +542,56 @@ export default function HeroBanner() {
                   </>
                 )}
 
-                <img
-                  src={item.src}
-                  alt={`Slide Character ${index + 1}`}
-                  draggable={false}
-                  loading={role === 'center' ? 'eager' : 'lazy'}
-                  // @ts-ignore
-                  fetchpriority={role === 'center' ? 'high' : 'low'}
-                  className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
-                />
+                {/* Media Render: 支持 0.webm (video) & 1-4.webp (image) */}
+                {item.isVideo ? (
+                  <video
+                    src={item.src}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
+                  />
+                ) : (
+                  <img
+                    src={item.src}
+                    alt={`Slide Character ${index}`}
+                    draggable={false}
+                    loading={role === 'center' ? 'eager' : 'lazy'}
+                    // @ts-ignore
+                    fetchpriority={role === 'center' ? 'high' : 'low'}
+                    className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
+                  />
+                )}
 
+                {/* Refleksi Mirror Hero Kiri dan Kanan */}
                 {(role === 'left' || role === 'right') && (
                   <div className="absolute top-[98%] left-0 right-0 h-[38%] overflow-hidden pointer-events-none opacity-25 select-none z-[18]">
-                    <img
-                      src={item.src}
-                      alt=""
-                      draggable={false}
-                      className="w-full h-full object-contain object-top scale-y-[-1] filter blur-[1px]"
-                      style={{
-                        maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
-                        WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
-                      }}
-                    />
+                    {item.isVideo ? (
+                      <video
+                        src={item.src}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-full h-full object-contain object-top scale-y-[-1] filter blur-[1px]"
+                        style={{
+                          maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
+                          WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
+                        }}
+                      />
+                    ) : (
+                      <img
+                        src={item.src}
+                        alt=""
+                        draggable={false}
+                        className="w-full h-full object-contain object-top scale-y-[-1] filter blur-[1px]"
+                        style={{
+                          maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
+                          WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
+                        }}
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -553,7 +599,7 @@ export default function HeroBanner() {
           })}
         </div>
 
-        {/* 5. Tombol Navigasi & Sound (Pojok Kiri Bawah - Sound On/Off di Tengah Kiri Kanan) */}
+        {/* 5. Tombol Navigasi & Sound (Pojok Kiri Bawah) */}
         <div className="absolute bottom-3 left-4 z-[60]">
           <div className="flex items-center gap-1.5">
             <button
@@ -568,7 +614,7 @@ export default function HeroBanner() {
               <ArrowLeft size={16} strokeWidth={2.5} style={{ color: activeTextColor }} />
             </button>
 
-            {/* Tombol Sound On / Off di Tengah Bulatan Panah Kiri Kanan */}
+            {/* Tombol Sound On / Off di Tengah Kiri Kanan */}
             <button
               onClick={toggleMute}
               className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95"
@@ -602,17 +648,17 @@ export default function HeroBanner() {
         {/* 6. Tombol Explore / Teks Ketikan (Pojok Kanan Bawah) */}
         <div className="absolute bottom-3 right-4 z-[60]">
           <Link
-            href={isWelcome ? '#' : currentSlide.link}
+            href={currentSlide.link}
             className="group flex items-center gap-1 transition-all duration-200"
           >
             {word1 && (
               <span
                 className={`text-[11px] font-extrabold tracking-wide uppercase italic pb-0.5 transition-all duration-250 ${
-                  isWelcome ? '' : 'border-b-2 opacity-70'
+                  isWelcomeSlide ? '' : 'border-b-2 opacity-70'
                 }`}
                 style={{
-                  color: isWelcome ? '#FACC15' : 'var(--foreground)', // Warna tema 10 paling terang untuk SELAMAT
-                  borderColor: isWelcome ? 'transparent' : activeTextColor,
+                  color: isWelcomeSlide ? '#FACC15' : 'var(--foreground)',
+                  borderColor: isWelcomeSlide ? 'transparent' : activeTextColor,
                 }}
               >
                 {word1}
@@ -622,7 +668,7 @@ export default function HeroBanner() {
               <span
                 className="text-sm font-black tracking-wide uppercase italic transition-colors duration-250 ml-1"
                 style={{
-                  color: isWelcome ? '#38BDF8' : activeTextColor, // Beda warna kontras untuk DATANG
+                  color: isWelcomeSlide ? '#38BDF8' : activeTextColor,
                 }}
               >
                 {word2}
@@ -630,13 +676,13 @@ export default function HeroBanner() {
             )}
             <span
               className="text-sm font-black anim-typing-cursor -ml-0.5"
-              style={{ color: isWelcome ? '#FACC15' : activeTextColor }}
+              style={{ color: isWelcomeSlide ? '#FACC15' : activeTextColor }}
             >
               |
             </span>
             <ArrowRight
               className="w-3.5 h-3.5 anim-bounce-right ml-0.5 transition-colors duration-250"
-              style={{ color: isWelcome ? '#FACC15' : activeTextColor }}
+              style={{ color: isWelcomeSlide ? '#FACC15' : activeTextColor }}
               strokeWidth={3}
             />
           </Link>
