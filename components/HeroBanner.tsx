@@ -22,8 +22,9 @@ const SLIDE_COLORS: Record<string, string> = {
 
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E")`;
 
-const TRANSITION_DURATION = 650;
-const CUBIC_BEZIER = 'cubic-bezier(0.4, 0, 0.2, 1)';
+// Durasi & kurva transisi ultra-halus (Apple-style spring deceleration)
+const TRANSITION_DURATION = 500;
+const CUBIC_BEZIER = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
 export default function HeroBanner() {
   const { theme } = useTheme();
@@ -53,7 +54,7 @@ export default function HeroBanner() {
     });
   }, []);
 
-  // Auto slide interval (Arah ke kanan / 'prev')
+  // Auto slide interval (Arah ke kanan)
   useEffect(() => {
     const timer = setInterval(() => {
       navigate('prev');
@@ -94,7 +95,7 @@ export default function HeroBanner() {
 
   return (
     <div
-      className="relative w-full overflow-hidden font-['Inter',sans-serif] rounded-3xl border shadow-lg select-none touch-pan-y backdrop-blur-md will-change-transform"
+      className="relative w-full overflow-hidden font-['Inter',sans-serif] rounded-3xl border shadow-lg select-none touch-pan-y backdrop-blur-md transform-gpu"
       style={{
         backgroundColor: "var(--card-bg)",
         borderColor: "var(--card-border)",
@@ -218,7 +219,7 @@ export default function HeroBanner() {
           ))}
         </div>
 
-        {/* 3. Carousel 3D Characters */}
+        {/* 3. Carousel 3D Characters (Interpolasi Murni via 'top' & 'transform') */}
         <div className="absolute inset-0 z-[3]">
           {SLIDES.map((item, index) => {
             let role = 'back';
@@ -228,65 +229,55 @@ export default function HeroBanner() {
 
             if (role === 'back') return null;
 
-            let transform = 'translateX(-50%) scale(1)';
-            let filter = 'blur(0px)';
+            // Penggunaan nilai 'top' & 'transform' yang terstandarisasi untuk interpolasi CSS tanpa jank
+            let left = '50%';
+            let top = '18%';
+            let height = isMobile ? '82%' : '88%';
             let opacity = 1;
             let zIndex = 20;
-            let left = '50%';
-            let height = isMobile ? '82%' : '88%';
-            let top: string | undefined = undefined;
-            let bottom: string | undefined = '-2%';
+            let transform = `translateX(-50%) scale(${isMobile ? 1.05 : 1.15})`;
 
             if (role === 'center') {
-              transform = `translateX(-50%) scale(${isMobile ? 1.05 : 1.15})`;
-              filter = 'blur(0px)';
+              left = '50%';
+              top = '18%';
+              height = isMobile ? '82%' : '88%';
               opacity = 1;
               zIndex = 20;
-              left = '50%';
-              height = isMobile ? '82%' : '88%';
-              top = undefined;
-              bottom = '-2%';
+              transform = `translateX(-50%) scale(${isMobile ? 1.05 : 1.15})`;
             } else if (role === 'left') {
-              transform = 'translate(-50%, -50%) scale(0.82)';
-              filter = 'blur(0px)';
-              opacity = 0.65;
-              zIndex = 10;
               left = isMobile ? '18%' : '25%';
+              top = '27%'; // Posisi tepat di tengah vertikal antara teks & navigasi
               height = isMobile ? '48%' : '54%';
-              top = '53%'; // Diturunkan sedikit agar pas berada di tengah antara teks & tombol
-              bottom = 'auto';
-            } else if (role === 'right') {
-              transform = 'translate(-50%, -50%) scale(0.82)';
-              filter = 'blur(0px)';
               opacity = 0.65;
               zIndex = 10;
+              transform = 'translateX(-50%) scale(0.82)';
+            } else if (role === 'right') {
               left = isMobile ? '82%' : '75%';
+              top = '27%'; // Posisi tepat di tengah vertikal antara teks & navigasi
               height = isMobile ? '48%' : '54%';
-              top = '53%'; // Diturunkan sedikit agar pas berada di tengah antara teks & tombol
-              bottom = 'auto';
+              opacity = 0.65;
+              zIndex = 10;
+              transform = 'translateX(-50%) scale(0.82)';
             }
 
             return (
               <div
                 key={item.id}
-                className="absolute aspect-[0.6/1] will-change-[transform,filter,opacity,left,height,top,bottom]"
+                className="absolute aspect-[0.6/1] transform-gpu will-change-[transform,left,top,height,opacity]"
                 style={{
-                  transform,
-                  filter,
+                  left,
+                  top,
+                  height,
                   opacity,
                   zIndex,
-                  left,
-                  height,
-                  top,
-                  bottom,
+                  transform,
+                  filter: 'blur(0px)',
                   transition: `
                     transform ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
-                    filter ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
-                    opacity ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
                     left ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
-                    height ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
                     top ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
-                    bottom ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}
+                    height ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
+                    opacity ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}
                   `,
                 }}
               >
