@@ -12,14 +12,14 @@ const SLIDES = [
   { id: 'ipix', src: '/4.webp', text: 'iPiX', link: '/tentang' },
 ];
 
-const DARK_SLIDE_COLORS: Record<string, string> = {
+// Palet warna tiap gambar
+const SLIDE_COLORS: Record<string, string> = {
   chat: '#F97316', // Orange
   tema: '#06B6D4', // Biru Cyan
   mp3: '#22C55E',  // Hijau
   ipix: '#EF4444', // Merah Terang
 };
 
-// Data SVG noise ringan untuk performa tinggi
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")`;
 
 const TRANSITION_DURATION = 250;
@@ -33,12 +33,8 @@ export default function HeroBanner() {
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  const isDark = theme === 'dark';
   const currentSlide = SLIDES[activeIndex];
-
-  const activeTextColor = isDark
-    ? DARK_SLIDE_COLORS[currentSlide.id] || 'var(--accent)'
-    : 'var(--accent)';
+  const activeTextColor = SLIDE_COLORS[currentSlide.id] || 'var(--accent)';
 
   useEffect(() => {
     SLIDES.forEach((slide) => {
@@ -105,44 +101,91 @@ export default function HeroBanner() {
         }
         .anim-bounce-right { display: inline-block; animation: bounceRight 0.8s ease-in-out infinite; }
 
-        /* KEYFRAMES KILATAN PETIR (LIGHTNING FLICKER) */
+        /* KILATAN PETIR SAMBARAN HALUS */
         @keyframes lightningStrikeLeft {
-          0% { opacity: 0; transform: scale(0.3) rotate(-10deg); }
-          15% { opacity: 1; transform: scale(1.1) rotate(0deg); }
-          30% { opacity: 0.2; }
-          45% { opacity: 1; }
-          60% { opacity: 0.1; }
-          75% { opacity: 0.8; }
-          100% { opacity: 0; transform: scale(1) rotate(5deg); }
+          0% { opacity: 0; transform: scale(0.7) rotate(-8deg); }
+          20% { opacity: 0.85; transform: scale(1) rotate(0deg); }
+          40% { opacity: 0.2; }
+          60% { opacity: 0.6; }
+          100% { opacity: 0; transform: scale(0.95) rotate(3deg); }
         }
 
         @keyframes lightningStrikeRight {
-          0% { opacity: 0; transform: scale(0.3) rotate(10deg); }
-          20% { opacity: 1; transform: scale(1.15) rotate(0deg); }
-          35% { opacity: 0.3; }
-          50% { opacity: 0.9; }
-          65% { opacity: 0.1; }
-          80% { opacity: 0.7; }
-          100% { opacity: 0; transform: scale(1) rotate(-5deg); }
+          0% { opacity: 0; transform: scale(0.7) rotate(8deg); }
+          25% { opacity: 0.8; transform: scale(1) rotate(0deg); }
+          45% { opacity: 0.2; }
+          65% { opacity: 0.55; }
+          100% { opacity: 0; transform: scale(0.95) rotate(-3deg); }
         }
 
-        /* KEYFRAMES PULSA LISTRIK PADA BEKANG GAMBAR */
+        /* PULSA LISTRIK BELAKANG GAMBAR */
         @keyframes shockwavePulse {
-          0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.9; }
-          50% { opacity: 0.5; }
-          100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+          0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0.6; }
+          100% { transform: translate(-50%, -50%) scale(1.25); opacity: 0; }
+        }
+
+        /* RING LIGHT SCANNING ATAS KE BAWAH (PROPORSI LEBIH BULAT) */
+        @keyframes ringLightScan {
+          0% {
+            top: 0%;
+            opacity: 0;
+            transform: translateX(-50%) rotateX(60deg) scale(0.75);
+          }
+          18% {
+            opacity: 0.95;
+          }
+          75% {
+            opacity: 0.85;
+          }
+          100% {
+            top: 82%;
+            opacity: 0;
+            transform: translateX(-50%) rotateX(60deg) scale(1.15);
+          }
+        }
+
+        /* GLITCH HALUS TEKS IPIXCHAT */
+        @keyframes subtleGlitch {
+          0%, 82%, 100% {
+            transform: translate(0);
+            text-shadow: none;
+            opacity: 0.15;
+          }
+          83% {
+            transform: translate(-1.5px, 0.5px);
+            text-shadow: 2px 0 6px currentColor, -1px 0 3px currentColor;
+            opacity: 0.28;
+          }
+          85% {
+            transform: translate(1.5px, -0.5px);
+            text-shadow: -2px 0 6px currentColor, 1px 0 3px currentColor;
+            opacity: 0.22;
+          }
+          87% {
+            transform: translate(0);
+            text-shadow: none;
+            opacity: 0.15;
+          }
         }
 
         .anim-lightning-left {
-          animation: lightningStrikeLeft 0.38s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+          animation: lightningStrikeLeft 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         .anim-lightning-right {
-          animation: lightningStrikeRight 0.42s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+          animation: lightningStrikeRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         .anim-shockwave {
           animation: shockwavePulse 0.35s ease-out forwards;
+        }
+
+        .anim-ring-light {
+          animation: ringLightScan 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        .anim-glitch-subtle {
+          animation: subtleGlitch 2.8s infinite ease-in-out;
         }
       ` }} />
 
@@ -160,23 +203,22 @@ export default function HeroBanner() {
 
         {/* 2. Glow Blur Belakang Tengah */}
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[260px] h-[260px] rounded-full blur-[70px] pointer-events-none opacity-20 z-[1]"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[270px] h-[270px] rounded-full blur-[65px] pointer-events-none opacity-30 z-[1]"
           style={{
             backgroundColor: activeTextColor,
             transition: `background-color ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}`,
           }}
         />
 
-        {/* 3. Teks Raksasa Latar Belakang */}
+        {/* 3. Teks Raksasa Latar Belakang "IPIXCHAT" dengan Glitch Halus */}
         <div
-          className="absolute inset-x-0 top-2 sm:top-3 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase whitespace-nowrap"
+          className="absolute inset-x-0 top-2 sm:top-3 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase whitespace-nowrap anim-glitch-subtle"
           style={{
             fontSize: 'clamp(50px, 16vw, 100px)',
             fontWeight: 900,
             lineHeight: 1,
             letterSpacing: '-0.02em',
             color: activeTextColor,
-            opacity: 0.15,
             transition: `color ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}`,
           }}
         >
@@ -247,34 +289,44 @@ export default function HeroBanner() {
                   `,
                 }}
               >
-                {/* EFEK KILATAN PETIR DINAMIS PADA SLIDE TENGAH */}
+                {/* EFEK SLIDE TENGAH: PETIR + RING LIGHT ATAS KE BAWAH */}
                 {role === 'center' && (
                   <>
-                    {/* Shockwave Gelombang Listrik Belakang */}
+                    {/* Ring Shockwave Gelombang Listrik Belakang */}
                     <div
                       key={`shockwave-${activeIndex}`}
-                      className="absolute top-1/2 left-1/2 w-52 h-52 rounded-full blur-md pointer-events-none z-[15] anim-shockwave"
+                      className="absolute top-1/2 left-1/2 w-36 h-36 rounded-full blur-md pointer-events-none z-[15] anim-shockwave"
                       style={{
                         backgroundColor: activeTextColor,
-                        boxShadow: `0 0 35px ${activeTextColor}`,
+                        boxShadow: `0 0 22px ${activeTextColor}`,
+                      }}
+                    />
+
+                    {/* RING LIGHT LEBIH BULAT & SWEEP DARI ATAS KE BAWAH LALU HILANG */}
+                    <div
+                      key={`ring-${activeIndex}`}
+                      className="absolute left-1/2 w-32 h-16 rounded-[100%] border-[2.5px] pointer-events-none z-[25] anim-ring-light"
+                      style={{
+                        borderColor: activeTextColor,
+                        boxShadow: `0 0 14px ${activeTextColor}, inset 0 0 10px ${activeTextColor}`,
                       }}
                     />
 
                     {/* SAMBARAN PETIR KIRI */}
                     <svg
                       key={`bolt-left-${activeIndex}`}
-                      className="absolute -top-6 -left-10 w-32 h-56 pointer-events-none z-[30] anim-lightning-left"
-                      viewBox="0 0 100 200"
+                      className="absolute top-1 left-0 w-16 h-32 pointer-events-none z-[30] anim-lightning-left"
+                      viewBox="0 0 60 120"
                       fill="none"
                       style={{
-                        filter: `drop-shadow(0 0 12px ${activeTextColor}) drop-shadow(0 0 25px ${activeTextColor})`,
+                        filter: `drop-shadow(0 0 9px ${activeTextColor})`,
                       }}
                     >
                       <path
-                        d="M60 0 L25 70 L45 75 L10 130 L35 132 L0 200 L45 120 L25 115 L60 60 L40 55 Z"
-                        fill="#FFFFFF"
+                        d="M38 0 L18 42 L28 45 L8 85 L22 85 L4 120"
                         stroke={activeTextColor}
-                        strokeWidth="2.5"
+                        strokeWidth="2"
+                        strokeLinecap="round"
                         strokeLinejoin="round"
                       />
                     </svg>
@@ -282,18 +334,18 @@ export default function HeroBanner() {
                     {/* SAMBARAN PETIR KANAN */}
                     <svg
                       key={`bolt-right-${activeIndex}`}
-                      className="absolute -top-8 -right-10 w-32 h-56 pointer-events-none z-[30] anim-lightning-right"
-                      viewBox="0 0 100 200"
+                      className="absolute top-0 right-0 w-16 h-32 pointer-events-none z-[30] anim-lightning-right"
+                      viewBox="0 0 60 120"
                       fill="none"
                       style={{
-                        filter: `drop-shadow(0 0 12px ${activeTextColor}) drop-shadow(0 0 25px ${activeTextColor})`,
+                        filter: `drop-shadow(0 0 9px ${activeTextColor})`,
                       }}
                     >
                       <path
-                        d="M40 0 L75 65 L55 70 L90 125 L65 128 L100 200 L55 125 L75 120 L40 60 L60 55 Z"
-                        fill="#FFFFFF"
+                        d="M22 0 L42 42 L32 45 L52 85 L38 85 L56 120"
                         stroke={activeTextColor}
-                        strokeWidth="2.5"
+                        strokeWidth="2"
+                        strokeLinecap="round"
                         strokeLinejoin="round"
                       />
                     </svg>
@@ -357,13 +409,13 @@ export default function HeroBanner() {
             className="group flex items-center gap-1.5 transition-opacity duration-200"
           >
             <span
-              className="text-[11px] font-medium tracking-wide uppercase opacity-70"
+              className="text-[11px] font-medium tracking-wide uppercase opacity-70 italic"
               style={{ color: 'var(--foreground)' }}
             >
               explore
             </span>
             <span
-              className="text-sm font-black tracking-wide uppercase transition-colors duration-250"
+              className="text-sm font-black tracking-wide uppercase italic transition-colors duration-250"
               style={{ color: activeTextColor }}
             >
               {currentSlide.text}
