@@ -12,7 +12,6 @@ const SLIDES = [
   { id: 'ipix', src: '/4.webp', audio: '/4.mp3', text: 'iPiX', link: '/tentang' },
 ];
 
-// Palet warna tiap gambar
 const SLIDE_COLORS: Record<string, string> = {
   chat: '#F97316', // Orange
   tema: '#06B6D4', // Biru Cyan
@@ -22,7 +21,6 @@ const SLIDE_COLORS: Record<string, string> = {
 
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E")`;
 
-// Durasi & kurva transisi ultra-halus
 const TRANSITION_DURATION = 500;
 const CUBIC_BEZIER = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
@@ -32,15 +30,22 @@ export default function HeroBanner() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [audioLevel, setAudioLevel] = useState(0); // Realtime level (0.0 - 1.0)
+  const [typedCount, setTypedCount] = useState(0);
 
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
+
+  // Web Audio API Refs
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const animFrameRef = useRef<number | null>(null);
 
   const currentSlide = SLIDES[activeIndex];
   const activeTextColor = SLIDE_COLORS[currentSlide.id] || 'var(--accent)';
 
-  // Deteksi ukuran layar (Mobile vs Desktop)
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
     checkMobile();
@@ -48,45 +53,119 @@ export default function HeroBanner() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Preload gambar dan audio
+  // Preload gambar
   useEffect(() => {
     SLIDES.forEach((slide) => {
       const image = new Image();
       image.src = slide.src;
-      
-      const audio = new Audio();
-      audio.src = slide.audio;
     });
   }, []);
 
-  // Putar Sound Effect MP3 sesuai hero aktif jika tidak dibisukan
+  // Efek Ketikan Teks "EXPLORE ..."
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+    setTypedCount(0);
+    const fullText = `EXPLORE ${SLIDES[activeIndex].text}`;
+    let current = 0;
+
+    const timer = setInterval(() => {
+      current += 1;
+      setTypedCount(current);
+      if (current >= fullText.length) {
+        clearInterval(timer);
+      }
+    }, 65);
+
+    return () => clearInterval(timer);
+  }, [activeIndex]);
+
+  // Analyser & Audio Setup
+  useEffect(() => {
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
     }
 
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.crossOrigin = 'anonymous';
+    }
+
+    const audio = audioRef.current;
+    audio.pause();
+    audio.src = SLIDES[activeIndex].audio;
+    audio.currentTime = 0;
+    audio.volume = 0.7;
+
     if (!isMuted) {
-      const soundPath = SLIDES[activeIndex].audio;
-      const sound = new Audio(soundPath);
-      sound.volume = 0.6;
-
-      sound.play().catch(() => {
-        // Menangani kebijakan Autoplay browser jika belum ada interaksi pengguna
-      });
-
-      audioRef.current = sound;
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            initAudioAnalyser(audio);
+          })
+          .catch(() => {
+            // Autoplay policy fallback
+          });
+      }
+    } else {
+      setAudioLevel(0);
     }
 
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+      audio.pause();
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
       }
     };
   }, [activeIndex, isMuted]);
 
-  // Auto slide interval 5 detik (5000ms)
+  const initAudioAnalyser = (audioElement: HTMLAudioElement) => {
+    try {
+      if (!audioCtxRef.current) {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        audioCtxRef.current = new AudioCtx();
+      }
+
+      if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume();
+      }
+
+      if (!analyserRef.current) {
+        analyserRef.current = audioCtxRef.current.createAnalyser();
+        analyserRef.current.fftSize = 64;
+        analyserRef.current.smoothingTimeConstant = 0.75;
+      }
+
+      if (!sourceRef.current) {
+        sourceRef.current = audioCtxRef.current.createMediaElementSource(audioElement);
+        sourceRef.current.connect(analyserRef.current);
+        analyserRef.current.connect(audioCtxRef.current.destination);
+      }
+
+      const bufferLength = analyserRef.current.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const renderFrame = () => {
+        if (!analyserRef.current) return;
+        analyserRef.current.getByteFrequencyData(dataArray);
+
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i];
+        }
+        const avg = sum / bufferLength;
+        const normalized = Math.min(1, avg / 130);
+
+        setAudioLevel(normalized);
+        animFrameRef.current = requestAnimationFrame(renderFrame);
+      };
+
+      renderFrame();
+    } catch (e) {
+      // AudioContext fallback
+    }
+  };
+
+  // Auto slide interval 5 detik
   useEffect(() => {
     const timer = setInterval(() => {
       navigate('prev');
@@ -111,11 +190,12 @@ export default function HeroBanner() {
 
   const toggleMute = () => {
     setIsMuted((prev) => {
-      const nextMuteState = !prev;
-      if (nextMuteState && audioRef.current) {
+      const nextMute = !prev;
+      if (nextMute && audioRef.current) {
         audioRef.current.pause();
+        setAudioLevel(0);
       }
-      return nextMuteState;
+      return nextMute;
     });
   };
 
@@ -134,6 +214,11 @@ export default function HeroBanner() {
     if (distance > 40) navigate('next');
     else if (distance < -40) navigate('prev');
   };
+
+  const fullTargetText = `EXPLORE ${currentSlide.text}`;
+  const currentTypedString = fullTargetText.slice(0, typedCount);
+  const typedExplorePart = currentTypedString.slice(0, 7);
+  const typedTitlePart = currentTypedString.length > 8 ? currentTypedString.slice(8) : '';
 
   return (
     <div
@@ -155,27 +240,18 @@ export default function HeroBanner() {
         }
         .anim-bounce-right { display: inline-block; animation: bounceRight 0.8s ease-in-out infinite; }
 
-        /* ---------------- ANIMASI OUTLINE BERJALAN HURUF DEMI HURUF ---------------- */
         @keyframes letterStrokeRun {
-          0% {
-            -webkit-text-stroke: 0px transparent;
-          }
-          30% {
-            -webkit-text-stroke: 1.2px color-mix(in srgb, var(--flash-color) 45%, transparent);
-          }
-          70% {
-            -webkit-text-stroke: 1.2px color-mix(in srgb, var(--flash-color) 45%, transparent);
-          }
-          100% {
-            -webkit-text-stroke: 0px transparent;
-          }
+          0% { -webkit-text-stroke: 0px transparent; }
+          30% { -webkit-text-stroke: 1.2px color-mix(in srgb, var(--flash-color) 45%, transparent); }
+          70% { -webkit-text-stroke: 1.2px color-mix(in srgb, var(--flash-color) 45%, transparent); }
+          100% { -webkit-text-stroke: 0px transparent; }
         }
 
         .anim-letter-stroke {
           animation: letterStrokeRun 0.5s ease-in-out forwards;
         }
 
-        /* ---------------- EFEK HERO TENGAH ---------------- */
+        /* EFEK KHUSUS HERO TENGAH (CSS MURNI ASLI) */
         @keyframes ringLightScan {
           0% { top: 0%; opacity: 0; transform: translateX(-50%) rotateX(60deg) scale(0.75); }
           18% { opacity: 0.95; }
@@ -217,11 +293,31 @@ export default function HeroBanner() {
         .anim-wave-2 { animation: soundWavePulse2 0.55s ease-out forwards; }
         .anim-ipix-hex { animation: ipixHexPulse 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .anim-ipix-glow { animation: ipixEnergyGlow 0.4s ease-out forwards; }
+
+        @keyframes blinkCursor {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+
+        .anim-typing-cursor {
+          animation: blinkCursor 0.6s infinite;
+        }
       ` }} />
 
       <div className="relative w-full h-[220px] sm:h-[250px] overflow-hidden">
 
-        {/* 1. Grain Noise Overlay */}
+        {/* 1. DYNAMIC AUDIO BACKGROUND GLOW (Hanya Warna Background Yang Bergerak Ikut irama MP3) */}
+        <div
+          className="absolute inset-0 pointer-events-none z-[1] transform-gpu transition-all duration-75 ease-out"
+          style={{
+            background: `radial-gradient(ellipse 90% 80% at 50% 50%, ${activeTextColor} 0%, transparent 75%)`,
+            opacity: 0.08 + audioLevel * 0.42,
+            filter: `blur(${12 + audioLevel * 20}px)`,
+            transform: `scale(${1 + audioLevel * 0.15})`,
+          }}
+        />
+
+        {/* 2. Grain Noise Overlay */}
         <div
           className="absolute inset-0 pointer-events-none z-[50] opacity-25"
           style={{
@@ -231,7 +327,7 @@ export default function HeroBanner() {
           }}
         />
 
-        {/* 2. Tombol Sound On / Off (Pojok Kanan Atas) */}
+        {/* 3. Tombol Sound On / Off */}
         <div className="absolute top-3 right-4 z-[60]">
           <button
             onClick={toggleMute}
@@ -250,7 +346,7 @@ export default function HeroBanner() {
           </button>
         </div>
 
-        {/* 3. Teks Raksasa "IPIXCHAT" (Efek Cekung/Inset Ke Dalam) */}
+        {/* 4. Teks Raksasa "IPIXCHAT" dengan Efek Cekung */}
         <div
           className="absolute inset-x-0 top-3 sm:top-4 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase whitespace-nowrap"
           style={{
@@ -283,7 +379,7 @@ export default function HeroBanner() {
           ))}
         </div>
 
-        {/* 4. Carousel 3D Characters */}
+        {/* 5. Carousel 3D Characters ( Hero Tetap/Tidak Berubah Ukuran ) */}
         <div className="absolute inset-0 z-[3]">
           {SLIDES.map((item, index) => {
             let role = 'back';
@@ -344,7 +440,7 @@ export default function HeroBanner() {
                   `,
                 }}
               >
-                {/* EFEK KHUSUS HERO TENGAH (CENTER) */}
+                {/* EFEK KHUSUS HERO TENGAH (MURNI ASLI SEPERTI AWAL) */}
                 {role === 'center' && (
                   <>
                     {/* Glow Redup di Tengah Hero Sesuai Warna Theme */}
@@ -444,7 +540,7 @@ export default function HeroBanner() {
                   className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
                 />
 
-                {/* EFEK MIRROR / REFLEKSI DIBAWAH HERO KIRI DAN KANAN */}
+                {/* Refleksi Mirror Hero Kiri dan Kanan */}
                 {(role === 'left' || role === 'right') && (
                   <div className="absolute top-[98%] left-0 right-0 h-[38%] overflow-hidden pointer-events-none opacity-25 select-none z-[18]">
                     <img
@@ -464,7 +560,7 @@ export default function HeroBanner() {
           })}
         </div>
 
-        {/* 5. Tombol Navigasi Kiri Bawah */}
+        {/* 6. Tombol Navigasi Kiri Bawah */}
         <div className="absolute bottom-3 left-4 z-[60]">
           <div className="flex items-center gap-1.5">
             <button
@@ -492,26 +588,38 @@ export default function HeroBanner() {
           </div>
         </div>
 
-        {/* 6. Tombol Explore Kanan Bawah */}
+        {/* 7. Tombol Explore Kanan Bawah dengan Ketikan Teks */}
         <div className="absolute bottom-3 right-4 z-[60]">
           <Link
             href={currentSlide.link}
-            className="group flex items-center gap-1.5 transition-all duration-200"
+            className="group flex items-center gap-1 transition-all duration-200"
           >
+            {typedExplorePart && (
+              <span
+                className="text-[11px] font-medium tracking-wide uppercase opacity-70 italic pb-0.5 border-b-2 transition-all duration-250"
+                style={{
+                  color: 'var(--foreground)',
+                  borderColor: activeTextColor,
+                }}
+              >
+                {typedExplorePart}
+              </span>
+            )}
+            {typedTitlePart && (
+              <span
+                className="text-sm font-black tracking-wide uppercase italic transition-colors duration-250 ml-1"
+                style={{
+                  color: activeTextColor,
+                }}
+              >
+                {typedTitlePart}
+              </span>
+            )}
             <span
-              className="text-[11px] font-medium tracking-wide uppercase opacity-70 italic pb-0.5 border-b-2 transition-all duration-250"
-              style={{
-                color: 'var(--foreground)',
-                borderColor: activeTextColor,
-              }}
-            >
-              explore
-            </span>
-            <span
-              className="text-sm font-black tracking-wide uppercase italic transition-colors duration-250"
+              className="text-sm font-black anim-typing-cursor -ml-0.5"
               style={{ color: activeTextColor }}
             >
-              {currentSlide.text}
+              |
             </span>
             <ArrowRight
               className="w-3.5 h-3.5 anim-bounce-right ml-0.5 transition-colors duration-250"
