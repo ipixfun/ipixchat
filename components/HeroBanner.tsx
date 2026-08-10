@@ -22,7 +22,7 @@ const SLIDE_COLORS: Record<string, string> = {
 
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E")`;
 
-// Durasi & kurva transisi ultra-halus (Apple-style spring deceleration)
+// Durasi & kurva transisi ultra-halus
 const TRANSITION_DURATION = 500;
 const CUBIC_BEZIER = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
@@ -54,7 +54,7 @@ export default function HeroBanner() {
     });
   }, []);
 
-  // Auto slide interval (Arah ke kanan)
+  // Auto slide interval
   useEffect(() => {
     const timer = setInterval(() => {
       navigate('prev');
@@ -189,7 +189,7 @@ export default function HeroBanner() {
           }}
         />
 
-        {/* 2. Teks Raksasa Latar Belakang "IPIXCHAT" */}
+        {/* 2. Teks Raksasa "IPIXCHAT" (Efek Cekung/Inset Ke Dalam) */}
         <div
           className="absolute inset-x-0 top-3 sm:top-4 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase whitespace-nowrap"
           style={{
@@ -198,11 +198,14 @@ export default function HeroBanner() {
             lineHeight: 1,
             letterSpacing: '-0.01em',
             transform: 'skewX(-10deg)',
-            opacity: 0.4,
-            backgroundImage: 'linear-gradient(90deg, #111827 0%, #1F2937 35%, #374151 70%, #4B5563 100%)',
+            opacity: 0.38,
+            backgroundImage: 'linear-gradient(180deg, #0A0E17 0%, #1A2332 60%, #2D3A4E 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            filter: 'drop-shadow(1px 2px 3px rgba(0, 0, 0, 0.4))',
+            filter: `
+              drop-shadow(0px -1.5px 1px rgba(0, 0, 0, 0.95))
+              drop-shadow(0px 1px 1px rgba(255, 255, 255, 0.12))
+            `,
           }}
         >
           {'IPIXCHAT'.split('').map((letter, idx) => (
@@ -219,7 +222,7 @@ export default function HeroBanner() {
           ))}
         </div>
 
-        {/* 3. Carousel 3D Characters (Interpolasi Murni via 'top' & 'transform') */}
+        {/* 3. Carousel 3D Characters */}
         <div className="absolute inset-0 z-[3]">
           {SLIDES.map((item, index) => {
             let role = 'back';
@@ -229,7 +232,6 @@ export default function HeroBanner() {
 
             if (role === 'back') return null;
 
-            // Penggunaan nilai 'top' & 'transform' yang terstandarisasi untuk interpolasi CSS tanpa jank
             let left = '50%';
             let top = '18%';
             let height = isMobile ? '82%' : '88%';
@@ -246,14 +248,14 @@ export default function HeroBanner() {
               transform = `translateX(-50%) scale(${isMobile ? 1.05 : 1.15})`;
             } else if (role === 'left') {
               left = isMobile ? '18%' : '25%';
-              top = '27%'; // Posisi tepat di tengah vertikal antara teks & navigasi
+              top = '27%';
               height = isMobile ? '48%' : '54%';
               opacity = 0.65;
               zIndex = 10;
               transform = 'translateX(-50%) scale(0.82)';
             } else if (role === 'right') {
               left = isMobile ? '82%' : '75%';
-              top = '27%'; // Posisi tepat di tengah vertikal antara teks & navigasi
+              top = '27%';
               height = isMobile ? '48%' : '54%';
               opacity = 0.65;
               zIndex = 10;
@@ -359,17 +361,18 @@ export default function HeroBanner() {
                       </div>
                     )}
 
-                    {/* Bayangan Tipis Latar Belakang Hero Tengah */}
+                    {/* Bayangan Hitam Sedikit di Bawah Hero Tengah */}
                     <div
-                      className="absolute bottom-1 left-1/2 -translate-x-1/2 w-3/4 h-3 rounded-full blur-sm pointer-events-none z-[15] opacity-40 transition-colors duration-250"
+                      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[72%] h-2.5 rounded-[100%] blur-[3px] pointer-events-none z-[15] opacity-70"
                       style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                        boxShadow: `0 4px 12px ${activeTextColor}40`,
+                        backgroundColor: '#000000',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.85)',
                       }}
                     />
                   </>
                 )}
 
+                {/* Gambar Main Hero */}
                 <img
                   src={item.src}
                   alt={`Slide Character ${index + 1}`}
@@ -379,6 +382,22 @@ export default function HeroBanner() {
                   fetchpriority={role === 'center' ? 'high' : 'low'}
                   className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
                 />
+
+                {/* EFEK MIRROR / REFLEKSI DIBAWAH HERO KIRI DAN KANAN */}
+                {(role === 'left' || role === 'right') && (
+                  <div className="absolute top-[98%] left-0 right-0 h-[38%] overflow-hidden pointer-events-none opacity-25 select-none z-[18]">
+                    <img
+                      src={item.src}
+                      alt=""
+                      draggable={false}
+                      className="w-full h-full object-contain object-top scale-y-[-1] filter blur-[1px]"
+                      style={{
+                        maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
+                        WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}
