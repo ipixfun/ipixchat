@@ -26,6 +26,29 @@ const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='h
 const TRANSITION_DURATION = 500;
 const CUBIC_BEZIER = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
+// Component pembeku gambar WebP (Mengambil frame static ke canvas)
+function FrozenWebP({ src, className, style }: { src: string; className?: string; style?: React.CSSProperties }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      canvas.width = img.naturalWidth || 400;
+      canvas.height = img.naturalHeight || 600;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+      }
+    };
+  }, [src]);
+
+  return <canvas ref={canvasRef} className={className} style={style} />;
+}
+
 export default function HeroBanner() {
   const { theme } = useTheme();
   const [activeIndex, setActiveIndex] = useState(0);
@@ -366,15 +389,14 @@ export default function HeroBanner() {
           ))}
         </div>
 
-        {/* 4. Carousel 3D Characters (Dinamis 0.webp, 1.webp, 2.webp, 3.webp, 4.webp) */}
+        {/* 4. Carousel 3D Characters */}
         <div className="absolute inset-0 z-[3]">
           {SLIDES.map((item, index) => {
-            let role = 'back';
+            let role = 'back-right';
             if (index === activeIndex) role = 'center';
             else if (index === (activeIndex + SLIDES.length - 1) % SLIDES.length) role = 'left';
             else if (index === (activeIndex + 1) % SLIDES.length) role = 'right';
-
-            if (role === 'back') return null;
+            else if (index === (activeIndex + SLIDES.length - 2) % SLIDES.length) role = 'back-left';
 
             let left = '50%';
             let top = '18%';
@@ -404,6 +426,20 @@ export default function HeroBanner() {
               opacity = 0.65;
               zIndex = 10;
               transform = 'translateX(-50%) scale(0.82)';
+            } else if (role === 'back-left') {
+              left = '0%';
+              top = '27%';
+              height = isMobile ? '48%' : '54%';
+              opacity = 0;
+              zIndex = 1;
+              transform = 'translateX(-50%) scale(0.5)';
+            } else {
+              left = '100%';
+              top = '27%';
+              height = isMobile ? '48%' : '54%';
+              opacity = 0;
+              zIndex = 1;
+              transform = 'translateX(-50%) scale(0.5)';
             }
 
             return (
@@ -514,24 +550,29 @@ export default function HeroBanner() {
                   </>
                 )}
 
-                {/* Gambar Character Hero */}
-                <img
-                  src={item.src}
-                  alt={`Slide Character ${index}`}
-                  draggable={false}
-                  loading={role === 'center' ? 'eager' : 'lazy'}
-                  // @ts-ignore
-                  fetchpriority={role === 'center' ? 'high' : 'low'}
-                  className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
-                />
+                {/* Karakter: Bergerak (Animated) Jika Di Tengah, Membeku (Frozen Static Frame) Jika Di Kiri/Kanan */}
+                {role === 'center' ? (
+                  <img
+                    src={item.src}
+                    alt={`Slide Character ${index}`}
+                    draggable={false}
+                    loading="eager"
+                    // @ts-ignore
+                    fetchpriority="high"
+                    className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
+                  />
+                ) : (
+                  <FrozenWebP
+                    src={item.src}
+                    className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
+                  />
+                )}
 
-                {/* Refleksi Mirror Hero Kiri dan Kanan */}
+                {/* Refleksi Mirror Hero Kiri dan Kanan (Selalu Membeku/Frozen) */}
                 {(role === 'left' || role === 'right') && (
                   <div className="absolute top-[98%] left-0 right-0 h-[38%] overflow-hidden pointer-events-none opacity-25 select-none z-[18]">
-                    <img
+                    <FrozenWebP
                       src={item.src}
-                      alt=""
-                      draggable={false}
                       className="w-full h-full object-contain object-top scale-y-[-1] filter blur-[1px]"
                       style={{
                         maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
@@ -614,7 +655,7 @@ export default function HeroBanner() {
               <span
                 className="text-sm font-black tracking-wide uppercase italic transition-colors duration-250 ml-1"
                 style={{
-                  color: isWelcomeSlide ? '#FACC15' : activeTextColor, // Kuning seperti hero 0 untuk "DATANG"
+                  color: isWelcomeSlide ? '#FACC15' : activeTextColor, // Kuning hero 0 untuk "DATANG"
                 }}
               >
                 {word2}
