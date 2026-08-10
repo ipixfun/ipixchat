@@ -20,15 +20,16 @@ const SLIDE_COLORS: Record<string, string> = {
   ipix: '#EF4444', // Merah Terang
 };
 
-const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")`;
+const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E")`;
 
-const TRANSITION_DURATION = 250;
-const CUBIC_BEZIER = 'cubic-bezier(0.16, 1, 0.3, 1)';
+const TRANSITION_DURATION = 650;
+const CUBIC_BEZIER = 'cubic-bezier(0.4, 0, 0.2, 1)';
 
 export default function HeroBanner() {
   const { theme } = useTheme();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
@@ -36,6 +37,15 @@ export default function HeroBanner() {
   const currentSlide = SLIDES[activeIndex];
   const activeTextColor = SLIDE_COLORS[currentSlide.id] || 'var(--accent)';
 
+  // Deteksi ukuran layar (Mobile vs Desktop)
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Preload gambar
   useEffect(() => {
     SLIDES.forEach((slide) => {
       const image = new Image();
@@ -43,10 +53,11 @@ export default function HeroBanner() {
     });
   }, []);
 
+  // Auto slide interval (Arah ke kanan / 'prev')
   useEffect(() => {
     const timer = setInterval(() => {
       navigate('prev');
-    }, 3500);
+    }, 3800);
 
     return () => clearInterval(timer);
   }, [activeIndex, isAnimating]);
@@ -101,16 +112,16 @@ export default function HeroBanner() {
         }
         .anim-bounce-right { display: inline-block; animation: bounceRight 0.8s ease-in-out infinite; }
 
-        /* ---------------- ANIMASI OUTLINE REDUP BERJALAN HURUF DEMI HURUF ---------------- */
+        /* ---------------- ANIMASI OUTLINE BERJALAN HURUF DEMI HURUF ---------------- */
         @keyframes letterStrokeRun {
           0% {
             -webkit-text-stroke: 0px transparent;
           }
           30% {
-            -webkit-text-stroke: 1px color-mix(in srgb, var(--flash-color) 45%, transparent);
+            -webkit-text-stroke: 1.2px color-mix(in srgb, var(--flash-color) 45%, transparent);
           }
           70% {
-            -webkit-text-stroke: 1px color-mix(in srgb, var(--flash-color) 45%, transparent);
+            -webkit-text-stroke: 1.2px color-mix(in srgb, var(--flash-color) 45%, transparent);
           }
           100% {
             -webkit-text-stroke: 0px transparent;
@@ -118,7 +129,7 @@ export default function HeroBanner() {
         }
 
         .anim-letter-stroke {
-          animation: letterStrokeRun 0.45s ease-in-out forwards;
+          animation: letterStrokeRun 0.5s ease-in-out forwards;
         }
 
         /* ---------------- EFEK HERO TENGAH ---------------- */
@@ -165,19 +176,19 @@ export default function HeroBanner() {
         .anim-ipix-glow { animation: ipixEnergyGlow 0.4s ease-out forwards; }
       ` }} />
 
-      <div className="relative w-full h-[220px] sm:h-[240px] overflow-hidden">
+      <div className="relative w-full h-[220px] sm:h-[250px] overflow-hidden">
 
         {/* 1. Grain Noise Overlay */}
         <div
-          className="absolute inset-0 pointer-events-none z-[4] opacity-25"
+          className="absolute inset-0 pointer-events-none z-[50] opacity-25"
           style={{
             backgroundImage: NOISE_SVG,
-            backgroundSize: '150px 150px',
+            backgroundSize: '180px 180px',
             backgroundRepeat: 'repeat',
           }}
         />
 
-        {/* 2. Teks Raksasa "IPIXCHAT" (Semi-transparan & Outline Redup) */}
+        {/* 2. Teks Raksasa Latar Belakang "IPIXCHAT" */}
         <div
           className="absolute inset-x-0 top-3 sm:top-4 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase whitespace-nowrap"
           style={{
@@ -186,7 +197,7 @@ export default function HeroBanner() {
             lineHeight: 1,
             letterSpacing: '-0.01em',
             transform: 'skewX(-10deg)',
-            opacity: 0.45,
+            opacity: 0.4,
             backgroundImage: 'linear-gradient(90deg, #111827 0%, #1F2937 35%, #374151 70%, #4B5563 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
@@ -198,7 +209,7 @@ export default function HeroBanner() {
               key={`${activeIndex}-${idx}`}
               className="inline-block anim-letter-stroke"
               style={{
-                animationDelay: `${idx * 40}ms`,
+                animationDelay: `${idx * 45}ms`,
                 '--flash-color': activeTextColor,
               } as React.CSSProperties}
             >
@@ -207,103 +218,159 @@ export default function HeroBanner() {
           ))}
         </div>
 
-        {/* 3. Carousel Slide Item */}
+        {/* 3. Carousel 3D Characters (Hero Kiri & Kanan Tanpa Blur) */}
         <div className="absolute inset-0 z-[3]">
           {SLIDES.map((item, index) => {
-            if (index !== activeIndex) return null;
+            let role = 'back';
+            if (index === activeIndex) role = 'center';
+            else if (index === (activeIndex + 3) % 4) role = 'left';
+            else if (index === (activeIndex + 1) % 4) role = 'right';
+
+            if (role === 'back') return null;
+
+            let transform = 'translateX(-50%) scale(1)';
+            let filter = 'blur(0px)';
+            let opacity = 1;
+            let zIndex = 20;
+            let left = '50%';
+            let height = isMobile ? '82%' : '88%';
+            let bottom = '-2%';
+
+            if (role === 'center') {
+              transform = `translateX(-50%) scale(${isMobile ? 1.05 : 1.15})`;
+              filter = 'blur(0px)';
+              opacity = 1;
+              zIndex = 20;
+              left = '50%';
+              height = isMobile ? '82%' : '88%';
+              bottom = '-2%';
+            } else if (role === 'left') {
+              transform = 'translateX(-50%) scale(0.85)';
+              filter = 'blur(0px)';
+              opacity = 0.65;
+              zIndex = 10;
+              left = isMobile ? '18%' : '25%';
+              height = isMobile ? '50%' : '58%';
+              bottom = '8%';
+            } else if (role === 'right') {
+              transform = 'translateX(-50%) scale(0.85)';
+              filter = 'blur(0px)';
+              opacity = 0.65;
+              zIndex = 10;
+              left = isMobile ? '82%' : '75%';
+              height = isMobile ? '50%' : '58%';
+              bottom = '8%';
+            }
 
             return (
               <div
                 key={item.id}
-                className="absolute aspect-[0.6/1] left-1/2 -translate-x-1/2 z-[20] scale-[1.05] will-change-transform transition-all duration-250 ease-out"
+                className="absolute aspect-[0.6/1] will-change-[transform,filter,opacity,left,height,bottom]"
                 style={{
-                  height: '85%',
-                  bottom: '-2%',
+                  transform,
+                  filter,
+                  opacity,
+                  zIndex,
+                  left,
+                  height,
+                  bottom,
+                  transition: `
+                    transform ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
+                    filter ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
+                    opacity ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
+                    left ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
+                    height ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
+                    bottom ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}
+                  `,
                 }}
               >
-                {/* EFEK KHUSUS HERO TENGAH */}
-                {item.id === 'chat' && (
-                  <div
-                    key={`ring-${activeIndex}`}
-                    className="absolute left-1/2 w-32 h-16 rounded-[100%] border-[2.5px] pointer-events-none z-[25] anim-ring-light"
-                    style={{
-                      borderColor: activeTextColor,
-                      boxShadow: `0 0 14px ${activeTextColor}, inset 0 0 10px ${activeTextColor}`,
-                    }}
-                  />
-                )}
+                {/* EFEK KHUSUS HERO TENGAH (CENTER) */}
+                {role === 'center' && (
+                  <>
+                    {item.id === 'chat' && (
+                      <div
+                        key={`ring-${activeIndex}`}
+                        className="absolute left-1/2 w-32 h-16 rounded-[100%] border-[2.5px] pointer-events-none z-[25] anim-ring-light"
+                        style={{
+                          borderColor: activeTextColor,
+                          boxShadow: `0 0 14px ${activeTextColor}, inset 0 0 10px ${activeTextColor}`,
+                        }}
+                      />
+                    )}
 
-                {item.id === 'tema' && (
-                  <div
-                    key={`laser-${activeIndex}`}
-                    className="absolute left-0 right-0 h-[3px] pointer-events-none z-[25] anim-laser-beam"
-                    style={{
-                      backgroundColor: activeTextColor,
-                      boxShadow: `0 0 12px ${activeTextColor}, 0 0 25px ${activeTextColor}`,
-                    }}
-                  >
-                    <div
-                      className="absolute inset-x-0 h-12 -top-6 opacity-30"
-                      style={{
-                        background: `linear-gradient(180deg, transparent, ${activeTextColor}, transparent)`,
-                      }}
-                    />
-                  </div>
-                )}
+                    {item.id === 'tema' && (
+                      <div
+                        key={`laser-${activeIndex}`}
+                        className="absolute left-0 right-0 h-[3px] pointer-events-none z-[25] anim-laser-beam"
+                        style={{
+                          backgroundColor: activeTextColor,
+                          boxShadow: `0 0 12px ${activeTextColor}, 0 0 25px ${activeTextColor}`,
+                        }}
+                      >
+                        <div
+                          className="absolute inset-x-0 h-12 -top-6 opacity-30"
+                          style={{
+                            background: `linear-gradient(180deg, transparent, ${activeTextColor}, transparent)`,
+                          }}
+                        />
+                      </div>
+                    )}
 
-                {item.id === 'mp3' && (
-                  <div key={`wave-container-${activeIndex}`}>
-                    <div
-                      className="absolute top-1/2 left-1/2 w-32 h-32 rounded-full border pointer-events-none z-[25] anim-wave-1"
-                      style={{
-                        borderColor: activeTextColor,
-                        boxShadow: `0 0 15px ${activeTextColor}`,
-                      }}
-                    />
-                    <div
-                      className="absolute top-1/2 left-1/2 w-40 h-40 rounded-full border pointer-events-none z-[24] anim-wave-2"
-                      style={{
-                        borderColor: activeTextColor,
-                        boxShadow: `0 0 20px ${activeTextColor}`,
-                      }}
-                    />
-                  </div>
-                )}
+                    {item.id === 'mp3' && (
+                      <div key={`wave-container-${activeIndex}`}>
+                        <div
+                          className="absolute top-1/2 left-1/2 w-32 h-32 rounded-full border pointer-events-none z-[25] anim-wave-1"
+                          style={{
+                            borderColor: activeTextColor,
+                            boxShadow: `0 0 15px ${activeTextColor}`,
+                          }}
+                        />
+                        <div
+                          className="absolute top-1/2 left-1/2 w-40 h-40 rounded-full border pointer-events-none z-[24] anim-wave-2"
+                          style={{
+                            borderColor: activeTextColor,
+                            boxShadow: `0 0 20px ${activeTextColor}`,
+                          }}
+                        />
+                      </div>
+                    )}
 
-                {item.id === 'ipix' && (
-                  <div key={`ipix-container-${activeIndex}`}>
-                    <div
-                      className="absolute top-1/2 left-1/2 w-32 h-32 border-[2px] rounded-[22px] pointer-events-none z-[25] anim-ipix-hex"
-                      style={{
-                        borderColor: activeTextColor,
-                        boxShadow: `0 0 18px ${activeTextColor}, inset 0 0 12px ${activeTextColor}`,
-                      }}
-                    />
-                    <div
-                      className="absolute top-1/2 left-1/2 w-44 h-44 rounded-full blur-lg pointer-events-none z-[24] anim-ipix-glow"
-                      style={{
-                        backgroundColor: activeTextColor,
-                      }}
-                    />
-                  </div>
-                )}
+                    {item.id === 'ipix' && (
+                      <div key={`ipix-container-${activeIndex}`}>
+                        <div
+                          className="absolute top-1/2 left-1/2 w-32 h-32 border-[2px] rounded-[22px] pointer-events-none z-[25] anim-ipix-hex"
+                          style={{
+                            borderColor: activeTextColor,
+                            boxShadow: `0 0 18px ${activeTextColor}, inset 0 0 12px ${activeTextColor}`,
+                          }}
+                        />
+                        <div
+                          className="absolute top-1/2 left-1/2 w-44 h-44 rounded-full blur-lg pointer-events-none z-[24] anim-ipix-glow"
+                          style={{
+                            backgroundColor: activeTextColor,
+                          }}
+                        />
+                      </div>
+                    )}
 
-                {/* Bayangan Tipis Latar Belakang Hero */}
-                <div
-                  className="absolute bottom-1 left-1/2 -translate-x-1/2 w-3/4 h-3 rounded-full blur-sm pointer-events-none z-[15] opacity-40 transition-colors duration-250"
-                  style={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                    boxShadow: `0 4px 12px ${activeTextColor}40`,
-                  }}
-                />
+                    {/* Bayangan Tipis Latar Belakang Hero Tengah */}
+                    <div
+                      className="absolute bottom-1 left-1/2 -translate-x-1/2 w-3/4 h-3 rounded-full blur-sm pointer-events-none z-[15] opacity-40 transition-colors duration-250"
+                      style={{
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        boxShadow: `0 4px 12px ${activeTextColor}40`,
+                      }}
+                    />
+                  </>
+                )}
 
                 <img
                   src={item.src}
-                  alt={`Slide ${item.text}`}
+                  alt={`Slide Character ${index + 1}`}
                   draggable={false}
-                  loading="eager"
+                  loading={role === 'center' ? 'eager' : 'lazy'}
                   // @ts-ignore
-                  fetchpriority="high"
+                  fetchpriority={role === 'center' ? 'high' : 'low'}
                   className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
                 />
               </div>
@@ -311,7 +378,7 @@ export default function HeroBanner() {
           })}
         </div>
 
-        {/* 4. Tombol Navigasi Kiri Bawah (Bulatan Netral, Panah Saja Warna Hero) */}
+        {/* 4. Tombol Navigasi Kiri Bawah */}
         <div className="absolute bottom-3 left-4 z-[60]">
           <div className="flex items-center gap-1.5">
             <button
