@@ -13,13 +13,13 @@ const SLIDES = [
 ];
 
 const DARK_SLIDE_COLORS: Record<string, string> = {
-  chat: '#F97316',
-  tema: '#06B6D4',
-  mp3: '#22C55E',
-  ipix: '#ac020b',
+  chat: '#F97316', // Orange
+  tema: '#06B6D4', // Biru Cyan
+  mp3: '#22C55E',  // Hijau
+  ipix: '#EF4444', // Merah Terang
 };
 
-// Data SVG dipersingkat & ringan tanpa heavy filter
+// Data SVG noise ringan untuk performa tinggi
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E")`;
 
 const TRANSITION_DURATION = 250;
@@ -104,11 +104,51 @@ export default function HeroBanner() {
           50% { transform: translateX(5px); }
         }
         .anim-bounce-right { display: inline-block; animation: bounceRight 0.8s ease-in-out infinite; }
+
+        /* KEYFRAMES KILATAN PETIR (LIGHTNING FLICKER) */
+        @keyframes lightningStrikeLeft {
+          0% { opacity: 0; transform: scale(0.3) rotate(-10deg); }
+          15% { opacity: 1; transform: scale(1.1) rotate(0deg); }
+          30% { opacity: 0.2; }
+          45% { opacity: 1; }
+          60% { opacity: 0.1; }
+          75% { opacity: 0.8; }
+          100% { opacity: 0; transform: scale(1) rotate(5deg); }
+        }
+
+        @keyframes lightningStrikeRight {
+          0% { opacity: 0; transform: scale(0.3) rotate(10deg); }
+          20% { opacity: 1; transform: scale(1.15) rotate(0deg); }
+          35% { opacity: 0.3; }
+          50% { opacity: 0.9; }
+          65% { opacity: 0.1; }
+          80% { opacity: 0.7; }
+          100% { opacity: 0; transform: scale(1) rotate(-5deg); }
+        }
+
+        /* KEYFRAMES PULSA LISTRIK PADA BEKANG GAMBAR */
+        @keyframes shockwavePulse {
+          0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.9; }
+          50% { opacity: 0.5; }
+          100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+        }
+
+        .anim-lightning-left {
+          animation: lightningStrikeLeft 0.38s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+        }
+
+        .anim-lightning-right {
+          animation: lightningStrikeRight 0.42s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+        }
+
+        .anim-shockwave {
+          animation: shockwavePulse 0.35s ease-out forwards;
+        }
       ` }} />
 
       <div className="relative w-full h-[220px] sm:h-[240px] overflow-hidden">
 
-        {/* 1. Grain Noise Overlay (Dihapus mix-blend-overlay & diturunkan z-index agar tidak memblokir render paint) */}
+        {/* 1. Grain Noise Overlay */}
         <div
           className="absolute inset-0 pointer-events-none z-[4] opacity-25"
           style={{
@@ -207,6 +247,59 @@ export default function HeroBanner() {
                   `,
                 }}
               >
+                {/* EFEK KILATAN PETIR DINAMIS PADA SLIDE TENGAH */}
+                {role === 'center' && (
+                  <>
+                    {/* Shockwave Gelombang Listrik Belakang */}
+                    <div
+                      key={`shockwave-${activeIndex}`}
+                      className="absolute top-1/2 left-1/2 w-52 h-52 rounded-full blur-md pointer-events-none z-[15] anim-shockwave"
+                      style={{
+                        backgroundColor: activeTextColor,
+                        boxShadow: `0 0 35px ${activeTextColor}`,
+                      }}
+                    />
+
+                    {/* SAMBARAN PETIR KIRI */}
+                    <svg
+                      key={`bolt-left-${activeIndex}`}
+                      className="absolute -top-6 -left-10 w-32 h-56 pointer-events-none z-[30] anim-lightning-left"
+                      viewBox="0 0 100 200"
+                      fill="none"
+                      style={{
+                        filter: `drop-shadow(0 0 12px ${activeTextColor}) drop-shadow(0 0 25px ${activeTextColor})`,
+                      }}
+                    >
+                      <path
+                        d="M60 0 L25 70 L45 75 L10 130 L35 132 L0 200 L45 120 L25 115 L60 60 L40 55 Z"
+                        fill="#FFFFFF"
+                        stroke={activeTextColor}
+                        strokeWidth="2.5"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+
+                    {/* SAMBARAN PETIR KANAN */}
+                    <svg
+                      key={`bolt-right-${activeIndex}`}
+                      className="absolute -top-8 -right-10 w-32 h-56 pointer-events-none z-[30] anim-lightning-right"
+                      viewBox="0 0 100 200"
+                      fill="none"
+                      style={{
+                        filter: `drop-shadow(0 0 12px ${activeTextColor}) drop-shadow(0 0 25px ${activeTextColor})`,
+                      }}
+                    >
+                      <path
+                        d="M40 0 L75 65 L55 70 L90 125 L65 128 L100 200 L55 125 L75 120 L40 60 L60 55 Z"
+                        fill="#FFFFFF"
+                        stroke={activeTextColor}
+                        strokeWidth="2.5"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </>
+                )}
+
                 <img
                   src={item.src}
                   alt={`Slide ${item.text}`}
@@ -214,7 +307,7 @@ export default function HeroBanner() {
                   loading={role === 'center' ? 'eager' : 'lazy'}
                   // @ts-ignore
                   fetchpriority={role === 'center' ? 'high' : 'low'}
-                  className="w-full h-full object-contain object-bottom pointer-events-none select-none"
+                  className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20]"
                 />
               </div>
             );
