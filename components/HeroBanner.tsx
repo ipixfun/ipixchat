@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useTheme } from '@/app/context/ThemeContext';
 
 const SLIDES = [
-  { id: 'welcome', src: '/0.webm', audio: '/0.mp3', text: 'WELCOME', link: '#', isVideo: true },
+  { id: 'welcome', src: '/0.webp', audio: '/0.mp3', text: 'WELCOME', link: '#' },
   { id: 'chat', src: '/1.webp', audio: '/1.mp3', text: 'CHAT', link: '/chat' },
   { id: 'tema', src: '/2.webp', audio: '/2.mp3', text: 'TEMA', link: '/tema' },
   { id: 'mp3', src: '/3.webp', audio: '/3.mp3', text: 'MP3', link: '/mp3' },
@@ -14,7 +14,7 @@ const SLIDES = [
 ];
 
 const SLIDE_COLORS: Record<string, string> = {
-  welcome: '#FACC15', // Kuning/Gold Terang
+  welcome: '#FACC15', // Kuning Hero 0
   chat: '#F97316',    // Orange
   tema: '#06B6D4',    // Biru Cyan
   mp3: '#22C55E',     // Hijau
@@ -55,15 +55,13 @@ export default function HeroBanner() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Preload audio & media
+  // Preload gambar dan audio
   useEffect(() => {
     SLIDES.forEach((slide) => {
       const audio = new Audio();
       audio.src = slide.audio;
-      if (!slide.isVideo) {
-        const image = new Image();
-        image.src = slide.src;
-      }
+      const image = new Image();
+      image.src = slide.src;
     });
   }, []);
 
@@ -222,7 +220,7 @@ export default function HeroBanner() {
     else if (distance < -40) navigate('prev');
   };
 
-  // Kalkulasi teks ketikan
+  // Kalkulasi teks ketikan dinamis
   const isWelcomeSlide = currentSlide.id === 'welcome';
   const fullTargetText = isWelcomeSlide ? 'SELAMAT DATANG' : `EXPLORE ${currentSlide.text}`;
   const currentTypedString = fullTargetText.slice(0, typedCount);
@@ -310,15 +308,6 @@ export default function HeroBanner() {
         .anim-typing-cursor {
           animation: blinkCursor 0.6s infinite;
         }
-
-        @keyframes floatHeader {
-          0%, 100% { transform: translate(-50%, 0px); }
-          50% { transform: translate(-50%, -6px); }
-        }
-
-        .anim-float-welcome {
-          animation: floatHeader 1.8s ease-in-out infinite;
-        }
       ` }} />
 
       <div className="relative w-full h-[220px] sm:h-[250px] overflow-hidden">
@@ -377,7 +366,7 @@ export default function HeroBanner() {
           ))}
         </div>
 
-        {/* 4. Carousel 3D Characters (Dinamis 0, 1, 2, 3, 4) */}
+        {/* 4. Carousel 3D Characters (Dinamis 0.webp, 1.webp, 2.webp, 3.webp, 4.webp) */}
         <div className="absolute inset-0 z-[3]">
           {SLIDES.map((item, index) => {
             let role = 'back';
@@ -438,23 +427,6 @@ export default function HeroBanner() {
                   `,
                 }}
               >
-                {/* TEKS WELCOME DINAMIS DI ATAS KEPALA HERO TENGAH (KHUSUS SLIDE 0 / WELCOME) */}
-                {role === 'center' && item.id === 'welcome' && (
-                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-[35] pointer-events-none whitespace-nowrap anim-float-welcome">
-                    <span
-                      className="px-3 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase italic border shadow-lg backdrop-blur-md transition-colors duration-300"
-                      style={{
-                        backgroundColor: 'rgba(10, 14, 23, 0.75)',
-                        borderColor: activeTextColor,
-                        color: activeTextColor,
-                        boxShadow: `0 0 12px ${activeTextColor}80`,
-                      }}
-                    >
-                      WELCOME
-                    </span>
-                  </div>
-                )}
-
                 {/* EFEK KHUSUS HERO TENGAH */}
                 {role === 'center' && (
                   <>
@@ -542,56 +514,30 @@ export default function HeroBanner() {
                   </>
                 )}
 
-                {/* Media Render: 支持 0.webm (video) & 1-4.webp (image) */}
-                {item.isVideo ? (
-                  <video
-                    src={item.src}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
-                  />
-                ) : (
-                  <img
-                    src={item.src}
-                    alt={`Slide Character ${index}`}
-                    draggable={false}
-                    loading={role === 'center' ? 'eager' : 'lazy'}
-                    // @ts-ignore
-                    fetchpriority={role === 'center' ? 'high' : 'low'}
-                    className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
-                  />
-                )}
+                {/* Gambar Character Hero */}
+                <img
+                  src={item.src}
+                  alt={`Slide Character ${index}`}
+                  draggable={false}
+                  loading={role === 'center' ? 'eager' : 'lazy'}
+                  // @ts-ignore
+                  fetchpriority={role === 'center' ? 'high' : 'low'}
+                  className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
+                />
 
                 {/* Refleksi Mirror Hero Kiri dan Kanan */}
                 {(role === 'left' || role === 'right') && (
                   <div className="absolute top-[98%] left-0 right-0 h-[38%] overflow-hidden pointer-events-none opacity-25 select-none z-[18]">
-                    {item.isVideo ? (
-                      <video
-                        src={item.src}
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        className="w-full h-full object-contain object-top scale-y-[-1] filter blur-[1px]"
-                        style={{
-                          maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
-                          WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
-                        }}
-                      />
-                    ) : (
-                      <img
-                        src={item.src}
-                        alt=""
-                        draggable={false}
-                        className="w-full h-full object-contain object-top scale-y-[-1] filter blur-[1px]"
-                        style={{
-                          maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
-                          WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
-                        }}
-                      />
-                    )}
+                    <img
+                      src={item.src}
+                      alt=""
+                      draggable={false}
+                      className="w-full h-full object-contain object-top scale-y-[-1] filter blur-[1px]"
+                      style={{
+                        maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
+                        WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
+                      }}
+                    />
                   </div>
                 )}
               </div>
@@ -657,7 +603,7 @@ export default function HeroBanner() {
                   isWelcomeSlide ? '' : 'border-b-2 opacity-70'
                 }`}
                 style={{
-                  color: isWelcomeSlide ? '#FACC15' : 'var(--foreground)',
+                  color: isWelcomeSlide ? '#D1D5DB' : 'var(--foreground)', // Abu-abu muda untuk "SELAMAT"
                   borderColor: isWelcomeSlide ? 'transparent' : activeTextColor,
                 }}
               >
@@ -668,7 +614,7 @@ export default function HeroBanner() {
               <span
                 className="text-sm font-black tracking-wide uppercase italic transition-colors duration-250 ml-1"
                 style={{
-                  color: isWelcomeSlide ? '#38BDF8' : activeTextColor,
+                  color: isWelcomeSlide ? '#FACC15' : activeTextColor, // Kuning seperti hero 0 untuk "DATANG"
                 }}
               >
                 {word2}
