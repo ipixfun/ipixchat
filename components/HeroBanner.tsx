@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Volume2, VolumeX } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from '@/app/context/ThemeContext';
 
@@ -31,6 +31,7 @@ export default function HeroBanner() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
@@ -58,22 +59,24 @@ export default function HeroBanner() {
     });
   }, []);
 
-  // Putar Sound Effect MP3 sesuai hero aktif
+  // Putar Sound Effect MP3 sesuai hero aktif jika tidak dibisukan
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
 
-    const soundPath = SLIDES[activeIndex].audio;
-    const sound = new Audio(soundPath);
-    sound.volume = 0.6;
+    if (!isMuted) {
+      const soundPath = SLIDES[activeIndex].audio;
+      const sound = new Audio(soundPath);
+      sound.volume = 0.6;
 
-    sound.play().catch(() => {
-      // Menangani kebijakan Autoplay browser jika belum ada interaksi pengguna
-    });
+      sound.play().catch(() => {
+        // Menangani kebijakan Autoplay browser jika belum ada interaksi pengguna
+      });
 
-    audioRef.current = sound;
+      audioRef.current = sound;
+    }
 
     return () => {
       if (audioRef.current) {
@@ -81,7 +84,7 @@ export default function HeroBanner() {
         audioRef.current.currentTime = 0;
       }
     };
-  }, [activeIndex]);
+  }, [activeIndex, isMuted]);
 
   // Auto slide interval 5 detik (5000ms)
   useEffect(() => {
@@ -104,6 +107,16 @@ export default function HeroBanner() {
     setTimeout(() => {
       setIsAnimating(false);
     }, TRANSITION_DURATION);
+  };
+
+  const toggleMute = () => {
+    setIsMuted((prev) => {
+      const nextMuteState = !prev;
+      if (nextMuteState && audioRef.current) {
+        audioRef.current.pause();
+      }
+      return nextMuteState;
+    });
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -218,7 +231,26 @@ export default function HeroBanner() {
           }}
         />
 
-        {/* 2. Teks Raksasa "IPIXCHAT" (Efek Cekung/Inset Ke Dalam) */}
+        {/* 2. Tombol Sound On / Off (Pojok Kanan Atas) */}
+        <div className="absolute top-3 right-4 z-[60]">
+          <button
+            onClick={toggleMute}
+            className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95"
+            style={{
+              backgroundColor: 'color-mix(in srgb, var(--foreground) 10%, transparent)',
+              borderColor: 'color-mix(in srgb, var(--foreground) 20%, transparent)',
+            }}
+            aria-label={isMuted ? 'Unmute Sound' : 'Mute Sound'}
+          >
+            {isMuted ? (
+              <VolumeX size={16} strokeWidth={2.5} style={{ color: activeTextColor }} />
+            ) : (
+              <Volume2 size={16} strokeWidth={2.5} style={{ color: activeTextColor }} />
+            )}
+          </button>
+        </div>
+
+        {/* 3. Teks Raksasa "IPIXCHAT" (Efek Cekung/Inset Ke Dalam) */}
         <div
           className="absolute inset-x-0 top-3 sm:top-4 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase whitespace-nowrap"
           style={{
@@ -251,7 +283,7 @@ export default function HeroBanner() {
           ))}
         </div>
 
-        {/* 3. Carousel 3D Characters */}
+        {/* 4. Carousel 3D Characters */}
         <div className="absolute inset-0 z-[3]">
           {SLIDES.map((item, index) => {
             let role = 'back';
@@ -432,7 +464,7 @@ export default function HeroBanner() {
           })}
         </div>
 
-        {/* 4. Tombol Navigasi Kiri Bawah */}
+        {/* 5. Tombol Navigasi Kiri Bawah */}
         <div className="absolute bottom-3 left-4 z-[60]">
           <div className="flex items-center gap-1.5">
             <button
@@ -460,7 +492,7 @@ export default function HeroBanner() {
           </div>
         </div>
 
-        {/* 5. Tombol Explore Kanan Bawah */}
+        {/* 6. Tombol Explore Kanan Bawah */}
         <div className="absolute bottom-3 right-4 z-[60]">
           <Link
             href={currentSlide.link}
