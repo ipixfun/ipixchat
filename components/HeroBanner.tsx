@@ -101,16 +101,16 @@ export default function HeroBanner() {
         }
         .anim-bounce-right { display: inline-block; animation: bounceRight 0.8s ease-in-out infinite; }
 
-        /* ---------------- ANIMASI OUTLINE BERJALAN HURUF DEMI HURUF ---------------- */
+        /* ---------------- ANIMASI OUTLINE REDUP BERJALAN HURUF DEMI HURUF ---------------- */
         @keyframes letterStrokeRun {
           0% {
             -webkit-text-stroke: 0px transparent;
           }
           30% {
-            -webkit-text-stroke: 1.8px var(--flash-color);
+            -webkit-text-stroke: 1px color-mix(in srgb, var(--flash-color) 45%, transparent);
           }
           70% {
-            -webkit-text-stroke: 1.8px var(--flash-color);
+            -webkit-text-stroke: 1px color-mix(in srgb, var(--flash-color) 45%, transparent);
           }
           100% {
             -webkit-text-stroke: 0px transparent;
@@ -177,7 +177,7 @@ export default function HeroBanner() {
           }}
         />
 
-        {/* 2. Teks Raksasa "IPIXCHAT" (Gradasi Horisontal dari Huruf I P I X C H A T) */}
+        {/* 2. Teks Raksasa "IPIXCHAT" (Semi-transparan & Outline Redup) */}
         <div
           className="absolute inset-x-0 top-3 sm:top-4 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase whitespace-nowrap"
           style={{
@@ -186,10 +186,11 @@ export default function HeroBanner() {
             lineHeight: 1,
             letterSpacing: '-0.01em',
             transform: 'skewX(-10deg)',
+            opacity: 0.45,
             backgroundImage: 'linear-gradient(90deg, #111827 0%, #1F2937 35%, #374151 70%, #4B5563 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            filter: 'drop-shadow(1px 2px 3px rgba(0, 0, 0, 0.6))',
+            filter: 'drop-shadow(1px 2px 3px rgba(0, 0, 0, 0.4))',
           }}
         >
           {'IPIXCHAT'.split('').map((letter, idx) => (
