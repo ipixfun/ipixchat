@@ -218,7 +218,7 @@ export default function HeroBanner() {
           ))}
         </div>
 
-        {/* 3. Carousel 3D Characters (Hero Kiri & Kanan Berada Tepat di Tengah Vertikal) */}
+        {/* 3. Carousel 3D Characters */}
         <div className="absolute inset-0 z-[3]">
           {SLIDES.map((item, index) => {
             let role = 'back';
@@ -247,22 +247,22 @@ export default function HeroBanner() {
               top = undefined;
               bottom = '-2%';
             } else if (role === 'left') {
-              transform = 'translate(-50%, -50%) scale(0.85)';
+              transform = 'translate(-50%, -50%) scale(0.82)';
               filter = 'blur(0px)';
               opacity = 0.65;
               zIndex = 10;
               left = isMobile ? '18%' : '25%';
-              height = isMobile ? '50%' : '58%';
-              top = '48%';
+              height = isMobile ? '48%' : '54%';
+              top = '53%'; // Diturunkan sedikit agar pas berada di tengah antara teks & tombol
               bottom = 'auto';
             } else if (role === 'right') {
-              transform = 'translate(-50%, -50%) scale(0.85)';
+              transform = 'translate(-50%, -50%) scale(0.82)';
               filter = 'blur(0px)';
               opacity = 0.65;
               zIndex = 10;
               left = isMobile ? '82%' : '75%';
-              height = isMobile ? '50%' : '58%';
-              top = '48%';
+              height = isMobile ? '48%' : '54%';
+              top = '53%'; // Diturunkan sedikit agar pas berada di tengah antara teks & tombol
               bottom = 'auto';
             }
 
@@ -293,6 +293,15 @@ export default function HeroBanner() {
                 {/* EFEK KHUSUS HERO TENGAH (CENTER) */}
                 {role === 'center' && (
                   <>
+                    {/* Glow Redup di Tengah Hero Sesuai Warna Theme */}
+                    <div
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 rounded-full blur-2xl pointer-events-none z-[12] transition-colors duration-500 ease-out"
+                      style={{
+                        backgroundColor: activeTextColor,
+                        opacity: 0.22,
+                      }}
+                    />
+
                     {item.id === 'chat' && (
                       <div
                         key={`ring-${activeIndex}`}
