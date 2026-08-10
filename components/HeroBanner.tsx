@@ -101,8 +101,27 @@ export default function HeroBanner() {
         }
         .anim-bounce-right { display: inline-block; animation: bounceRight 0.8s ease-in-out infinite; }
 
+        /* ---------------- ANIMASI OUTLINE BERJALAN HURUF DEMI HURUF ---------------- */
+        @keyframes letterStrokeRun {
+          0% {
+            -webkit-text-stroke: 0px transparent;
+          }
+          30% {
+            -webkit-text-stroke: 1.8px var(--flash-color);
+          }
+          70% {
+            -webkit-text-stroke: 1.8px var(--flash-color);
+          }
+          100% {
+            -webkit-text-stroke: 0px transparent;
+          }
+        }
+
+        .anim-letter-stroke {
+          animation: letterStrokeRun 0.45s ease-in-out forwards;
+        }
+
         /* ---------------- EFEK HERO TENGAH ---------------- */
-        /* 1. CHAT (ORANGE): RING LIGHT SCAN */
         @keyframes ringLightScan {
           0% { top: 0%; opacity: 0; transform: translateX(-50%) rotateX(60deg) scale(0.75); }
           18% { opacity: 0.95; }
@@ -110,7 +129,6 @@ export default function HeroBanner() {
           100% { top: 82%; opacity: 0; transform: translateX(-50%) rotateX(60deg) scale(1.15); }
         }
 
-        /* 2. TEMA (CYAN): CYBER LASER BEAM SCAN */
         @keyframes laserBeamScan {
           0% { top: 2%; opacity: 0; }
           15% { opacity: 1; }
@@ -118,7 +136,6 @@ export default function HeroBanner() {
           100% { top: 85%; opacity: 0; }
         }
 
-        /* 3. MP3 (HIJAU): AUDIO SOUNDWAVE PULSE */
         @keyframes soundWavePulse1 {
           0% { transform: translate(-50%, -50%) scale(0.1); opacity: 0.9; border-width: 3px; }
           60% { opacity: 0.6; }
@@ -130,7 +147,6 @@ export default function HeroBanner() {
           100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
         }
 
-        /* 4. IPIX (MERAH BARU): CYBER HEX SHIELD & PORTAL BURST */
         @keyframes ipixHexPulse {
           0% { transform: translate(-50%, -50%) scale(0.3) rotate(0deg); opacity: 0.9; }
           50% { opacity: 0.8; }
@@ -141,51 +157,12 @@ export default function HeroBanner() {
           100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
         }
 
-        /* ---------------- EFEK TEKS BACKGROUND "IPIXCHAT" KHUSUS TIAP HERO ---------------- */
-        
-        /* A. TEKS HERO CHAT (ORANGE): LIQUID NEON SWEEP */
-        @keyframes textChatGlow {
-          0%, 100% { opacity: 0.18; filter: drop-shadow(0 0 2px rgba(249,115,22,0.2)); }
-          50% { opacity: 0.35; filter: drop-shadow(0 0 12px rgba(249,115,22,0.8)); }
-        }
-
-        /* B. TEKS HERO TEMA (CYAN): CYBER MATRIX SLICE */
-        @keyframes textTemaSliceTop {
-          0%, 100% { clip-path: inset(0 0 100% 0); transform: translate(0); }
-          20% { clip-path: inset(15% 0 50% 0); transform: translate(-6px, -1px); }
-          24% { clip-path: inset(0 0 100% 0); transform: translate(0); }
-          65% { clip-path: inset(35% 0 30% 0); transform: translate(6px, 1px); }
-          69% { clip-path: inset(0 0 100% 0); transform: translate(0); }
-        }
-
-        /* C. TEKS HERO MP3 (HIJAU): AUDIO BEAT EQUALIZER BOUNCE */
-        @keyframes textMp3Beat {
-          0%, 100% { transform: translateY(0) scaleY(1); opacity: 0.18; }
-          25% { transform: translateY(-2px) scaleY(1.05); opacity: 0.32; text-shadow: 0 0 10px #22C55E; }
-          50% { transform: translateY(0) scaleY(1); opacity: 0.2; }
-          75% { transform: translateY(-1.5px) scaleY(1.03); opacity: 0.28; text-shadow: 0 0 8px #22C55E; }
-        }
-
-        /* D. TEKS HERO IPIX (MERAH): AGGRESSIVE CYBER FRAGMENTATION */
-        @keyframes textIpixJitter {
-          0%, 100% { transform: translate(0); opacity: 0.2; }
-          12% { transform: translate(-4px, 2px) skewX(-6deg); text-shadow: 4px 0 12px #EF4444, -4px 0 12px #EF4444; opacity: 0.38; }
-          15% { transform: translate(0); opacity: 0.2; }
-          55% { transform: translate(5px, -2px) skewX(6deg); text-shadow: -4px 0 12px #EF4444, 4px 0 12px #EF4444; opacity: 0.35; }
-          58% { transform: translate(0); opacity: 0.2; }
-        }
-
         .anim-ring-light { animation: ringLightScan 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
         .anim-laser-beam { animation: laserBeamScan 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
         .anim-wave-1 { animation: soundWavePulse1 0.45s ease-out forwards; }
         .anim-wave-2 { animation: soundWavePulse2 0.55s ease-out forwards; }
         .anim-ipix-hex { animation: ipixHexPulse 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .anim-ipix-glow { animation: ipixEnergyGlow 0.4s ease-out forwards; }
-
-        .anim-text-chat { animation: textChatGlow 2.5s infinite ease-in-out; }
-        .anim-text-tema-slice { animation: textTemaSliceTop 2.2s infinite ease-in-out; }
-        .anim-text-mp3-beat { animation: textMp3Beat 1.4s infinite cubic-bezier(0.4, 0, 0.2, 1); }
-        .anim-text-ipix-jitter { animation: textIpixJitter 2s infinite ease-in-out; }
       ` }} />
 
       <div className="relative w-full h-[220px] sm:h-[240px] overflow-hidden">
@@ -200,220 +177,140 @@ export default function HeroBanner() {
           }}
         />
 
-        {/* 2. Teks Raksasa Latar Belakang "IPIXCHAT" (Efek Khusus Masing-masing Hero) */}
+        {/* 2. Teks Raksasa "IPIXCHAT" (Gradasi Horisontal dari Huruf I P I X C H A T) */}
         <div
-          className="absolute inset-x-0 top-2 sm:top-3 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase whitespace-nowrap"
+          className="absolute inset-x-0 top-3 sm:top-4 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase whitespace-nowrap"
           style={{
             fontSize: 'clamp(50px, 16vw, 100px)',
             fontWeight: 900,
             lineHeight: 1,
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.01em',
+            transform: 'skewX(-10deg)',
+            backgroundImage: 'linear-gradient(90deg, #111827 0%, #1F2937 35%, #374151 70%, #4B5563 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            filter: 'drop-shadow(1px 2px 3px rgba(0, 0, 0, 0.6))',
           }}
         >
-          {/* A. EFEK CHAT (ORANGE): LIQUID NEON SWEEP */}
-          {currentSlide.id === 'chat' && (
-            <div
-              className="anim-text-chat"
-              style={{ color: activeTextColor, transition: `color ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}` }}
+          {'IPIXCHAT'.split('').map((letter, idx) => (
+            <span
+              key={`${activeIndex}-${idx}`}
+              className="inline-block anim-letter-stroke"
+              style={{
+                animationDelay: `${idx * 40}ms`,
+                '--flash-color': activeTextColor,
+              } as React.CSSProperties}
             >
-              IPIXCHAT
-            </div>
-          )}
-
-          {/* B. EFEK TEMA (CYAN): CYBER MATRIX SLICE */}
-          {currentSlide.id === 'tema' && (
-            <div
-              className="relative"
-              style={{ color: activeTextColor, opacity: 0.22, transition: `color ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}` }}
-            >
-              <span>IPIXCHAT</span>
-              <span
-                className="absolute inset-0 anim-text-tema-slice opacity-90 pointer-events-none"
-                style={{ color: activeTextColor }}
-                aria-hidden="true"
-              >
-                IPIXCHAT
-              </span>
-            </div>
-          )}
-
-          {/* C. EFEK MP3 (HIJAU): AUDIO BEAT EQUALIZER */}
-          {currentSlide.id === 'mp3' && (
-            <div
-              className="anim-text-mp3-beat"
-              style={{ color: activeTextColor, transition: `color ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}` }}
-            >
-              IPIXCHAT
-            </div>
-          )}
-
-          {/* D. EFEK IPIX (MERAH): AGGRESSIVE CYBER FRAGMENTATION */}
-          {currentSlide.id === 'ipix' && (
-            <div
-              className="anim-text-ipix-jitter"
-              style={{ color: activeTextColor, transition: `color ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}` }}
-            >
-              IPIXCHAT
-            </div>
-          )}
+              {letter}
+            </span>
+          ))}
         </div>
 
-        {/* 3. Carousel Slide Items */}
+        {/* 3. Carousel Slide Item */}
         <div className="absolute inset-0 z-[3]">
           {SLIDES.map((item, index) => {
-            let role = 'back';
-            if (index === activeIndex) role = 'center';
-            else if (index === (activeIndex + 3) % 4) role = 'left';
-            else if (index === (activeIndex + 1) % 4) role = 'right';
-
-            let transform = 'translateX(-50%) scale(0.6)';
-            let filter = 'blur(10px)';
-            let opacity = 0;
-            let zIndex = 1;
-            let left = '50%';
-            let height = '35%';
-            let bottom = '10%';
-
-            if (role === 'center') {
-              transform = 'translateX(-50%) scale(1.05)';
-              filter = 'blur(0px)';
-              opacity = 1;
-              zIndex = 20;
-              left = '50%';
-              height = '85%';
-              bottom = '-2%';
-            } else if (role === 'left') {
-              transform = 'translateX(-50%) scale(0.85)';
-              filter = 'blur(3px)';
-              opacity = 0.65;
-              zIndex = 10;
-              left = '20%';
-              height = '55%';
-              bottom = '10%';
-            } else if (role === 'right') {
-              transform = 'translateX(-50%) scale(0.85)';
-              filter = 'blur(3px)';
-              opacity = 0.65;
-              zIndex = 10;
-              left = '80%';
-              height = '55%';
-              bottom = '10%';
-            }
+            if (index !== activeIndex) return null;
 
             return (
               <div
                 key={item.id}
-                className="absolute aspect-[0.6/1] will-change-[transform,filter,opacity]"
+                className="absolute aspect-[0.6/1] left-1/2 -translate-x-1/2 z-[20] scale-[1.05] will-change-transform transition-all duration-250 ease-out"
                 style={{
-                  transform,
-                  filter,
-                  opacity,
-                  zIndex,
-                  left,
-                  height,
-                  bottom,
-                  transition: `
-                    transform ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
-                    filter ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
-                    opacity ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
-                    left ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
-                    height ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
-                    bottom ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}
-                  `,
+                  height: '85%',
+                  bottom: '-2%',
                 }}
               >
-                {/* EFEK KHUSUS MASING-MASING HERO SAAT DI TENGAH */}
-                {role === 'center' && (
-                  <>
-                    {/* 1. HERO CHAT (ORANGE): RING LIGHT SCAN 3D */}
-                    {item.id === 'chat' && (
-                      <div
-                        key={`ring-${activeIndex}`}
-                        className="absolute left-1/2 w-32 h-16 rounded-[100%] border-[2.5px] pointer-events-none z-[25] anim-ring-light"
-                        style={{
-                          borderColor: activeTextColor,
-                          boxShadow: `0 0 14px ${activeTextColor}, inset 0 0 10px ${activeTextColor}`,
-                        }}
-                      />
-                    )}
-
-                    {/* 2. HERO TEMA (CYAN): CYBER LASER BEAM SCAN */}
-                    {item.id === 'tema' && (
-                      <div
-                        key={`laser-${activeIndex}`}
-                        className="absolute left-0 right-0 h-[3px] pointer-events-none z-[25] anim-laser-beam"
-                        style={{
-                          backgroundColor: activeTextColor,
-                          boxShadow: `0 0 12px ${activeTextColor}, 0 0 25px ${activeTextColor}`,
-                        }}
-                      >
-                        <div
-                          className="absolute inset-x-0 h-12 -top-6 opacity-30"
-                          style={{
-                            background: `linear-gradient(180deg, transparent, ${activeTextColor}, transparent)`,
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {/* 3. HERO MP3 (HIJAU): AUDIO SOUNDWAVE PULSE */}
-                    {item.id === 'mp3' && (
-                      <div key={`wave-container-${activeIndex}`}>
-                        <div
-                          className="absolute top-1/2 left-1/2 w-32 h-32 rounded-full border pointer-events-none z-[25] anim-wave-1"
-                          style={{
-                            borderColor: activeTextColor,
-                            boxShadow: `0 0 15px ${activeTextColor}`,
-                          }}
-                        />
-                        <div
-                          className="absolute top-1/2 left-1/2 w-40 h-40 rounded-full border pointer-events-none z-[24] anim-wave-2"
-                          style={{
-                            borderColor: activeTextColor,
-                            boxShadow: `0 0 20px ${activeTextColor}`,
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {/* 4. HERO IPIX (MERAH BARU): CYBER HEX SHIELD & PORTAL BURST */}
-                    {item.id === 'ipix' && (
-                      <div key={`ipix-container-${activeIndex}`}>
-                        {/* A. Perisai Heksagon Cyber Berputar & Meledak */}
-                        <div
-                          className="absolute top-1/2 left-1/2 w-32 h-32 border-[2px] rounded-[22px] pointer-events-none z-[25] anim-ipix-hex"
-                          style={{
-                            borderColor: activeTextColor,
-                            boxShadow: `0 0 18px ${activeTextColor}, inset 0 0 12px ${activeTextColor}`,
-                          }}
-                        />
-                        {/* B. Pendaran Energi Merah Belakang */}
-                        <div
-                          className="absolute top-1/2 left-1/2 w-44 h-44 rounded-full blur-lg pointer-events-none z-[24] anim-ipix-glow"
-                          style={{
-                            backgroundColor: activeTextColor,
-                          }}
-                        />
-                      </div>
-                    )}
-                  </>
+                {/* EFEK KHUSUS HERO TENGAH */}
+                {item.id === 'chat' && (
+                  <div
+                    key={`ring-${activeIndex}`}
+                    className="absolute left-1/2 w-32 h-16 rounded-[100%] border-[2.5px] pointer-events-none z-[25] anim-ring-light"
+                    style={{
+                      borderColor: activeTextColor,
+                      boxShadow: `0 0 14px ${activeTextColor}, inset 0 0 10px ${activeTextColor}`,
+                    }}
+                  />
                 )}
+
+                {item.id === 'tema' && (
+                  <div
+                    key={`laser-${activeIndex}`}
+                    className="absolute left-0 right-0 h-[3px] pointer-events-none z-[25] anim-laser-beam"
+                    style={{
+                      backgroundColor: activeTextColor,
+                      boxShadow: `0 0 12px ${activeTextColor}, 0 0 25px ${activeTextColor}`,
+                    }}
+                  >
+                    <div
+                      className="absolute inset-x-0 h-12 -top-6 opacity-30"
+                      style={{
+                        background: `linear-gradient(180deg, transparent, ${activeTextColor}, transparent)`,
+                      }}
+                    />
+                  </div>
+                )}
+
+                {item.id === 'mp3' && (
+                  <div key={`wave-container-${activeIndex}`}>
+                    <div
+                      className="absolute top-1/2 left-1/2 w-32 h-32 rounded-full border pointer-events-none z-[25] anim-wave-1"
+                      style={{
+                        borderColor: activeTextColor,
+                        boxShadow: `0 0 15px ${activeTextColor}`,
+                      }}
+                    />
+                    <div
+                      className="absolute top-1/2 left-1/2 w-40 h-40 rounded-full border pointer-events-none z-[24] anim-wave-2"
+                      style={{
+                        borderColor: activeTextColor,
+                        boxShadow: `0 0 20px ${activeTextColor}`,
+                      }}
+                    />
+                  </div>
+                )}
+
+                {item.id === 'ipix' && (
+                  <div key={`ipix-container-${activeIndex}`}>
+                    <div
+                      className="absolute top-1/2 left-1/2 w-32 h-32 border-[2px] rounded-[22px] pointer-events-none z-[25] anim-ipix-hex"
+                      style={{
+                        borderColor: activeTextColor,
+                        boxShadow: `0 0 18px ${activeTextColor}, inset 0 0 12px ${activeTextColor}`,
+                      }}
+                    />
+                    <div
+                      className="absolute top-1/2 left-1/2 w-44 h-44 rounded-full blur-lg pointer-events-none z-[24] anim-ipix-glow"
+                      style={{
+                        backgroundColor: activeTextColor,
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Bayangan Tipis Latar Belakang Hero */}
+                <div
+                  className="absolute bottom-1 left-1/2 -translate-x-1/2 w-3/4 h-3 rounded-full blur-sm pointer-events-none z-[15] opacity-40 transition-colors duration-250"
+                  style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    boxShadow: `0 4px 12px ${activeTextColor}40`,
+                  }}
+                />
 
                 <img
                   src={item.src}
                   alt={`Slide ${item.text}`}
                   draggable={false}
-                  loading={role === 'center' ? 'eager' : 'lazy'}
+                  loading="eager"
                   // @ts-ignore
-                  fetchpriority={role === 'center' ? 'high' : 'low'}
-                  className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20]"
+                  fetchpriority="high"
+                  className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
                 />
               </div>
             );
           })}
         </div>
 
-        {/* 4. Tombol Navigasi Kiri Bawah */}
+        {/* 4. Tombol Navigasi Kiri Bawah (Bulatan Netral, Panah Saja Warna Hero) */}
         <div className="absolute bottom-3 left-4 z-[60]">
           <div className="flex items-center gap-1.5">
             <button
@@ -422,11 +319,10 @@ export default function HeroBanner() {
               style={{
                 backgroundColor: 'color-mix(in srgb, var(--foreground) 10%, transparent)',
                 borderColor: 'color-mix(in srgb, var(--foreground) 20%, transparent)',
-                color: 'var(--foreground)',
               }}
               aria-label="Previous Slide"
             >
-              <ArrowLeft size={16} strokeWidth={2.5} />
+              <ArrowLeft size={16} strokeWidth={2.5} style={{ color: activeTextColor }} />
             </button>
             <button
               onClick={() => navigate('next')}
@@ -434,30 +330,26 @@ export default function HeroBanner() {
               style={{
                 backgroundColor: 'color-mix(in srgb, var(--foreground) 10%, transparent)',
                 borderColor: 'color-mix(in srgb, var(--foreground) 20%, transparent)',
-                color: 'var(--foreground)',
               }}
               aria-label="Next Slide"
             >
-              <ArrowRight size={16} strokeWidth={2.5} />
+              <ArrowRight size={16} strokeWidth={2.5} style={{ color: activeTextColor }} />
             </button>
           </div>
         </div>
 
         {/* 5. Tombol Explore Kanan Bawah */}
-        <div
-          className="absolute bottom-3 right-4 z-[60] px-3.5 py-1.5 rounded-full backdrop-blur-md border transition-colors duration-250"
-          style={{
-            backgroundColor: 'color-mix(in srgb, var(--background) 60%, transparent)',
-            borderColor: 'var(--card-border)',
-          }}
-        >
+        <div className="absolute bottom-3 right-4 z-[60]">
           <Link
             href={currentSlide.link}
-            className="group flex items-center gap-1.5 transition-opacity duration-200"
+            className="group flex items-center gap-1.5 transition-all duration-200"
           >
             <span
-              className="text-[11px] font-medium tracking-wide uppercase opacity-70 italic"
-              style={{ color: 'var(--foreground)' }}
+              className="text-[11px] font-medium tracking-wide uppercase opacity-70 italic pb-0.5 border-b-2 transition-all duration-250"
+              style={{
+                color: 'var(--foreground)',
+                borderColor: activeTextColor,
+              }}
             >
               explore
             </span>
