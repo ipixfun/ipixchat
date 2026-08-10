@@ -218,7 +218,7 @@ export default function HeroBanner() {
           ))}
         </div>
 
-        {/* 3. Carousel 3D Characters (Hero Kiri & Kanan Tanpa Blur) */}
+        {/* 3. Carousel 3D Characters (Hero Kiri & Kanan Berada Tepat di Tengah Vertikal) */}
         <div className="absolute inset-0 z-[3]">
           {SLIDES.map((item, index) => {
             let role = 'back';
@@ -234,7 +234,8 @@ export default function HeroBanner() {
             let zIndex = 20;
             let left = '50%';
             let height = isMobile ? '82%' : '88%';
-            let bottom = '-2%';
+            let top: string | undefined = undefined;
+            let bottom: string | undefined = '-2%';
 
             if (role === 'center') {
               transform = `translateX(-50%) scale(${isMobile ? 1.05 : 1.15})`;
@@ -243,29 +244,32 @@ export default function HeroBanner() {
               zIndex = 20;
               left = '50%';
               height = isMobile ? '82%' : '88%';
+              top = undefined;
               bottom = '-2%';
             } else if (role === 'left') {
-              transform = 'translateX(-50%) scale(0.85)';
+              transform = 'translate(-50%, -50%) scale(0.85)';
               filter = 'blur(0px)';
               opacity = 0.65;
               zIndex = 10;
               left = isMobile ? '18%' : '25%';
               height = isMobile ? '50%' : '58%';
-              bottom = '8%';
+              top = '48%';
+              bottom = 'auto';
             } else if (role === 'right') {
-              transform = 'translateX(-50%) scale(0.85)';
+              transform = 'translate(-50%, -50%) scale(0.85)';
               filter = 'blur(0px)';
               opacity = 0.65;
               zIndex = 10;
               left = isMobile ? '82%' : '75%';
               height = isMobile ? '50%' : '58%';
-              bottom = '8%';
+              top = '48%';
+              bottom = 'auto';
             }
 
             return (
               <div
                 key={item.id}
-                className="absolute aspect-[0.6/1] will-change-[transform,filter,opacity,left,height,bottom]"
+                className="absolute aspect-[0.6/1] will-change-[transform,filter,opacity,left,height,top,bottom]"
                 style={{
                   transform,
                   filter,
@@ -273,6 +277,7 @@ export default function HeroBanner() {
                   zIndex,
                   left,
                   height,
+                  top,
                   bottom,
                   transition: `
                     transform ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
@@ -280,6 +285,7 @@ export default function HeroBanner() {
                     opacity ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
                     left ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
                     height ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
+                    top ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
                     bottom ${TRANSITION_DURATION}ms ${CUBIC_BEZIER}
                   `,
                 }}
