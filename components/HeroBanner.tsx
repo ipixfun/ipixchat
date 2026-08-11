@@ -32,8 +32,8 @@ const SLIDE_COLORS: Record<string, string> = {
 
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E")`;
 
-const TRANSITION_DURATION = 500;
-const CUBIC_BEZIER = 'cubic-bezier(0.16, 1, 0.3, 1)';
+const TRANSITION_DURATION = 600;
+const CUBIC_BEZIER = 'cubic-bezier(0.25, 1, 0.35, 1)';
 
 function FrozenWebP({ src, className, style }: { src: string; className?: string; style?: React.CSSProperties }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -74,7 +74,6 @@ export default function HeroBanner() {
   });
 
   const [audioLevel, setAudioLevel] = useState(0);
-  const [eqLevels, setEqLevels] = useState<number[]>([0.15, 0.15, 0.15, 0.15, 0.15]);
   const [typedCount, setTypedCount] = useState(0);
 
   const touchStartX = useRef<number | null>(null);
@@ -116,7 +115,7 @@ export default function HeroBanner() {
     });
   }, []);
 
-  // Ketikan Teks Dinamis
+  // Ketikan Teks Dinamis Bergerak ke Kanan Per-Huruf
   useEffect(() => {
     setTypedCount(0);
     const isWelcomeSlide = SLIDES[activeIndex].id === 'welcome';
@@ -129,7 +128,7 @@ export default function HeroBanner() {
       if (current >= fullText.length) {
         clearInterval(timer);
       }
-    }, 65);
+    }, 60);
 
     return () => clearInterval(timer);
   }, [activeIndex]);
@@ -157,7 +156,7 @@ export default function HeroBanner() {
     };
   }, [isMuted]);
 
-  // Audio Setup & Dynamic Duration
+  // Audio Setup & Dynamic Duration (Volume Konsisten 100% Tanpa Terpotong)
   useEffect(() => {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
@@ -172,12 +171,12 @@ export default function HeroBanner() {
     audio.pause();
     audio.src = SLIDES[activeIndex].audio;
     audio.currentTime = 0;
-    audio.volume = 0.7;
+    audio.volume = 1.0;
     audio.muted = isMuted;
 
     const handleLoadedMetadata = () => {
       if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
-        const calculatedDuration = Math.max(5000, Math.ceil(audio.duration * 1000));
+        const calculatedDuration = Math.max(5000, Math.ceil(audio.duration * 1000) + 200);
         setSlideDuration(calculatedDuration);
       } else {
         setSlideDuration(5000);
@@ -198,12 +197,10 @@ export default function HeroBanner() {
     } else {
       audio.pause();
       setAudioLevel(0);
-      setEqLevels([0.15, 0.15, 0.15, 0.15, 0.15]);
     }
 
     return () => {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.pause();
       if (animFrameRef.current) {
         cancelAnimationFrame(animFrameRef.current);
       }
@@ -248,15 +245,6 @@ export default function HeroBanner() {
         const normalized = Math.min(1, avg / 130);
 
         setAudioLevel(normalized);
-
-        // Mengambil sampel 5 frekuensi untuk equalizer visualizer 5 bar
-        const b1 = Math.min(1, Math.max(0.15, (dataArray[1] || 0) / 180));
-        const b2 = Math.min(1, Math.max(0.15, (dataArray[4] || 0) / 180));
-        const b3 = Math.min(1, Math.max(0.15, (dataArray[8] || 0) / 180));
-        const b4 = Math.min(1, Math.max(0.15, (dataArray[12] || 0) / 180));
-        const b5 = Math.min(1, Math.max(0.15, (dataArray[16] || 0) / 180));
-        setEqLevels([b1, b2, b3, b4, b5]);
-
         animFrameRef.current = requestAnimationFrame(renderFrame);
       };
 
@@ -277,14 +265,9 @@ export default function HeroBanner() {
     if (isAnimating) return;
     setIsAnimating(true);
 
-    if (audioRef.current && !isMuted) {
-      const fadeInterval = setInterval(() => {
-        if (audioRef.current && audioRef.current.volume > 0.1) {
-          audioRef.current.volume -= 0.15;
-        } else {
-          clearInterval(fadeInterval);
-        }
-      }, 30);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
     }
 
     setActiveIndex((prev) => {
@@ -309,8 +292,8 @@ export default function HeroBanner() {
         if (nextMute) {
           audioRef.current.pause();
           setAudioLevel(0);
-          setEqLevels([0.15, 0.15, 0.15, 0.15, 0.15]);
         } else {
+          audioRef.current.volume = 1.0;
           audioRef.current.play().catch(() => {});
         }
       }
@@ -337,7 +320,9 @@ export default function HeroBanner() {
   const isWelcomeSlide = currentSlide.id === 'welcome';
   const fullTargetText = isWelcomeSlide ? 'SELAMAT DATANG' : `EXPLORE ${SLIDES[activeIndex].text}`;
   const currentTypedString = fullTargetText.slice(0, typedCount);
+  
   const word1 = currentTypedString.slice(0, 7);
+  const hasSpace = currentTypedString.length > 7;
   const word2 = currentTypedString.length > 8 ? currentTypedString.slice(8) : '';
 
   return (
@@ -457,57 +442,69 @@ export default function HeroBanner() {
           ))}
         </div>
 
-        {/* 4. Carousel 3D Characters */}
-        <div className="absolute inset-0 z-[3]" style={{ perspective: '800px' }}>
+        {/* 4. Carousel 3D Characters Berputar Smooth */}
+        <div
+          className="absolute inset-0 z-[3]"
+          style={{
+            perspective: '1000px',
+            transformStyle: 'preserve-3d',
+          }}
+        >
           {SLIDES.map((item, index) => {
+            let offset = index - activeIndex;
+            if (offset > 2) offset -= SLIDES.length;
+            if (offset < -2) offset += SLIDES.length;
+
             let role = 'back-right';
-            if (index === activeIndex) role = 'center';
-            else if (index === (activeIndex + SLIDES.length - 1) % SLIDES.length) role = 'left';
-            else if (index === (activeIndex + 1) % SLIDES.length) role = 'right';
-            else if (index === (activeIndex + SLIDES.length - 2) % SLIDES.length) role = 'back-left';
+            if (offset === 0) role = 'center';
+            else if (offset === 1) role = 'left';
+            else if (offset === -1) role = 'right';
+            else if (offset === 2) role = 'back-left';
 
             let left = '50%';
-            let top = '18%';
-            let height = isMobile ? '82%' : '88%';
+            let top = '21%';
+            let height = isMobile ? '78%' : '84%';
             let opacity = 1;
             let zIndex = 20;
-            let transform = `translateX(-50%) scale(${isMobile ? 1.05 : 1.15})`;
+
+            let transform = `translateX(-50%) translateZ(60px) rotateY(0deg) scale(${isMobile ? 0.98 : 1.05})`;
 
             if (role === 'center') {
               left = '50%';
-              top = '18%';
-              height = isMobile ? '82%' : '88%';
+              // Menaikkan posisi hero depan agak ke atas (15%/17% dan 18%/20%) agar dudukan 3D bulat bawah nampak jelas
+              top = index === 0 ? (isMobile ? '18%' : '20%') : (isMobile ? '15%' : '17%');
+              height = isMobile ? '78%' : '84%';
               opacity = 1;
               zIndex = 20;
-              transform = `translateX(-50%) scale(${isMobile ? 1.05 : 1.15})`;
+              transform = `translateX(-50%) translateZ(80px) rotateY(0deg) scale(${isMobile ? 0.98 : 1.05})`;
             } else if (role === 'left') {
               left = isMobile ? '18%' : '25%';
               top = '27%';
               height = isMobile ? '48%' : '54%';
               opacity = 0.65;
               zIndex = 10;
-              transform = 'translateX(-50%) scale(0.82)';
+              transform = 'translateX(-50%) translateZ(-110px) rotateY(44deg) scale(0.82)';
             } else if (role === 'right') {
               left = isMobile ? '82%' : '75%';
               top = '27%';
               height = isMobile ? '48%' : '54%';
               opacity = 0.65;
               zIndex = 10;
-              transform = 'translateX(-50%) scale(0.82)';
+              transform = 'translateX(-50%) translateZ(-110px) rotateY(-44deg) scale(0.82)';
             } else if (role === 'back-left') {
               left = '0%';
               top = '27%';
               height = isMobile ? '48%' : '54%';
               opacity = 0;
               zIndex = 1;
-              transform = 'translateX(-50%) scale(0.5)';
+              transform = 'translateX(-50%) translateZ(-260px) rotateY(80deg) scale(0.5)';
             } else {
               left = '100%';
               top = '27%';
               height = isMobile ? '48%' : '54%';
               opacity = 0;
               zIndex = 1;
-              transform = 'translateX(-50%) scale(0.5)';
+              transform = 'translateX(-50%) translateZ(-260px) rotateY(-80deg) scale(0.5)';
             }
 
             return (
@@ -522,6 +519,7 @@ export default function HeroBanner() {
                   zIndex,
                   transform,
                   filter: 'blur(0px)',
+                  transformStyle: 'preserve-3d',
                   transition: `
                     transform ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
                     left ${TRANSITION_DURATION}ms ${CUBIC_BEZIER},
@@ -531,7 +529,7 @@ export default function HeroBanner() {
                   `,
                 }}
               >
-                {/* DUDUKAN ACTION FIGURE 3D BULAT DINAMIS (HERO UTAMA DEPAN) */}
+                {/* DUDUKAN ACTION FIGURE 3D BULAT DINAMIS */}
                 {role === 'center' && (
                   <div className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-[72%] max-w-[150px] h-3 pointer-events-none z-[15] transition-all duration-500 ease-out">
                     {/* Bayangan Kontak di Bawah Dudukan */}
@@ -591,7 +589,7 @@ export default function HeroBanner() {
                   </div>
                 )}
 
-                {/* HERO PALING DEPAN (center) DENGAN LIGHT OUTLINE TIPIS DARl ANGLE KANAN ATAS (+X, -Y) */}
+                {/* HERO PALING DEPAN (center) DENGAN LIGHT OUTLINE TIPIS */}
                 {role === 'center' ? (
                   <div className="w-full h-full anim-front-hero-sway relative z-[20]">
                     {item.isVideo ? (
@@ -638,7 +636,7 @@ export default function HeroBanner() {
                   />
                 )}
 
-                {/* Refleksi Mirror Hero Kiri dan Kanan (Juga dalam Nuansa Abu-abu) */}
+                {/* Refleksi Mirror Hero Kiri dan Kanan */}
                 {(role === 'left' || role === 'right') && (
                   <div className="absolute top-[98%] left-0 right-0 h-[38%] overflow-hidden pointer-events-none opacity-20 select-none z-[18]">
                     <FrozenWebP
@@ -657,24 +655,8 @@ export default function HeroBanner() {
           })}
         </div>
 
-        {/* 5. Tombol Navigasi & Bulatan Kiri Bawah + Visualizer Equalizer 5-Bar MP3 Dinamis */}
-        <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-4 z-[60] flex flex-col items-center">
-          
-          {/* EQUALIZER 5-BAR MP3 VISUALIZER DINAMIS */}
-          <div className="flex items-end justify-center gap-[3px] mb-1.5 h-3.5 px-2 pointer-events-none">
-            {eqLevels.map((lvl, idx) => (
-              <div
-                key={idx}
-                className="w-[3.5px] rounded-full transition-all duration-75 ease-out"
-                style={{
-                  height: `${Math.max(2.5, lvl * 14)}px`,
-                  backgroundColor: activeTextColor,
-                  boxShadow: `0 0 5px color-mix(in srgb, ${activeTextColor} 70%, transparent)`,
-                }}
-              />
-            ))}
-          </div>
-
+        {/* 5. Tombol Navigasi & Bulatan Kiri Bawah */}
+        <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-4 z-[60]">
           <div
             className="flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded-full backdrop-blur-md border transition-all duration-300 shadow-sm"
             style={{
@@ -726,45 +708,51 @@ export default function HeroBanner() {
           </div>
         </div>
 
-        {/* 6. Pill Kanan Bawah (Background Mengikuti Tema 10 & Custom) */}
+        {/* 6. Pill Kanan Bawah */}
         <div className="absolute bottom-2.5 sm:bottom-3 right-2.5 sm:right-4 z-[60]">
           <Link
             href={currentSlide.link}
-            className="group flex items-center gap-1 transition-all duration-200 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full backdrop-blur-md shadow-sm active:scale-95 border"
+            className="group flex items-center gap-1 transition-all duration-200 px-2.5 py-1 rounded-full backdrop-blur-md shadow-sm active:scale-95 border"
             style={{
               backgroundColor: "color-mix(in srgb, var(--card-bg) 75%, transparent)",
               borderColor: "color-mix(in srgb, var(--card-border) 80%, transparent)",
             }}
           >
-            {word1 && (
+            <div className="inline-flex items-center whitespace-nowrap text-xs sm:text-sm font-black tracking-wide uppercase italic">
+              {word1 && (
+                <span
+                  className={`text-[10px] sm:text-[11px] font-extrabold pb-0.5 transition-colors duration-250 ${
+                    isWelcomeSlide ? '' : 'border-b-2 opacity-90'
+                  }`}
+                  style={{
+                    color: 'var(--foreground)',
+                    borderColor: isWelcomeSlide ? 'transparent' : activeTextColor,
+                  }}
+                >
+                  {word1}
+                </span>
+              )}
+
+              {hasSpace && <span className="inline-block w-1">&nbsp;</span>}
+
+              {word2 && (
+                <span
+                  className="text-xs sm:text-sm font-black transition-colors duration-250"
+                  style={{
+                    color: isWelcomeSlide ? '#EAB308' : activeTextColor,
+                  }}
+                >
+                  {word2}
+                </span>
+              )}
+
               <span
-                className={`text-[10px] sm:text-[11px] font-extrabold tracking-wide uppercase italic pb-0.5 transition-all duration-250 ${
-                  isWelcomeSlide ? '' : 'border-b-2 opacity-90'
-                }`}
-                style={{
-                  color: 'var(--foreground)',
-                  borderColor: isWelcomeSlide ? 'transparent' : activeTextColor,
-                }}
+                className="text-xs sm:text-sm font-black italic anim-typing-cursor ml-0.5"
+                style={{ color: isWelcomeSlide ? '#EAB308' : activeTextColor }}
               >
-                {word1}
+                |
               </span>
-            )}
-            {word2 && (
-              <span
-                className="text-xs sm:text-sm font-black tracking-wide uppercase italic transition-colors duration-250 ml-0.5 sm:ml-1"
-                style={{
-                  color: isWelcomeSlide ? '#EAB308' : activeTextColor,
-                }}
-              >
-                {word2}
-              </span>
-            )}
-            <span
-              className="text-xs sm:text-sm font-black italic anim-typing-cursor -ml-0.5"
-              style={{ color: isWelcomeSlide ? '#EAB308' : activeTextColor }}
-            >
-              |
-            </span>
+            </div>
 
             {!isWelcomeSlide && (
               <ArrowRight
