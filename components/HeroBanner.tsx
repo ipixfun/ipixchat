@@ -74,6 +74,7 @@ export default function HeroBanner() {
   });
 
   const [audioLevel, setAudioLevel] = useState(0);
+  const [eqLevels, setEqLevels] = useState<number[]>([0.15, 0.15, 0.15, 0.15, 0.15]);
   const [typedCount, setTypedCount] = useState(0);
 
   const touchStartX = useRef<number | null>(null);
@@ -88,7 +89,7 @@ export default function HeroBanner() {
   const currentSlide = SLIDES[activeIndex];
   const activeTextColor = SLIDE_COLORS[currentSlide.id] || 'var(--accent)';
 
-  // Dispatch custom event agar BottomNav selalu tersinkron presisi
+  // Dispatch custom event agar BottomNav tersinkron
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
@@ -197,6 +198,7 @@ export default function HeroBanner() {
     } else {
       audio.pause();
       setAudioLevel(0);
+      setEqLevels([0.15, 0.15, 0.15, 0.15, 0.15]);
     }
 
     return () => {
@@ -246,6 +248,15 @@ export default function HeroBanner() {
         const normalized = Math.min(1, avg / 130);
 
         setAudioLevel(normalized);
+
+        // Mengambil sampel 5 frekuensi untuk equalizer visualizer 5 bar
+        const b1 = Math.min(1, Math.max(0.15, (dataArray[1] || 0) / 180));
+        const b2 = Math.min(1, Math.max(0.15, (dataArray[4] || 0) / 180));
+        const b3 = Math.min(1, Math.max(0.15, (dataArray[8] || 0) / 180));
+        const b4 = Math.min(1, Math.max(0.15, (dataArray[12] || 0) / 180));
+        const b5 = Math.min(1, Math.max(0.15, (dataArray[16] || 0) / 180));
+        setEqLevels([b1, b2, b3, b4, b5]);
+
         animFrameRef.current = requestAnimationFrame(renderFrame);
       };
 
@@ -298,6 +309,7 @@ export default function HeroBanner() {
         if (nextMute) {
           audioRef.current.pause();
           setAudioLevel(0);
+          setEqLevels([0.15, 0.15, 0.15, 0.15, 0.15]);
         } else {
           audioRef.current.play().catch(() => {});
         }
@@ -519,19 +531,67 @@ export default function HeroBanner() {
                   `,
                 }}
               >
-                {/* Shadow Dasar Karakter */}
+                {/* DUDUKAN ACTION FIGURE 3D BULAT DINAMIS (HERO UTAMA DEPAN) */}
                 {role === 'center' && (
-                  <div
-                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[72%] h-2.5 rounded-[100%] blur-[3px] pointer-events-none z-[15]"
-                    style={{
-                      backgroundColor: '#000000',
-                      opacity: isLight ? 0.45 : 0.75,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.85)',
-                    }}
-                  />
+                  <div className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-[72%] max-w-[150px] h-3 pointer-events-none z-[15] transition-all duration-500 ease-out">
+                    {/* Bayangan Kontak di Bawah Dudukan */}
+                    <div
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-[105%] h-2.5 rounded-[100%] blur-[3px] opacity-80"
+                      style={{ backgroundColor: '#000000' }}
+                    />
+                    
+                    {/* Bodi Piringan Dudukan 3D Disc */}
+                    <div
+                      className="w-full h-full rounded-[100%] transition-all duration-500 transform-gpu relative"
+                      style={{
+                        background: `radial-gradient(ellipse at 50% 30%, color-mix(in srgb, ${activeTextColor} 65%, #ffffff 20%) 0%, color-mix(in srgb, ${activeTextColor} 30%, #0f172a) 60%, color-mix(in srgb, ${activeTextColor} 80%, #000000) 100%)`,
+                        border: `1px solid color-mix(in srgb, ${activeTextColor} 90%, #ffffff)`,
+                        boxShadow: `
+                          0 3px 6px rgba(0, 0, 0, 0.75),
+                          0 0 10px color-mix(in srgb, ${activeTextColor} 50%, transparent),
+                          inset 0 1px 1.5px rgba(255, 255, 255, 0.6),
+                          inset 0 -2px 4px color-mix(in srgb, ${activeTextColor} 90%, #000000)
+                        `,
+                      }}
+                    >
+                      {/* Ring LED Cincin Dalam Dudukan */}
+                      <div
+                        className="absolute inset-[1.5px] rounded-[100%] opacity-80 transition-all duration-500"
+                        style={{
+                          border: `0.8px solid color-mix(in srgb, ${activeTextColor} 95%, #ffffff)`,
+                        }}
+                      />
+                    </div>
+                  </div>
                 )}
 
-                {/* HERO PALING DEPAN (center) DENGAN OUTLINE TIPIS DAN TANPA GLOW */}
+                {/* DUDUKAN ACTION FIGURE 3D BULAT ABU-ABU GELAP (HERO KIRI & KANAN) */}
+                {(role === 'left' || role === 'right') && (
+                  <div className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-[75%] max-w-[110px] h-2.5 pointer-events-none z-[15] opacity-80">
+                    {/* Bayangan Kontak Dudukan Samping */}
+                    <div
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-[105%] h-2 rounded-[100%] blur-[2px] opacity-90"
+                      style={{ backgroundColor: '#000000' }}
+                    />
+                    
+                    {/* Bodi Piringan Dudukan Abu-abu Gelap */}
+                    <div
+                      className="w-full h-full rounded-[100%] relative"
+                      style={{
+                        background: 'radial-gradient(ellipse at 50% 30%, #4b5563 0%, #1f2937 60%, #0f172a 100%)',
+                        border: '1px solid #6b7280',
+                        boxShadow: '0 2px 5px rgba(0, 0, 0, 0.85), inset 0 1px 1px rgba(255, 255, 255, 0.3)',
+                      }}
+                    >
+                      <div
+                        className="absolute inset-[1px] rounded-[100%] opacity-60"
+                        style={{ border: '0.8px solid #9ca3af' }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* HERO PALING DEPAN (center) DENGAN LIGHT OUTLINE TIPIS DARl ANGLE KANAN ATAS (+X, -Y) */}
                 {role === 'center' ? (
                   <div className="w-full h-full anim-front-hero-sway relative z-[20]">
                     {item.isVideo ? (
@@ -544,10 +604,8 @@ export default function HeroBanner() {
                         className="w-full h-full object-contain object-bottom pointer-events-none select-none"
                         style={{
                           filter: `
-                            drop-shadow(1px 0 0 ${activeTextColor})
-                            drop-shadow(-1px 0 0 ${activeTextColor})
-                            drop-shadow(0 1px 0 ${activeTextColor})
-                            drop-shadow(0 -1px 0 ${activeTextColor})
+                            drop-shadow(0.8px -0.8px 0px ${activeTextColor})
+                            drop-shadow(0.4px -0.4px 0.5px color-mix(in srgb, ${activeTextColor} 60%, transparent))
                           `,
                         }}
                       />
@@ -562,30 +620,32 @@ export default function HeroBanner() {
                         className="w-full h-full object-contain object-bottom pointer-events-none select-none"
                         style={{
                           filter: `
-                            drop-shadow(1px 0 0 ${activeTextColor})
-                            drop-shadow(-1px 0 0 ${activeTextColor})
-                            drop-shadow(0 1px 0 ${activeTextColor})
-                            drop-shadow(0 -1px 0 ${activeTextColor})
+                            drop-shadow(0.8px -0.8px 0px ${activeTextColor})
+                            drop-shadow(0.4px -0.4px 0.5px color-mix(in srgb, ${activeTextColor} 60%, transparent))
                           `,
                         }}
                       />
                     )}
                   </div>
                 ) : (
-                  /* HERO SAMPLING (kiri/kanan) */
+                  /* HERO SAMPLING KIRI & KANAN (WARNA ABU-ABU / GRAYSCALE) */
                   <FrozenWebP
                     src={item.src}
-                    className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
+                    className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20]"
+                    style={{
+                      filter: 'grayscale(100%) opacity(0.75) drop-shadow(0 3px 5px rgba(0,0,0,0.4))',
+                    }}
                   />
                 )}
 
-                {/* Refleksi Mirror Hero Kiri dan Kanan */}
+                {/* Refleksi Mirror Hero Kiri dan Kanan (Juga dalam Nuansa Abu-abu) */}
                 {(role === 'left' || role === 'right') && (
-                  <div className="absolute top-[98%] left-0 right-0 h-[38%] overflow-hidden pointer-events-none opacity-25 select-none z-[18]">
+                  <div className="absolute top-[98%] left-0 right-0 h-[38%] overflow-hidden pointer-events-none opacity-20 select-none z-[18]">
                     <FrozenWebP
                       src={item.src}
-                      className="w-full h-full object-contain object-top scale-y-[-1] filter blur-[1px]"
+                      className="w-full h-full object-contain object-top scale-y-[-1]"
                       style={{
+                        filter: 'grayscale(100%) blur(1px)',
                         maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
                         WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 80%)',
                       }}
@@ -597,8 +657,24 @@ export default function HeroBanner() {
           })}
         </div>
 
-        {/* 5. Tombol Navigasi & Bulatan Kiri Bawah (Background Mengikuti Tema 10 & Custom) */}
-        <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-4 z-[60]">
+        {/* 5. Tombol Navigasi & Bulatan Kiri Bawah + Visualizer Equalizer 5-Bar MP3 Dinamis */}
+        <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-4 z-[60] flex flex-col items-center">
+          
+          {/* EQUALIZER 5-BAR MP3 VISUALIZER DINAMIS */}
+          <div className="flex items-end justify-center gap-[3px] mb-1.5 h-3.5 px-2 pointer-events-none">
+            {eqLevels.map((lvl, idx) => (
+              <div
+                key={idx}
+                className="w-[3.5px] rounded-full transition-all duration-75 ease-out"
+                style={{
+                  height: `${Math.max(2.5, lvl * 14)}px`,
+                  backgroundColor: activeTextColor,
+                  boxShadow: `0 0 5px color-mix(in srgb, ${activeTextColor} 70%, transparent)`,
+                }}
+              />
+            ))}
+          </div>
+
           <div
             className="flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded-full backdrop-blur-md border transition-all duration-300 shadow-sm"
             style={{
