@@ -32,8 +32,8 @@ const SLIDE_COLORS: Record<string, string> = {
 
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E")`;
 
-const TRANSITION_DURATION = 600;
-const CUBIC_BEZIER = 'cubic-bezier(0.25, 1, 0.35, 1)';
+const TRANSITION_DURATION = 700;
+const CUBIC_BEZIER = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 function FrozenWebP({ src, className, style }: { src: string; className?: string; style?: React.CSSProperties }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -88,7 +88,6 @@ export default function HeroBanner() {
   const currentSlide = SLIDES[activeIndex];
   const activeTextColor = SLIDE_COLORS[currentSlide.id] || 'var(--accent)';
 
-  // Dispatch custom event agar BottomNav tersinkron
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
@@ -115,7 +114,6 @@ export default function HeroBanner() {
     });
   }, []);
 
-  // Ketikan Teks Dinamis Bergerak ke Kanan Per-Huruf
   useEffect(() => {
     setTypedCount(0);
     const isWelcomeSlide = SLIDES[activeIndex].id === 'welcome';
@@ -133,7 +131,6 @@ export default function HeroBanner() {
     return () => clearInterval(timer);
   }, [activeIndex]);
 
-  // Visibility handling saat switch browser tab
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!audioRef.current) return;
@@ -156,7 +153,6 @@ export default function HeroBanner() {
     };
   }, [isMuted]);
 
-  // Audio Setup & Dynamic Duration (Volume Konsisten 100% Tanpa Terpotong)
   useEffect(() => {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
@@ -252,7 +248,6 @@ export default function HeroBanner() {
     } catch (e) {}
   };
 
-  // Loop Slide Otomatis berdasarkan slideDuration
   useEffect(() => {
     const timer = setInterval(() => {
       navigate('next');
@@ -320,7 +315,7 @@ export default function HeroBanner() {
   const isWelcomeSlide = currentSlide.id === 'welcome';
   const fullTargetText = isWelcomeSlide ? 'SELAMAT DATANG' : `EXPLORE ${SLIDES[activeIndex].text}`;
   const currentTypedString = fullTargetText.slice(0, typedCount);
-  
+
   const word1 = currentTypedString.slice(0, 7);
   const hasSpace = currentTypedString.length > 7;
   const word2 = currentTypedString.length > 8 ? currentTypedString.slice(8) : '';
@@ -442,11 +437,11 @@ export default function HeroBanner() {
           ))}
         </div>
 
-        {/* 4. Carousel 3D Characters Berputar Smooth */}
+        {/* 4. Carousel 3D Orbit: Slide Memutar Smooth dari Tengah Belakang ke Kanan */}
         <div
           className="absolute inset-0 z-[3]"
           style={{
-            perspective: '1000px',
+            perspective: '1200px',
             transformStyle: 'preserve-3d',
           }}
         >
@@ -455,11 +450,12 @@ export default function HeroBanner() {
             if (offset > 2) offset -= SLIDES.length;
             if (offset < -2) offset += SLIDES.length;
 
-            let role = 'back-right';
+            let role = 'back-center';
             if (offset === 0) role = 'center';
-            else if (offset === 1) role = 'left';
-            else if (offset === -1) role = 'right';
-            else if (offset === 2) role = 'back-left';
+            else if (offset === 1) role = 'right';
+            else if (offset === -1) role = 'left';
+            else if (offset === 2) role = 'back-right';
+            else if (offset === -2) role = 'back-left';
 
             let left = '50%';
             let top = '21%';
@@ -467,44 +463,47 @@ export default function HeroBanner() {
             let opacity = 1;
             let zIndex = 20;
 
-            let transform = `translateX(-50%) translateZ(60px) rotateY(0deg) scale(${isMobile ? 0.98 : 1.05})`;
+            // Efek orbit melingkar 3D berputar halus dari arah tengah belakang ke kanan
+            let transform = `translateX(-50%) translateZ(100px) rotateY(0deg) scale(${isMobile ? 0.98 : 1.05})`;
 
             if (role === 'center') {
               left = '50%';
-              // Menaikkan posisi hero depan agak ke atas (15%/17% dan 18%/20%) agar dudukan 3D bulat bawah nampak jelas
               top = index === 0 ? (isMobile ? '18%' : '20%') : (isMobile ? '15%' : '17%');
               height = isMobile ? '78%' : '84%';
               opacity = 1;
-              zIndex = 20;
-              transform = `translateX(-50%) translateZ(80px) rotateY(0deg) scale(${isMobile ? 0.98 : 1.05})`;
-            } else if (role === 'left') {
-              left = isMobile ? '18%' : '25%';
-              top = '27%';
-              height = isMobile ? '48%' : '54%';
-              opacity = 0.65;
-              zIndex = 10;
-              transform = 'translateX(-50%) translateZ(-110px) rotateY(44deg) scale(0.82)';
+              zIndex = 30;
+              transform = `translateX(-50%) translateZ(110px) rotateY(0deg) scale(${isMobile ? 0.98 : 1.05})`;
             } else if (role === 'right') {
-              left = isMobile ? '82%' : '75%';
+              left = isMobile ? '80%' : '74%';
               top = '27%';
               height = isMobile ? '48%' : '54%';
               opacity = 0.65;
-              zIndex = 10;
-              transform = 'translateX(-50%) translateZ(-110px) rotateY(-44deg) scale(0.82)';
-            } else if (role === 'back-left') {
-              left = '0%';
+              zIndex = 15;
+              // Mengayun memutar ke kanan belakang
+              transform = 'translateX(-50%) translateZ(-90px) rotateY(-42deg) scale(0.82)';
+            } else if (role === 'left') {
+              left = isMobile ? '20%' : '26%';
               top = '27%';
+              height = isMobile ? '48%' : '54%';
+              opacity = 0.65;
+              zIndex = 15;
+              // Datang dari sisi kiri depan
+              transform = 'translateX(-50%) translateZ(-90px) rotateY(42deg) scale(0.82)';
+            } else if (role === 'back-right' || role === 'back-center') {
+              // Titik asal di tengah-belakang (center-back) yang meluncur ke arah kanan
+              left = '50%';
+              top = '28%';
               height = isMobile ? '48%' : '54%';
               opacity = 0;
               zIndex = 1;
-              transform = 'translateX(-50%) translateZ(-260px) rotateY(80deg) scale(0.5)';
-            } else {
-              left = '100%';
-              top = '27%';
+              transform = 'translateX(-30%) translateZ(-320px) rotateY(-88deg) scale(0.35)';
+            } else { // back-left
+              left = '50%';
+              top = '28%';
               height = isMobile ? '48%' : '54%';
               opacity = 0;
               zIndex = 1;
-              transform = 'translateX(-50%) translateZ(-260px) rotateY(-80deg) scale(0.5)';
+              transform = 'translateX(-70%) translateZ(-320px) rotateY(88deg) scale(0.35)';
             }
 
             return (
