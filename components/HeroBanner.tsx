@@ -5,7 +5,16 @@ import { ArrowLeft, ArrowRight, Volume2, VolumeX } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from '@/app/context/ThemeContext';
 
-const SLIDES = [
+interface SlideItem {
+  id: string;
+  src: string;
+  audio: string;
+  text: string;
+  link: string;
+  isVideo?: boolean;
+}
+
+const SLIDES: SlideItem[] = [
   { id: 'welcome', src: '/0.webp', audio: '/0.mp3', text: 'WELCOME', link: '#' },
   { id: 'chat', src: '/1.webp', audio: '/1.mp3', text: 'CHAT', link: '/chat' },
   { id: 'tema', src: '/2.webp', audio: '/2.mp3', text: 'TEMA', link: '/tema' },
@@ -26,7 +35,7 @@ const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='h
 const TRANSITION_DURATION = 500;
 const CUBIC_BEZIER = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
-// Component pembeku gambar WebP (Mengambil frame static ke canvas)
+// Component pembeku gambar WebP untuk hero samping
 function FrozenWebP({ src, className, style }: { src: string; className?: string; style?: React.CSSProperties }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -55,7 +64,7 @@ export default function HeroBanner() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   
-  // Ambil pilihan Mute terakhir dari localStorage
+  // Mute state tersimpan di localStorage
   const [isMuted, setIsMuted] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('ipix_hero_muted') === 'true';
@@ -91,8 +100,10 @@ export default function HeroBanner() {
     SLIDES.forEach((slide) => {
       const audio = new Audio();
       audio.src = slide.audio;
-      const image = new Image();
-      image.src = slide.src;
+      if (!slide.isVideo) {
+        const image = new Image();
+        image.src = slide.src;
+      }
     });
   }, []);
 
@@ -114,7 +125,7 @@ export default function HeroBanner() {
     return () => clearInterval(timer);
   }, [activeIndex]);
 
-  // Handle perpindahan tab browser
+  // Visibility handling saat switch browser tab
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!audioRef.current) return;
@@ -137,7 +148,7 @@ export default function HeroBanner() {
     };
   }, [isMuted]);
 
-  // Audio Setup & Analyser
+  // Audio Setup
   useEffect(() => {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
@@ -162,9 +173,7 @@ export default function HeroBanner() {
           .then(() => {
             initAudioAnalyser(audio);
           })
-          .catch(() => {
-            // Autoplay browser fallback
-          });
+          .catch(() => {});
       }
     } else {
       audio.pause();
@@ -221,12 +230,10 @@ export default function HeroBanner() {
       };
 
       renderFrame();
-    } catch (e) {
-      // AudioContext fallback
-    }
+    } catch (e) {}
   };
 
-  // Loop Slide Otomatis (0 -> 1 -> 2 -> 3 -> 4 -> 0)
+  // Loop Slide Otomatis
   useEffect(() => {
     const timer = setInterval(() => {
       navigate('next');
@@ -285,12 +292,12 @@ export default function HeroBanner() {
     else if (distance < -40) navigate('prev');
   };
 
-  // Kalkulasi teks ketikan dinamis
+  // Teks Ketikan Dinamis
   const isWelcomeSlide = currentSlide.id === 'welcome';
   const fullTargetText = isWelcomeSlide ? 'SELAMAT DATANG' : `EXPLORE ${SLIDES[activeIndex].text}`;
   const currentTypedString = fullTargetText.slice(0, typedCount);
-  const word1 = currentTypedString.slice(0, 7); // "SELAMAT" / "EXPLORE"
-  const word2 = currentTypedString.length > 8 ? currentTypedString.slice(8) : ''; // "DATANG" / Nama menu
+  const word1 = currentTypedString.slice(0, 7);
+  const word2 = currentTypedString.length > 8 ? currentTypedString.slice(8) : '';
 
   return (
     <div
@@ -323,16 +330,23 @@ export default function HeroBanner() {
           animation: letterStrokeRun 0.5s ease-in-out forwards;
         }
 
-        /* ANIMASI BARU: PUTARAN KOLEKTOR ACTION FIGURE HALUS 3D */
-        @keyframes actionFigureRotate {
-          0% { rotateY(-18deg); }
-          50% { rotateY(18deg); }
-          100% { rotateY(-18deg); }
+        /* ANIMASI ROTASI SWAY HERO DEPAN (DEPAN PALING TENGAH SAJA) */
+        @keyframes heroFrontSway {
+          0% {
+            transform: rotateY(-18deg) rotateZ(-1.5deg);
+          }
+          50% {
+            transform: rotateY(18deg) rotateZ(1.5deg);
+          }
+          100% {
+            transform: rotateY(-18deg) rotateZ(-1.5deg);
+          }
         }
 
-        .anim-figure-rotation {
-          animation: actionFigureRotate 10s ease-in-out infinite;
-          transform-origin: center bottom;
+        .anim-front-hero-sway {
+          animation: heroFrontSway 5.5s ease-in-out infinite;
+          transform-origin: bottom center;
+          transform-style: preserve-3d;
           backface-visibility: hidden;
         }
 
@@ -369,7 +383,7 @@ export default function HeroBanner() {
           }}
         />
 
-        {/* 3. Teks Raksasa "IPIXCHAT" dengan Efek Cekung */}
+        {/* 3. Teks Raksasa "IPIXCHAT" */}
         <div
           className="absolute inset-x-0 top-3 sm:top-4 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase whitespace-nowrap"
           style={{
@@ -403,7 +417,7 @@ export default function HeroBanner() {
         </div>
 
         {/* 4. Carousel 3D Characters */}
-        <div className="absolute inset-0 z-[3]">
+        <div className="absolute inset-0 z-[3]" style={{ perspective: '800px' }}>
           {SLIDES.map((item, index) => {
             let role = 'back-right';
             if (index === activeIndex) role = 'center';
@@ -476,10 +490,10 @@ export default function HeroBanner() {
                   `,
                 }}
               >
-                {/* EFEK KHUSUS HERO TENGAH (BERLAKU UNTUK SEMUA HERO) */}
+                {/* EFEK KHUSUS HERO TENGAH (PENDAR BELAKANG & LAMPU SOROT) */}
                 {role === 'center' && (
                   <>
-                    {/* Glow Aura Redup di Belakang Hero */}
+                    {/* Glow Aura Redup Belakang Hero */}
                     <div
                       className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 rounded-full blur-2xl pointer-events-none z-[12] transition-colors duration-500 ease-out"
                       style={{
@@ -488,7 +502,7 @@ export default function HeroBanner() {
                       }}
                     />
 
-                    {/* SOROTAN LAMPU PENDAR DARI BAWAH MENYOROT HERO */}
+                    {/* Sorotan Lampu Pendar dari Bawah */}
                     <div
                       className="absolute bottom-0 left-1/2 -translate-x-1/2 pointer-events-none z-[13] transition-all duration-500 ease-out"
                       style={{
@@ -501,8 +515,6 @@ export default function HeroBanner() {
                       }}
                     />
 
-                    {/* SEMUA EFEK RING PENDAR SPESIFIK HERO (CHATTING RING, LASER TEMA, MP3 WAVE, IPIX HEX) DIHAPUS */}
-                    
                     {/* Shadow Dasar Karakter */}
                     <div
                       className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[72%] h-2.5 rounded-[100%] blur-[3px] pointer-events-none z-[15] opacity-70"
@@ -514,30 +526,32 @@ export default function HeroBanner() {
                   </>
                 )}
 
-                {/* Karakter Depan (Center): Bergerak & PUTARAN ACTION FIGURE kolektor Halus 3D */}
+                {/* HERO PALING DEPAN (center) */}
                 {role === 'center' ? (
-                  item.isVideo ? (
-                    <video
-                      src={item.src}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)] anim-figure-rotation"
-                    />
-                  ) : (
-                    <img
-                      src={item.src}
-                      alt={`Slide Character ${index}`}
-                      draggable={false}
-                      loading="eager"
-                      // @ts-ignore
-                      fetchpriority="high"
-                      className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)] anim-figure-rotation"
-                    />
-                  )
+                  <div className="w-full h-full anim-front-hero-sway relative z-[20]">
+                    {item.isVideo ? (
+                      <video
+                        src={item.src}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-full h-full object-contain object-bottom pointer-events-none select-none drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
+                      />
+                    ) : (
+                      <img
+                        src={item.src}
+                        alt={`Slide Character ${index}`}
+                        draggable={false}
+                        loading="eager"
+                        // @ts-ignore
+                        fetchpriority="high"
+                        className="w-full h-full object-contain object-bottom pointer-events-none select-none drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
+                      />
+                    )}
+                  </div>
                 ) : (
-                  // Karakter Samping (Membeku & Mirror)
+                  /* HERO SAMPLING (kiri/kanan) */
                   <FrozenWebP
                     src={item.src}
                     className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
@@ -562,7 +576,7 @@ export default function HeroBanner() {
           })}
         </div>
 
-        {/* 5. Tombol Navigasi & Sound (Pojok Kiri Bawah) */}
+        {/* 5. Tombol Navigasi & Sound */}
         <div className="absolute bottom-3 left-4 z-[60]">
           <div className="flex items-center gap-1.5">
             <button
@@ -577,7 +591,6 @@ export default function HeroBanner() {
               <ArrowLeft size={16} strokeWidth={2.5} style={{ color: activeTextColor }} />
             </button>
 
-            {/* Tombol Sound On / Off */}
             <button
               onClick={toggleMute}
               className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95"
@@ -614,7 +627,7 @@ export default function HeroBanner() {
           </div>
         </div>
 
-        {/* 6. Tombol Explore / Teks Ketikan (Pojok Kanan Bawah) */}
+        {/* 6. Tombol Explore / Teks Ketikan Dinamis */}
         <div className="absolute bottom-3 right-4 z-[60]">
           <Link
             href={currentSlide.link}
@@ -626,7 +639,7 @@ export default function HeroBanner() {
                   isWelcomeSlide ? '' : 'border-b-2 opacity-70'
                 }`}
                 style={{
-                  color: isWelcomeSlide ? '#D1D5DB' : 'var(--foreground)', // Abu-abu muda untuk "SELAMAT"
+                  color: isWelcomeSlide ? '#D1D5DB' : 'var(--foreground)',
                   borderColor: isWelcomeSlide ? 'transparent' : activeTextColor,
                 }}
               >
@@ -637,13 +650,12 @@ export default function HeroBanner() {
               <span
                 className="text-sm font-black tracking-wide uppercase italic transition-colors duration-250 ml-1"
                 style={{
-                  color: isWelcomeSlide ? '#FACC15' : activeTextColor, // Kuning hero 0 untuk "DATANG"
+                  color: isWelcomeSlide ? '#FACC15' : activeTextColor,
                 }}
               >
                 {word2}
               </span>
             )}
-            {/* Dash Kedip-kedip Miring (Italic) */}
             <span
               className="text-sm font-black italic anim-typing-cursor -ml-0.5"
               style={{ color: isWelcomeSlide ? '#FACC15' : activeTextColor }}
