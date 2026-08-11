@@ -88,7 +88,7 @@ export default function HeroBanner() {
   const currentSlide = SLIDES[activeIndex];
   const activeTextColor = SLIDE_COLORS[currentSlide.id] || 'var(--accent)';
 
-  // Dispatch custom event agar BottomNav selalu tersinkron presisi 100%
+  // Dispatch custom event agar BottomNav selalu tersinkron presisi
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
@@ -156,7 +156,7 @@ export default function HeroBanner() {
     };
   }, [isMuted]);
 
-  // Audio Setup & Dynamic Duration (Mengikuti durasi audio agar tidak terpotong)
+  // Audio Setup & Dynamic Duration
   useEffect(() => {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
@@ -519,7 +519,7 @@ export default function HeroBanner() {
                   `,
                 }}
               >
-                {/* EFEK SOROTAN & PENDAR (Redup di tema gelap, terang di tema terang) */}
+                {/* EFEK SOROTAN & PENDAR */}
                 {role === 'center' && (
                   <>
                     {/* Glow Aura Belakang Hero */}
@@ -606,20 +606,20 @@ export default function HeroBanner() {
           })}
         </div>
 
-        {/* 5. Tombol Navigasi & Bulatan Kiri Bawah (Ringkas & Dinamis) */}
+        {/* 5. Tombol Navigasi & Bulatan Kiri Bawah (Background Mengikuti Tema 10 & Custom) */}
         <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-4 z-[60]">
           <div
-            className="flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded-full backdrop-blur-md border transition-all duration-300"
+            className="flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded-full backdrop-blur-md border transition-all duration-300 shadow-sm"
             style={{
-              backgroundColor: isLight ? 'rgba(255, 255, 255, 0.65)' : 'rgba(15, 23, 42, 0.55)',
-              borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.12)',
+              backgroundColor: "color-mix(in srgb, var(--card-bg) 75%, transparent)",
+              borderColor: "color-mix(in srgb, var(--card-border) 80%, transparent)",
             }}
           >
             <button
               onClick={() => navigate('prev')}
               className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
               style={{
-                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 23, 42, 0.85)',
+                backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)",
               }}
               aria-label="Previous Slide"
             >
@@ -628,15 +628,15 @@ export default function HeroBanner() {
 
             <button
               onClick={toggleMute}
-              className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
+              className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm border"
               style={{
-                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 23, 42, 0.85)',
+                backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)",
                 borderColor: isMuted ? 'transparent' : activeTextColor,
               }}
               aria-label={isMuted ? 'Unmute Sound' : 'Mute Sound'}
             >
               {isMuted ? (
-                <VolumeX size={isMobile ? 13 : 16} strokeWidth={2.5} className={isLight ? 'text-gray-600' : 'text-gray-300'} />
+                <VolumeX size={isMobile ? 13 : 16} strokeWidth={2.5} style={{ color: 'var(--foreground)', opacity: 0.6 }} />
               ) : (
                 <Volume2
                   size={isMobile ? 13 : 16}
@@ -650,7 +650,7 @@ export default function HeroBanner() {
               onClick={() => navigate('next')}
               className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
               style={{
-                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 23, 42, 0.85)',
+                backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)",
               }}
               aria-label="Next Slide"
             >
@@ -659,14 +659,14 @@ export default function HeroBanner() {
           </div>
         </div>
 
-        {/* 6. Pill Kanan Bawah (Tanpa Panah saat Welcome) */}
+        {/* 6. Pill Kanan Bawah (Background Mengikuti Tema 10 & Custom) */}
         <div className="absolute bottom-2.5 sm:bottom-3 right-2.5 sm:right-4 z-[60]">
           <Link
             href={currentSlide.link}
-            className="group flex items-center gap-1 transition-all duration-200 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full backdrop-blur-md shadow-sm active:scale-95"
+            className="group flex items-center gap-1 transition-all duration-200 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full backdrop-blur-md shadow-sm active:scale-95 border"
             style={{
-              backgroundColor: isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(15, 23, 42, 0.65)',
-              border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.15)'}`,
+              backgroundColor: "color-mix(in srgb, var(--card-bg) 75%, transparent)",
+              borderColor: "color-mix(in srgb, var(--card-border) 80%, transparent)",
             }}
           >
             {word1 && (
@@ -675,7 +675,7 @@ export default function HeroBanner() {
                   isWelcomeSlide ? '' : 'border-b-2 opacity-90'
                 }`}
                 style={{
-                  color: isWelcomeSlide ? (isLight ? '#334155' : '#E2E8F0') : 'var(--foreground)',
+                  color: 'var(--foreground)',
                   borderColor: isWelcomeSlide ? 'transparent' : activeTextColor,
                 }}
               >
