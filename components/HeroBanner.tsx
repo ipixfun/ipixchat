@@ -32,8 +32,8 @@ const SLIDE_COLORS: Record<string, string> = {
 
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E")`;
 
-const TRANSITION_DURATION = 700;
-const CUBIC_BEZIER = 'cubic-bezier(0.22, 1, 0.36, 1)';
+const TRANSITION_DURATION = 800;
+const CUBIC_BEZIER = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
 function FrozenWebP({ src, className, style }: { src: string; className?: string; style?: React.CSSProperties }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -376,7 +376,7 @@ export default function HeroBanner() {
 
       <div className="relative w-full h-[220px] sm:h-[250px] overflow-hidden">
 
-        {/* 1. Dynamic Audio Background Glow */}
+        {/* 1. Dynamic Audio Background Glow (Blur dikembalikan) */}
         <div
           className="absolute inset-0 pointer-events-none z-[1] transform-gpu transition-all duration-75 ease-out"
           style={{
@@ -437,7 +437,7 @@ export default function HeroBanner() {
           ))}
         </div>
 
-        {/* 4. Carousel 3D Orbit: Slide Memutar Smooth dari Tengah Belakang ke Kanan */}
+        {/* 4. Carousel 3D Orbit: Segitiga Smooth (Kiri -> Depan -> Kanan -> Belakang) */}
         <div
           className="absolute inset-0 z-[3]"
           style={{
@@ -450,60 +450,47 @@ export default function HeroBanner() {
             if (offset > 2) offset -= SLIDES.length;
             if (offset < -2) offset += SLIDES.length;
 
-            let role = 'back-center';
-            if (offset === 0) role = 'center';
-            else if (offset === 1) role = 'right';
-            else if (offset === -1) role = 'left';
-            else if (offset === 2) role = 'back-right';
-            else if (offset === -2) role = 'back-left';
+            let role = 'back';
+            if (offset === 0) role = 'center';      // DEPAN
+            else if (offset === 1) role = 'left';    // KIRI
+            else if (offset === -1) role = 'right';  // KANAN
 
             let left = '50%';
             let top = '21%';
-            let height = isMobile ? '78%' : '84%';
+            let height = isMobile ? '78%' : '78%';
             let opacity = 1;
             let zIndex = 20;
 
-            // Efek orbit melingkar 3D berputar halus dari arah tengah belakang ke kanan
-            let transform = `translateX(-50%) translateZ(100px) rotateY(0deg) scale(${isMobile ? 0.98 : 1.05})`;
+            let transform = 'translateX(-50%) translateZ(0px)';
 
-            if (role === 'center') {
+            if (role === 'center') { // Depan (Tenang tanpa denyut skala)
               left = '50%';
-              top = index === 0 ? (isMobile ? '18%' : '20%') : (isMobile ? '15%' : '17%');
-              height = isMobile ? '78%' : '84%';
+              top = index === 0 ? (isMobile ? '18%' : '18%') : (isMobile ? '15%' : '15%');
+              height = isMobile ? '78%' : '78%';
               opacity = 1;
               zIndex = 30;
-              transform = `translateX(-50%) translateZ(110px) rotateY(0deg) scale(${isMobile ? 0.98 : 1.05})`;
-            } else if (role === 'right') {
-              left = isMobile ? '80%' : '74%';
-              top = '27%';
-              height = isMobile ? '48%' : '54%';
-              opacity = 0.65;
+              transform = `translateX(-50%) translateZ(120px) rotateY(0deg) scale(${isMobile ? 0.98 : 1.0})`;
+            } else if (role === 'left') { // Kiri
+              left = isMobile ? '22%' : '24%';
+              top = '26%';
+              height = isMobile ? '48%' : '48%';
+              opacity = 0.7;
               zIndex = 15;
-              // Mengayun memutar ke kanan belakang
-              transform = 'translateX(-50%) translateZ(-90px) rotateY(-42deg) scale(0.82)';
-            } else if (role === 'left') {
-              left = isMobile ? '20%' : '26%';
-              top = '27%';
-              height = isMobile ? '48%' : '54%';
-              opacity = 0.65;
+              transform = 'translateX(-50%) translateZ(-80px) rotateY(38deg) scale(0.8)';
+            } else if (role === 'right') { // Kanan
+              left = isMobile ? '78%' : '76%';
+              top = '26%';
+              height = isMobile ? '48%' : '48%';
+              opacity = 0.7;
               zIndex = 15;
-              // Datang dari sisi kiri depan
-              transform = 'translateX(-50%) translateZ(-90px) rotateY(42deg) scale(0.82)';
-            } else if (role === 'back-right' || role === 'back-center') {
-              // Titik asal di tengah-belakang (center-back) yang meluncur ke arah kanan
+              transform = 'translateX(-50%) translateZ(-80px) rotateY(-38deg) scale(0.8)';
+            } else { // Belakang
               left = '50%';
-              top = '28%';
-              height = isMobile ? '48%' : '54%';
+              top = '30%';
+              height = isMobile ? '48%' : '48%';
               opacity = 0;
               zIndex = 1;
-              transform = 'translateX(-30%) translateZ(-320px) rotateY(-88deg) scale(0.35)';
-            } else { // back-left
-              left = '50%';
-              top = '28%';
-              height = isMobile ? '48%' : '54%';
-              opacity = 0;
-              zIndex = 1;
-              transform = 'translateX(-70%) translateZ(-320px) rotateY(88deg) scale(0.35)';
+              transform = 'translateX(-50%) translateZ(-300px) rotateY(0deg) scale(0.35)';
             }
 
             return (
@@ -530,30 +517,26 @@ export default function HeroBanner() {
               >
                 {/* DUDUKAN ACTION FIGURE 3D BULAT DINAMIS */}
                 {role === 'center' && (
-                  <div className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-[72%] max-w-[150px] h-3 pointer-events-none z-[15] transition-all duration-500 ease-out">
-                    {/* Bayangan Kontak di Bawah Dudukan */}
+                  <div className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-[72%] max-w-[150px] h-3 pointer-events-none z-[15] transition-all duration-300 ease-out">
                     <div
                       className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-[105%] h-2.5 rounded-[100%] blur-[3px] opacity-80"
                       style={{ backgroundColor: '#000000' }}
                     />
                     
-                    {/* Bodi Piringan Dudukan 3D Disc */}
                     <div
-                      className="w-full h-full rounded-[100%] transition-all duration-500 transform-gpu relative"
+                      className="w-full h-full rounded-[100%] transition-all duration-100 transform-gpu relative"
                       style={{
                         background: `radial-gradient(ellipse at 50% 30%, color-mix(in srgb, ${activeTextColor} 65%, #ffffff 20%) 0%, color-mix(in srgb, ${activeTextColor} 30%, #0f172a) 60%, color-mix(in srgb, ${activeTextColor} 80%, #000000) 100%)`,
                         border: `1px solid color-mix(in srgb, ${activeTextColor} 90%, #ffffff)`,
                         boxShadow: `
                           0 3px 6px rgba(0, 0, 0, 0.75),
-                          0 0 10px color-mix(in srgb, ${activeTextColor} 50%, transparent),
                           inset 0 1px 1.5px rgba(255, 255, 255, 0.6),
                           inset 0 -2px 4px color-mix(in srgb, ${activeTextColor} 90%, #000000)
                         `,
                       }}
                     >
-                      {/* Ring LED Cincin Dalam Dudukan */}
                       <div
-                        className="absolute inset-[1.5px] rounded-[100%] opacity-80 transition-all duration-500"
+                        className="absolute inset-[1.5px] rounded-[100%] opacity-80 transition-all duration-300"
                         style={{
                           border: `0.8px solid color-mix(in srgb, ${activeTextColor} 95%, #ffffff)`,
                         }}
@@ -562,16 +545,14 @@ export default function HeroBanner() {
                   </div>
                 )}
 
-                {/* DUDUKAN ACTION FIGURE 3D BULAT ABU-ABU GELAP (HERO KIRI & KANAN) */}
+                {/* DUDUKAN ACTION FIGURE 3D SISI KIRI & KANAN */}
                 {(role === 'left' || role === 'right') && (
                   <div className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-[75%] max-w-[110px] h-2.5 pointer-events-none z-[15] opacity-80">
-                    {/* Bayangan Kontak Dudukan Samping */}
                     <div
                       className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-[105%] h-2 rounded-[100%] blur-[2px] opacity-90"
                       style={{ backgroundColor: '#000000' }}
                     />
                     
-                    {/* Bodi Piringan Dudukan Abu-abu Gelap */}
                     <div
                       className="w-full h-full rounded-[100%] relative"
                       style={{
@@ -588,7 +569,7 @@ export default function HeroBanner() {
                   </div>
                 )}
 
-                {/* HERO PALING DEPAN (center) DENGAN LIGHT OUTLINE TIPIS */}
+                {/* HERO PALING DEPAN */}
                 {role === 'center' ? (
                   <div className="w-full h-full anim-front-hero-sway relative z-[20]">
                     {item.isVideo ? (
@@ -625,7 +606,6 @@ export default function HeroBanner() {
                     )}
                   </div>
                 ) : (
-                  /* HERO SAMPLING KIRI & KANAN (WARNA ABU-ABU / GRAYSCALE) */
                   <FrozenWebP
                     src={item.src}
                     className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20]"
@@ -635,7 +615,7 @@ export default function HeroBanner() {
                   />
                 )}
 
-                {/* Refleksi Mirror Hero Kiri dan Kanan */}
+                {/* Refleksi Mirror Hero */}
                 {(role === 'left' || role === 'right') && (
                   <div className="absolute top-[98%] left-0 right-0 h-[38%] overflow-hidden pointer-events-none opacity-20 select-none z-[18]">
                     <FrozenWebP
@@ -654,61 +634,8 @@ export default function HeroBanner() {
           })}
         </div>
 
-        {/* 5. Tombol Navigasi & Bulatan Kiri Bawah */}
+        {/* 5. Pill Kiri Bawah */}
         <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-4 z-[60]">
-          <div
-            className="flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded-full backdrop-blur-md border transition-all duration-300 shadow-sm"
-            style={{
-              backgroundColor: "color-mix(in srgb, var(--card-bg) 75%, transparent)",
-              borderColor: "color-mix(in srgb, var(--card-border) 80%, transparent)",
-            }}
-          >
-            <button
-              onClick={() => navigate('prev')}
-              className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
-              style={{
-                backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)",
-              }}
-              aria-label="Previous Slide"
-            >
-              <ArrowLeft size={isMobile ? 13 : 16} strokeWidth={2.5} style={{ color: activeTextColor }} />
-            </button>
-
-            <button
-              onClick={toggleMute}
-              className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm border"
-              style={{
-                backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)",
-                borderColor: isMuted ? 'transparent' : activeTextColor,
-              }}
-              aria-label={isMuted ? 'Unmute Sound' : 'Mute Sound'}
-            >
-              {isMuted ? (
-                <VolumeX size={isMobile ? 13 : 16} strokeWidth={2.5} style={{ color: 'var(--foreground)', opacity: 0.6 }} />
-              ) : (
-                <Volume2
-                  size={isMobile ? 13 : 16}
-                  strokeWidth={2.5}
-                  style={{ color: activeTextColor }}
-                />
-              )}
-            </button>
-
-            <button
-              onClick={() => navigate('next')}
-              className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
-              style={{
-                backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)",
-              }}
-              aria-label="Next Slide"
-            >
-              <ArrowRight size={isMobile ? 13 : 16} strokeWidth={2.5} style={{ color: activeTextColor }} />
-            </button>
-          </div>
-        </div>
-
-        {/* 6. Pill Kanan Bawah */}
-        <div className="absolute bottom-2.5 sm:bottom-3 right-2.5 sm:right-4 z-[60]">
           <Link
             href={currentSlide.link}
             className="group flex items-center gap-1 transition-all duration-200 px-2.5 py-1 rounded-full backdrop-blur-md shadow-sm active:scale-95 border"
@@ -761,6 +688,65 @@ export default function HeroBanner() {
               />
             )}
           </Link>
+        </div>
+
+        {/* 6. Tombol Navigasi Kanan Bawah (Sound Bulat Pill Berdenyut Mengikuti Beat MP3 Tanpa Glow) */}
+        <div className="absolute bottom-2.5 sm:bottom-3 right-2.5 sm:right-4 z-[60]">
+          <div
+            className="flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded-full backdrop-blur-md border transition-all duration-300 shadow-sm"
+            style={{
+              backgroundColor: "color-mix(in srgb, var(--card-bg) 75%, transparent)",
+              borderColor: "color-mix(in srgb, var(--card-border) 80%, transparent)",
+            }}
+          >
+            <button
+              onClick={() => navigate('prev')}
+              className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)",
+              }}
+              aria-label="Previous Slide"
+            >
+              <ArrowLeft size={isMobile ? 13 : 16} strokeWidth={2.5} style={{ color: activeTextColor }} />
+            </button>
+
+            {/* Tombol Bulat Sound dengan Animasi Beat Presisi Tanpa Glow */}
+            <button
+              onClick={toggleMute}
+              className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-transform duration-75 ease-out shadow-sm border"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)",
+                borderColor: isMuted ? 'transparent' : activeTextColor,
+                transform: !isMuted ? `scale(${1 + audioLevel * 0.25})` : 'scale(1)',
+              }}
+              aria-label={isMuted ? 'Unmute Sound' : 'Mute Sound'}
+            >
+              {isMuted ? (
+                <VolumeX size={isMobile ? 13 : 16} strokeWidth={2.5} style={{ color: 'var(--foreground)', opacity: 0.6 }} />
+              ) : (
+                <Volume2
+                  size={isMobile ? 13 : 16}
+                  strokeWidth={2.5}
+                  style={{
+                    color: activeTextColor,
+                    transform: `scale(${1 + audioLevel * 0.2})`,
+                    transition: 'transform 75ms ease-out',
+                  }}
+                />
+              )}
+            </button>
+
+            <button
+              onClick={() => navigate('next')}
+              className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)",
+              }}
+              aria-label="Next Slide"
+            >
+              <ArrowRight size={isMobile ? 13 : 16} strokeWidth={2.5} style={{ color: activeTextColor }} />
+            </button>
+          </div>
         </div>
 
       </div>
