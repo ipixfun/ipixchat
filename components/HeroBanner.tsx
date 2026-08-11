@@ -531,7 +531,7 @@ export default function HeroBanner() {
                   />
                 )}
 
-                {/* HERO PALING DEPAN (center) DENGAN OUTLINE MENGIKUTI BENTUK HERO */}
+                {/* HERO PALING DEPAN (center) DENGAN OUTLINE TIPIS DAN TANPA GLOW */}
                 {role === 'center' ? (
                   <div className="w-full h-full anim-front-hero-sway relative z-[20]">
                     {item.isVideo ? (
@@ -544,11 +544,10 @@ export default function HeroBanner() {
                         className="w-full h-full object-contain object-bottom pointer-events-none select-none"
                         style={{
                           filter: `
-                            drop-shadow(1.8px 0 0 ${activeTextColor})
-                            drop-shadow(-1.8px 0 0 ${activeTextColor})
-                            drop-shadow(0 1.8px 0 ${activeTextColor})
-                            drop-shadow(0 -1.8px 0 ${activeTextColor})
-                            drop-shadow(0 0 6px color-mix(in srgb, ${activeTextColor} 80%, transparent))
+                            drop-shadow(1px 0 0 ${activeTextColor})
+                            drop-shadow(-1px 0 0 ${activeTextColor})
+                            drop-shadow(0 1px 0 ${activeTextColor})
+                            drop-shadow(0 -1px 0 ${activeTextColor})
                           `,
                         }}
                       />
@@ -563,11 +562,10 @@ export default function HeroBanner() {
                         className="w-full h-full object-contain object-bottom pointer-events-none select-none"
                         style={{
                           filter: `
-                            drop-shadow(1.8px 0 0 ${activeTextColor})
-                            drop-shadow(-1.8px 0 0 ${activeTextColor})
-                            drop-shadow(0 1.8px 0 ${activeTextColor})
-                            drop-shadow(0 -1.8px 0 ${activeTextColor})
-                            drop-shadow(0 0 6px color-mix(in srgb, ${activeTextColor} 80%, transparent))
+                            drop-shadow(1px 0 0 ${activeTextColor})
+                            drop-shadow(-1px 0 0 ${activeTextColor})
+                            drop-shadow(0 1px 0 ${activeTextColor})
+                            drop-shadow(0 -1px 0 ${activeTextColor})
                           `,
                         }}
                       />
