@@ -106,14 +106,21 @@ export default function HeroBanner() {
     return () => clearInterval(timer);
   }, [activeIndex]);
 
-  // Handle pindah browser tab (Visibility change) agar suara tetap mati saat di-mute
+  // Handle perpindahan tab browser
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!audioRef.current) return;
+
       if (document.hidden) {
         audioRef.current.pause();
-      } else if (!isMuted) {
-        audioRef.current.play().catch(() => {});
+      } else {
+        // Hanya play jika posisi TIDAK di-mute
+        if (!isMuted) {
+          audioRef.current.play().catch(() => {});
+        } else {
+          audioRef.current.pause();
+          audioRef.current.muted = true;
+        }
       }
     };
 
@@ -123,7 +130,7 @@ export default function HeroBanner() {
     };
   }, [isMuted]);
 
-  // Audio Setup & Analyser (Hanya diputar saat tidak di-mute)
+  // Audio Setup & Analyser
   useEffect(() => {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
@@ -139,6 +146,7 @@ export default function HeroBanner() {
     audio.src = SLIDES[activeIndex].audio;
     audio.currentTime = 0;
     audio.volume = 0.7;
+    audio.muted = isMuted; // Kunci properti elemen audio secara langsung
 
     if (!isMuted) {
       const playPromise = audio.play();
@@ -237,9 +245,14 @@ export default function HeroBanner() {
   const toggleMute = () => {
     setIsMuted((prev) => {
       const nextMute = !prev;
-      if (nextMute && audioRef.current) {
-        audioRef.current.pause();
-        setAudioLevel(0);
+      if (audioRef.current) {
+        audioRef.current.muted = nextMute;
+        if (nextMute) {
+          audioRef.current.pause();
+          setAudioLevel(0);
+        } else {
+          audioRef.current.play().catch(() => {});
+        }
       }
       return nextMute;
     });
@@ -568,7 +581,7 @@ export default function HeroBanner() {
                   </>
                 )}
 
-                {/* Karakter: Bergerak (Animated) Jika Di Tengah, Membeku (Frozen Static Frame) Jika Di Kiri/Kanan */}
+                {/* Karakter: Bergerak Jika Di Tengah, Membeku Jika Di Kiri/Kanan */}
                 {role === 'center' ? (
                   <img
                     src={item.src}
@@ -586,7 +599,7 @@ export default function HeroBanner() {
                   />
                 )}
 
-                {/* Refleksi Mirror Hero Kiri dan Kanan (Selalu Membeku/Frozen) */}
+                {/* Refleksi Mirror Hero Kiri dan Kanan */}
                 {(role === 'left' || role === 'right') && (
                   <div className="absolute top-[98%] left-0 right-0 h-[38%] overflow-hidden pointer-events-none opacity-25 select-none z-[18]">
                     <FrozenWebP
@@ -679,7 +692,7 @@ export default function HeroBanner() {
                 {word2}
               </span>
             )}
-            {/* Dash Kedip-kedip Dibuat Miring (Italic) Ikut Teks Runteks */}
+            {/* Dash Kedip-kedip Miring (Italic) */}
             <span
               className="text-sm font-black italic anim-typing-cursor -ml-0.5"
               style={{ color: isWelcomeSlide ? '#FACC15' : activeTextColor }}
