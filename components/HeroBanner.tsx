@@ -88,6 +88,15 @@ export default function HeroBanner() {
   const currentSlide = SLIDES[activeIndex];
   const activeTextColor = SLIDE_COLORS[currentSlide.id] || 'var(--accent)';
 
+  // Dispatch custom event agar BottomNav selalu tersinkron presisi 100%
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('hero_slide_change', { detail: { index: activeIndex } })
+      );
+    }
+  }, [activeIndex]);
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
     checkMobile();
@@ -147,7 +156,7 @@ export default function HeroBanner() {
     };
   }, [isMuted]);
 
-  // Audio Setup & Dynamic Duration
+  // Audio Setup & Dynamic Duration (Mengikuti durasi audio agar tidak terpotong)
   useEffect(() => {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
@@ -244,7 +253,7 @@ export default function HeroBanner() {
     } catch (e) {}
   };
 
-  // Loop Slide Otomatis
+  // Loop Slide Otomatis berdasarkan slideDuration
   useEffect(() => {
     const timer = setInterval(() => {
       navigate('next');
@@ -510,7 +519,7 @@ export default function HeroBanner() {
                   `,
                 }}
               >
-                {/* EFEK SOROTAN & PENDAR */}
+                {/* EFEK SOROTAN & PENDAR (Redup di tema gelap, terang di tema terang) */}
                 {role === 'center' && (
                   <>
                     {/* Glow Aura Belakang Hero */}
@@ -597,9 +606,10 @@ export default function HeroBanner() {
           })}
         </div>
 
-        {/* 5. Tombol Navigasi & Bulatan Kiri Bawah (Ringkas & Dinamis saat Mobile) */}
+        {/* 5. Tombol Navigasi & Bulatan Kiri Bawah (Ringkas & Dinamis) */}
         <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-4 z-[60]">
-          <div className="flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded-full backdrop-blur-md border transition-all duration-300"
+          <div
+            className="flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded-full backdrop-blur-md border transition-all duration-300"
             style={{
               backgroundColor: isLight ? 'rgba(255, 255, 255, 0.65)' : 'rgba(15, 23, 42, 0.55)',
               borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.12)',
@@ -649,7 +659,7 @@ export default function HeroBanner() {
           </div>
         </div>
 
-        {/* 6. Pill Kanan Bawah (Kecil, Dinamis, & Tanpa Panah saat Welcome) */}
+        {/* 6. Pill Kanan Bawah (Tanpa Panah saat Welcome) */}
         <div className="absolute bottom-2.5 sm:bottom-3 right-2.5 sm:right-4 z-[60]">
           <Link
             href={currentSlide.link}
@@ -689,7 +699,6 @@ export default function HeroBanner() {
               |
             </span>
 
-            {/* Panah disembunyikan jika slide Welcome */}
             {!isWelcomeSlide && (
               <ArrowRight
                 className="w-3 h-3 sm:w-3.5 sm:h-3.5 anim-bounce-right ml-0.5 transition-colors duration-250"
