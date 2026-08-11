@@ -147,7 +147,7 @@ export default function HeroBanner() {
     };
   }, [isMuted]);
 
-  // Audio Setup & Dynamic Duration (Suara 0.mp3 dinamis tidak terpotong)
+  // Audio Setup & Dynamic Duration
   useEffect(() => {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
@@ -244,7 +244,7 @@ export default function HeroBanner() {
     } catch (e) {}
   };
 
-  // Loop Slide Otomatis berdasarkan slideDuration dinamis
+  // Loop Slide Otomatis
   useEffect(() => {
     const timer = setInterval(() => {
       navigate('next');
@@ -396,11 +396,11 @@ export default function HeroBanner() {
           }}
         />
 
-        {/* 3. Teks Raksasa "IPIXCHAT" */}
+        {/* 3. Teks Raksasa "SUKACHUB" */}
         <div
           className="absolute inset-x-0 top-3 sm:top-4 flex items-center justify-center pointer-events-none select-none z-[2] font-['Anton',sans-serif] uppercase whitespace-nowrap"
           style={{
-            fontSize: 'clamp(50px, 16vw, 100px)',
+            fontSize: 'clamp(46px, 15vw, 100px)',
             fontWeight: 900,
             lineHeight: 1,
             letterSpacing: '-0.01em',
@@ -422,7 +422,7 @@ export default function HeroBanner() {
               `,
           }}
         >
-          {'IPIXCHAT'.split('').map((letter, idx) => (
+          {'SUKACHUB'.split('').map((letter, idx) => (
             <span
               key={`${activeIndex}-${idx}`}
               className="inline-block anim-letter-stroke"
@@ -597,39 +597,39 @@ export default function HeroBanner() {
           })}
         </div>
 
-        {/* 5. Tombol Navigasi & Bulatan */}
-        <div className="absolute bottom-3 left-4 z-[60]">
-          <div className="flex items-center gap-1.5">
+        {/* 5. Tombol Navigasi & Bulatan Kiri Bawah (Ringkas & Dinamis saat Mobile) */}
+        <div className="absolute bottom-2.5 sm:bottom-3 left-2.5 sm:left-4 z-[60]">
+          <div className="flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded-full backdrop-blur-md border transition-all duration-300"
+            style={{
+              backgroundColor: isLight ? 'rgba(255, 255, 255, 0.65)' : 'rgba(15, 23, 42, 0.55)',
+              borderColor: isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.12)',
+            }}
+          >
             <button
               onClick={() => navigate('prev')}
-              className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
+              className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
               style={{
-                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.85)' : 'rgba(15, 23, 42, 0.75)',
-                borderColor: isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.25)',
-                boxShadow: isLight ? '0 2px 6px rgba(0,0,0,0.08)' : '0 2px 6px rgba(0,0,0,0.4)',
+                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 23, 42, 0.85)',
               }}
               aria-label="Previous Slide"
             >
-              <ArrowLeft size={16} strokeWidth={2.5} style={{ color: activeTextColor }} />
+              <ArrowLeft size={isMobile ? 13 : 16} strokeWidth={2.5} style={{ color: activeTextColor }} />
             </button>
 
             <button
               onClick={toggleMute}
-              className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
+              className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
               style={{
-                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.85)' : 'rgba(15, 23, 42, 0.75)',
-                borderColor: isMuted
-                  ? (isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.25)')
-                  : activeTextColor,
-                boxShadow: isLight ? '0 2px 6px rgba(0,0,0,0.08)' : '0 2px 6px rgba(0,0,0,0.4)',
+                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 23, 42, 0.85)',
+                borderColor: isMuted ? 'transparent' : activeTextColor,
               }}
               aria-label={isMuted ? 'Unmute Sound' : 'Mute Sound'}
             >
               {isMuted ? (
-                <VolumeX size={16} strokeWidth={2.5} className={isLight ? 'text-gray-600' : 'text-gray-300'} />
+                <VolumeX size={isMobile ? 13 : 16} strokeWidth={2.5} className={isLight ? 'text-gray-600' : 'text-gray-300'} />
               ) : (
                 <Volume2
-                  size={16}
+                  size={isMobile ? 13 : 16}
                   strokeWidth={2.5}
                   style={{ color: activeTextColor }}
                 />
@@ -638,24 +638,22 @@ export default function HeroBanner() {
 
             <button
               onClick={() => navigate('next')}
-              className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
+              className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
               style={{
-                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.85)' : 'rgba(15, 23, 42, 0.75)',
-                borderColor: isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.25)',
-                boxShadow: isLight ? '0 2px 6px rgba(0,0,0,0.08)' : '0 2px 6px rgba(0,0,0,0.4)',
+                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 23, 42, 0.85)',
               }}
               aria-label="Next Slide"
             >
-              <ArrowRight size={16} strokeWidth={2.5} style={{ color: activeTextColor }} />
+              <ArrowRight size={isMobile ? 13 : 16} strokeWidth={2.5} style={{ color: activeTextColor }} />
             </button>
           </div>
         </div>
 
-        {/* 6. Tombol Explore / Teks Ketikan Dinamis */}
-        <div className="absolute bottom-3 right-4 z-[60]">
+        {/* 6. Pill Kanan Bawah (Kecil, Dinamis, & Tanpa Panah saat Welcome) */}
+        <div className="absolute bottom-2.5 sm:bottom-3 right-2.5 sm:right-4 z-[60]">
           <Link
             href={currentSlide.link}
-            className="group flex items-center gap-1 transition-all duration-200 px-2.5 py-1 rounded-full backdrop-blur-md"
+            className="group flex items-center gap-1 transition-all duration-200 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full backdrop-blur-md shadow-sm active:scale-95"
             style={{
               backgroundColor: isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(15, 23, 42, 0.65)',
               border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.15)'}`,
@@ -663,7 +661,7 @@ export default function HeroBanner() {
           >
             {word1 && (
               <span
-                className={`text-[11px] font-extrabold tracking-wide uppercase italic pb-0.5 transition-all duration-250 ${
+                className={`text-[10px] sm:text-[11px] font-extrabold tracking-wide uppercase italic pb-0.5 transition-all duration-250 ${
                   isWelcomeSlide ? '' : 'border-b-2 opacity-90'
                 }`}
                 style={{
@@ -676,7 +674,7 @@ export default function HeroBanner() {
             )}
             {word2 && (
               <span
-                className="text-sm font-black tracking-wide uppercase italic transition-colors duration-250 ml-1"
+                className="text-xs sm:text-sm font-black tracking-wide uppercase italic transition-colors duration-250 ml-0.5 sm:ml-1"
                 style={{
                   color: isWelcomeSlide ? '#EAB308' : activeTextColor,
                 }}
@@ -685,16 +683,20 @@ export default function HeroBanner() {
               </span>
             )}
             <span
-              className="text-sm font-black italic anim-typing-cursor -ml-0.5"
+              className="text-xs sm:text-sm font-black italic anim-typing-cursor -ml-0.5"
               style={{ color: isWelcomeSlide ? '#EAB308' : activeTextColor }}
             >
               |
             </span>
-            <ArrowRight
-              className="w-3.5 h-3.5 anim-bounce-right ml-0.5 transition-colors duration-250"
-              style={{ color: isWelcomeSlide ? '#EAB308' : activeTextColor }}
-              strokeWidth={3}
-            />
+
+            {/* Panah disembunyikan jika slide Welcome */}
+            {!isWelcomeSlide && (
+              <ArrowRight
+                className="w-3 h-3 sm:w-3.5 sm:h-3.5 anim-bounce-right ml-0.5 transition-colors duration-250"
+                style={{ color: activeTextColor }}
+                strokeWidth={3}
+              />
+            )}
           </Link>
         </div>
 
