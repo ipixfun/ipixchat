@@ -308,8 +308,11 @@ export default function HeroBanner() {
   const handleTouchEnd = () => {
     if (!touchStartX.current || !touchEndX.current) return;
     const distance = touchStartX.current - touchEndX.current;
-    if (distance > 40) navigate('next');
-    else if (distance < -40) navigate('prev');
+    
+    // Swipe jari ke kiri -> putaran hero ke kiri
+    if (distance > 40) navigate('prev');
+    // Swipe jari ke kanan -> putaran hero ke kanan
+    else if (distance < -40) navigate('next');
   };
 
   const isWelcomeSlide = currentSlide.id === 'welcome';
@@ -376,7 +379,7 @@ export default function HeroBanner() {
 
       <div className="relative w-full h-[220px] sm:h-[250px] overflow-hidden">
 
-        {/* 1. Dynamic Audio Background Glow (Blur dikembalikan) */}
+        {/* 1. Dynamic Audio Background Glow */}
         <div
           className="absolute inset-0 pointer-events-none z-[1] transform-gpu transition-all duration-75 ease-out"
           style={{
@@ -437,7 +440,7 @@ export default function HeroBanner() {
           ))}
         </div>
 
-        {/* 4. Carousel 3D Orbit: Segitiga Smooth (Kiri -> Depan -> Kanan -> Belakang) */}
+        {/* 4. Carousel 3D Orbit */}
         <div
           className="absolute inset-0 z-[3]"
           style={{
@@ -463,28 +466,28 @@ export default function HeroBanner() {
 
             let transform = 'translateX(-50%) translateZ(0px)';
 
-            if (role === 'center') { // Depan (Tenang tanpa denyut skala)
+            if (role === 'center') {
               left = '50%';
               top = index === 0 ? (isMobile ? '18%' : '18%') : (isMobile ? '15%' : '15%');
               height = isMobile ? '78%' : '78%';
               opacity = 1;
               zIndex = 30;
               transform = `translateX(-50%) translateZ(120px) rotateY(0deg) scale(${isMobile ? 0.98 : 1.0})`;
-            } else if (role === 'left') { // Kiri
+            } else if (role === 'left') {
               left = isMobile ? '22%' : '24%';
               top = '26%';
               height = isMobile ? '48%' : '48%';
               opacity = 0.7;
               zIndex = 15;
               transform = 'translateX(-50%) translateZ(-80px) rotateY(38deg) scale(0.8)';
-            } else if (role === 'right') { // Kanan
+            } else if (role === 'right') {
               left = isMobile ? '78%' : '76%';
               top = '26%';
               height = isMobile ? '48%' : '48%';
               opacity = 0.7;
               zIndex = 15;
               transform = 'translateX(-50%) translateZ(-80px) rotateY(-38deg) scale(0.8)';
-            } else { // Belakang
+            } else {
               left = '50%';
               top = '30%';
               height = isMobile ? '48%' : '48%';
@@ -690,7 +693,7 @@ export default function HeroBanner() {
           </Link>
         </div>
 
-        {/* 6. Tombol Navigasi Kanan Bawah (Sound Bulat Pill Berdenyut Mengikuti Beat MP3 Tanpa Glow) */}
+        {/* 6. Tombol Navigasi Kanan Bawah */}
         <div className="absolute bottom-2.5 sm:bottom-3 right-2.5 sm:right-4 z-[60]">
           <div
             className="flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 rounded-full backdrop-blur-md border transition-all duration-300 shadow-sm"
@@ -710,7 +713,6 @@ export default function HeroBanner() {
               <ArrowLeft size={isMobile ? 13 : 16} strokeWidth={2.5} style={{ color: activeTextColor }} />
             </button>
 
-            {/* Tombol Bulat Sound dengan Animasi Beat Presisi Tanpa Glow */}
             <button
               onClick={toggleMute}
               className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-transform duration-75 ease-out shadow-sm border"
