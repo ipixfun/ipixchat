@@ -54,7 +54,15 @@ export default function HeroBanner() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  
+  // Ambil pilihan Mute terakhir dari localStorage
+  const [isMuted, setIsMuted] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('ipix_hero_muted') === 'true';
+    }
+    return false;
+  });
+
   const [audioLevel, setAudioLevel] = useState(0);
   const [typedCount, setTypedCount] = useState(0);
 
@@ -114,7 +122,6 @@ export default function HeroBanner() {
       if (document.hidden) {
         audioRef.current.pause();
       } else {
-        // Hanya play jika posisi TIDAK di-mute
         if (!isMuted) {
           audioRef.current.play().catch(() => {});
         } else {
@@ -146,7 +153,7 @@ export default function HeroBanner() {
     audio.src = SLIDES[activeIndex].audio;
     audio.currentTime = 0;
     audio.volume = 0.7;
-    audio.muted = isMuted; // Kunci properti elemen audio secara langsung
+    audio.muted = isMuted;
 
     if (!isMuted) {
       const playPromise = audio.play();
@@ -245,6 +252,10 @@ export default function HeroBanner() {
   const toggleMute = () => {
     setIsMuted((prev) => {
       const nextMute = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ipix_hero_muted', String(nextMute));
+      }
+
       if (audioRef.current) {
         audioRef.current.muted = nextMute;
         if (nextMute) {
@@ -276,7 +287,7 @@ export default function HeroBanner() {
 
   // Kalkulasi teks ketikan dinamis
   const isWelcomeSlide = currentSlide.id === 'welcome';
-  const fullTargetText = isWelcomeSlide ? 'SELAMAT DATANG' : `EXPLORE ${currentSlide.text}`;
+  const fullTargetText = isWelcomeSlide ? 'SELAMAT DATANG' : `EXPLORE ${SLIDES[activeIndex].text}`;
   const currentTypedString = fullTargetText.slice(0, typedCount);
   const word1 = currentTypedString.slice(0, 7); // "SELAMAT" / "EXPLORE"
   const word2 = currentTypedString.length > 8 ? currentTypedString.slice(8) : ''; // "DATANG" / Nama menu
@@ -312,47 +323,18 @@ export default function HeroBanner() {
           animation: letterStrokeRun 0.5s ease-in-out forwards;
         }
 
-        @keyframes ringLightScan {
-          0% { top: 0%; opacity: 0; transform: translateX(-50%) rotateX(60deg) scale(0.75); }
-          18% { opacity: 0.95; }
-          75% { opacity: 0.85; }
-          100% { top: 82%; opacity: 0; transform: translateX(-50%) rotateX(60deg) scale(1.15); }
+        /* ANIMASI BARU: PUTARAN KOLEKTOR ACTION FIGURE HALUS 3D */
+        @keyframes actionFigureRotate {
+          0% { rotateY(-18deg); }
+          50% { rotateY(18deg); }
+          100% { rotateY(-18deg); }
         }
 
-        @keyframes laserBeamScan {
-          0% { top: 2%; opacity: 0; }
-          15% { opacity: 1; }
-          85% { opacity: 1; }
-          100% { top: 85%; opacity: 0; }
+        .anim-figure-rotation {
+          animation: actionFigureRotate 10s ease-in-out infinite;
+          transform-origin: center bottom;
+          backface-visibility: hidden;
         }
-
-        @keyframes soundWavePulse1 {
-          0% { transform: translate(-50%, -50%) scale(0.1); opacity: 0.9; border-width: 3px; }
-          60% { opacity: 0.6; }
-          100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; border-width: 1px; }
-        }
-        @keyframes soundWavePulse2 {
-          0% { transform: translate(-50%, -50%) scale(0.1); opacity: 0; }
-          25% { opacity: 0.8; }
-          100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
-        }
-
-        @keyframes ipixHexPulse {
-          0% { transform: translate(-50%, -50%) scale(0.3) rotate(0deg); opacity: 0.9; }
-          50% { opacity: 0.8; }
-          100% { transform: translate(-50%, -50%) scale(1.45) rotate(90deg); opacity: 0; }
-        }
-        @keyframes ipixEnergyGlow {
-          0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0.9; }
-          100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
-        }
-
-        .anim-ring-light { animation: ringLightScan 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-        .anim-laser-beam { animation: laserBeamScan 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-        .anim-wave-1 { animation: soundWavePulse1 0.45s ease-out forwards; }
-        .anim-wave-2 { animation: soundWavePulse2 0.55s ease-out forwards; }
-        .anim-ipix-hex { animation: ipixHexPulse 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .anim-ipix-glow { animation: ipixEnergyGlow 0.4s ease-out forwards; }
 
         @keyframes blinkCursor {
           0%, 100% { opacity: 1; }
@@ -494,9 +476,10 @@ export default function HeroBanner() {
                   `,
                 }}
               >
-                {/* EFEK KHUSUS HERO TENGAH */}
+                {/* EFEK KHUSUS HERO TENGAH (BERLAKU UNTUK SEMUA HERO) */}
                 {role === 'center' && (
                   <>
+                    {/* Glow Aura Redup di Belakang Hero */}
                     <div
                       className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 rounded-full blur-2xl pointer-events-none z-[12] transition-colors duration-500 ease-out"
                       style={{
@@ -505,72 +488,22 @@ export default function HeroBanner() {
                       }}
                     />
 
-                    {item.id === 'chat' && (
-                      <div
-                        key={`ring-${activeIndex}`}
-                        className="absolute left-1/2 w-32 h-16 rounded-[100%] border-[2.5px] pointer-events-none z-[25] anim-ring-light"
-                        style={{
-                          borderColor: activeTextColor,
-                          boxShadow: `0 0 14px ${activeTextColor}, inset 0 0 10px ${activeTextColor}`,
-                        }}
-                      />
-                    )}
+                    {/* SOROTAN LAMPU PENDAR DARI BAWAH MENYOROT HERO */}
+                    <div
+                      className="absolute bottom-0 left-1/2 -translate-x-1/2 pointer-events-none z-[13] transition-all duration-500 ease-out"
+                      style={{
+                        width: isMobile ? '140px' : '180px',
+                        height: '110%',
+                        background: `linear-gradient(to top, ${activeTextColor} 0%, color-mix(in srgb, ${activeTextColor} 35%, transparent) 45%, transparent 100%)`,
+                        clipPath: 'polygon(30% 100%, 70% 100%, 100% 0%, 0% 0%)',
+                        filter: 'blur(10px)',
+                        opacity: 0.35 + audioLevel * 0.25,
+                      }}
+                    />
 
-                    {item.id === 'tema' && (
-                      <div
-                        key={`laser-${activeIndex}`}
-                        className="absolute left-0 right-0 h-[3px] pointer-events-none z-[25] anim-laser-beam"
-                        style={{
-                          backgroundColor: activeTextColor,
-                          boxShadow: `0 0 12px ${activeTextColor}, 0 0 25px ${activeTextColor}`,
-                        }}
-                      >
-                        <div
-                          className="absolute inset-x-0 h-12 -top-6 opacity-30"
-                          style={{
-                            background: `linear-gradient(180deg, transparent, ${activeTextColor}, transparent)`,
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {item.id === 'mp3' && (
-                      <div key={`wave-container-${activeIndex}`}>
-                        <div
-                          className="absolute top-1/2 left-1/2 w-32 h-32 rounded-full border pointer-events-none z-[25] anim-wave-1"
-                          style={{
-                            borderColor: activeTextColor,
-                            boxShadow: `0 0 15px ${activeTextColor}`,
-                          }}
-                        />
-                        <div
-                          className="absolute top-1/2 left-1/2 w-40 h-40 rounded-full border pointer-events-none z-[24] anim-wave-2"
-                          style={{
-                            borderColor: activeTextColor,
-                            boxShadow: `0 0 20px ${activeTextColor}`,
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {item.id === 'ipix' && (
-                      <div key={`ipix-container-${activeIndex}`}>
-                        <div
-                          className="absolute top-1/2 left-1/2 w-32 h-32 border-[2px] rounded-[22px] pointer-events-none z-[25] anim-ipix-hex"
-                          style={{
-                            borderColor: activeTextColor,
-                            boxShadow: `0 0 18px ${activeTextColor}, inset 0 0 12px ${activeTextColor}`,
-                          }}
-                        />
-                        <div
-                          className="absolute top-1/2 left-1/2 w-44 h-44 rounded-full blur-lg pointer-events-none z-[24] anim-ipix-glow"
-                          style={{
-                            backgroundColor: activeTextColor,
-                          }}
-                        />
-                      </div>
-                    )}
-
+                    {/* SEMUA EFEK RING PENDAR SPESIFIK HERO (CHATTING RING, LASER TEMA, MP3 WAVE, IPIX HEX) DIHAPUS */}
+                    
+                    {/* Shadow Dasar Karakter */}
                     <div
                       className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[72%] h-2.5 rounded-[100%] blur-[3px] pointer-events-none z-[15] opacity-70"
                       style={{
@@ -581,18 +514,30 @@ export default function HeroBanner() {
                   </>
                 )}
 
-                {/* Karakter: Bergerak Jika Di Tengah, Membeku Jika Di Kiri/Kanan */}
+                {/* Karakter Depan (Center): Bergerak & PUTARAN ACTION FIGURE kolektor Halus 3D */}
                 {role === 'center' ? (
-                  <img
-                    src={item.src}
-                    alt={`Slide Character ${index}`}
-                    draggable={false}
-                    loading="eager"
-                    // @ts-ignore
-                    fetchpriority="high"
-                    className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
-                  />
+                  item.isVideo ? (
+                    <video
+                      src={item.src}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)] anim-figure-rotation"
+                    />
+                  ) : (
+                    <img
+                      src={item.src}
+                      alt={`Slide Character ${index}`}
+                      draggable={false}
+                      loading="eager"
+                      // @ts-ignore
+                      fetchpriority="high"
+                      className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)] anim-figure-rotation"
+                    />
+                  )
                 ) : (
+                  // Karakter Samping (Membeku & Mirror)
                   <FrozenWebP
                     src={item.src}
                     className="w-full h-full object-contain object-bottom pointer-events-none select-none relative z-[20] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
@@ -632,20 +577,26 @@ export default function HeroBanner() {
               <ArrowLeft size={16} strokeWidth={2.5} style={{ color: activeTextColor }} />
             </button>
 
-            {/* Tombol Sound On / Off di Tengah Kiri Kanan */}
+            {/* Tombol Sound On / Off */}
             <button
               onClick={toggleMute}
               className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95"
               style={{
                 backgroundColor: 'color-mix(in srgb, var(--foreground) 10%, transparent)',
-                borderColor: 'color-mix(in srgb, var(--foreground) 20%, transparent)',
+                borderColor: isMuted
+                  ? 'color-mix(in srgb, var(--foreground) 20%, transparent)'
+                  : activeTextColor,
               }}
               aria-label={isMuted ? 'Unmute Sound' : 'Mute Sound'}
             >
               {isMuted ? (
-                <VolumeX size={16} strokeWidth={2.5} style={{ color: activeTextColor }} />
+                <VolumeX size={16} strokeWidth={2.5} className="text-gray-400 opacity-70" />
               ) : (
-                <Volume2 size={16} strokeWidth={2.5} style={{ color: activeTextColor }} />
+                <Volume2
+                  size={16}
+                  strokeWidth={2.5}
+                  style={{ color: activeTextColor }}
+                />
               )}
             </button>
 
