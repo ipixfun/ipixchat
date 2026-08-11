@@ -106,7 +106,24 @@ export default function HeroBanner() {
     return () => clearInterval(timer);
   }, [activeIndex]);
 
-  // Audio Setup & Analyser
+  // Handle pindah browser tab (Visibility change) agar suara tetap mati saat di-mute
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!audioRef.current) return;
+      if (document.hidden) {
+        audioRef.current.pause();
+      } else if (!isMuted) {
+        audioRef.current.play().catch(() => {});
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isMuted]);
+
+  // Audio Setup & Analyser (Hanya diputar saat tidak di-mute)
   useEffect(() => {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
@@ -135,6 +152,7 @@ export default function HeroBanner() {
           });
       }
     } else {
+      audio.pause();
       setAudioLevel(0);
     }
 
@@ -661,8 +679,9 @@ export default function HeroBanner() {
                 {word2}
               </span>
             )}
+            {/* Dash Kedip-kedip Dibuat Miring (Italic) Ikut Teks Runteks */}
             <span
-              className="text-sm font-black anim-typing-cursor -ml-0.5"
+              className="text-sm font-black italic anim-typing-cursor -ml-0.5"
               style={{ color: isWelcomeSlide ? '#FACC15' : activeTextColor }}
             >
               |
