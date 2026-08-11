@@ -23,7 +23,7 @@ const SLIDES: SlideItem[] = [
 ];
 
 const SLIDE_COLORS: Record<string, string> = {
-  welcome: '#FACC15', // Kuning Hero 0
+  welcome: '#EAB308', // Kuning Hero 0
   chat: '#F97316',    // Orange
   tema: '#06B6D4',    // Biru Cyan
   mp3: '#22C55E',     // Hijau
@@ -35,7 +35,6 @@ const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='h
 const TRANSITION_DURATION = 500;
 const CUBIC_BEZIER = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
-// Component pembeku gambar WebP untuk hero samping
 function FrozenWebP({ src, className, style }: { src: string; className?: string; style?: React.CSSProperties }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -60,11 +59,13 @@ function FrozenWebP({ src, className, style }: { src: string; className?: string
 
 export default function HeroBanner() {
   const { theme } = useTheme();
+  const isLight = (theme as string) === 'light';
+
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  
-  // Mute state tersimpan di localStorage
+  const [slideDuration, setSlideDuration] = useState(5000);
+
   const [isMuted, setIsMuted] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('ipix_hero_muted') === 'true';
@@ -78,7 +79,6 @@ export default function HeroBanner() {
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  // Web Audio API Refs
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -95,7 +95,6 @@ export default function HeroBanner() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Preload gambar dan audio
   useEffect(() => {
     SLIDES.forEach((slide) => {
       const audio = new Audio();
@@ -107,7 +106,7 @@ export default function HeroBanner() {
     });
   }, []);
 
-  // Efek Ketikan Teks Dinamis
+  // Ketikan Teks Dinamis
   useEffect(() => {
     setTypedCount(0);
     const isWelcomeSlide = SLIDES[activeIndex].id === 'welcome';
@@ -148,7 +147,7 @@ export default function HeroBanner() {
     };
   }, [isMuted]);
 
-  // Audio Setup
+  // Audio Setup & Dynamic Duration (Suara 0.mp3 dinamis tidak terpotong)
   useEffect(() => {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
@@ -166,6 +165,17 @@ export default function HeroBanner() {
     audio.volume = 0.7;
     audio.muted = isMuted;
 
+    const handleLoadedMetadata = () => {
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+        const calculatedDuration = Math.max(5000, Math.ceil(audio.duration * 1000));
+        setSlideDuration(calculatedDuration);
+      } else {
+        setSlideDuration(5000);
+      }
+    };
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+
     if (!isMuted) {
       const playPromise = audio.play();
       if (playPromise !== undefined) {
@@ -181,6 +191,7 @@ export default function HeroBanner() {
     }
 
     return () => {
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.pause();
       if (animFrameRef.current) {
         cancelAnimationFrame(animFrameRef.current);
@@ -233,18 +244,28 @@ export default function HeroBanner() {
     } catch (e) {}
   };
 
-  // Loop Slide Otomatis
+  // Loop Slide Otomatis berdasarkan slideDuration dinamis
   useEffect(() => {
     const timer = setInterval(() => {
       navigate('next');
-    }, 5000);
+    }, slideDuration);
 
     return () => clearInterval(timer);
-  }, [activeIndex, isAnimating]);
+  }, [activeIndex, isAnimating, slideDuration]);
 
   const navigate = (dir: 'next' | 'prev') => {
     if (isAnimating) return;
     setIsAnimating(true);
+
+    if (audioRef.current && !isMuted) {
+      const fadeInterval = setInterval(() => {
+        if (audioRef.current && audioRef.current.volume > 0.1) {
+          audioRef.current.volume -= 0.15;
+        } else {
+          clearInterval(fadeInterval);
+        }
+      }, 30);
+    }
 
     setActiveIndex((prev) => {
       if (dir === 'next') return (prev + 1) % SLIDES.length;
@@ -292,7 +313,6 @@ export default function HeroBanner() {
     else if (distance < -40) navigate('prev');
   };
 
-  // Teks Ketikan Dinamis
   const isWelcomeSlide = currentSlide.id === 'welcome';
   const fullTargetText = isWelcomeSlide ? 'SELAMAT DATANG' : `EXPLORE ${SLIDES[activeIndex].text}`;
   const currentTypedString = fullTargetText.slice(0, typedCount);
@@ -330,17 +350,10 @@ export default function HeroBanner() {
           animation: letterStrokeRun 0.5s ease-in-out forwards;
         }
 
-        /* ANIMASI ROTASI SWAY HERO DEPAN (DEPAN PALING TENGAH SAJA) */
         @keyframes heroFrontSway {
-          0% {
-            transform: rotateY(-18deg) rotateZ(-1.5deg);
-          }
-          50% {
-            transform: rotateY(18deg) rotateZ(1.5deg);
-          }
-          100% {
-            transform: rotateY(-18deg) rotateZ(-1.5deg);
-          }
+          0% { transform: rotateY(-18deg) rotateZ(-1.5deg); }
+          50% { transform: rotateY(18deg) rotateZ(1.5deg); }
+          100% { transform: rotateY(-18deg) rotateZ(-1.5deg); }
         }
 
         .anim-front-hero-sway {
@@ -367,7 +380,7 @@ export default function HeroBanner() {
           className="absolute inset-0 pointer-events-none z-[1] transform-gpu transition-all duration-75 ease-out"
           style={{
             background: `radial-gradient(ellipse 90% 80% at 50% 50%, ${activeTextColor} 0%, transparent 75%)`,
-            opacity: 0.08 + audioLevel * 0.42,
+            opacity: isLight ? 0.12 + audioLevel * 0.35 : 0.08 + audioLevel * 0.42,
             filter: `blur(${12 + audioLevel * 20}px)`,
             transform: `scale(${1 + audioLevel * 0.15})`,
           }}
@@ -392,14 +405,21 @@ export default function HeroBanner() {
             lineHeight: 1,
             letterSpacing: '-0.01em',
             transform: 'skewX(-10deg)',
-            opacity: 0.38,
-            backgroundImage: 'linear-gradient(180deg, #0A0E17 0%, #1A2332 60%, #2D3A4E 100%)',
+            opacity: isLight ? 0.45 : 0.38,
+            backgroundImage: isLight
+              ? 'linear-gradient(180deg, #1E293B 0%, #475569 60%, #64748B 100%)'
+              : 'linear-gradient(180deg, #0A0E17 0%, #1A2332 60%, #2D3A4E 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            filter: `
-              drop-shadow(0px -1.5px 1px rgba(0, 0, 0, 0.95))
-              drop-shadow(0px 1px 1px rgba(255, 255, 255, 0.12))
-            `,
+            filter: isLight
+              ? `
+                drop-shadow(0px 1px 2px rgba(255, 255, 255, 0.9))
+                drop-shadow(0px -1px 1px rgba(0, 0, 0, 0.25))
+              `
+              : `
+                drop-shadow(0px -1.5px 1px rgba(0, 0, 0, 0.95))
+                drop-shadow(0px 1px 1px rgba(255, 255, 255, 0.12))
+              `,
           }}
         >
           {'IPIXCHAT'.split('').map((letter, idx) => (
@@ -490,15 +510,15 @@ export default function HeroBanner() {
                   `,
                 }}
               >
-                {/* EFEK KHUSUS HERO TENGAH (PENDAR BELAKANG & LAMPU SOROT) */}
+                {/* EFEK SOROTAN & PENDAR */}
                 {role === 'center' && (
                   <>
-                    {/* Glow Aura Redup Belakang Hero */}
+                    {/* Glow Aura Belakang Hero */}
                     <div
-                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 rounded-full blur-2xl pointer-events-none z-[12] transition-colors duration-500 ease-out"
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 rounded-full blur-2xl pointer-events-none z-[12] transition-all duration-500 ease-out"
                       style={{
                         backgroundColor: activeTextColor,
-                        opacity: 0.22,
+                        opacity: isLight ? 0.35 : 0.18,
                       }}
                     />
 
@@ -511,15 +531,16 @@ export default function HeroBanner() {
                         background: `linear-gradient(to top, ${activeTextColor} 0%, color-mix(in srgb, ${activeTextColor} 35%, transparent) 45%, transparent 100%)`,
                         clipPath: 'polygon(30% 100%, 70% 100%, 100% 0%, 0% 0%)',
                         filter: 'blur(10px)',
-                        opacity: 0.35 + audioLevel * 0.25,
+                        opacity: isLight ? 0.48 + audioLevel * 0.30 : 0.22 + audioLevel * 0.20,
                       }}
                     />
 
                     {/* Shadow Dasar Karakter */}
                     <div
-                      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[72%] h-2.5 rounded-[100%] blur-[3px] pointer-events-none z-[15] opacity-70"
+                      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[72%] h-2.5 rounded-[100%] blur-[3px] pointer-events-none z-[15]"
                       style={{
                         backgroundColor: '#000000',
+                        opacity: isLight ? 0.45 : 0.75,
                         boxShadow: '0 2px 8px rgba(0,0,0,0.85)',
                       }}
                     />
@@ -576,15 +597,16 @@ export default function HeroBanner() {
           })}
         </div>
 
-        {/* 5. Tombol Navigasi & Sound */}
+        {/* 5. Tombol Navigasi & Bulatan */}
         <div className="absolute bottom-3 left-4 z-[60]">
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => navigate('prev')}
-              className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95"
+              className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
               style={{
-                backgroundColor: 'color-mix(in srgb, var(--foreground) 10%, transparent)',
-                borderColor: 'color-mix(in srgb, var(--foreground) 20%, transparent)',
+                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.85)' : 'rgba(15, 23, 42, 0.75)',
+                borderColor: isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.25)',
+                boxShadow: isLight ? '0 2px 6px rgba(0,0,0,0.08)' : '0 2px 6px rgba(0,0,0,0.4)',
               }}
               aria-label="Previous Slide"
             >
@@ -593,17 +615,18 @@ export default function HeroBanner() {
 
             <button
               onClick={toggleMute}
-              className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95"
+              className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
               style={{
-                backgroundColor: 'color-mix(in srgb, var(--foreground) 10%, transparent)',
+                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.85)' : 'rgba(15, 23, 42, 0.75)',
                 borderColor: isMuted
-                  ? 'color-mix(in srgb, var(--foreground) 20%, transparent)'
+                  ? (isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.25)')
                   : activeTextColor,
+                boxShadow: isLight ? '0 2px 6px rgba(0,0,0,0.08)' : '0 2px 6px rgba(0,0,0,0.4)',
               }}
               aria-label={isMuted ? 'Unmute Sound' : 'Mute Sound'}
             >
               {isMuted ? (
-                <VolumeX size={16} strokeWidth={2.5} className="text-gray-400 opacity-70" />
+                <VolumeX size={16} strokeWidth={2.5} className={isLight ? 'text-gray-600' : 'text-gray-300'} />
               ) : (
                 <Volume2
                   size={16}
@@ -615,10 +638,11 @@ export default function HeroBanner() {
 
             <button
               onClick={() => navigate('next')}
-              className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95"
+              className="w-8 h-8 flex items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 ease-out hover:scale-110 active:scale-95 shadow-sm"
               style={{
-                backgroundColor: 'color-mix(in srgb, var(--foreground) 10%, transparent)',
-                borderColor: 'color-mix(in srgb, var(--foreground) 20%, transparent)',
+                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.85)' : 'rgba(15, 23, 42, 0.75)',
+                borderColor: isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.25)',
+                boxShadow: isLight ? '0 2px 6px rgba(0,0,0,0.08)' : '0 2px 6px rgba(0,0,0,0.4)',
               }}
               aria-label="Next Slide"
             >
@@ -631,15 +655,19 @@ export default function HeroBanner() {
         <div className="absolute bottom-3 right-4 z-[60]">
           <Link
             href={currentSlide.link}
-            className="group flex items-center gap-1 transition-all duration-200"
+            className="group flex items-center gap-1 transition-all duration-200 px-2.5 py-1 rounded-full backdrop-blur-md"
+            style={{
+              backgroundColor: isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(15, 23, 42, 0.65)',
+              border: `1px solid ${isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.15)'}`,
+            }}
           >
             {word1 && (
               <span
                 className={`text-[11px] font-extrabold tracking-wide uppercase italic pb-0.5 transition-all duration-250 ${
-                  isWelcomeSlide ? '' : 'border-b-2 opacity-70'
+                  isWelcomeSlide ? '' : 'border-b-2 opacity-90'
                 }`}
                 style={{
-                  color: isWelcomeSlide ? '#D1D5DB' : 'var(--foreground)',
+                  color: isWelcomeSlide ? (isLight ? '#334155' : '#E2E8F0') : 'var(--foreground)',
                   borderColor: isWelcomeSlide ? 'transparent' : activeTextColor,
                 }}
               >
@@ -650,7 +678,7 @@ export default function HeroBanner() {
               <span
                 className="text-sm font-black tracking-wide uppercase italic transition-colors duration-250 ml-1"
                 style={{
-                  color: isWelcomeSlide ? '#FACC15' : activeTextColor,
+                  color: isWelcomeSlide ? '#EAB308' : activeTextColor,
                 }}
               >
                 {word2}
@@ -658,13 +686,13 @@ export default function HeroBanner() {
             )}
             <span
               className="text-sm font-black italic anim-typing-cursor -ml-0.5"
-              style={{ color: isWelcomeSlide ? '#FACC15' : activeTextColor }}
+              style={{ color: isWelcomeSlide ? '#EAB308' : activeTextColor }}
             >
               |
             </span>
             <ArrowRight
               className="w-3.5 h-3.5 anim-bounce-right ml-0.5 transition-colors duration-250"
-              style={{ color: isWelcomeSlide ? '#FACC15' : activeTextColor }}
+              style={{ color: isWelcomeSlide ? '#EAB308' : activeTextColor }}
               strokeWidth={3}
             />
           </Link>
