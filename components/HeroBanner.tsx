@@ -519,44 +519,19 @@ export default function HeroBanner() {
                   `,
                 }}
               >
-                {/* EFEK SOROTAN & PENDAR */}
+                {/* Shadow Dasar Karakter */}
                 {role === 'center' && (
-                  <>
-                    {/* Glow Aura Belakang Hero */}
-                    <div
-                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 rounded-full blur-2xl pointer-events-none z-[12] transition-all duration-500 ease-out"
-                      style={{
-                        backgroundColor: activeTextColor,
-                        opacity: isLight ? 0.35 : 0.18,
-                      }}
-                    />
-
-                    {/* Sorotan Lampu Pendar dari Bawah */}
-                    <div
-                      className="absolute bottom-0 left-1/2 -translate-x-1/2 pointer-events-none z-[13] transition-all duration-500 ease-out"
-                      style={{
-                        width: isMobile ? '140px' : '180px',
-                        height: '110%',
-                        background: `linear-gradient(to top, ${activeTextColor} 0%, color-mix(in srgb, ${activeTextColor} 35%, transparent) 45%, transparent 100%)`,
-                        clipPath: 'polygon(30% 100%, 70% 100%, 100% 0%, 0% 0%)',
-                        filter: 'blur(10px)',
-                        opacity: isLight ? 0.48 + audioLevel * 0.30 : 0.22 + audioLevel * 0.20,
-                      }}
-                    />
-
-                    {/* Shadow Dasar Karakter */}
-                    <div
-                      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[72%] h-2.5 rounded-[100%] blur-[3px] pointer-events-none z-[15]"
-                      style={{
-                        backgroundColor: '#000000',
-                        opacity: isLight ? 0.45 : 0.75,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.85)',
-                      }}
-                    />
-                  </>
+                  <div
+                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[72%] h-2.5 rounded-[100%] blur-[3px] pointer-events-none z-[15]"
+                    style={{
+                      backgroundColor: '#000000',
+                      opacity: isLight ? 0.45 : 0.75,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.85)',
+                    }}
+                  />
                 )}
 
-                {/* HERO PALING DEPAN (center) */}
+                {/* HERO PALING DEPAN (center) DENGAN OUTLINE MENGIKUTI BENTUK HERO */}
                 {role === 'center' ? (
                   <div className="w-full h-full anim-front-hero-sway relative z-[20]">
                     {item.isVideo ? (
@@ -566,7 +541,16 @@ export default function HeroBanner() {
                         loop
                         muted
                         playsInline
-                        className="w-full h-full object-contain object-bottom pointer-events-none select-none drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
+                        className="w-full h-full object-contain object-bottom pointer-events-none select-none"
+                        style={{
+                          filter: `
+                            drop-shadow(1.8px 0 0 ${activeTextColor})
+                            drop-shadow(-1.8px 0 0 ${activeTextColor})
+                            drop-shadow(0 1.8px 0 ${activeTextColor})
+                            drop-shadow(0 -1.8px 0 ${activeTextColor})
+                            drop-shadow(0 0 6px color-mix(in srgb, ${activeTextColor} 80%, transparent))
+                          `,
+                        }}
                       />
                     ) : (
                       <img
@@ -576,7 +560,16 @@ export default function HeroBanner() {
                         loading="eager"
                         // @ts-ignore
                         fetchpriority="high"
-                        className="w-full h-full object-contain object-bottom pointer-events-none select-none drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
+                        className="w-full h-full object-contain object-bottom pointer-events-none select-none"
+                        style={{
+                          filter: `
+                            drop-shadow(1.8px 0 0 ${activeTextColor})
+                            drop-shadow(-1.8px 0 0 ${activeTextColor})
+                            drop-shadow(0 1.8px 0 ${activeTextColor})
+                            drop-shadow(0 -1.8px 0 ${activeTextColor})
+                            drop-shadow(0 0 6px color-mix(in srgb, ${activeTextColor} 80%, transparent))
+                          `,
+                        }}
                       />
                     )}
                   </div>
