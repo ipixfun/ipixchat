@@ -26,7 +26,6 @@ export async function GET(req: NextRequest) {
   // 1. PENCARIAN LAGU (SEARCH)
   // ==========================================
   if (q) {
-    // Jalur Utama Search: youtubei.js (Sangat cepat & stabil)
     try {
       const youtube = await getYT();
       const search = await youtube.search(q, { type: 'video' });
@@ -45,7 +44,6 @@ export async function GET(req: NextRequest) {
       console.warn('Search via youtubei.js gagal, mencoba fallback API...');
     }
 
-    // Jalur Cadangan Search: Public Instances
     const searchAPIs = [
       `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(q)}&filter=music_songs`,
       `https://api.piped.video/search?q=${encodeURIComponent(q)}&filter=music_songs`,
@@ -81,17 +79,45 @@ export async function GET(req: NextRequest) {
   // ==========================================
   // 2. AUTOMATED HIGH-COMPATIBILITY STREAM CLUSTER
   // ==========================================
-  // Mampu secara otomatis menangani lagu VEVO & non-VEVO tanpa hardcode ID
+
+  // JALUR I: Cobalt Direct Audio Extractor (Kebal terhadap Blokir DefJam/VEVO/UMG)
+  try {
+    const cobaltRes = await fetch('https://api.cobalt.tools/', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+      body: JSON.stringify({
+        url: `https://www.youtube.com/watch?v=${v}`,
+        downloadMode: 'audio',
+        audioFormat: 'mp3',
+      }),
+      signal: AbortSignal.timeout(3500),
+    });
+
+    if (cobaltRes.ok) {
+      const data = await cobaltRes.json();
+      const directUrl = data.url || data.picker?.[0]?.url;
+      if (directUrl) {
+        return NextResponse.redirect(directUrl, 307);
+      }
+    }
+  } catch (e) {}
+
+  // JALUR II: Cluster Invidious Anti-VEVO & Piped Cluster
   const streamAPIs = [
-    // Engine 1: Piped Cluster (Cepat untuk lagu non-VEVO/populer)
-    `https://pipedapi.kavin.rocks/streams/${v}`,
-    `https://api.piped.video/streams/${v}`,
-    `https://pipedapi.drgnz.club/streams/${v}`,
-    
-    // Engine 2: Invidious Cluster (Sangat Tangguh untuk Bypass Pembatasan VEVO)
+    // Invidious Instances (Sangat Kuat Tembus Justin Bieber & VEVO)
+    `https://inv.nadeko.net/api/v1/videos/${v}`,
     `https://invidious.nerdvpn.de/api/v1/videos/${v}`,
     `https://inv.tux.pizza/api/v1/videos/${v}`,
-    `https://inv.nadeko.net/api/v1/videos/${v}`
+    `https://invidious.drgns.space/api/v1/videos/${v}`,
+    
+    // Piped Instances (Fallback)
+    `https://pipedapi.kavin.rocks/streams/${v}`,
+    `https://api.piped.video/streams/${v}`,
+    `https://pipedapi.drgnz.club/streams/${v}`
   ];
 
   for (const endpoint of streamAPIs) {
@@ -106,10 +132,9 @@ export async function GET(req: NextRequest) {
       
       const data = await res.json();
 
-      // Ekstraksi format audio otomatis (M4A/WebM) dari Piped maupun Invidious
       const audioUrl =
-        data.audioStreams?.find((a: any) => a.mimeType?.includes('mp4') || a.mimeType?.includes('webm'))?.url ||
-        data.adaptiveFormats?.find((f: any) => f.type?.includes('audio'))?.url;
+        data.adaptiveFormats?.find((f: any) => f.type?.includes('audio'))?.url ||
+        data.audioStreams?.find((a: any) => a.mimeType?.includes('mp4') || a.mimeType?.includes('webm'))?.url;
 
       if (audioUrl) {
         return NextResponse.redirect(audioUrl, 307);
