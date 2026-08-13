@@ -3,6 +3,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { AudioProvider } from "./context/AudioContext";
 import BottomNav from "@/components/bottomnav";
 import GlobalMiniPlayer from "@/components/GlobalMiniPlayer";
+import AndroidBackgroundHandler from "@/components/AndroidBackgroundHandler"; // Integrasi Handler Background
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -34,6 +35,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased overflow-hidden">
+        {/* Handler otomatis menjaga audio tetap berputar di background */}
+        <AndroidBackgroundHandler />
+
         <ThemeProvider>
           <AudioProvider>
             <div className="w-full h-dvh flex flex-col justify-between overflow-hidden relative">
