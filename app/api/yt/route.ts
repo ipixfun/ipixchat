@@ -81,6 +81,12 @@ export async function GET(req: NextRequest) {
   // ==========================================
   // 2. PUTAR LAGU (STREAM VIA 307 REDIRECT)
   // ==========================================
+
+  // PILIHAN 2: DIRECT CDN BYPASS UNTUK KATY PERRY - FIREWORK (ID: QGJuMBdaqIw)
+  // Mencegah IP Vercel/Data Center terblokir VEVO tanpa perlu download manual
+  if (v === 'QGJuMBdaqIw') {
+    return NextResponse.redirect('https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3', 307);
+  }
   
   // Engine 1: Cobalt Tools API
   try {
