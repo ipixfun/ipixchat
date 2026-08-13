@@ -3,10 +3,11 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+// Hanya definisikan model PinnedSong milik Prisma
 model PinnedSong {
   id        String   @id
   title     String
