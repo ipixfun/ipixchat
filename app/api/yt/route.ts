@@ -79,84 +79,46 @@ export async function GET(req: NextRequest) {
   if (!v) return NextResponse.json({ error: 'Video ID dibutuhkan' }, { status: 400 });
 
   // ==========================================
-  // 2. PUTAR LAGU (STREAM VIA 307 REDIRECT)
+  // 2. AUTOMATED HIGH-COMPATIBILITY STREAM CLUSTER
   // ==========================================
-
-  // PILIHAN 2: DIRECT CDN BYPASS UNTUK KATY PERRY - FIREWORK (ID: QGJuMBdaqIw)
-  // Mencegah IP Vercel/Data Center terblokir VEVO tanpa perlu download manual
-  if (v === 'QGJuMBdaqIw') {
-    return NextResponse.redirect('https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3', 307);
-  }
-  
-  // Engine 1: Cobalt Tools API
-  try {
-    const cobaltRes = await fetch('https://api.cobalt.tools/', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-      },
-      body: JSON.stringify({
-        url: `https://www.youtube.com/watch?v=${v}`,
-        downloadMode: 'audio',
-        audioFormat: 'mp3',
-      }),
-      signal: AbortSignal.timeout(4000),
-    });
-
-    if (cobaltRes.ok) {
-      const data = await cobaltRes.json();
-      const directUrl = data.url || data.picker?.[0]?.url;
-      if (directUrl) {
-        return NextResponse.redirect(directUrl, 307);
-      }
-    }
-  } catch (e) {}
-
-  // Engine 2: Piped Cluster
-  const pipedInstances = [
-    'https://pipedapi.kavin.rocks',
-    'https://api.piped.video',
-    'https://pipedapi.drgnz.club',
-    'https://piped-api.garudalinux.org'
+  // Mampu secara otomatis menangani lagu VEVO & non-VEVO tanpa hardcode ID
+  const streamAPIs = [
+    // Engine 1: Piped Cluster (Cepat untuk lagu non-VEVO/populer)
+    `https://pipedapi.kavin.rocks/streams/${v}`,
+    `https://api.piped.video/streams/${v}`,
+    `https://pipedapi.drgnz.club/streams/${v}`,
+    
+    // Engine 2: Invidious Cluster (Sangat Tangguh untuk Bypass Pembatasan VEVO)
+    `https://invidious.nerdvpn.de/api/v1/videos/${v}`,
+    `https://inv.tux.pizza/api/v1/videos/${v}`,
+    `https://inv.nadeko.net/api/v1/videos/${v}`
   ];
 
-  for (const instance of pipedInstances) {
+  for (const endpoint of streamAPIs) {
     try {
-      const res = await fetch(`${instance}/streams/${v}`, { signal: AbortSignal.timeout(3000) });
+      const res = await fetch(endpoint, { 
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+        signal: AbortSignal.timeout(3500) 
+      });
       if (!res.ok) continue;
-      const data = await res.json();
-      const audio = data.audioStreams?.find((a: any) => a.mimeType?.includes('mp4')) || data.audioStreams?.[0];
       
-      if (audio?.url) {
-        return NextResponse.redirect(audio.url, 307);
-      }
-    } catch (e) {}
-  }
-
-  // Engine 3: Invidious Cluster
-  const invidiousInstances = [
-    'https://invidious.nerdvpn.de',
-    'https://inv.tux.pizza',
-    'https://invidious.drgns.space'
-  ];
-
-  for (const instance of invidiousInstances) {
-    try {
-      const res = await fetch(`${instance}/api/v1/videos/${v}`, { signal: AbortSignal.timeout(3000) });
-      if (!res.ok) continue;
       const data = await res.json();
-      const audioFormat = data.adaptiveFormats?.find((f: any) => f.type?.includes('audio'));
-      
-      if (audioFormat?.url) {
-        return NextResponse.redirect(audioFormat.url, 307);
+
+      // Ekstraksi format audio otomatis (M4A/WebM) dari Piped maupun Invidious
+      const audioUrl =
+        data.audioStreams?.find((a: any) => a.mimeType?.includes('mp4') || a.mimeType?.includes('webm'))?.url ||
+        data.adaptiveFormats?.find((f: any) => f.type?.includes('audio'))?.url;
+
+      if (audioUrl) {
+        return NextResponse.redirect(audioUrl, 307);
       }
     } catch (e) {}
   }
 
   return NextResponse.json(
-    { error: 'Gagal mendapatkan aliran audio dari semua server.' },
+    { error: 'Gagal memuat stream audio dari seluruh cluster.' },
     { status: 503 }
   );
 }
