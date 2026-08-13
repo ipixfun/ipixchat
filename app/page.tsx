@@ -8,12 +8,17 @@ import BottomNav from '@/components/bottomnav';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/app/lib/supabaseClient';
 
-// Import HeroBanner secara dinamis dengan SSR nonaktif
+// Import komponen Loading dari loading.tsx
+import Loading from './loading';
+
+// Import HeroBanner secara dinamis dengan ukuran loading yang pas & tidak kekecilan
 const HeroBanner = dynamic(() => import('@/components/HeroBanner'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-[220px] bg-black/20 rounded-3xl animate-pulse flex items-center justify-center text-white/50 text-xs border border-white/10">
-      Memuat 3D Canvas...
+    <div className="w-full aspect-[16/9] min-h-[250px] rounded-3xl overflow-hidden relative border border-white/10 flex items-center justify-center bg-black/20">
+      <div className="absolute inset-0 flex items-center justify-center">
+        <Loading />
+      </div>
     </div>
   ),
 });
@@ -148,9 +153,9 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* HERO BANNER 3D - Sekarang dirender sebagai Card */}
+        {/* HERO BANNER 3D - Ukuran loading presisi */}
         {!isEditMode && (
-          <div className="w-full relative z-10 mb-1">
+          <div className="w-full relative z-10">
             <HeroBanner />
           </div>
         )}
