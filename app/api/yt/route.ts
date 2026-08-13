@@ -3,7 +3,7 @@ import { Innertube, UniversalCache } from 'youtubei.js';
 
 export const dynamic = 'force-dynamic';
 
-// Singleton Youtubei.js untuk Search
+// Singleton Youtubei.js
 let ytPromise: Promise<Innertube> | null = null;
 async function getYT() {
   if (!ytPromise) {
@@ -12,21 +12,11 @@ async function getYT() {
       cache: new UniversalCache(false),
       location: 'ID',
       timezone: 'Asia/Jakarta',
+      client_type: 'ANDROID' as any,
     });
   }
   return ytPromise;
 }
-
-// DATABASE STATIC FALLBACK UNTUK LAGU HIGH-PROTECTION VEVO / DEF JAM
-// Menjamin pemutaran tanpa bergantung pada IP Data Center YouTube yang terblokir
-const HIGH_PROTECTION_TRACKS: Record<string, string> = {
-  // Justin Bieber - Love Yourself (ID: 22NT4338xSg & OYg8336xSg)
-  '22NT4338xSg': 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73130.mp3',
-  'OYg8336xSg': 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73130.mp3',
-  
-  // Katy Perry - Firework (ID: QGJuMBdaqIw)
-  'QGJuMBdaqIw': 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3',
-};
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -88,15 +78,25 @@ export async function GET(req: NextRequest) {
   if (!v) return NextResponse.json({ error: 'Video ID dibutuhkan' }, { status: 400 });
 
   // ==========================================
-  // 2. SMART STREAM CLUSTER & VEVO BYPASS
+  // 2. AUTOMATED HIGH-COMPATIBILITY STREAM
   // ==========================================
 
-  // A. CEK CEK LAGU TERLINDUNGI VEVO / DEF JAM TERLEBIH DAHULU
-  if (HIGH_PROTECTION_TRACKS[v]) {
-    return NextResponse.redirect(HIGH_PROTECTION_TRACKS[v], 307);
+  // ENGINE 1: Youtubei.js Direct Android Stream (Gunakan await pada decipher)
+  try {
+    const youtube = await getYT();
+    const info = await youtube.getInfo(v);
+    
+    const format = info.chooseFormat({ type: 'audio', quality: 'best' });
+    const audioUrl = await format?.decipher(youtube.session.player);
+
+    if (audioUrl) {
+      return NextResponse.redirect(audioUrl, 307);
+    }
+  } catch (e) {
+    console.warn('Youtubei.js Direct Stream gagal, beralih ke Fallback Proxy Cluster...');
   }
 
-  // B. DYNAMIC COBALT EXTRACTOR ENGINE
+  // ENGINE 2: Cobalt Tools Extractor
   try {
     const cobaltRes = await fetch('https://api.cobalt.tools/', {
       method: 'POST',
@@ -122,7 +122,7 @@ export async function GET(req: NextRequest) {
     }
   } catch (e) {}
 
-  // C. PUBLIC CLUSTER (INVIDIOUS & PIPED)
+  // ENGINE 3: Invidious & Piped Cluster (Fallback)
   const streamAPIs = [
     `https://inv.nadeko.net/api/v1/videos/${v}`,
     `https://invidious.nerdvpn.de/api/v1/videos/${v}`,
