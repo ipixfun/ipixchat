@@ -51,3 +51,4 @@ next-env.d.ts
 .env*
 google-services.json
 android/app/google-services.json
+/app/generated/prisma

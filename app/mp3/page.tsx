@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAudio } from '@/app/context/AudioContext';
 import { SongItem, SyncedLine, chunkArray } from './yt';
+import { supabase } from '@/app/lib/supabaseClient';
 
 export default function Mp3Page() {
   const router = useRouter();
@@ -43,6 +44,45 @@ export default function Mp3Page() {
     seekToTime,
   } = useAudio();
 
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdminFromSupabase = async () => {
+      try {
+        const activeUser =
+          localStorage.getItem('remembered_username') ||
+          localStorage.getItem('active_username') ||
+          localStorage.getItem('username') ||
+          sessionStorage.getItem('active_username') ||
+          sessionStorage.getItem('username');
+
+        if (!activeUser) {
+          setIsAdmin(false);
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', activeUser)
+          .single();
+
+        if (
+          (profile && profile.username.toLowerCase().includes('admin')) ||
+          activeUser.toLowerCase() === 'admin@ipix.my.id'
+        ) {
+          setIsAdmin(true);
+          return;
+        }
+      } catch (err) {
+        console.error('Gagal verifikasi admin Supabase:', err);
+      }
+      setIsAdmin(false);
+    };
+
+    checkAdminFromSupabase();
+  }, []);
+
   const isRepeatOne = playMode === 'repeat-one';
 
   const visibleSearchResults = isAuthenticated ? searchResults : searchResults.slice(0, 5);
@@ -63,6 +103,24 @@ export default function Mp3Page() {
       setSearchResults(shuffled);
     } else {
       refreshQuickPicks();
+    }
+  };
+
+  const handlePinToggle = async (e: React.MouseEvent, song: SongItem) => {
+    e.stopPropagation();
+    try {
+      const isPinned = (song as any).isPinned;
+      const res = await fetch('/api/admin/pin-song', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ song, action: isPinned ? 'unpin' : 'pin' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        refreshQuickPicks();
+      }
+    } catch (err) {
+      console.error('Gagal menyematkan lagu:', err);
     }
   };
 
@@ -108,7 +166,7 @@ export default function Mp3Page() {
             {isAuthenticated ? (
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             )}
           </svg>
         </form>
@@ -154,7 +212,12 @@ export default function Mp3Page() {
               className="text-xs px-3 py-1.5 rounded-full border border-white/10 hover:bg-white/10 transition font-medium opacity-80 cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
               style={{ backgroundColor: 'var(--card-bg, rgba(255,255,255,0.05))' }}
             >
-              <svg className={`w-3.5 h-3.5 ${isSearching ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg 
+                className={`w-3.5 h-3.5 ${isSearching ? 'animate-spin [animation-direction:reverse]' : ''}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
               <span>Refresh</span>
@@ -167,31 +230,60 @@ export default function Mp3Page() {
             <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-2">
               {chunkedSearchResults.map((column: SongItem[], colIdx: number) => (
                 <div key={colIdx} className="w-[85%] shrink-0 snap-start flex flex-col gap-3">
-                  {column.map((song: SongItem) => (
-                    <div
-                      key={song.id}
-                      onClick={() => playSong(song)}
-                      className="flex items-center justify-between p-1.5 rounded-xl transition cursor-pointer hover:bg-white/5 active:scale-[0.99]"
-                    >
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        {song.thumbnail ? (
-                          <img src={song.thumbnail} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
-                        ) : (
-                          <div className="w-12 h-12 rounded-lg bg-white/10 shrink-0 flex items-center justify-center text-white/50">
-                            <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                            </svg>
+                  {column.map((song: SongItem) => {
+                    const isPinned = (song as any).isPinned;
+                    return (
+                      <div
+                        key={song.id}
+                        onClick={() => playSong(song)}
+                        className="flex items-center justify-between p-1.5 rounded-xl transition cursor-pointer hover:bg-white/5 active:scale-[0.99]"
+                      >
+                        <div className="flex items-center gap-3 overflow-hidden pr-2">
+                          {song.thumbnail ? (
+                            <img src={song.thumbnail} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-white/10 shrink-0 flex items-center justify-center text-white/50">
+                              <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                              </svg>
+                            </div>
+                          )}
+                          <div className="overflow-hidden">
+                            <h4 className="text-xs font-semibold truncate" style={{ color: currentSong?.id === song.id ? 'var(--accent, #f43f5e)' : 'var(--foreground-heading, #fff)' }}>
+                              {song.title}
+                            </h4>
+                            <p className="text-[11px] opacity-60 truncate mt-0.5">{song.artist}</p>
+
+                            {!isAdmin && isPinned && (
+                              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 mt-1 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[9px] font-medium">
+                                <svg className="w-2.5 h-2.5 fill-current shrink-0" viewBox="0 0 24 24">
+                                  <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
+                                </svg>
+                                <span>Lagu di-pin oleh iPiX</span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                        <div className="overflow-hidden">
-                          <h4 className="text-xs font-semibold truncate" style={{ color: currentSong?.id === song.id ? 'var(--accent, #f43f5e)' : 'var(--foreground-heading, #fff)' }}>
-                            {song.title}
-                          </h4>
-                          <p className="text-[11px] opacity-60 truncate mt-0.5">{song.artist}</p>
                         </div>
+
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={(e) => handlePinToggle(e, song)}
+                            title={isPinned ? "Lepas Pin" : "Sematkan ke Pilihan Cepat"}
+                            className={`w-9 h-9 rounded-xl transition-all flex items-center justify-center shrink-0 cursor-pointer ${
+                              isPinned
+                                ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+                                : 'opacity-30 hover:opacity-100 hover:bg-white/10 text-white'
+                            }`}
+                          >
+                            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                              <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ))}
             </div>
@@ -200,38 +292,67 @@ export default function Mp3Page() {
           )}
         </section>
 
-        {/* SECTION RIWAYAT */}
+        {/* SECTION RIWAYAT / PILIHAN CEPAT */}
         {hasSearched && visibleQuickPicks.length > 0 && (
           <section className="flex flex-col gap-3 border-t border-white/10 pt-4">
             <h2 className="text-lg font-extrabold tracking-tight" style={{ color: 'var(--foreground-heading, #fff)' }}>Pilihan Cepat</h2>
             <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-2">
               {chunkedQuickPicks.map((column: SongItem[], colIdx: number) => (
                 <div key={colIdx} className="w-[85%] shrink-0 snap-start flex flex-col gap-3">
-                  {column.map((song: SongItem) => (
-                    <div
-                      key={`qp-${song.id}`}
-                      onClick={() => playSong(song)}
-                      className="flex items-center justify-between p-1.5 rounded-xl transition cursor-pointer hover:bg-white/5 active:scale-[0.99]"
-                    >
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        {song.thumbnail ? (
-                          <img src={song.thumbnail} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
-                        ) : (
-                          <div className="w-12 h-12 rounded-lg bg-white/10 shrink-0 flex items-center justify-center text-white/50">
-                            <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                            </svg>
+                  {column.map((song: SongItem) => {
+                    const isPinned = (song as any).isPinned;
+                    return (
+                      <div
+                        key={`qp-${song.id}`}
+                        onClick={() => playSong(song)}
+                        className="flex items-center justify-between p-1.5 rounded-xl transition cursor-pointer hover:bg-white/5 active:scale-[0.99]"
+                      >
+                        <div className="flex items-center gap-3 overflow-hidden pr-2">
+                          {song.thumbnail ? (
+                            <img src={song.thumbnail} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-white/10 shrink-0 flex items-center justify-center text-white/50">
+                              <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                              </svg>
+                            </div>
+                          )}
+                          <div className="overflow-hidden">
+                            <h4 className="text-xs font-semibold truncate" style={{ color: currentSong?.id === song.id ? 'var(--accent, #f43f5e)' : 'var(--foreground-heading, #fff)' }}>
+                              {song.title}
+                            </h4>
+                            <p className="text-[11px] opacity-60 truncate mt-0.5">{song.artist}</p>
+
+                            {!isAdmin && isPinned && (
+                              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 mt-1 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[9px] font-medium">
+                                <svg className="w-2.5 h-2.5 fill-current shrink-0" viewBox="0 0 24 24">
+                                  <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
+                                </svg>
+                                <span>Lagu di-pin oleh iPiX</span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                        <div className="overflow-hidden">
-                          <h4 className="text-xs font-semibold truncate" style={{ color: currentSong?.id === song.id ? 'var(--accent, #f43f5e)' : 'var(--foreground-heading, #fff)' }}>
-                            {song.title}
-                          </h4>
-                          <p className="text-[11px] opacity-60 truncate mt-0.5">{song.artist}</p>
                         </div>
+
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={(e) => handlePinToggle(e, song)}
+                            title={isPinned ? "Lepas Pin" : "Sematkan ke Pilihan Cepat"}
+                            className={`w-9 h-9 rounded-xl transition-all flex items-center justify-center shrink-0 cursor-pointer ${
+                              isPinned
+                                ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+                                : 'opacity-30 hover:opacity-100 hover:bg-white/10 text-white'
+                            }`}
+                          >
+                            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                              <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ))}
             </div>
@@ -316,7 +437,6 @@ export default function Mp3Page() {
               </div>
 
               <div className="flex items-center justify-between px-2 py-1">
-                {/* LOGO REPEAT ONE BERANIMASI BULAT + BADGE ANGKA 1 POJOK KANAN ATAS */}
                 <motion.button 
                   type="button" 
                   onClick={togglePlayMode} 
@@ -324,7 +444,6 @@ export default function Mp3Page() {
                   title={isRepeatOne ? "Repeat One: Aktif" : "Repeat One: Nonaktif"}
                   className="w-10 h-10 rounded-full cursor-pointer relative flex items-center justify-center shrink-0 transition-colors duration-300" 
                 >
-                  {/* Lingkaran Background Beranimasi */}
                   <AnimatePresence>
                     {isRepeatOne && (
                       <motion.div
@@ -338,7 +457,6 @@ export default function Mp3Page() {
                     )}
                   </AnimatePresence>
 
-                  {/* Icon Repeat Panah */}
                   <motion.svg 
                     animate={{ rotate: isRepeatOne ? 360 : 0 }}
                     transition={{ duration: 0.3 }}
@@ -349,7 +467,6 @@ export default function Mp3Page() {
                     <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
                   </motion.svg>
 
-                  {/* Badge Angka 1 di Pojok Kanan Atas (Bulat Presisi) */}
                   <AnimatePresence>
                     {isRepeatOne && (
                       <motion.span 

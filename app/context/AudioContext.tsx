@@ -146,32 +146,69 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
+  // REFRESH QUICK PICKS (LAGU PIN ADMIN DI-PRIORITASKAN DI ATAS)
   const refreshQuickPicks = useCallback(async () => {
     setIsSearching(true);
-    const keywords = [
-      'Lagu Populer Indonesia',
-      'Hits Indonesia 2026',
-      'Lagu Viral Tiktok',
-      'Pop Hits Indonesia',
-      'Indie Indonesia Terbaru',
-    ];
-    const randomKeyword = keywords[Math.floor(Math.random() * keywords.length)];
+    try {
+      const isAuthLocal =
+        localStorage.getItem('is_auth') === 'true' ||
+        Boolean(
+          localStorage.getItem('remembered_username') ||
+          localStorage.getItem('active_username') ||
+          localStorage.getItem('username') ||
+          localStorage.getItem('user') ||
+          sessionStorage.getItem('active_username') ||
+          sessionStorage.getItem('username')
+        );
 
-    const isAuthLocal =
-      localStorage.getItem('is_auth') === 'true' ||
-      Boolean(
-        localStorage.getItem('remembered_username') ||
-        localStorage.getItem('active_username') ||
-        localStorage.getItem('username') ||
-        localStorage.getItem('user') ||
-        sessionStorage.getItem('active_username') ||
-        sessionStorage.getItem('username')
-      );
+      const limit = isAuthLocal ? 20 : 5;
 
-    const songs = await searchSongs(randomKeyword, isAuthLocal ? 20 : 5);
-    setSearchResults(songs);
-    setIsSearching(false);
-  }, []);
+      // 1. Ambil lagu yang di-pin oleh Admin dari API
+      let pinnedSongs: SongItem[] = [];
+      try {
+        const res = await fetch('/api/quick-picks');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.pinnedSongs)) {
+          pinnedSongs = data.pinnedSongs;
+        }
+      } catch (err) {
+        console.error('Gagal mengambil lagu pin admin:', err);
+      }
+
+      // 2. Ambil lagu tambahan dari YouTube jika slot belum penuh
+      let additionalSongs: SongItem[] = [];
+      if (pinnedSongs.length < limit) {
+        const keywords = [
+          'Lagu Populer Indonesia',
+          'Hits Indonesia 2026',
+          'Lagu Viral Tiktok',
+          'Pop Hits Indonesia',
+          'Indie Indonesia Terbaru',
+        ];
+        const randomKeyword = keywords[Math.floor(Math.random() * keywords.length)];
+
+        const ytSongs = await searchSongs(randomKeyword, limit - pinnedSongs.length);
+
+        // Filter lagu YouTube agar tidak duplikat dengan lagu yang di-pin Admin
+        additionalSongs = ytSongs.filter(
+          (ytSong) => !pinnedSongs.some((pinned) => pinned.id === ytSong.id)
+        );
+      }
+
+      // 3. Gabungkan: Lagu Pin Admin selalu berada paling atas
+      const combinedQuickPicks = [...pinnedSongs, ...additionalSongs].slice(0, limit);
+
+      setQuickPicks(combinedQuickPicks);
+
+      if (!hasSearched) {
+        setSearchResults(combinedQuickPicks);
+      }
+    } catch (error) {
+      console.error('Gagal merefresh Pilihan Cepat:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [hasSearched]);
 
   // DETEKSI AUTH REAKSIF
   useEffect(() => {
