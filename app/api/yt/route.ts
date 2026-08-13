@@ -3,7 +3,7 @@ import { Innertube, UniversalCache } from 'youtubei.js';
 
 export const dynamic = 'force-dynamic';
 
-// Singleton Youtubei.js
+// Singleton Youtubei.js untuk Search
 let ytPromise: Promise<Innertube> | null = null;
 async function getYT() {
   if (!ytPromise) {
@@ -12,7 +12,6 @@ async function getYT() {
       cache: new UniversalCache(false),
       location: 'ID',
       timezone: 'Asia/Jakarta',
-      client_type: 'ANDROID' as any,
     });
   }
   return ytPromise;
@@ -78,32 +77,55 @@ export async function GET(req: NextRequest) {
   if (!v) return NextResponse.json({ error: 'Video ID dibutuhkan' }, { status: 400 });
 
   // ==========================================
-  // 2. AUTOMATED HIGH-COMPATIBILITY STREAM
+  // 2. AUTOMATED DYNAMIC STREAM RESOLVER
   // ==========================================
 
-  // ENGINE 1: Youtubei.js Direct Android Stream (Gunakan await pada decipher)
+  // ENGINE 1: Invidious Public Nodes (Sangat Andal untuk VEVO / Def Jam)
+  const invidiousNodes = [
+    `https://inv.nadeko.net/api/v1/videos/${v}`,
+    `https://invidious.nerdvpn.de/api/v1/videos/${v}`,
+    `https://inv.tux.pizza/api/v1/videos/${v}`,
+    `https://invidious.drgns.space/api/v1/videos/${v}`
+  ];
+
+  for (const node of invidiousNodes) {
+    try {
+      const res = await fetch(node, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+        signal: AbortSignal.timeout(3000)
+      });
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      // Mengambil format audio saja
+      const audioFormat = data.adaptiveFormats?.find((f: any) => f.type?.includes('audio'));
+      
+      if (audioFormat?.url) {
+        return NextResponse.redirect(audioFormat.url, 307);
+      }
+    } catch (e) {}
+  }
+
+  // ENGINE 2: Youtubei.js Basic Info Decipher (Fallback)
   try {
     const youtube = await getYT();
-    const info = await youtube.getInfo(v);
-    
+    const info = await youtube.getBasicInfo(v);
     const format = info.chooseFormat({ type: 'audio', quality: 'best' });
     const audioUrl = await format?.decipher(youtube.session.player);
 
     if (audioUrl) {
       return NextResponse.redirect(audioUrl, 307);
     }
-  } catch (e) {
-    console.warn('Youtubei.js Direct Stream gagal, beralih ke Fallback Proxy Cluster...');
-  }
+  } catch (e) {}
 
-  // ENGINE 2: Cobalt Tools Extractor
+  // ENGINE 3: Cobalt Tools API
   try {
     const cobaltRes = await fetch('https://api.cobalt.tools/', {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
       },
       body: JSON.stringify({
         url: `https://www.youtube.com/watch?v=${v}`,
@@ -122,32 +144,23 @@ export async function GET(req: NextRequest) {
     }
   } catch (e) {}
 
-  // ENGINE 3: Invidious & Piped Cluster (Fallback)
-  const streamAPIs = [
-    `https://inv.nadeko.net/api/v1/videos/${v}`,
-    `https://invidious.nerdvpn.de/api/v1/videos/${v}`,
+  // ENGINE 4: Piped Instances Cluster
+  const pipedInstances = [
     `https://pipedapi.kavin.rocks/streams/${v}`,
-    `https://api.piped.video/streams/${v}`
+    `https://api.piped.video/streams/${v}`,
+    `https://pipedapi.drgnz.club/streams/${v}`
   ];
 
-  for (const endpoint of streamAPIs) {
+  for (const instance of pipedInstances) {
     try {
-      const res = await fetch(endpoint, { 
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-        signal: AbortSignal.timeout(3500) 
-      });
+      const res = await fetch(instance, { signal: AbortSignal.timeout(3000) });
       if (!res.ok) continue;
-      
+
       const data = await res.json();
+      const audio = data.audioStreams?.find((a: any) => a.mimeType?.includes('mp4') || a.mimeType?.includes('webm')) || data.audioStreams?.[0];
 
-      const audioUrl =
-        data.adaptiveFormats?.find((f: any) => f.type?.includes('audio'))?.url ||
-        data.audioStreams?.find((a: any) => a.mimeType?.includes('mp4') || a.mimeType?.includes('webm'))?.url;
-
-      if (audioUrl) {
-        return NextResponse.redirect(audioUrl, 307);
+      if (audio?.url) {
+        return NextResponse.redirect(audio.url, 307);
       }
     } catch (e) {}
   }
