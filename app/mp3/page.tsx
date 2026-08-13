@@ -43,6 +43,8 @@ export default function Mp3Page() {
     seekToTime,
   } = useAudio();
 
+  const isRepeatOne = playMode === 'repeat-one';
+
   const visibleSearchResults = isAuthenticated ? searchResults : searchResults.slice(0, 5);
   const visibleQuickPicks = isAuthenticated ? quickPicks : quickPicks.slice(0, 5);
 
@@ -96,7 +98,6 @@ export default function Mp3Page() {
               color: 'var(--foreground, #fff)',
             }}
           />
-          {/* SVG DINAMIS (Kaca Pembesar saat Auth / Gembok Terkunci saat Unauth) */}
           <svg
             className="w-4 h-4 absolute left-3.5 opacity-70 pointer-events-none transition-all duration-300"
             fill="none"
@@ -113,7 +114,7 @@ export default function Mp3Page() {
         </form>
       </div>
 
-      {/* BANNER AJAKAN REGISTRASI (SVG TERBUKA DINAMIS) */}
+      {/* BANNER AJAKAN REGISTRASI */}
       {!checkingAuth && !isAuthenticated && (
         <div className="w-full max-w-md px-4 mt-3">
           <div
@@ -315,28 +316,55 @@ export default function Mp3Page() {
               </div>
 
               <div className="flex items-center justify-between px-2 py-1">
-                <button 
+                {/* LOGO REPEAT ONE BERANIMASI BULAT + BADGE ANGKA 1 POJOK KANAN ATAS */}
+                <motion.button 
                   type="button" 
                   onClick={togglePlayMode} 
-                  className="p-2 rounded-full hover:bg-white/10 transition cursor-pointer relative" 
-                  style={{ color: playMode !== 'normal' ? 'var(--accent, #f43f5e)' : 'inherit', opacity: playMode !== 'normal' ? 1 : 0.5 }}
+                  whileTap={{ scale: 0.85 }}
+                  title={isRepeatOne ? "Repeat One: Aktif" : "Repeat One: Nonaktif"}
+                  className="w-10 h-10 rounded-full cursor-pointer relative flex items-center justify-center shrink-0 transition-colors duration-300" 
                 >
-                  {playMode === 'repeat-one' && (
-                    <div className="flex items-center">
-                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" /></svg>
-                      <span className="text-[9px] font-bold absolute -top-1 -right-1 bg-white/20 px-1 rounded-full">1</span>
-                    </div>
-                  )}
-                  {playMode === 'repeat-all' && (
-                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" /></svg>
-                  )}
-                  {playMode === 'shuffle' && (
-                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.45 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" /></svg>
-                  )}
-                  {playMode === 'normal' && (
-                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" /></svg>
-                  )}
-                </button>
+                  {/* Lingkaran Background Beranimasi */}
+                  <AnimatePresence>
+                    {isRepeatOne && (
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0, rotate: -90 }}
+                        animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                        exit={{ scale: 0, opacity: 0, rotate: 90 }}
+                        transition={{ type: 'spring', stiffness: 350, damping: 22 }}
+                        className="absolute inset-0 rounded-full shadow-md"
+                        style={{ backgroundColor: 'var(--accent, #f43f5e)' }}
+                      />
+                    )}
+                  </AnimatePresence>
+
+                  {/* Icon Repeat Panah */}
+                  <motion.svg 
+                    animate={{ rotate: isRepeatOne ? 360 : 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="w-5 h-5 relative z-10 fill-current transition-colors duration-300"
+                    style={{ color: isRepeatOne ? '#000000' : 'var(--foreground, #fff)', opacity: isRepeatOne ? 1 : 0.5 }}
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
+                  </motion.svg>
+
+                  {/* Badge Angka 1 di Pojok Kanan Atas (Bulat Presisi) */}
+                  <AnimatePresence>
+                    {isRepeatOne && (
+                      <motion.span 
+                        initial={{ scale: 0, opacity: 0, y: 5 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        exit={{ scale: 0, opacity: 0, y: 5 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                        className="absolute -top-1 -right-1 z-20 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white shadow-lg border border-black/30"
+                        style={{ backgroundColor: 'var(--accent, #f43f5e)' }}
+                      >
+                        1
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
 
                 <div className="flex items-center gap-6">
                   <button type="button" onClick={playPrev} className="p-2 opacity-80 hover:opacity-100 transition cursor-pointer">

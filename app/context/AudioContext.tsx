@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback, RefObject } from 'react';
-import { usePathname } from 'next/navigation'; // <-- 1. IMPORT usePathname
+import { usePathname } from 'next/navigation';
 import { KeepAwake } from '@capacitor-community/keep-awake';
 import { MediaSession } from '@jofr/capacitor-media-session';
 
@@ -65,7 +65,7 @@ interface AudioContextType {
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const pathname = usePathname(); // <-- 2. AMBIL PATHNAME SAAT INI
+  const pathname = usePathname();
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [checkingAuth, setCheckingAuth] = useState<boolean>(true);
@@ -99,6 +99,18 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const searchInputRef = useRef<HTMLInputElement>(null) as RefObject<HTMLInputElement>;
 
   const activePlaylistRef = useRef<SongItem[]>([]);
+  
+  // Ref untuk menyimpan state terbaru agar tidak terjebak Stale Closure
+  const playModeRef = useRef<PlayMode>('normal');
+  const currentSongRef = useRef<SongItem | null>(null);
+
+  useEffect(() => {
+    playModeRef.current = playMode;
+  }, [playMode]);
+
+  useEffect(() => {
+    currentSongRef.current = currentSong;
+  }, [currentSong]);
 
   const formatTime = (secs: number) => {
     if (isNaN(secs) || !isFinite(secs) || secs < 0) return '0:00';
@@ -161,7 +173,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsSearching(false);
   }, []);
 
-  // DETEKSI AUTH REAKSIF (Termasuk saat perpindahan halaman Next.js / route change)
+  // DETEKSI AUTH REAKSIF
   useEffect(() => {
     checkAuthStatus();
 
@@ -185,7 +197,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       window.removeEventListener('focus', handleStorageOrAuthChange);
       document.removeEventListener('visibilitychange', handleStorageOrAuthChange);
     };
-  }, [pathname, checkAuthStatus, refreshQuickPicks]); // <-- 3. MASUKKAN pathname DI DEPENDENCY
+  }, [pathname, checkAuthStatus, refreshQuickPicks]);
 
   useEffect(() => {
     if (!window.YT) {
@@ -316,62 +328,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [isPlaying]);
 
-  const playNext = useCallback(() => {
-    const playlist = activePlaylistRef.current;
-    if (!currentSong || playlist.length === 0) return;
-
-    if (playMode === 'shuffle') {
-      const randomIndex = Math.floor(Math.random() * playlist.length);
-      playSong(playlist[randomIndex]);
-      return;
-    }
-    const currentIndex = playlist.findIndex((s: SongItem) => s.id === currentSong.id);
-    const nextIndex = (currentIndex + 1) % playlist.length;
-    playSong(playlist[nextIndex]);
-  }, [currentSong, playMode]);
-
-  const playPrev = useCallback(() => {
-    const playlist = activePlaylistRef.current;
-    if (!currentSong || playlist.length === 0) return;
-
-    if (playMode === 'shuffle') {
-      const randomIndex = Math.floor(Math.random() * playlist.length);
-      playSong(playlist[randomIndex]);
-      return;
-    }
-    const currentIndex = playlist.findIndex((s: SongItem) => s.id === currentSong.id);
-    const prevIndex = (currentIndex - 1 + playlist.length) % playlist.length;
-    playSong(playlist[prevIndex]);
-  }, [currentSong, playMode]);
-
-  const handleSongEnded = useCallback(() => {
-    if (!currentSong) return;
-    const playlist = activePlaylistRef.current;
-
-    if (playMode === 'repeat-one') {
-      if (playerRef.current) {
-        playerRef.current.seekTo(0, true);
-        playerRef.current.playVideo();
-      }
-      return;
-    }
-
-    if (playMode === 'shuffle') {
-      if (playlist.length > 0) {
-        const randomIndex = Math.floor(Math.random() * playlist.length);
-        playSong(playlist[randomIndex]);
-      }
-      return;
-    }
-
-    const currentIndex = playlist.findIndex((s) => s.id === currentSong.id);
-    if (currentIndex !== -1 && currentIndex < playlist.length - 1) {
-      playSong(playlist[currentIndex + 1]);
-    } else if (playMode === 'repeat-all' && playlist.length > 0) {
-      playSong(playlist[0]);
-    }
-  }, [currentSong, playMode]);
-
   const updateNativeMediaSession = useCallback(async (song: SongItem) => {
     try {
       await MediaSession.setMetadata({
@@ -400,24 +356,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           try { MediaSession.setPlaybackState({ playbackState: 'paused' }); } catch (e) {}
         }
       });
-
-      await MediaSession.setActionHandler({ action: 'nexttrack' }, () => {
-        playNext();
-      });
-
-      await MediaSession.setActionHandler({ action: 'previoustrack' }, () => {
-        playPrev();
-      });
-
-      await MediaSession.setActionHandler({ action: 'seekto' }, (details: any) => {
-        if (details && details.seekTime !== undefined && playerRef.current) {
-          seekToTime(details.seekTime);
-        }
-      });
     } catch (e) {
       console.log('MediaSession native error:', e);
     }
-  }, [playNext, playPrev, seekToTime]);
+  }, []);
 
   const playSong = useCallback(
     async (song: SongItem) => {
@@ -462,19 +404,69 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 setIsPlaying(false);
                 stopProgressTimer();
                 try { MediaSession.setPlaybackState({ playbackState: 'paused' }); } catch (e) {}
-              } else if (event.data === 0) { // ENDED
+              } else if (event.data === 0) { // ENDED (AUTO PLAY & REPEAT LOGIC FIX)
                 setIsPlaying(false);
                 stopProgressTimer();
                 setProgress(0);
-                handleSongEnded();
+                
+                // Mencegah Stale Closure dengan menggunakan Ref
+                const currentMode = playModeRef.current;
+                const activeSong = currentSongRef.current;
+                const playlist = activePlaylistRef.current;
+
+                if (currentMode === 'repeat-one') {
+                  if (playerRef.current) {
+                    playerRef.current.seekTo(0, true);
+                    playerRef.current.playVideo();
+                  }
+                } else if (activeSong && playlist.length > 0) {
+                  const currentIndex = playlist.findIndex((s) => s.id === activeSong.id);
+                  const nextIndex = (currentIndex + 1) % playlist.length;
+                  playSong(playlist[nextIndex]);
+                }
               }
             },
           },
         });
       }
     },
-    [startProgressTimer, handleSongEnded, isAuthenticated, updateNativeMediaSession]
+    [startProgressTimer, isAuthenticated, updateNativeMediaSession]
   );
+
+  const playNext = useCallback(() => {
+    const playlist = activePlaylistRef.current;
+    if (!currentSong || playlist.length === 0) return;
+
+    const currentIndex = playlist.findIndex((s: SongItem) => s.id === currentSong.id);
+    const nextIndex = (currentIndex + 1) % playlist.length;
+    playSong(playlist[nextIndex]);
+  }, [currentSong, playSong]);
+
+  const playPrev = useCallback(() => {
+    const playlist = activePlaylistRef.current;
+    if (!currentSong || playlist.length === 0) return;
+
+    const currentIndex = playlist.findIndex((s: SongItem) => s.id === currentSong.id);
+    const prevIndex = (currentIndex - 1 + playlist.length) % playlist.length;
+    playSong(playlist[prevIndex]);
+  }, [currentSong, playSong]);
+
+  // UPDATE NATIVE ACTIONS
+  useEffect(() => {
+    try {
+      MediaSession.setActionHandler({ action: 'nexttrack' }, () => {
+        playNext();
+      });
+      MediaSession.setActionHandler({ action: 'previoustrack' }, () => {
+        playPrev();
+      });
+      MediaSession.setActionHandler({ action: 'seekto' }, (details: any) => {
+        if (details && details.seekTime !== undefined && playerRef.current) {
+          seekToTime(details.seekTime);
+        }
+      });
+    } catch (e) {}
+  }, [playNext, playPrev, seekToTime]);
 
   const handleSearch = async (e: React.FormEvent, onUnauth?: () => void) => {
     e.preventDefault();
@@ -515,11 +507,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsSearching(false);
   };
 
+  // TOGGLE REPEAT ONE SAKELAR (ON / OFF)
   const togglePlayMode = () => {
-    if (playMode === 'normal') setPlayMode('repeat-one');
-    else if (playMode === 'repeat-one') setPlayMode('repeat-all');
-    else if (playMode === 'repeat-all') setPlayMode('shuffle');
-    else setPlayMode('normal');
+    setPlayMode((prevMode) => (prevMode === 'repeat-one' ? 'normal' : 'repeat-one'));
   };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
