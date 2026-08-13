@@ -4,14 +4,19 @@ import { useEffect } from 'react';
 
 export default function AndroidBackgroundHandler() {
   useEffect(() => {
+    // Hanya berjalan jika dibuka di dalam APK / WebView Capacitor
+    if (typeof window === 'undefined') return;
+
     const initBackgroundServices = async () => {
       try {
-        // @ts-ignore - Mencegah error TypeScript jika package belum terinstall
-        const { App: CapacitorApp } = await import('@capacitor/app');
-        // @ts-ignore - Mencegah error TypeScript jika package belum terinstall
-        const { KeepAwake } = await import('@capacitor-community/keep-awake');
+        // Trik agar Webpack Vercel tidak mengecek/meng-compile package Capacitor
+        const appModuleName = '@capacitor/app';
+        const keepAwakeModuleName = '@capacitor-community/keep-awake';
 
-        // 1. Jaga CPU agar tidak di-freeze oleh Android
+        const { App: CapacitorApp } = await import(/* webpackIgnore: true */ appModuleName);
+        const { KeepAwake } = await import(/* webpackIgnore: true */ keepAwakeModuleName);
+
+        // 1. Jaga CPU agar tidak dipaksa tidur/freeze oleh Android
         if (KeepAwake) {
           await KeepAwake.keepAwake().catch(() => {});
         }
@@ -34,7 +39,7 @@ export default function AndroidBackgroundHandler() {
           };
         }
       } catch (error) {
-        // Abaikan jika dibuka di web browser biasa
+        // Abaikan jika dibuka di web biasa / Vercel server
       }
     };
 
