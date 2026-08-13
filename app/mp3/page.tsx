@@ -45,7 +45,9 @@ export default function Mp3Page() {
   } = useAudio();
 
   const [isAdmin, setIsAdmin] = useState(false);
+  const [pinnedPicks, setPinnedPicks] = useState<SongItem[]>([]);
 
+  // 1. Cek status Admin dari Supabase
   useEffect(() => {
     const checkAdminFromSupabase = async () => {
       try {
@@ -83,10 +85,40 @@ export default function Mp3Page() {
     checkAdminFromSupabase();
   }, []);
 
+  // 2. Fetch mandiri dari Prisma (Supabase) agar pasti terbaca di Vercel Deploy
+  const fetchPinnedSongsDirectly = async () => {
+    try {
+      const res = await fetch('/api/quick-picks');
+      const data = await res.json();
+      if (data.success && data.pinnedSongs) {
+        setPinnedPicks(data.pinnedSongs);
+      }
+    } catch (err) {
+      console.error('Gagal mengambil lagu pin Supabase:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchPinnedSongsDirectly();
+  }, []);
+
   const isRepeatOne = playMode === 'repeat-one';
 
+  // Gabungkan lagu ter-pin dari Supabase paling depan
+  const combinedQuickPicks =
+    pinnedPicks.length > 0
+      ? [
+          ...pinnedPicks,
+          ...quickPicks.filter(
+            (qp) => !pinnedPicks.some((p) => String(p.id) === String(qp.id))
+          ),
+        ]
+      : quickPicks;
+
   const visibleSearchResults = isAuthenticated ? searchResults : searchResults.slice(0, 5);
-  const visibleQuickPicks = isAuthenticated ? quickPicks : quickPicks.slice(0, 5);
+  const visibleQuickPicks = isAuthenticated
+    ? combinedQuickPicks
+    : combinedQuickPicks.slice(0, 5);
 
   const chunkedSearchResults: SongItem[][] = chunkArray(visibleSearchResults, 5);
   const chunkedQuickPicks: SongItem[][] = chunkArray(visibleQuickPicks, 5);
@@ -98,6 +130,7 @@ export default function Mp3Page() {
   };
 
   const handleRefreshClick = () => {
+    fetchPinnedSongsDirectly();
     if (hasSearched && searchResults.length > 0) {
       const shuffled = [...searchResults].sort(() => Math.random() - 0.5);
       setSearchResults(shuffled);
@@ -117,6 +150,7 @@ export default function Mp3Page() {
       });
       const data = await res.json();
       if (data.success) {
+        fetchPinnedSongsDirectly();
         refreshQuickPicks();
       }
     } catch (err) {
