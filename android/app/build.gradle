@@ -2,12 +2,12 @@ apply plugin: 'com.android.application'
 
 android {
     namespace "com.ipix.chat"
-    compileSdk rootProject.ext.compileSdkVersion
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.ipix.chat"
         minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
+        targetSdkVersion 36
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -31,7 +31,7 @@ android {
             // Paksa aktifkan skema tanda tangan V1, V2, dan V3
             v1SigningEnabled true
             v2SigningEnabled true
-                  }
+        }
     }
 
     buildTypes {
