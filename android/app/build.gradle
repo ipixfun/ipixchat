@@ -2,33 +2,22 @@ apply plugin: 'com.android.application'
 
 android {
     namespace "com.ipix.chat"
-    compileSdk 36
+    compileSdk rootProject.ext.compileSdkVersion
 
     defaultConfig {
         applicationId "com.ipix.chat"
         minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion 36
+        targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-            // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
 
-    // ========================================================
-    // KONFIGURASI SIGNING (V1, V2, V3)
-    // ========================================================
     signingConfigs {
         release {
-            // Jika Anda ingin mengisikan path keystore secara otomatis saat build:
-            // storeFile file("keystore_kamu.jks")
-            // storePassword "password_keystore"
-            // keyAlias "alias_kamu"
-            // keyPassword "password_alias"
-
-            // Paksa aktifkan skema tanda tangan V1, V2, dan V3
             v1SigningEnabled true
             v2SigningEnabled true
         }
@@ -36,11 +25,8 @@ android {
 
     buildTypes {
         release {
-            // Menghubungkan skema V1, V2, V3 ke tipe build Release
             signingConfig signingConfigs.release
-            
             minifyEnabled false
-            // Ini kode yang sudah diperbaiki (ditambah -optimize)
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -71,6 +57,6 @@ try {
     if (servicesJSON.text) {
         apply plugin: 'com.google.gms.google-services'
     }
-} catch(Exception ignored) { // <- Peringatan kuning juga sudah diperbaiki di sini
+} catch(Exception ignored) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
