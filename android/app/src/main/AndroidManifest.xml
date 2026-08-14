@@ -39,5 +39,11 @@
             </intent-filter>
         </receiver>
 
+        <!-- Tambahkan Service Ini di Bawah Receiver -->
+        <service 
+            android:name="dev.robingenz.capacitor.foregroundservice.ForegroundService" 
+            android:foregroundServiceType="mediaPlayback" 
+            android:exported="false" />
+
     </application>
 </manifest>

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useRef, useEffect, useCallb
 import { usePathname } from 'next/navigation';
 import { KeepAwake } from '@capacitor-community/keep-awake';
 import { MediaSession } from '@jofr/capacitor-media-session';
+import { ForegroundService } from '@capawesome-team/capacitor-android-foreground-service';
 
 import { SongItem, SyncedLine, fetchLyrics, searchSongs } from '@/app/mp3/yt';
 
@@ -100,7 +101,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const activePlaylistRef = useRef<SongItem[]>([]);
   
-  // Ref untuk menyimpan state terbaru agar tidak terjebak Stale Closure
   const playModeRef = useRef<PlayMode>('normal');
   const currentSongRef = useRef<SongItem | null>(null);
 
@@ -146,7 +146,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
-  // REFRESH QUICK PICKS (LAGU PIN ADMIN DI-PRIORITASKAN DI ATAS)
   const refreshQuickPicks = useCallback(async () => {
     setIsSearching(true);
     try {
@@ -163,7 +162,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       const limit = isAuthLocal ? 20 : 5;
 
-      // 1. Ambil lagu yang di-pin oleh Admin dari API
       let pinnedSongs: SongItem[] = [];
       try {
         const res = await fetch('/api/quick-picks');
@@ -175,7 +173,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         console.error('Gagal mengambil lagu pin admin:', err);
       }
 
-      // 2. Ambil lagu tambahan dari YouTube jika slot belum penuh
       let additionalSongs: SongItem[] = [];
       if (pinnedSongs.length < limit) {
         const keywords = [
@@ -189,13 +186,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         const ytSongs = await searchSongs(randomKeyword, limit - pinnedSongs.length);
 
-        // Filter lagu YouTube agar tidak duplikat dengan lagu yang di-pin Admin
         additionalSongs = ytSongs.filter(
           (ytSong) => !pinnedSongs.some((pinned) => pinned.id === ytSong.id)
         );
       }
 
-      // 3. Gabungkan: Lagu Pin Admin selalu berada paling atas
       const combinedQuickPicks = [...pinnedSongs, ...additionalSongs].slice(0, limit);
 
       setQuickPicks(combinedQuickPicks);
@@ -210,7 +205,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [hasSearched]);
 
-  // DETEKSI AUTH REAKSIF
   useEffect(() => {
     checkAuthStatus();
 
@@ -236,7 +230,17 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, [pathname, checkAuthStatus, refreshQuickPicks]);
 
+  // FIX UTAMA YOUTUBE PAUSE DI BACKGROUND
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('visibilitychange', (e) => {
+        e.stopImmediatePropagation();
+      }, true);
+      window.addEventListener('pagehide', (e) => {
+        e.stopImmediatePropagation();
+      }, true);
+    }
+
     if (!window.YT) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
@@ -358,10 +362,19 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       playerRef.current.pauseVideo();
       setIsPlaying(false);
       try { MediaSession.setPlaybackState({ playbackState: 'paused' }); } catch (e) {}
+      try { ForegroundService.stopForegroundService(); } catch (e) {}
     } else {
       playerRef.current.playVideo();
       setIsPlaying(true);
       try { MediaSession.setPlaybackState({ playbackState: 'playing' }); } catch (e) {}
+      try {
+        ForegroundService.startForegroundService({
+          id: 1001,
+          title: currentSongRef.current?.title || "ipixchat",
+          body: currentSongRef.current?.artist || "Memutar musik...",
+          smallIcon: "ic_launcher",
+        });
+      } catch (e) {}
     }
   }, [isPlaying]);
 
@@ -383,6 +396,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           playerRef.current.playVideo();
           setIsPlaying(true);
           try { MediaSession.setPlaybackState({ playbackState: 'playing' }); } catch (e) {}
+          try {
+            ForegroundService.startForegroundService({
+              id: 1001,
+              title: song.title || "ipixchat",
+              body: song.artist || "Memutar musik...",
+              smallIcon: "ic_launcher",
+            });
+          } catch (e) {}
         }
       });
 
@@ -391,6 +412,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           playerRef.current.pauseVideo();
           setIsPlaying(false);
           try { MediaSession.setPlaybackState({ playbackState: 'paused' }); } catch (e) {}
+          try { ForegroundService.stopForegroundService(); } catch (e) {}
         }
       });
     } catch (e) {
@@ -405,6 +427,17 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           await KeepAwake.keepAwake();
         }
       } catch (e) {}
+
+      try {
+        await ForegroundService.startForegroundService({
+          id: 1001,
+          title: song.title || "ipixchat",
+          body: song.artist || "Memutar musik...",
+          smallIcon: "ic_launcher",
+        });
+      } catch (e) {
+        console.log("Foreground service error:", e);
+      }
 
       setCurrentSong(song);
       setIsPlaying(false);
@@ -441,12 +474,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 setIsPlaying(false);
                 stopProgressTimer();
                 try { MediaSession.setPlaybackState({ playbackState: 'paused' }); } catch (e) {}
-              } else if (event.data === 0) { // ENDED (AUTO PLAY & REPEAT LOGIC FIX)
+              } else if (event.data === 0) { // ENDED
                 setIsPlaying(false);
                 stopProgressTimer();
                 setProgress(0);
                 
-                // Mencegah Stale Closure dengan menggunakan Ref
                 const currentMode = playModeRef.current;
                 const activeSong = currentSongRef.current;
                 const playlist = activePlaylistRef.current;
@@ -488,7 +520,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     playSong(playlist[prevIndex]);
   }, [currentSong, playSong]);
 
-  // UPDATE NATIVE ACTIONS
   useEffect(() => {
     try {
       MediaSession.setActionHandler({ action: 'nexttrack' }, () => {
@@ -544,7 +575,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsSearching(false);
   };
 
-  // TOGGLE REPEAT ONE SAKELAR (ON / OFF)
   const togglePlayMode = () => {
     setPlayMode((prevMode) => (prevMode === 'repeat-one' ? 'normal' : 'repeat-one'));
   };
