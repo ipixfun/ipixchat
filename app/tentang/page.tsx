@@ -17,19 +17,22 @@ import { useTheme } from "../context/ThemeContext"; // Sesuaikan path
 interface LinkItem {
   label: string;
   url: string;
-  icon: string;
+  displayUrl: string; // Teks Link Asli Full
+  image: string; // Gambar .webp
+  color: string;
 }
 
-interface PillRef {
+interface CardRef {
   el: HTMLDivElement | null;
   x: number;
   y: number;
   vx: number;
   vy: number;
   url: string;
+  displayUrl: string;
   label: string;
-  c1: string; // Warna 1 gradient pil (HEX)
-  c2: string; // Warna 2 gradient pil (HEX)
+  image: string;
+  color: string;
 }
 
 type AppState = "moving" | "aligned";
@@ -38,75 +41,86 @@ type AppState = "moving" | "aligned";
    Constants
    ========================= */
 const LINKS: LinkItem[] = [
-  { label: "X@sixripix", url: "https://www.x.com/sixripix", icon: "https://cdn.simpleicons.org/x/white" },
-  { label: "Walla@pix", url: "https://international.walla-app.com/user?id=V2O6MN&app=2", icon: "https://cdn.simpleicons.org/chatwoot/white" },
-  { label: "TikTok@ipixaja", url: "https://www.tiktok.com/@ipixaja", icon: "https://cdn.simpleicons.org/tiktok/white" },
-  { label: "ipix.my.id", url: "https://ipix.my.id", icon: "https://cdn.simpleicons.org/telegram/white" },
-  { label: "Growlr@pix", url: "https://growlrapp.com", icon: "https://cdn.simpleicons.org/bun/white" },
-  { label: "iPix.Fun", url: "https://ipix.fun", icon: "https://cdn.simpleicons.org/facebook/white" },
+  {
+    label: "X@sixripix",
+    url: "https://www.x.com/sixripix",
+    displayUrl: "x.com/sixripix",
+    image: "/0.webp",
+    color: "#38bdf8",
+  },
+  {
+    label: "Walla@pix",
+    url: "https://international.walla-app.com/user?id=V2O6MN&app=2",
+    displayUrl: "walla-app.com",
+    image: "/1.webp",
+    color: "#f59e0b",
+  },
+  {
+    label: "TikTok@ipixaja",
+    url: "https://www.tiktok.com/@ipixaja",
+    displayUrl: "tiktok.com/@ipixaja",
+    image: "/2.webp",
+    color: "#ec4899",
+  },
+  {
+    label: "ipix.my.id",
+    url: "https://ipix.my.id",
+    displayUrl: "ipix.my.id",
+    image: "/3.webp",
+    color: "#10b981",
+  },
+  {
+    label: "iPix.Fun",
+    url: "https://ipix.fun",
+    displayUrl: "ipix.fun",
+    image: "/0.webp",
+    color: "#ef4444",
+  },
+  {
+    label: "Growlr@pix",
+    url: "https://growlrapp.com",
+    displayUrl: "growlrapp.com",
+    image: "/4.webp",
+    color: "#a855f7",
+  },
 ];
 
-const W = 139;
-const H = 46;
+// Dimensi Kartu Karakter
+const CARD_W = 105;
+const CARD_H = 152;
 const BOTTOM_NAV_HEIGHT = 70;
 
-/* =========================
-   Helpers: Theme Palette
-   ========================= */
-function getRandomPaletteForTheme(themeId: string, customColors: any): { c1: string; c2: string } {
-  if (themeId === "custom") {
-    const customPalettes = [
-      { c1: customColors.accent || "#39FF14", c2: customColors.wave1 || "#191970" },
-      { c1: customColors.wave2 || "#00BFFF", c2: customColors.accent || "#39FF14" },
-      { c1: customColors.wave3 || "#FF0055", c2: customColors.wave1 || "#191970" },
-    ];
-    return customPalettes[Math.floor(Math.random() * customPalettes.length)];
-  }
-
-  const presetPalettes: Record<string, { c1: string; c2: string }[]> = {
-    "dark": [{ c1: "#525252", c2: "#171717" }, { c1: "#737373", c2: "#262626" }, { c1: "#a3a3a3", c2: "#404040" }],
-    "navy-electric": [{ c1: "#1e3a8a", c2: "#0f172a" }, { c1: "#3b82f6", c2: "#1e40af" }, { c1: "#60a5fa", c2: "#1d4ed8" }],
-    "emerald-cream": [{ c1: "#10b981", c2: "#fcd34d" }, { c1: "#34d399", c2: "#fde68a" }, { c1: "#a7f3d0", c2: "#fef3c7" }],
-    "teal-coral": [{ c1: "#14b8a6", c2: "#fdba74" }, { c1: "#2dd4bf", c2: "#fed7aa" }, { c1: "#99f6e4", c2: "#ffedd5" }],
-    "sea-citrus": [{ c1: "#06b6d4", c2: "#5eead4" }, { c1: "#22d3ee", c2: "#99f6e4" }, { c1: "#a5f3fc", c2: "#ccfbf1" }],
-    "raisin-sunset": [{ c1: "#f43f5e", c2: "#262626" }, { c1: "#fb7185", c2: "#404040" }, { c1: "#404040", c2: "#171717" }],
-    "gunmetal-platinum": [{ c1: "#475569", c2: "#1e293b" }, { c1: "#64748b", c2: "#334155" }, { c1: "#94a3b8", c2: "#475569" }],
-    "charcoal-ecru": [{ c1: "#44403c", c2: "#1c1917" }, { c1: "#57534e", c2: "#292524" }, { c1: "#78716c", c2: "#44403c" }],
-    "charcoal-sage": [{ c1: "#3f3f46", c2: "#18181b" }, { c1: "#52525b", c2: "#27272a" }, { c1: "#71717a", c2: "#3f3f46" }],
-    "cyber-neon": [{ c1: "#27272a", c2: "#09090b" }, { c1: "#0ea5e9", c2: "#18181b" }, { c1: "#a855f7", c2: "#27272a" }],
-  };
-
-  const options = presetPalettes[themeId] || presetPalettes["dark"];
-  return options[Math.floor(Math.random() * options.length)];
-}
-
-/* =========================
-   Component
-   ========================= */
 export default function IpixFun(): JSX.Element | null {
-  const { theme, customColors, mounted } = useTheme();
+  const { mounted } = useTheme();
 
   // ---------- Refs ----------
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const targetRef = useRef<HTMLDivElement | null>(null);
 
-  const pillRefs = useRef<PillRef[]>(
+  const cardRefs = useRef<CardRef[]>(
     LINKS.map((link) => ({
-      el: null, x: -500, y: -500, vx: 0, vy: 0,
-      url: link.url, label: link.label, c1: "#525252", c2: "#171717",
+      el: null,
+      x: -500,
+      y: -500,
+      vx: 0,
+      vy: 0,
+      url: link.url,
+      displayUrl: link.displayUrl,
+      label: link.label,
+      image: link.image,
+      color: link.color,
     }))
   );
 
-  const activePillRef = useRef<PillRef | null>(null);
+  const activeCardRef = useRef<CardRef | null>(null);
   const offsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const isPausedRef = useRef<boolean>(false);
   const appStateRef = useRef<AppState>("moving");
 
   // ---------- State ----------
   const [modalOpen, setModalOpen] = useState(false);
-  const [targetText, setTargetText] = useState("Menuju Link");
-  const [targetBg, setTargetBg] = useState("var(--card-bg)");
+  const [targetText, setTargetText] = useState("TARGET LOCK");
   const [targetGlow, setTargetGlow] = useState(false);
 
   // ---------- Helper: Bounds ----------
@@ -127,50 +141,36 @@ export default function IpixFun(): JSX.Element | null {
       tgtCenterY: tRect.top - cRect.top + tRect.height / 2,
       containerWidth: container ? container.clientWidth : 800,
       containerHeight: container ? container.clientHeight : 800,
-      cRect,
       bottomLimit: container ? container.clientHeight - BOTTOM_NAV_HEIGHT : 800,
     };
   }, []);
 
-  // ---------- Apply pill style ----------
-  const applyPillStyle = useCallback((p: PillRef) => {
-    if (!p.el) return;
-    p.el.style.setProperty("--c1", p.c1);
-    p.el.style.setProperty("--c2", p.c2);
-    p.el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0)`;
+  const applyCardStyle = useCallback((c: CardRef) => {
+    if (!c.el) return;
+    c.el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0)`;
   }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-    pillRefs.current.forEach((p) => {
-      const colors = getRandomPaletteForTheme(theme, customColors);
-      p.c1 = colors.c1;
-      p.c2 = colors.c2;
-      applyPillStyle(p);
-    });
-  }, [theme, customColors, mounted, applyPillStyle]);
 
   // ---------- Reset positions ----------
   const resetPositions = useCallback(() => {
     appStateRef.current = "moving";
     isPausedRef.current = false;
     const { musicBottom, tgtTop, tgtBottom, containerWidth, bottomLimit } = getBounds();
-    const centerX = containerWidth / 2 - W / 2;
+    const centerX = containerWidth / 2 - CARD_W / 2;
 
-    pillRefs.current.forEach((p, i) => {
-      p.x = centerX + (Math.random() - 0.5) * 50;
+    cardRefs.current.forEach((c, i) => {
+      c.x = centerX + (Math.random() - 0.5) * 60;
       if (i < 3) {
         const topSpace = tgtTop - musicBottom;
-        p.y = musicBottom + 10 + Math.random() * Math.max(0, topSpace - H - 20);
+        c.y = musicBottom + 10 + Math.random() * Math.max(0, topSpace - CARD_H - 10);
       } else {
         const botSpace = bottomLimit - tgtBottom;
-        p.y = tgtBottom + 10 + Math.random() * Math.max(0, botSpace - H - 20);
+        c.y = tgtBottom + 10 + Math.random() * Math.max(0, botSpace - CARD_H - 10);
       }
-      p.vx = (Math.random() - 0.5) * 3;
-      p.vy = (Math.random() - 0.5) * 3;
-      applyPillStyle(p);
+      c.vx = (Math.random() - 0.5) * 2.5;
+      c.vy = (Math.random() - 0.5) * 2.5;
+      applyCardStyle(c);
     });
-  }, [getBounds, applyPillStyle]);
+  }, [getBounds, applyCardStyle]);
 
   useEffect(() => {
     if (mounted) {
@@ -179,7 +179,7 @@ export default function IpixFun(): JSX.Element | null {
     }
   }, [mounted, resetPositions]);
 
-  // ---------- Canvas drawing ----------
+  // ---------- Canvas drawing (Laser Line) ----------
   const drawConnections = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -187,26 +187,21 @@ export default function IpixFun(): JSX.Element | null {
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const active = activePillRef.current;
+    const active = activeCardRef.current;
     if (active) {
       const { tgtCenterX, tgtCenterY } = getBounds();
-      
-      const pillX = active.x + W / 2;
-      const pillY = active.y + H / 2;
-
-      const grad = ctx.createLinearGradient(pillX, pillY, tgtCenterX, tgtCenterY);
-      grad.addColorStop(0, active.c1); 
-      grad.addColorStop(1, "transparent");
+      const cardX = active.x + CARD_W / 2;
+      const cardY = active.y + CARD_H / 2;
 
       ctx.beginPath();
-      ctx.globalAlpha = 0.5;
-      ctx.fillStyle = grad;
-      ctx.moveTo(pillX - W / 2, pillY);
-      ctx.lineTo(pillX + W / 2, pillY);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = active.color || "#00f0ff";
+      ctx.shadowColor = active.color || "#00f0ff";
+      ctx.shadowBlur = 12;
+      ctx.moveTo(cardX, cardY);
       ctx.lineTo(tgtCenterX, tgtCenterY);
-      ctx.closePath();
-      ctx.fill();
-      ctx.globalAlpha = 1.0;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
     }
   }, [getBounds]);
 
@@ -224,67 +219,80 @@ export default function IpixFun(): JSX.Element | null {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
-  // ---------- Align pills (on tap) ----------
-  const alignPills = useCallback(() => {
+  // ---------- Align Cards (Staggered Grid Layout Sesuai Gambar) ----------
+  const alignCards = useCallback(() => {
     const { musicBottom, tgtTop, tgtBottom, containerWidth, bottomLimit } = getBounds();
-    const centerX = (containerWidth - W) / 2;
+
+    const colWidth = containerWidth / 3;
+    const col1X = Math.max(12, colWidth * 0.5 - CARD_W / 2);
+    const col2X = colWidth * 1.5 - CARD_W / 2;
+    const col3X = Math.min(containerWidth - CARD_W - 12, colWidth * 2.5 - CARD_W / 2);
 
     const topSpace = tgtTop - musicBottom;
-    const topStep = topSpace / 4;
-    for (let i = 0; i < 3; i++) {
-      const p = pillRefs.current[i];
-      if (!p) continue;
-      p.x = centerX;
-      p.y = musicBottom + topStep * (i + 1) - H / 2;
-      applyPillStyle(p);
-    }
-
     const botSpace = bottomLimit - tgtBottom;
-    const botStep = botSpace / 4;
-    for (let i = 3; i < 6; i++) {
-      const p = pillRefs.current[i];
-      if (!p) continue;
-      p.x = centerX;
-      p.y = tgtBottom + botStep * (i - 2) - H / 2;
-      applyPillStyle(p);
-    }
-  }, [getBounds, applyPillStyle]);
 
-  // ---------- Randomize Colors ----------
-  const randomizeAllColors = useCallback(() => {
-    pillRefs.current.forEach((p) => {
-      const colors = getRandomPaletteForTheme(theme, customColors);
-      p.c1 = colors.c1;
-      p.c2 = colors.c2;
-      applyPillStyle(p);
-    });
-  }, [theme, customColors, applyPillStyle]);
+    // --- 3 Kartu Atas ---
+    // Kartu 0 (Kiri): Agak ke bawah
+    if (cardRefs.current[0]) {
+      cardRefs.current[0].x = col1X;
+      cardRefs.current[0].y = musicBottom + Math.max(10, topSpace * 0.35);
+      applyCardStyle(cardRefs.current[0]);
+    }
+    // Kartu 1 (Tengah): Paling atas
+    if (cardRefs.current[1]) {
+      cardRefs.current[1].x = col2X;
+      cardRefs.current[1].y = musicBottom + Math.max(5, topSpace * 0.05);
+      applyCardStyle(cardRefs.current[1]);
+    }
+    // Kartu 2 (Kanan): Sedang
+    if (cardRefs.current[2]) {
+      cardRefs.current[2].x = col3X;
+      cardRefs.current[2].y = musicBottom + Math.max(10, topSpace * 0.25);
+      applyCardStyle(cardRefs.current[2]);
+    }
+
+    // --- 3 Kartu Bawah ---
+    // Kartu 3 (Kiri): Dekat control panel
+    if (cardRefs.current[3]) {
+      cardRefs.current[3].x = col1X;
+      cardRefs.current[3].y = tgtBottom + Math.max(5, botSpace * 0.05);
+      applyCardStyle(cardRefs.current[3]);
+    }
+    // Kartu 4 (Tengah): Lebih ke bawah
+    if (cardRefs.current[4]) {
+      cardRefs.current[4].x = col2X;
+      cardRefs.current[4].y = tgtBottom + Math.max(10, botSpace * 0.42);
+      applyCardStyle(cardRefs.current[4]);
+    }
+    // Kartu 5 (Kanan): Agak menengah
+    if (cardRefs.current[5]) {
+      cardRefs.current[5].x = col3X;
+      cardRefs.current[5].y = tgtBottom + Math.max(10, botSpace * 0.22);
+      applyCardStyle(cardRefs.current[5]);
+    }
+  }, [getBounds, applyCardStyle]);
 
   // ---------- Drag Handlers ----------
-  const startDrag = useCallback(
-    (obj: PillRef, clientX: number, clientY: number) => {
-      const container = containerRef.current;
-      if (!container) return;
-      const cRect = container.getBoundingClientRect();
+  const startDrag = useCallback((obj: CardRef, clientX: number, clientY: number) => {
+    const container = containerRef.current;
+    if (!container) return;
+    const cRect = container.getBoundingClientRect();
 
-      activePillRef.current = obj;
-      setTargetText("Menuju " + obj.label);
-      setTargetBg(`linear-gradient(135deg, ${obj.c1}, ${obj.c2})`);
-      
-      offsetRef.current = { 
-        x: (clientX - cRect.left) - obj.x, 
-        y: (clientY - cRect.top) - obj.y 
-      };
-    },
-    []
-  );
+    activeCardRef.current = obj;
+    setTargetText(`DEPLOY: ${obj.label}`);
 
-  const onPillPointerDown = (
+    offsetRef.current = {
+      x: clientX - cRect.left - obj.x,
+      y: clientY - cRect.top - obj.y,
+    };
+  }, []);
+
+  const onCardPointerDown = (
     e: ReactMouseEvent<HTMLDivElement> | ReactTouchEvent<HTMLDivElement>,
     idx: number
   ) => {
     e.preventDefault();
-    const obj = pillRefs.current[idx];
+    const obj = cardRefs.current[idx];
     if (!obj) return;
     const clientX = "touches" in e ? e.touches[0].clientX : (e as ReactMouseEvent).clientX;
     const clientY = "touches" in e ? e.touches[0].clientY : (e as ReactMouseEvent).clientY;
@@ -292,63 +300,57 @@ export default function IpixFun(): JSX.Element | null {
   };
 
   const endDrag = useCallback(() => {
-    const active = activePillRef.current;
+    const active = activeCardRef.current;
     if (!active) return;
     const tgt = targetRef.current?.getBoundingClientRect();
     const container = containerRef.current;
 
     if (tgt && container) {
       const cRect = container.getBoundingClientRect();
-      const cx = active.x + W / 2 + cRect.left;
-      const cy = active.y + H / 2 + cRect.top;
+      const cx = active.x + CARD_W / 2 + cRect.left;
+      const cy = active.y + CARD_H / 2 + cRect.top;
       if (cx > tgt.left && cx < tgt.right && cy > tgt.top && cy < tgt.bottom) {
         window.open(active.url, "_blank");
       }
     }
-    activePillRef.current = null;
-    setTargetText("Menuju Link");
-    setTargetBg("var(--card-bg)");
+    activeCardRef.current = null;
+    setTargetText("TARGET LOCK");
     setTargetGlow(false);
   }, []);
 
-  const movePill = useCallback(
+  const moveCard = useCallback(
     (clientX: number, clientY: number) => {
-      const active = activePillRef.current;
+      const active = activeCardRef.current;
       const container = containerRef.current;
       if (!active || !container) return;
-      
-      const cRect = container.getBoundingClientRect();
 
+      const cRect = container.getBoundingClientRect();
       const newX = clientX - cRect.left - offsetRef.current.x;
       const newY = clientY - cRect.top - offsetRef.current.y;
 
-      active.x = Math.max(0, Math.min(newX, container.clientWidth - W));
-      active.y = Math.max(0, Math.min(newY, container.clientHeight - H));
-      applyPillStyle(active);
+      active.x = Math.max(0, Math.min(newX, container.clientWidth - CARD_W));
+      active.y = Math.max(0, Math.min(newY, container.clientHeight - CARD_H));
+      applyCardStyle(active);
 
       const tgt = targetRef.current?.getBoundingClientRect();
       if (tgt) {
-        const cx = active.x + W / 2 + cRect.left;
-        const cy = active.y + H / 2 + cRect.top;
-        if (cx > tgt.left && cx < tgt.right && cy > tgt.top && cy < tgt.bottom) {
-          setTargetGlow(true);
-        } else {
-          setTargetGlow(false);
-        }
+        const cx = active.x + CARD_W / 2 + cRect.left;
+        const cy = active.y + CARD_H / 2 + cRect.top;
+        setTargetGlow(cx > tgt.left && cx < tgt.right && cy > tgt.top && cy < tgt.bottom);
       }
     },
-    [applyPillStyle]
+    [applyCardStyle]
   );
 
   // Drag listeners
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
-      if (activePillRef.current) movePill(e.clientX, e.clientY);
+      if (activeCardRef.current) moveCard(e.clientX, e.clientY);
     };
     const onTouchMove = (e: TouchEvent) => {
-      if (activePillRef.current) {
+      if (activeCardRef.current) {
         e.preventDefault();
-        movePill(e.touches[0].clientX, e.touches[0].clientY);
+        moveCard(e.touches[0].clientX, e.touches[0].clientY);
       }
     };
     const onUp = () => endDrag();
@@ -364,7 +366,7 @@ export default function IpixFun(): JSX.Element | null {
       window.removeEventListener("mouseup", onUp);
       window.removeEventListener("touchend", onUp);
     };
-  }, [movePill, endDrag]);
+  }, [moveCard, endDrag]);
 
   // ---------- Animation loop ----------
   useEffect(() => {
@@ -375,175 +377,194 @@ export default function IpixFun(): JSX.Element | null {
       if (!isPausedRef.current) {
         const { musicBottom, tgtTop, tgtBottom, containerWidth, bottomLimit } = getBounds();
 
-        pillRefs.current.forEach((p, i) => {
-          if (p === activePillRef.current) return;
-          p.x += p.vx;
-          p.y += p.vy;
-          
-          if (p.x + W >= containerWidth || p.x <= 0) p.vx *= -1;
+        cardRefs.current.forEach((c, i) => {
+          if (c === activeCardRef.current) return;
+          c.x += c.vx;
+          c.y += c.vy;
+
+          if (c.x + CARD_W >= containerWidth || c.x <= 0) c.vx *= -1;
 
           if (i < 3) {
-            if (p.y <= musicBottom) { p.y = musicBottom; p.vy *= -1; }
-            if (p.y + H >= tgtTop) { p.y = tgtTop - H; p.vy *= -1; }
+            if (c.y <= musicBottom) {
+              c.y = musicBottom;
+              c.vy *= -1;
+            }
+            if (c.y + CARD_H >= tgtTop) {
+              c.y = tgtTop - CARD_H;
+              c.vy *= -1;
+            }
           } else {
-            if (p.y <= tgtBottom) { p.y = tgtBottom; p.vy *= -1; }
-            if (p.y + H >= bottomLimit) { p.y = bottomLimit - H; p.vy *= -1; }
+            if (c.y <= tgtBottom) {
+              c.y = tgtBottom;
+              c.vy *= -1;
+            }
+            if (c.y + CARD_H >= bottomLimit) {
+              c.y = bottomLimit - CARD_H;
+              c.vy *= -1;
+            }
           }
-          applyPillStyle(p);
+          applyCardStyle(c);
         });
       }
       rafId = requestAnimationFrame(tick);
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [drawConnections, getBounds, applyPillStyle]);
-
-  useEffect(() => {
-    const onResize = () => { if (appStateRef.current === "aligned") alignPills(); };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [alignPills]);
+  }, [drawConnections, getBounds, applyCardStyle]);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
-      const id = target?.id ?? "";
-
-      if (id === "reload-btn") return;
-      if (target?.closest("a, button, .pill, .header-capsule, #modal-card, .bottom-nav")) return;
+      if (target?.id === "reload-btn") return;
+      if (target?.closest("a, button, .character-card, .hud-btn, #modal-card, .bottom-nav")) return;
 
       if (appStateRef.current === "moving") {
         isPausedRef.current = true;
-        alignPills();
+        alignCards();
         appStateRef.current = "aligned";
       } else {
-        randomizeAllColors();
+        resetPositions();
       }
     };
     window.addEventListener("mousedown", onClick);
     return () => window.removeEventListener("mousedown", onClick);
-  }, [alignPills, randomizeAllColors]);
-
-  const pillBaseStyle: CSSProperties = { width: W, height: H };
+  }, [alignCards, resetPositions]);
 
   if (!mounted) return null;
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className="w-full max-w-2xl mx-auto h-dvh flex flex-col transition-colors duration-300 relative overflow-hidden"
-      style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}
+      className="w-full max-w-2xl mx-auto h-dvh flex flex-col relative overflow-hidden bg-slate-950 text-white font-sans select-none"
     >
-      <style dangerouslySetInnerHTML={{
-        __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         * { box-sizing: border-box; }
-        html, body { height: 100dvh; margin: 0; overflow: hidden; touch-action: none; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100dvh; margin: 0; overflow: hidden; touch-action: none; -webkit-tap-highlight-color: transparent; }
         
         #fx-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
-        
-        .pill { will-change: transform; }
 
-        .header-group { position: absolute; top: 12px; left: 0; width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 1005; }
-        
-        .header-capsule { padding: 9px 18px; background: var(--card-bg); backdrop-filter: blur(15px); border-radius: 45px; color: var(--accent); text-decoration: none; font-size: 0.81rem; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.2); white-space: nowrap; transition: all 0.3s ease; display: flex; align-items: center; height: 36px; position: relative; overflow: hidden; z-index: 0; border: 1px solid var(--card-border); }
-        .header-capsule:active { box-shadow: 0 0 20px var(--accent-glow); transform: scale(0.95); }
+        /* HUD Header Links */
+        .header-group { position: absolute; top: 12px; left: 0; width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 1005; }
+        .hud-link { padding: 6px 14px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 1px solid #00f0ff; border-radius: 6px; color: #00f0ff; text-decoration: none; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(0, 240, 255, 0.2); }
 
-        #control-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 10px; z-index: 998; width: max-content; }
-        #reload-btn, #info-trigger { padding: 9px 18px; border-radius: 18px; cursor: pointer; font-weight: bold; backdrop-filter: blur(10px); border: 1px solid var(--card-border); font-size: 0.81rem; user-select: none; color: var(--foreground); background: var(--card-bg); }
-        #reload-btn { background: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--foreground-heading); }
+        /* Control Panel / Target Slot */
+        #control-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 10px; z-index: 998; }
+        .hud-btn { padding: 8px 12px; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; font-weight: bold; font-size: 0.75rem; cursor: pointer; color: #fff; text-transform: uppercase; }
+        #reload-btn { border-color: #ef4444; color: #ef4444; }
 
-        .pill { position: absolute; left: 0; top: 0; border-radius: 45px; background: linear-gradient(45deg, var(--c1, #aaa), var(--c2, #444)); background-size: 200% 200%; animation: gradientMove 4s ease infinite; border: 2px solid var(--card-border); color: #ffffff; display: flex; align-items: center; justify-content: flex-start; padding-left: 40px; font-size: 0.81rem; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: grab; user-select: none; z-index: 1; touch-action: none; text-shadow: 0px 1px 3px rgba(0,0,0,0.8); }
-        .pill-icon { position: absolute; left: 10px; width: 20px; height: 20px; animation: wiggle 1s ease-in-out infinite alternate; }
-        
-        @keyframes wiggle { 0% { transform: translateY(-2px) rotate(-15deg); } 100% { transform: translateY(2px) rotate(15deg); } }
-        @keyframes gradientMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        #target-pill { width: 130px; height: 50px; border-radius: 8px; background: rgba(15, 23, 42, 0.9); border: 2px dashed #00f0ff; display: flex; align-items: center; justify-content: center; color: #00f0ff; font-weight: 900; font-size: 0.7rem; pointer-events: none; text-align: center; letter-spacing: 1px; transition: all 0.2s ease; }
+        .target-glow { background: rgba(0, 240, 255, 0.25) !important; border-style: solid !important; box-shadow: 0 0 25px #00f0ff; transform: scale(1.08); color: #fff !important; }
 
-        #target-pill, .target-pill-demo { width: 146px; height: 46px; border-radius: 45px; background: var(--card-bg); backdrop-filter: blur(20px); border: 2px solid var(--card-border); display: flex; align-items: center; justify-content: center; color: var(--foreground-heading); font-weight: bold; font-size: 0.75rem; pointer-events: none; transition: all 0.2s ease; }
-        .target-glow { background: color-mix(in srgb, var(--accent) 50%, transparent) !important; box-shadow: 0 0 30px var(--accent-glow); transform: scale(1.1) !important; border-color: var(--accent) !important; color: #fff !important; }
+        /* RPG Character Card Style */
+        .character-card { position: absolute; left: 0; top: 0; width: ${CARD_W}px; height: ${CARD_H}px; border-radius: 12px; background: rgba(15, 23, 42, 0.92); border: 2px solid rgba(255, 255, 255, 0.25); overflow: hidden; display: flex; flex-direction: column; cursor: grab; user-select: none; z-index: 10; touch-action: none; box-shadow: 0 8px 20px rgba(0,0,0,0.6); transition: border-color 0.2s; }
+        .character-card:active { cursor: grabbing; border-color: #00f0ff; box-shadow: 0 0 20px rgba(0, 240, 255, 0.6); }
 
-        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100dvh; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); z-index: 2000; align-items: center; justify-content: center; }
+        /* Container Gambar Pas Mobile */
+        .card-img-container { width: 100%; height: 96px; background: radial-gradient(circle at center, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.95)); display: flex; align-items: center; justify-content: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden; padding: 2px; }
+        .card-img { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+
+        .card-info { padding: 4px 6px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.9) 100%); }
+        .card-title { font-size: 0.65rem; font-weight: 800; color: #fff; line-height: 1.1; }
+        .card-hp-bar { width: 100%; height: 4px; background: #334155; border-radius: 2px; overflow: hidden; margin-top: 3px; }
+        .card-hp-fill { height: 100%; border-radius: 2px; }
+
+        /* Modal */
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100dvh; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); z-index: 2000; align-items: center; justify-content: center; }
         #modal.open { display: flex; }
-        #modal-card { width: 85%; max-width: 350px; padding: 27px; background: var(--card-bg); backdrop-filter: blur(20px); border-radius: 27px; color: var(--foreground); border: 1px solid var(--card-border); text-align: left; }
-        #close-btn { width: 45px; height: 45px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; margin: 18px auto 0; color: var(--background); font-weight: bold; font-size: 1.2rem; }
-      `}} />
+        #modal-card { width: 85%; max-width: 320px; padding: 20px; background: #0f172a; border-radius: 16px; border: 1px solid #00f0ff; color: #fff; }
+      `,
+        }}
+      />
 
       <canvas ref={canvasRef} id="fx-canvas" />
 
+      {/* Header HUD */}
       <div className="header-group">
-        <a href="https://ipix.my.id" className="header-capsule" target="_blank" rel="noreferrer">
-          www.ipix.my.id
+        <a href="https://ipixchat.my.id" className="hud-link" target="_blank" rel="noreferrer">
+          IPIXCHAT.MY.ID
         </a>
-        <a href="https://sukachub.my.id" className="header-capsule" target="_blank" rel="noreferrer">
-          sukachub.my.id
+        <a href="https://sukachub.my.id" className="hud-link" target="_blank" rel="noreferrer">
+          SUKACHUB.MY.ID
         </a>
       </div>
 
+      {/* Control Panel / Target Zone */}
       <div id="control-panel">
-        <div id="info-trigger" onClick={() => setModalOpen(true)}>
-          Info
+        <div className="hud-btn" onClick={() => setModalOpen(true)}>
+          INFO
         </div>
-        <div
-          ref={targetRef}
-          id="target-pill"
-          className={targetGlow ? "target-glow" : ""}
-          style={{ background: targetBg }}
-        >
+        <div ref={targetRef} id="target-pill" className={targetGlow ? "target-glow" : ""}>
           {targetText}
         </div>
-        <div id="reload-btn" onClick={resetPositions}>
-          Reload
+        <div id="reload-btn" className="hud-btn" onClick={resetPositions}>
+          RESET
         </div>
       </div>
 
+      {/* RPG Character Cards */}
       {LINKS.map((link, idx) => (
         <div
           key={link.label}
-          className="pill"
-          style={pillBaseStyle}
+          className="character-card"
           ref={(el) => {
-            const p = pillRefs.current[idx];
-            if (p) p.el = el;
+            const c = cardRefs.current[idx];
+            if (c) c.el = el;
           }}
-          onMouseDown={(e) => onPillPointerDown(e, idx)}
-          onTouchStart={(e) => onPillPointerDown(e, idx)}
+          onMouseDown={(e) => onCardPointerDown(e, idx)}
+          onTouchStart={(e) => onCardPointerDown(e, idx)}
         >
-          <img src={link.icon} alt={link.label} className="pill-icon" />
-          {link.label}
+          {/* Gambar Karakter */}
+          <div className="card-img-container">
+            <img src={link.image} alt={link.label} className="card-img" />
+          </div>
+
+          <div className="card-info">
+            <span className="card-title truncate">{link.label}</span>
+            <div>
+              <div className="w-full text-[8.5px] font-bold text-gray-300">
+                {/* Full Link Teks Tanpa Angka Stat */}
+                <span
+                  className="block truncate text-cyan-300 font-mono w-full"
+                  title={link.displayUrl}
+                >
+                  {link.displayUrl}
+                </span>
+              </div>
+              <div className="card-hp-bar">
+                <div
+                  className="card-hp-fill"
+                  style={{ width: "100%", backgroundColor: link.color }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       ))}
 
+      {/* Modal Info */}
       <div id="modal" className={modalOpen ? "open" : ""}>
         <div id="modal-card">
-          <p>
-            <b style={{ color: "var(--foreground-heading)" }}>Info Cara:</b>
-          </p>
-          <ul className="mt-2 space-y-1 text-sm opacity-90">
+          <h3 className="text-cyan-400 font-extrabold text-base mb-2">BANTUAN GAME UI</h3>
+          <ul className="space-y-2 text-xs text-slate-300">
             <li>
-              <b>Tap layar 1x</b>: Melakukan <b>Pause</b> dan <b>Merapihkan posisi Link (Pill)</b>.
+              • <b>Drag Kartu Karakter</b> lalu arahkan ke kotak <b>TARGET LOCK</b> untuk membuka
+              situs web.
             </li>
             <li>
-              <b>Tap Lagi</b>: <b>Ganti Warna</b> secara random dalam tema ini.
+              • <b>Tap/Tahan Layar Kosong</b>: Merapikan & menyusun kartu ke posisi grid selang-seling.
             </li>
             <li>
-              <b>Klik Reload</b>: Untuk <b>Melanjutkan</b> pergerakan.
-            </li>
-            <li>
-              <b>Geser Link (Pill)</b> lalu arahkan ke:
-              <div
-                className="target-pill-demo"
-                style={{ marginTop: 6, marginBottom: 6, background: "var(--card-bg)" }}
-              >
-                <b>Menuju Link</b>
-              </div>
-              ketika menyala lepas untuk membuka situs web.
-            </li>
-            <li className="mt-4 pt-2 border-t border-[var(--card-border)] text-center font-bold" style={{ color: "var(--accent)" }}>
-              Have Fun guys!
+              • <b>Tombol RESET</b>: Memulai ulang pergerakan acak.
             </li>
           </ul>
-          <div id="close-btn" onClick={() => setModalOpen(false)}>
-            ×
-          </div>
+          <button
+            className="mt-4 w-full py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-lg text-xs uppercase"
+            onClick={() => setModalOpen(false)}
+          >
+            TUTUP
+          </button>
         </div>
       </div>
 
