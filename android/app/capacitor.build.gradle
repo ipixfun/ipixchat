@@ -16,6 +16,7 @@ dependencies {
     implementation project(':capacitor-push-notifications')
     implementation project(':capawesome-team-capacitor-android-foreground-service')
     implementation project(':jofr-capacitor-media-session')
+    implementation project(':capacitor-voice-recorder')
 
 }
 

@@ -22,3 +22,6 @@ project(':capawesome-team-capacitor-android-foreground-service').projectDir = ne
 
 include ':jofr-capacitor-media-session'
 project(':jofr-capacitor-media-session').projectDir = new File('../node_modules/@jofr/capacitor-media-session/android')
+
+include ':capacitor-voice-recorder'
+project(':capacitor-voice-recorder').projectDir = new File('../node_modules/capacitor-voice-recorder/android')
