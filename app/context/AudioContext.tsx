@@ -230,7 +230,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, [pathname, checkAuthStatus, refreshQuickPicks]);
 
-  // FIX UTAMA YOUTUBE PAUSE DI BACKGROUND
+  // FIX BACKGROUND & UNMUTE AUDIO YOUTUBE
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.addEventListener('visibilitychange', (e) => {
@@ -365,6 +365,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       try { ForegroundService.stopForegroundService(); } catch (e) {}
     } else {
       playerRef.current.playVideo();
+      if (typeof playerRef.current.unMute === 'function') {
+        playerRef.current.unMute();
+        playerRef.current.setVolume(100);
+      }
       setIsPlaying(true);
       try { MediaSession.setPlaybackState({ playbackState: 'playing' }); } catch (e) {}
       try {
@@ -394,6 +398,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await MediaSession.setActionHandler({ action: 'play' }, () => {
         if (playerRef.current) {
           playerRef.current.playVideo();
+          if (typeof playerRef.current.unMute === 'function') {
+            playerRef.current.unMute();
+            playerRef.current.setVolume(100);
+          }
           setIsPlaying(true);
           try { MediaSession.setPlaybackState({ playbackState: 'playing' }); } catch (e) {}
           try {
@@ -457,6 +465,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (playerRef.current) {
         playerRef.current.loadVideoById(song.id);
+        if (typeof playerRef.current.unMute === 'function') {
+          playerRef.current.unMute();
+          playerRef.current.setVolume(100);
+        }
       } else {
         playerRef.current = new window.YT.Player('yt-global-player', {
           height: '1',
@@ -464,9 +476,17 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           videoId: song.id,
           playerVars: { autoplay: 1, controls: 0, disablekb: 1, fs: 0, rel: 0 },
           events: {
-            onReady: (event: any) => event.target.playVideo(),
+            onReady: (event: any) => {
+              event.target.unMute();
+              event.target.setVolume(100);
+              event.target.playVideo();
+            },
             onStateChange: (event: any) => {
               if (event.data === 1) { // PLAYING
+                if (playerRef.current && typeof playerRef.current.unMute === 'function') {
+                  playerRef.current.unMute();
+                  playerRef.current.setVolume(100);
+                }
                 setIsPlaying(true);
                 startProgressTimer();
                 try { MediaSession.setPlaybackState({ playbackState: 'playing' }); } catch (e) {}
@@ -638,7 +658,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         seekToTime,
       }}
     >
-      <div className="absolute opacity-0 pointer-events-none -z-50 w-1 h-1 overflow-hidden">
+      <div className="fixed -top-[9999px] -left-[9999px] w-[1px] h-[1px] opacity-10 pointer-events-none z-[-9999]">
         <div id="yt-global-player"></div>
       </div>
       {children}
