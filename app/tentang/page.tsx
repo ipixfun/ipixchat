@@ -19,7 +19,6 @@ interface LinkItem {
   url: string;
   displayUrl: string; // Teks Link Asli Full
   image: string; // Gambar .webp
-  color: string;
 }
 
 interface CardRef {
@@ -38,7 +37,7 @@ interface CardRef {
 type AppState = "moving" | "aligned";
 
 /* =========================
-   Constants
+   Constants & Theme Helpers
    ========================= */
 const LINKS: LinkItem[] = [
   {
@@ -46,44 +45,67 @@ const LINKS: LinkItem[] = [
     url: "https://www.x.com/sixripix",
     displayUrl: "x.com/sixripix",
     image: "/0.webp",
-    color: "#38bdf8",
   },
   {
     label: "Walla@pix",
     url: "https://international.walla-app.com/user?id=V2O6MN&app=2",
     displayUrl: "walla-app.com",
     image: "/1.webp",
-    color: "#f59e0b",
   },
   {
     label: "TikTok@ipixaja",
     url: "https://www.tiktok.com/@ipixaja",
     displayUrl: "tiktok.com/@ipixaja",
     image: "/2.webp",
-    color: "#ec4899",
   },
   {
     label: "ipix.my.id",
     url: "https://ipix.my.id",
     displayUrl: "ipix.my.id",
     image: "/3.webp",
-    color: "#10b981",
   },
   {
     label: "iPix.Fun",
     url: "https://ipix.fun",
     displayUrl: "ipix.fun",
     image: "/0.webp",
-    color: "#ef4444",
   },
   {
     label: "Growlr@pix",
     url: "https://growlrapp.com",
     displayUrl: "growlrapp.com",
     image: "/4.webp",
-    color: "#a855f7",
   },
 ];
+
+// Helper: Preset Palette untuk 10 Tema & Custom
+function getRandomColorForTheme(themeId: string, customColors: any): string {
+  if (themeId === "custom" && customColors) {
+    const customList = [
+      customColors.accent || "#39FF14",
+      customColors.wave1 || "#191970",
+      customColors.wave2 || "#00BFFF",
+      customColors.wave3 || "#FF0055",
+    ];
+    return customList[Math.floor(Math.random() * customList.length)];
+  }
+
+  const presetPalettes: Record<string, string[]> = {
+    "dark": ["#525252", "#737373", "#a3a3a3", "#d4d4d4"],
+    "navy-electric": ["#1e3a8a", "#3b82f6", "#60a5fa", "#93c5fd"],
+    "emerald-cream": ["#10b981", "#fcd34d", "#34d399", "#fde68a"],
+    "teal-coral": ["#14b8a6", "#fdba74", "#2dd4bf", "#fed7aa"],
+    "sea-citrus": ["#06b6d4", "#5eead4", "#22d3ee", "#99f6e4"],
+    "raisin-sunset": ["#f43f5e", "#fb7185", "#f43f5e", "#e11d48"],
+    "gunmetal-platinum": ["#475569", "#64748b", "#94a3b8", "#cbd5e1"],
+    "charcoal-ecru": ["#44403c", "#57534e", "#78716c", "#a8a29e"],
+    "charcoal-sage": ["#3f3f46", "#52525b", "#71717a", "#a1a1aa"],
+    "cyber-neon": ["#0ea5e9", "#a855f7", "#ec4899", "#39FF14"],
+  };
+
+  const options = presetPalettes[themeId] || presetPalettes["cyber-neon"];
+  return options[Math.floor(Math.random() * options.length)];
+}
 
 // Dimensi Kartu Karakter
 const CARD_W = 105;
@@ -91,7 +113,7 @@ const CARD_H = 152;
 const BOTTOM_NAV_HEIGHT = 70;
 
 export default function IpixFun(): JSX.Element | null {
-  const { mounted } = useTheme();
+  const { theme, customColors, mounted } = useTheme();
 
   // ---------- Refs ----------
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -109,7 +131,7 @@ export default function IpixFun(): JSX.Element | null {
       displayUrl: link.displayUrl,
       label: link.label,
       image: link.image,
-      color: link.color,
+      color: "#00f0ff",
     }))
   );
 
@@ -122,6 +144,22 @@ export default function IpixFun(): JSX.Element | null {
   const [modalOpen, setModalOpen] = useState(false);
   const [targetText, setTargetText] = useState("TARGET LOCK");
   const [targetGlow, setTargetGlow] = useState(false);
+
+  // ---------- Update Color Berdasarkan Tema ----------
+  const randomizeThemeColors = useCallback(() => {
+    cardRefs.current.forEach((c) => {
+      c.color = getRandomColorForTheme(theme, customColors);
+      if (c.el) {
+        c.el.style.setProperty("--card-color", c.color);
+      }
+    });
+  }, [theme, customColors]);
+
+  useEffect(() => {
+    if (mounted) {
+      randomizeThemeColors();
+    }
+  }, [theme, customColors, mounted, randomizeThemeColors]);
 
   // ---------- Helper: Bounds ----------
   const getBounds = useCallback(() => {
@@ -148,12 +186,15 @@ export default function IpixFun(): JSX.Element | null {
   const applyCardStyle = useCallback((c: CardRef) => {
     if (!c.el) return;
     c.el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0)`;
+    c.el.style.setProperty("--card-color", c.color);
   }, []);
 
-  // ---------- Reset positions ----------
+  // ---------- Reset Positions & Colors ----------
   const resetPositions = useCallback(() => {
     appStateRef.current = "moving";
     isPausedRef.current = false;
+    randomizeThemeColors();
+
     const { musicBottom, tgtTop, tgtBottom, containerWidth, bottomLimit } = getBounds();
     const centerX = containerWidth / 2 - CARD_W / 2;
 
@@ -170,7 +211,7 @@ export default function IpixFun(): JSX.Element | null {
       c.vy = (Math.random() - 0.5) * 2.5;
       applyCardStyle(c);
     });
-  }, [getBounds, applyCardStyle]);
+  }, [getBounds, applyCardStyle, randomizeThemeColors]);
 
   useEffect(() => {
     if (mounted) {
@@ -179,7 +220,7 @@ export default function IpixFun(): JSX.Element | null {
     }
   }, [mounted, resetPositions]);
 
-  // ---------- Canvas drawing (Laser Line) ----------
+  // ---------- Canvas Drawing (Laser Line Warna Tema Active) ----------
   const drawConnections = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -195,8 +236,8 @@ export default function IpixFun(): JSX.Element | null {
 
       ctx.beginPath();
       ctx.lineWidth = 3;
-      ctx.strokeStyle = active.color || "#00f0ff";
-      ctx.shadowColor = active.color || "#00f0ff";
+      ctx.strokeStyle = active.color || "var(--accent, #00f0ff)";
+      ctx.shadowColor = active.color || "var(--accent, #00f0ff)";
       ctx.shadowBlur = 12;
       ctx.moveTo(cardX, cardY);
       ctx.lineTo(tgtCenterX, tgtCenterY);
@@ -219,7 +260,7 @@ export default function IpixFun(): JSX.Element | null {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
-  // ---------- Align Cards (Staggered Grid Layout Sesuai Gambar) ----------
+  // ---------- Align Cards (Staggered Grid Layout) ----------
   const alignCards = useCallback(() => {
     const { musicBottom, tgtTop, tgtBottom, containerWidth, bottomLimit } = getBounds();
 
@@ -232,19 +273,16 @@ export default function IpixFun(): JSX.Element | null {
     const botSpace = bottomLimit - tgtBottom;
 
     // --- 3 Kartu Atas ---
-    // Kartu 0 (Kiri): Agak ke bawah
     if (cardRefs.current[0]) {
       cardRefs.current[0].x = col1X;
       cardRefs.current[0].y = musicBottom + Math.max(10, topSpace * 0.35);
       applyCardStyle(cardRefs.current[0]);
     }
-    // Kartu 1 (Tengah): Paling atas
     if (cardRefs.current[1]) {
       cardRefs.current[1].x = col2X;
       cardRefs.current[1].y = musicBottom + Math.max(5, topSpace * 0.05);
       applyCardStyle(cardRefs.current[1]);
     }
-    // Kartu 2 (Kanan): Sedang
     if (cardRefs.current[2]) {
       cardRefs.current[2].x = col3X;
       cardRefs.current[2].y = musicBottom + Math.max(10, topSpace * 0.25);
@@ -252,19 +290,16 @@ export default function IpixFun(): JSX.Element | null {
     }
 
     // --- 3 Kartu Bawah ---
-    // Kartu 3 (Kiri): Dekat control panel
     if (cardRefs.current[3]) {
       cardRefs.current[3].x = col1X;
       cardRefs.current[3].y = tgtBottom + Math.max(5, botSpace * 0.05);
       applyCardStyle(cardRefs.current[3]);
     }
-    // Kartu 4 (Tengah): Lebih ke bawah
     if (cardRefs.current[4]) {
       cardRefs.current[4].x = col2X;
       cardRefs.current[4].y = tgtBottom + Math.max(10, botSpace * 0.42);
       applyCardStyle(cardRefs.current[4]);
     }
-    // Kartu 5 (Kanan): Agak menengah
     if (cardRefs.current[5]) {
       cardRefs.current[5].x = col3X;
       cardRefs.current[5].y = tgtBottom + Math.max(10, botSpace * 0.22);
@@ -368,7 +403,7 @@ export default function IpixFun(): JSX.Element | null {
     };
   }, [moveCard, endDrag]);
 
-  // ---------- Animation loop ----------
+  // ---------- Animation Loop ----------
   useEffect(() => {
     let rafId = 0;
     const tick = () => {
@@ -435,7 +470,11 @@ export default function IpixFun(): JSX.Element | null {
   return (
     <div
       ref={containerRef}
-      className="w-full max-w-2xl mx-auto h-dvh flex flex-col relative overflow-hidden bg-slate-950 text-white font-sans select-none"
+      className="w-full max-w-2xl mx-auto h-dvh flex flex-col relative overflow-hidden transition-colors duration-300 select-none font-sans"
+      style={{
+        backgroundColor: "var(--background, #020617)",
+        color: "var(--foreground, #ffffff)",
+      }}
     >
       <style
         dangerouslySetInnerHTML={{
@@ -447,33 +486,33 @@ export default function IpixFun(): JSX.Element | null {
 
         /* HUD Header Links */
         .header-group { position: absolute; top: 12px; left: 0; width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 1005; }
-        .hud-link { padding: 6px 14px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 1px solid #00f0ff; border-radius: 6px; color: #00f0ff; text-decoration: none; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(0, 240, 255, 0.2); }
+        .hud-link { padding: 6px 14px; background: var(--card-bg, rgba(15, 23, 42, 0.85)); backdrop-filter: blur(10px); border: 1px solid var(--accent, #00f0ff); border-radius: 6px; color: var(--accent, #00f0ff); text-decoration: none; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 0 10px var(--accent-glow, rgba(0, 240, 255, 0.2)); transition: all 0.3s; }
 
         /* Control Panel / Target Slot */
         #control-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 10px; z-index: 998; }
-        .hud-btn { padding: 8px 12px; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; font-weight: bold; font-size: 0.75rem; cursor: pointer; color: #fff; text-transform: uppercase; }
+        .hud-btn { padding: 8px 12px; background: var(--card-bg, rgba(15, 23, 42, 0.9)); border: 1px solid var(--card-border, rgba(255,255,255,0.2)); border-radius: 8px; font-weight: bold; font-size: 0.75rem; cursor: pointer; color: var(--foreground, #fff); text-transform: uppercase; transition: all 0.3s; }
         #reload-btn { border-color: #ef4444; color: #ef4444; }
 
-        #target-pill { width: 130px; height: 50px; border-radius: 8px; background: rgba(15, 23, 42, 0.9); border: 2px dashed #00f0ff; display: flex; align-items: center; justify-content: center; color: #00f0ff; font-weight: 900; font-size: 0.7rem; pointer-events: none; text-align: center; letter-spacing: 1px; transition: all 0.2s ease; }
-        .target-glow { background: rgba(0, 240, 255, 0.25) !important; border-style: solid !important; box-shadow: 0 0 25px #00f0ff; transform: scale(1.08); color: #fff !important; }
+        #target-pill { width: 130px; height: 50px; border-radius: 8px; background: var(--card-bg, rgba(15, 23, 42, 0.9)); border: 2px dashed var(--accent, #00f0ff); display: flex; align-items: center; justify-content: center; color: var(--accent, #00f0ff); font-weight: 900; font-size: 0.7rem; pointer-events: none; text-align: center; letter-spacing: 1px; transition: all 0.2s ease; }
+        .target-glow { background: color-mix(in srgb, var(--accent, #00f0ff) 30%, transparent) !important; border-style: solid !important; box-shadow: 0 0 25px var(--accent-glow, #00f0ff); transform: scale(1.08); color: #fff !important; }
 
-        /* RPG Character Card Style */
-        .character-card { position: absolute; left: 0; top: 0; width: ${CARD_W}px; height: ${CARD_H}px; border-radius: 12px; background: rgba(15, 23, 42, 0.92); border: 2px solid rgba(255, 255, 255, 0.25); overflow: hidden; display: flex; flex-direction: column; cursor: grab; user-select: none; z-index: 10; touch-action: none; box-shadow: 0 8px 20px rgba(0,0,0,0.6); transition: border-color 0.2s; }
-        .character-card:active { cursor: grabbing; border-color: #00f0ff; box-shadow: 0 0 20px rgba(0, 240, 255, 0.6); }
+        /* RPG Character Card Style dengan Warna Tema Dynamic */
+        .character-card { position: absolute; left: 0; top: 0; width: ${CARD_W}px; height: ${CARD_H}px; border-radius: 12px; background: var(--card-bg, rgba(15, 23, 42, 0.92)); border: 2px solid var(--card-color, var(--accent, #00f0ff)); overflow: hidden; display: flex; flex-direction: column; cursor: grab; user-select: none; z-index: 10; touch-action: none; box-shadow: 0 8px 20px rgba(0,0,0,0.6), 0 0 10px color-mix(in srgb, var(--card-color, #00f0ff) 40%, transparent); transition: border-color 0.3s, box-shadow 0.3s; }
+        .character-card:active { cursor: grabbing; border-color: var(--accent, #00f0ff); box-shadow: 0 0 20px var(--accent-glow, rgba(0, 240, 255, 0.8)); }
 
         /* Container Gambar Pas Mobile */
-        .card-img-container { width: 100%; height: 96px; background: radial-gradient(circle at center, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.95)); display: flex; align-items: center; justify-content: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden; padding: 2px; }
+        .card-img-container { width: 100%; height: 96px; background: radial-gradient(circle at center, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.95)); display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--card-border, rgba(255, 255, 255, 0.1)); overflow: hidden; padding: 2px; }
         .card-img { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
 
         .card-info { padding: 4px 6px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.9) 100%); }
         .card-title { font-size: 0.65rem; font-weight: 800; color: #fff; line-height: 1.1; }
         .card-hp-bar { width: 100%; height: 4px; background: #334155; border-radius: 2px; overflow: hidden; margin-top: 3px; }
-        .card-hp-fill { height: 100%; border-radius: 2px; }
+        .card-hp-fill { height: 100%; border-radius: 2px; background-color: var(--card-color, var(--accent, #00f0ff)); transition: background-color 0.3s; }
 
         /* Modal */
         #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100dvh; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); z-index: 2000; align-items: center; justify-content: center; }
         #modal.open { display: flex; }
-        #modal-card { width: 85%; max-width: 320px; padding: 20px; background: #0f172a; border-radius: 16px; border: 1px solid #00f0ff; color: #fff; }
+        #modal-card { width: 85%; max-width: 320px; padding: 20px; background: var(--card-bg, #0f172a); border-radius: 16px; border: 1px solid var(--accent, #00f0ff); color: var(--foreground, #fff); }
       `,
         }}
       />
@@ -524,19 +563,17 @@ export default function IpixFun(): JSX.Element | null {
             <span className="card-title truncate">{link.label}</span>
             <div>
               <div className="w-full text-[8.5px] font-bold text-gray-300">
-                {/* Full Link Teks Tanpa Angka Stat */}
+                {/* Full Link Teks Berwarna Sesuai Tema */}
                 <span
-                  className="block truncate text-cyan-300 font-mono w-full"
+                  className="block truncate font-mono w-full"
+                  style={{ color: "var(--card-color, var(--accent, #38bdf8))" }}
                   title={link.displayUrl}
                 >
                   {link.displayUrl}
                 </span>
               </div>
               <div className="card-hp-bar">
-                <div
-                  className="card-hp-fill"
-                  style={{ width: "100%", backgroundColor: link.color }}
-                />
+                <div className="card-hp-fill" style={{ width: "100%" }} />
               </div>
             </div>
           </div>
@@ -546,8 +583,10 @@ export default function IpixFun(): JSX.Element | null {
       {/* Modal Info */}
       <div id="modal" className={modalOpen ? "open" : ""}>
         <div id="modal-card">
-          <h3 className="text-cyan-400 font-extrabold text-base mb-2">BANTUAN GAME UI</h3>
-          <ul className="space-y-2 text-xs text-slate-300">
+          <h3 className="font-extrabold text-base mb-2" style={{ color: "var(--accent, #00f0ff)" }}>
+            BANTUAN GAME UI
+          </h3>
+          <ul className="space-y-2 text-xs opacity-90">
             <li>
               • <b>Drag Kartu Karakter</b> lalu arahkan ke kotak <b>TARGET LOCK</b> untuk membuka
               situs web.
@@ -556,11 +595,15 @@ export default function IpixFun(): JSX.Element | null {
               • <b>Tap/Tahan Layar Kosong</b>: Merapikan & menyusun kartu ke posisi grid selang-seling.
             </li>
             <li>
-              • <b>Tombol RESET</b>: Memulai ulang pergerakan acak.
+              • <b>Tombol RESET</b>: Memulai ulang pergerakan acak dan mengacak skema warna tema.
             </li>
           </ul>
           <button
-            className="mt-4 w-full py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-lg text-xs uppercase"
+            className="mt-4 w-full py-2 font-black rounded-lg text-xs uppercase cursor-pointer"
+            style={{
+              backgroundColor: "var(--accent, #00f0ff)",
+              color: "var(--background, #000000)",
+            }}
             onClick={() => setModalOpen(false)}
           >
             TUTUP
