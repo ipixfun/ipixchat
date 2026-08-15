@@ -136,6 +136,7 @@ export default function IpixFun(): JSX.Element | null {
   const [targetText, setTargetText] = useState("TARGET LINK");
   const [targetGlow, setTargetGlow] = useState(false);
   const [activeCardIdx, setActiveCardIdx] = useState<number | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // ---------- Helper: Bounds ----------
   const getBounds = useCallback(() => {
@@ -150,7 +151,6 @@ export default function IpixFun(): JSX.Element | null {
     const containerWidth = container ? container.clientWidth : 800;
     const containerHeight = container ? container.clientHeight : 800;
 
-    // Pastikan titik tengah valid bahkan saat DOM pertama kali dimuat
     const tgtCenterX = tRect.width > 0 
       ? (tRect.left - cRect.left + tRect.width / 2) 
       : (containerWidth / 2);
@@ -252,10 +252,10 @@ export default function IpixFun(): JSX.Element | null {
 
   useEffect(() => {
     if (mounted) {
-      // Tunggu hingga frame layout browser siap agar koordinat tepat di tengah
       requestAnimationFrame(() => {
         lockCardPositions();
         triggerShuffleAnimation();
+        setIsInitialized(true);
       });
     }
   }, [mounted, lockCardPositions, triggerShuffleAnimation]);
@@ -552,7 +552,7 @@ export default function IpixFun(): JSX.Element | null {
           user-select: none; 
           touch-action: none; 
           perspective: 1000px;
-          transition: z-index 0.2s ease;
+          transition: z-index 0.2s ease, opacity 0.15s ease;
         }
         .character-card:active { cursor: grabbing; }
 
@@ -810,6 +810,8 @@ export default function IpixFun(): JSX.Element | null {
             className="character-card"
             style={{
               zIndex: isSelected ? 50 : 10,
+              visibility: isInitialized ? "visible" : "hidden",
+              opacity: isInitialized ? 1 : 0,
             }}
             ref={(el) => {
               const c = cardRefs.current[idx];
