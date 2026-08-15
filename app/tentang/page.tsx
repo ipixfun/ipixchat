@@ -152,7 +152,7 @@ export default function IpixFun(): JSX.Element | null {
   const [selectedLink, setSelectedLink] = useState<LinkItem | null>(null);
   const [iframeError, setIframeError] = useState(false);
 
-  const [targetText, setTargetText] = useState("TARGET LOCK");
+  const [targetText, setTargetText] = useState("TARGET LINK");
   const [targetGlow, setTargetGlow] = useState(false);
   const [activeCardIdx, setActiveCardIdx] = useState<number | null>(null);
 
@@ -223,7 +223,7 @@ export default function IpixFun(): JSX.Element | null {
     if (cardRefs.current[1]) { cardRefs.current[1].x = col2X; cardRefs.current[1].y = topY; }
     if (cardRefs.current[2]) { cardRefs.current[2].x = col3X; cardRefs.current[2].y = topY; }
 
-    // Row 2 (Tengah - 2 Kartu di Kiri & Kanan Target Lock)
+    // Row 2 (Tengah - 2 Kartu di Kiri & Kanan Target Link)
     if (cardRefs.current[3]) { cardRefs.current[3].x = col1X; cardRefs.current[3].y = midY; }
     if (cardRefs.current[4]) { cardRefs.current[4].x = col3X; cardRefs.current[4].y = midY; }
 
@@ -290,7 +290,7 @@ export default function IpixFun(): JSX.Element | null {
     const cRect = container.getBoundingClientRect();
 
     activeCardRef.current = obj;
-    setActiveCardIdx(idx); // Aktifkan Glow & Rotasi 3D hanya saat kartu ini dipilih
+    setActiveCardIdx(idx);
     dragStartPosRef.current = { x: obj.x, y: obj.y };
 
     setTargetText(`DEPLOY: ${obj.label}`);
@@ -343,15 +343,14 @@ export default function IpixFun(): JSX.Element | null {
         setIframeError(false);
         setPreviewModalOpen(true);
       } else {
-        // Jika dilepas di luar target lock, kembalikan ke posisi semula
         active.x = dragStartPosRef.current.x;
         active.y = dragStartPosRef.current.y;
         applyCardStyle(active);
-        setActiveCardIdx(null); // Matikan glow & rotasi saat kembali
+        setActiveCardIdx(null);
       }
     }
     activeCardRef.current = null;
-    setTargetText("TARGET LOCK");
+    setTargetText("TARGET LINK");
     setTargetGlow(false);
   }, [getBounds, applyCardStyle]);
 
@@ -363,7 +362,7 @@ export default function IpixFun(): JSX.Element | null {
       deployedCardRef.current = null;
       origPosRef.current = null;
     }
-    setActiveCardIdx(null); // Matikan glow & rotasi saat modal ditutup/dibatalkan
+    setActiveCardIdx(null);
     setPreviewModalOpen(false);
   }, [applyCardStyle]);
 
@@ -429,7 +428,6 @@ export default function IpixFun(): JSX.Element | null {
 
   if (!mounted) return null;
 
-  // Cek apakah domain menggunakan .my.id atau .fun
   const isLiveIframeDomain = selectedLink && (
     selectedLink.url.includes(".my.id") || selectedLink.url.includes(".fun")
   );
@@ -451,7 +449,6 @@ export default function IpixFun(): JSX.Element | null {
         
         #fx-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
 
-        /* Header Top Bar: Presisi Sejajar Tingginya dengan Mini Player */
         .header-top-bar {
           position: absolute;
           top: 12px;
@@ -490,13 +487,11 @@ export default function IpixFun(): JSX.Element | null {
           transform: scale(0.95);
         }
 
-        /* Slot MP3 Player Dinamis */
         .mp3-player-container {
           display: flex;
           align-items: center;
         }
 
-        /* Control Panel Center: TARGET LOCK */
         #control-panel {
           position: absolute;
           top: 50%;
@@ -508,7 +503,6 @@ export default function IpixFun(): JSX.Element | null {
           z-index: 998;
         }
 
-        /* TARGET LOCK Slot */
         #target-pill { 
           width: ${CARD_W}px; 
           height: ${CARD_H}px; 
@@ -536,7 +530,6 @@ export default function IpixFun(): JSX.Element | null {
           color: #fff !important; 
         }
 
-        /* RPG Character Card Base */
         .character-card { 
           position: absolute; 
           left: 0; 
@@ -545,13 +538,12 @@ export default function IpixFun(): JSX.Element | null {
           height: ${CARD_H}px; 
           cursor: grab; 
           user-select: none; 
-          z-index: 10; 
           touch-action: none; 
           perspective: 1000px;
+          transition: z-index 0.2s ease;
         }
         .character-card:active { cursor: grabbing; }
 
-        /* Pembungkus Dalam Kartu */
         .card-inner {
           width: 100%;
           height: 100%;
@@ -561,13 +553,13 @@ export default function IpixFun(): JSX.Element | null {
           position: relative;
           transform-style: preserve-3d;
           transform-origin: center center;
-          transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+          transition: border-color 0.3s, box-shadow 0.3s, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Animasi Rotasi 3D 360° + Glow Hanya Saat Kartu Dipilih/Deploy */
+        /* Rotasi 3D + Membesar (Scale 1.1) Saat Menggeser Kartu */
         @keyframes rotateYCard {
-          0% { transform: rotateY(0deg); }
-          100% { transform: rotateY(360deg); }
+          0% { transform: scale(1.1) rotateY(0deg); }
+          100% { transform: scale(1.1) rotateY(360deg); }
         }
         .card-active-deploy {
           border: 2px solid var(--card-color, var(--accent, #00f0ff)) !important;
@@ -575,7 +567,12 @@ export default function IpixFun(): JSX.Element | null {
           animation: rotateYCard 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
         }
 
-        /* Sisi Depan dan Sisi Belakang Kartu */
+        /* Ketika Tepat di Target Link: Kartu Mengecil Kembali Seukuran Target Link (Scale 1) & Berhenti Berputar */
+        .card-at-target {
+          animation: none !important;
+          transform: scale(1) rotateY(0deg) !important;
+        }
+
         .card-front, .card-back {
           position: absolute;
           top: 0;
@@ -598,7 +595,6 @@ export default function IpixFun(): JSX.Element | null {
           transform: rotateY(180deg);
         }
 
-        /* Container Gambar Pas Mobile */
         .card-img-container { width: 100%; height: 92px; background: radial-gradient(circle at center, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.95)); display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--card-border, rgba(255, 255, 255, 0.1)); overflow: hidden; padding: 2px; }
         .card-img { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
 
@@ -607,13 +603,11 @@ export default function IpixFun(): JSX.Element | null {
         .card-hp-bar { width: 100%; height: 4px; background: #334155; border-radius: 2px; overflow: hidden; margin-top: 3px; }
         .card-hp-fill { height: 100%; border-radius: 2px; background-color: var(--card-color, var(--accent, #00f0ff)); transition: background-color 0.3s; }
 
-        /* Pop-Up Modal Base */
         .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100dvh; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); z-index: 2000; align-items: center; justify-content: center; }
         .modal-backdrop.open { display: flex; }
 
         #modal-card { width: 85%; max-width: 320px; padding: 20px; background: var(--card-bg, #0f172a); border-radius: 16px; border: 1px solid var(--accent, #00f0ff); color: var(--foreground, #fff); }
 
-        /* Big Preview Modal Card */
         #preview-modal-card {
           width: 90%;
           max-width: 380px;
@@ -694,7 +688,7 @@ export default function IpixFun(): JSX.Element | null {
 
       <canvas ref={canvasRef} id="fx-canvas" />
 
-      {/* Header Top Bar: MP3 Player (Kiri) & INFO (Kanan Sejajar) */}
+      {/* Header Top Bar */}
       <div className="header-top-bar">
         <div id="mp3-player-container" className="mp3-player-container">
           <GlobalMiniPlayer />
@@ -704,14 +698,14 @@ export default function IpixFun(): JSX.Element | null {
         </div>
       </div>
 
-      {/* Control Panel Tengah: TARGET LOCK */}
+      {/* Control Panel Tengah */}
       <div id="control-panel">
         <div ref={targetRef} id="target-pill" className={targetGlow ? "target-glow" : ""}>
           <span>{targetText}</span>
         </div>
       </div>
 
-      {/* 8 Kartu Karakter Dalam Grid Terkunci */}
+      {/* 8 Kartu Karakter */}
       {LINKS.map((link, idx) => {
         const renderCardContent = () => (
           <>
@@ -738,10 +732,15 @@ export default function IpixFun(): JSX.Element | null {
           </>
         );
 
+        const isSelected = activeCardIdx === idx;
+
         return (
           <div
             key={link.label}
             className="character-card"
+            style={{
+              zIndex: isSelected ? 50 : 10,
+            }}
             ref={(el) => {
               const c = cardRefs.current[idx];
               if (c) c.el = el;
@@ -751,8 +750,8 @@ export default function IpixFun(): JSX.Element | null {
           >
             <div
               className={`card-inner ${
-                activeCardIdx === idx ? "card-active-deploy" : ""
-              }`}
+                isSelected ? "card-active-deploy" : ""
+              } ${isSelected && targetGlow ? "card-at-target" : ""}`}
             >
               <div className="card-front">{renderCardContent()}</div>
               <div className="card-back">{renderCardContent()}</div>
@@ -761,7 +760,7 @@ export default function IpixFun(): JSX.Element | null {
         );
       })}
 
-      {/* Modal Info Bantuan */}
+      {/* Modal Bantuan */}
       <div id="modal" className={`modal-backdrop ${modalOpen ? "open" : ""}`}>
         <div id="modal-card">
           <h3 className="font-extrabold text-base mb-2" style={{ color: "var(--accent, #00f0ff)" }}>
@@ -769,13 +768,13 @@ export default function IpixFun(): JSX.Element | null {
           </h3>
           <ul className="space-y-2 text-xs opacity-90">
             <li>
-              • <b>Drag Kartu Karakter</b> ke slot <b>TARGET LOCK</b> untuk melihat antarmuka link secara langsung.
+              • <b>Drag Kartu Karakter</b> ke slot <b>TARGET LINK</b> untuk melihat antarmuka link secara langsung.
             </li>
             <li>
-              • <b>8 Kartu Terkunci Presisi</b> dalam susunan grid simetris.
+              • Kartu yang digeser akan <b>membesar & berputar 3D</b> di posisi paling atas.
             </li>
             <li>
-              • Kartu yang dipilih akan <b>menyala glow & berputar 3D</b> secara khusus saat di-deploy.
+              • Kartu akan <b>mengecil pas ke ukuran target link</b> dan berhenti berputar saat berada di area target.
             </li>
           </ul>
           <button
@@ -791,7 +790,7 @@ export default function IpixFun(): JSX.Element | null {
         </div>
       </div>
 
-      {/* Pop-Up Preview Besar Memuat Live Web Preview Snapshot */}
+      {/* Pop-Up Preview Modal */}
       <div id="preview-modal" className={`modal-backdrop ${previewModalOpen ? "open" : ""}`}>
         {selectedLink && (
           <div id="preview-modal-card">
@@ -806,7 +805,6 @@ export default function IpixFun(): JSX.Element | null {
               PREVIEW TARGET LINK
             </span>
 
-            {/* Area Live View / Iframe Tanpa Touch (Khusus .my.id dan .fun) */}
             <div className="preview-iframe-wrapper">
               {isLiveIframeDomain ? (
                 <iframe
@@ -848,7 +846,6 @@ export default function IpixFun(): JSX.Element | null {
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => {
-                  // Kembalikan kartu ke posisi semula dalam grid saat menuju link
                   handleCancel();
                 }}
                 className="preview-capsule-btn primary"
