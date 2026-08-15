@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback, RefObject } from 'react';
 import { usePathname } from 'next/navigation';
-import { Capacitor } from '@capacitor/core';
 import { KeepAwake } from '@capacitor-community/keep-awake';
 import { MediaSession } from '@jofr/capacitor-media-session';
 import { ForegroundService } from '@capawesome-team/capacitor-android-foreground-service';
@@ -363,9 +362,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       playerRef.current.pauseVideo();
       setIsPlaying(false);
       try { MediaSession.setPlaybackState({ playbackState: 'paused' }); } catch (e) {}
-      if (Capacitor.isNativePlatform()) {
-        try { ForegroundService.stopForegroundService(); } catch (e) {}
-      }
+      try { ForegroundService.stopForegroundService(); } catch (e) {}
     } else {
       playerRef.current.playVideo();
       if (typeof playerRef.current.unMute === 'function') {
@@ -374,16 +371,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       setIsPlaying(true);
       try { MediaSession.setPlaybackState({ playbackState: 'playing' }); } catch (e) {}
-      if (Capacitor.isNativePlatform()) {
-        try {
-          ForegroundService.startForegroundService({
-            id: 1001,
-            title: currentSongRef.current?.title || "ipixchat",
-            body: currentSongRef.current?.artist || "Memutar musik...",
-            smallIcon: "ic_launcher",
-          });
-        } catch (e) {}
-      }
+      try {
+        ForegroundService.startForegroundService({
+          id: 1001,
+          title: currentSongRef.current?.title || "ipixchat",
+          body: currentSongRef.current?.artist || "Memutar musik...",
+          smallIcon: "ic_launcher",
+        });
+      } catch (e) {}
     }
   }, [isPlaying]);
 
@@ -409,16 +404,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
           setIsPlaying(true);
           try { MediaSession.setPlaybackState({ playbackState: 'playing' }); } catch (e) {}
-          if (Capacitor.isNativePlatform()) {
-            try {
-              ForegroundService.startForegroundService({
-                id: 1001,
-                title: song.title || "ipixchat",
-                body: song.artist || "Memutar musik...",
-                smallIcon: "ic_launcher",
-              });
-            } catch (e) {}
-          }
+          try {
+            ForegroundService.startForegroundService({
+              id: 1001,
+              title: song.title || "ipixchat",
+              body: song.artist || "Memutar musik...",
+              smallIcon: "ic_launcher",
+            });
+          } catch (e) {}
         }
       });
 
@@ -427,9 +420,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           playerRef.current.pauseVideo();
           setIsPlaying(false);
           try { MediaSession.setPlaybackState({ playbackState: 'paused' }); } catch (e) {}
-          if (Capacitor.isNativePlatform()) {
-            try { ForegroundService.stopForegroundService(); } catch (e) {}
-          }
+          try { ForegroundService.stopForegroundService(); } catch (e) {}
         }
       });
     } catch (e) {
@@ -445,17 +436,15 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       } catch (e) {}
 
-      if (Capacitor.isNativePlatform()) {
-        try {
-          await ForegroundService.startForegroundService({
-            id: 1001,
-            title: song.title || "ipixchat",
-            body: song.artist || "Memutar musik...",
-            smallIcon: "ic_launcher",
-          });
-        } catch (e) {
-          console.log("Foreground service error:", e);
-        }
+      try {
+        await ForegroundService.startForegroundService({
+          id: 1001,
+          title: song.title || "ipixchat",
+          body: song.artist || "Memutar musik...",
+          smallIcon: "ic_launcher",
+        });
+      } catch (e) {
+        console.log("Foreground service error:", e);
       }
 
       setCurrentSong(song);
