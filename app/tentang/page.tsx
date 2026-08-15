@@ -20,6 +20,7 @@ interface LinkItem {
   url: string;
   displayUrl: string;
   image: string;
+  color: string;
 }
 
 interface CardRef {
@@ -35,85 +36,66 @@ interface CardRef {
 
 /* =========================
    Constants & 8 Locked Links
+   Warna disesuaikan dengan warna terang tiap karakter
    ========================= */
 const LINKS: LinkItem[] = [
   {
     label: "ipixchat.my.id",
     url: "https://ipixchat.my.id",
     displayUrl: "ipixchat.my.id",
-    image: "/0.webp",
+    image: "/tentang/01.webp",
+    color: "#FF5500", // Oranye Neon
   },
   {
     label: "sukachub.my.id",
     url: "https://sukachub.my.id",
     displayUrl: "sukachub.my.id",
-    image: "/1.webp",
-  },
-  {
-    label: "X@sixripix",
-    url: "https://www.x.com/sixripix",
-    displayUrl: "x.com/sixripix",
-    image: "/2.webp",
-  },
-  {
-    label: "Walla@pix",
-    url: "https://international.walla-app.com/user?id=V2O6MN&app=2",
-    displayUrl: "walla-app.com",
-    image: "/3.webp",
-  },
-  {
-    label: "TikTok@ipixaja",
-    url: "https://www.tiktok.com/@ipixaja",
-    displayUrl: "tiktok.com/@ipixaja",
-    image: "/4.webp",
+    image: "/tentang/02.webp",
+    color: "#E5FF00", // Kuning Neon
   },
   {
     label: "ipix.my.id",
     url: "https://ipix.my.id",
     displayUrl: "ipix.my.id",
-    image: "/0.webp",
+    image: "/tentang/06.webp",
+    color: "#A855F7", // Ungu Magenta Neon
   },
   {
     label: "Growlr@pix",
     url: "https://growlrapp.com",
     displayUrl: "growlrapp.com",
-    image: "/1.webp",
+    image: "/tentang/07.webp",
+    color: "#00E5FF", // Cyan Terang
   },
   {
     label: "iPix.Fun",
     url: "https://ipix.fun",
     displayUrl: "ipix.fun",
-    image: "/2.webp",
+    image: "/tentang/08.webp",
+    color: "#EC4899", // Pink Magenta
+  },
+  {
+    label: "X@sixripix",
+    url: "https://www.x.com/sixripix",
+    displayUrl: "x.com/sixripix",
+    image: "/tentang/03.webp",
+    color: "#00FF66", // Hijau Neon
+  },
+  {
+    label: "Walla@pix",
+    url: "https://international.walla-app.com/user?id=V2O6MN&app=2",
+    displayUrl: "walla-app.com",
+    image: "/tentang/04.webp",
+    color: "#00FFAB", // Toska Neon
+  },
+  {
+    label: "TikTok@ipixaja",
+    url: "https://www.tiktok.com/@ipixaja",
+    displayUrl: "tiktok.com/@ipixaja",
+    image: "/tentang/05.webp",
+    color: "#FF2A6D", // Coral Pink Neon
   },
 ];
-
-function getRandomColorForTheme(themeId: string, customColors: any): string {
-  if (themeId === "custom" && customColors) {
-    const customList = [
-      customColors.accent || "#39FF14",
-      customColors.wave1 || "#191970",
-      customColors.wave2 || "#00BFFF",
-      customColors.wave3 || "#FF0055",
-    ];
-    return customList[Math.floor(Math.random() * customList.length)];
-  }
-
-  const presetPalettes: Record<string, string[]> = {
-    "dark": ["#525252", "#737373", "#a3a3a3", "#d4d4d4"],
-    "navy-electric": ["#1e3a8a", "#3b82f6", "#60a5fa", "#93c5fd"],
-    "emerald-cream": ["#10b981", "#fcd34d", "#34d399", "#fde68a"],
-    "teal-coral": ["#14b8a6", "#fdba74", "#2dd4bf", "#fed7aa"],
-    "sea-citrus": ["#06b6d4", "#5eead4", "#22d3ee", "#99f6e4"],
-    "raisin-sunset": ["#f43f5e", "#fb7185", "#f43f5e", "#e11d48"],
-    "gunmetal-platinum": ["#475569", "#64748b", "#94a3b8", "#cbd5e1"],
-    "charcoal-ecru": ["#44403c", "#57534e", "#78716c", "#a8a29e"],
-    "charcoal-sage": ["#3f3f46", "#52525b", "#71717a", "#a1a1aa"],
-    "cyber-neon": ["#0ea5e9", "#a855f7", "#ec4899", "#39FF14"],
-  };
-
-  const options = presetPalettes[themeId] || presetPalettes["cyber-neon"];
-  return options[Math.floor(Math.random() * options.length)];
-}
 
 const CARD_W = 100;
 const CARD_H = 148;
@@ -136,7 +118,7 @@ export default function IpixFun(): JSX.Element | null {
       displayUrl: link.displayUrl,
       label: link.label,
       image: link.image,
-      color: "#00f0ff",
+      color: link.color,
     }))
   );
 
@@ -156,21 +138,20 @@ export default function IpixFun(): JSX.Element | null {
   const [targetGlow, setTargetGlow] = useState(false);
   const [activeCardIdx, setActiveCardIdx] = useState<number | null>(null);
 
-  // ---------- Update Warna Tema ----------
-  const randomizeThemeColors = useCallback(() => {
+  // ---------- Update Warna Kartu ----------
+  const applyCardColors = useCallback(() => {
     cardRefs.current.forEach((c) => {
-      c.color = getRandomColorForTheme(theme, customColors);
       if (c.el) {
         c.el.style.setProperty("--card-color", c.color);
       }
     });
-  }, [theme, customColors]);
+  }, []);
 
   useEffect(() => {
     if (mounted) {
-      randomizeThemeColors();
+      applyCardColors();
     }
-  }, [theme, customColors, mounted, randomizeThemeColors]);
+  }, [mounted, applyCardColors]);
 
   // ---------- Helper: Bounds ----------
   const getBounds = useCallback(() => {
@@ -241,31 +222,14 @@ export default function IpixFun(): JSX.Element | null {
     }
   }, [mounted, lockCardPositions]);
 
-  // ---------- Canvas Drawing (Laser Line saat Drag) ----------
+  // ---------- Canvas Drawing (Kosong tanpa Garis) ----------
   const drawConnections = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const active = activeCardRef.current;
-    if (active) {
-      const { tgtCenterX, tgtCenterY } = getBounds();
-      const cardX = active.x + CARD_W / 2;
-      const cardY = active.y + CARD_H / 2;
-
-      ctx.beginPath();
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = active.color || "var(--accent, #00f0ff)";
-      ctx.shadowColor = active.color || "var(--accent, #00f0ff)";
-      ctx.shadowBlur = 12;
-      ctx.moveTo(cardX, cardY);
-      ctx.lineTo(tgtCenterX, tgtCenterY);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    }
-  }, [getBounds]);
+  }, []);
 
   // ---------- Resize Canvas & Position Lock ----------
   useEffect(() => {
@@ -293,7 +257,7 @@ export default function IpixFun(): JSX.Element | null {
     setActiveCardIdx(idx);
     dragStartPosRef.current = { x: obj.x, y: obj.y };
 
-    setTargetText(`DEPLOY: ${obj.label}`);
+    setTargetText(`MENUJU: ${obj.label}`);
 
     offsetRef.current = {
       x: clientX - cRect.left - obj.x,
@@ -338,6 +302,7 @@ export default function IpixFun(): JSX.Element | null {
           url: active.url,
           displayUrl: active.displayUrl,
           image: active.image,
+          color: active.color,
         };
         setSelectedLink(item);
         setIframeError(false);
@@ -556,18 +521,16 @@ export default function IpixFun(): JSX.Element | null {
           transition: border-color 0.3s, box-shadow 0.3s, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Rotasi 3D + Membesar (Scale 1.1) Saat Menggeser Kartu */
         @keyframes rotateYCard {
           0% { transform: scale(1.1) rotateY(0deg); }
           100% { transform: scale(1.1) rotateY(360deg); }
         }
         .card-active-deploy {
-          border: 2px solid var(--card-color, var(--accent, #00f0ff)) !important;
-          box-shadow: 0 0 20px var(--card-color, var(--accent, #00f0ff)), inset 0 0 10px var(--card-color, var(--accent, #00f0ff)) !important;
+          border: 2px solid var(--card-color, #00f0ff) !important;
+          box-shadow: 0 0 20px var(--card-color, #00f0ff), inset 0 0 10px var(--card-color, #00f0ff) !important;
           animation: rotateYCard 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
         }
 
-        /* Ketika Tepat di Target Link: Kartu Mengecil Kembali Seukuran Target Link (Scale 1) & Berhenti Berputar */
         .card-at-target {
           animation: none !important;
           transform: scale(1) rotateY(0deg) !important;
@@ -601,7 +564,7 @@ export default function IpixFun(): JSX.Element | null {
         .card-info { padding: 4px 6px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.9) 100%); }
         .card-title { font-size: 0.62rem; font-weight: 800; color: #fff; line-height: 1.1; }
         .card-hp-bar { width: 100%; height: 4px; background: #334155; border-radius: 2px; overflow: hidden; margin-top: 3px; }
-        .card-hp-fill { height: 100%; border-radius: 2px; background-color: var(--card-color, var(--accent, #00f0ff)); transition: background-color 0.3s; }
+        .card-hp-fill { height: 100%; border-radius: 2px; transition: background-color 0.3s; }
 
         .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100dvh; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); z-index: 2000; align-items: center; justify-content: center; }
         .modal-backdrop.open { display: flex; }
@@ -715,17 +678,20 @@ export default function IpixFun(): JSX.Element | null {
             <div className="card-info">
               <span className="card-title truncate">{link.label}</span>
               <div>
-                <div className="w-full text-[8.5px] font-bold text-gray-300">
+                <div className="w-full text-[8.5px] font-bold">
                   <span
                     className="block truncate font-mono w-full"
-                    style={{ color: "var(--card-color, var(--accent, #38bdf8))" }}
+                    style={{ color: link.color }}
                     title={link.displayUrl}
                   >
                     {link.displayUrl}
                   </span>
                 </div>
                 <div className="card-hp-bar">
-                  <div className="card-hp-fill" style={{ width: "100%" }} />
+                  <div
+                    className="card-hp-fill"
+                    style={{ width: "100%", backgroundColor: link.color }}
+                  />
                 </div>
               </div>
             </div>
@@ -835,7 +801,7 @@ export default function IpixFun(): JSX.Element | null {
 
             <p
               className="text-[11px] font-mono mb-4 truncate w-full"
-              style={{ color: "var(--accent, #00f0ff)" }}
+              style={{ color: selectedLink.color }}
             >
               {selectedLink.url}
             </p>
