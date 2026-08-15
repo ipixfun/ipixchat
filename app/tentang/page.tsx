@@ -38,6 +38,20 @@ interface CardRef {
    Constants & 8 Locked Links
    ========================= */
 const LINKS: LinkItem[] = [
+    {
+    label: "ipix.my.id",
+    url: "https://ipix.my.id",
+    displayUrl: "ipix.my.id",
+    image: "/tentang/06.webp",
+    color: "#A855F7",
+  },
+   {
+    label: "sukachub.my.id",
+    url: "https://sukachub.my.id",
+    displayUrl: "sukachub.my.id",
+    image: "/tentang/02.webp",
+    color: "#E5FF00",
+  },
   {
     label: "ipixchat.my.id",
     url: "https://ipixchat.my.id",
@@ -46,53 +60,39 @@ const LINKS: LinkItem[] = [
     color: "#FF5500",
   },
   {
-    label: "sukachub.my.id",
-    url: "https://sukachub.my.id",
-    displayUrl: "sukachub.my.id",
-    image: "/tentang/02.webp",
-    color: "#E5FF00",
-  },
-  {
-    label: "ipix.my.id",
-    url: "https://ipix.my.id",
-    displayUrl: "ipix.my.id",
-    image: "/tentang/06.webp",
-    color: "#A855F7",
-  },
-  {
     label: "Growlr@pix",
     url: "https://growlrapp.com",
     displayUrl: "growlrapp.com",
     image: "/tentang/07.webp",
-    color: "#00E5FF",
+    color: "#9b6c48", // COKLAT
   },
   {
     label: "iPix.Fun",
     url: "https://ipix.fun",
     displayUrl: "ipix.fun",
     image: "/tentang/08.webp",
-    color: "#EC4899",
+    color: "#078b3c", // HIJAU
+  },
+{
+    label: "TikTok@ipixaja",
+    url: "https://www.tiktok.com/@ipixaja",
+    displayUrl: "tiktok.com/@ipixaja",
+    image: "/tentang/05.webp",
+    color: "#f71e54",
+  },
+    {
+    label: "Walla@pix",
+    url: "https://international.walla-app.com/user?id=V2O6MN&app=2",
+    displayUrl: "walla-app.com",
+    image: "/tentang/04.webp",
+    color: "#00E5FF", // CYAN
   },
   {
     label: "X@sixripix",
     url: "https://www.x.com/sixripix",
     displayUrl: "x.com/sixripix",
     image: "/tentang/03.webp",
-    color: "#00FF66",
-  },
-  {
-    label: "Walla@pix",
-    url: "https://international.walla-app.com/user?id=V2O6MN&app=2",
-    displayUrl: "walla-app.com",
-    image: "/tentang/04.webp",
-    color: "#00FFAB",
-  },
-  {
-    label: "TikTok@ipixaja",
-    url: "https://www.tiktok.com/@ipixaja",
-    displayUrl: "tiktok.com/@ipixaja",
-    image: "/tentang/05.webp",
-    color: "#FF2A6D",
+    color: "#979797", // ABU-ABU
   },
 ];
 
@@ -127,9 +127,15 @@ export default function IpixFun(): JSX.Element | null {
   const dragStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const offsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  const pointerStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const hasMovedRef = useRef<boolean>(false);
+
   // ---------- State ----------
   const [modalOpen, setModalOpen] = useState(false);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [slashModalOpen, setSlashModalOpen] = useState(false);
+  const [slashCard, setSlashCard] = useState<LinkItem | null>(null);
+
   const [selectedLink, setSelectedLink] = useState<LinkItem | null>(null);
   const [iframeError, setIframeError] = useState(false);
 
@@ -285,7 +291,7 @@ export default function IpixFun(): JSX.Element | null {
     return () => window.removeEventListener("resize", resize);
   }, [lockCardPositions]);
 
-  // ---------- Drag Handlers ----------
+  // ---------- Drag & Click Handlers ----------
   const startDrag = useCallback((obj: CardRef, idx: number, clientX: number, clientY: number) => {
     const container = containerRef.current;
     if (!container) return;
@@ -294,6 +300,9 @@ export default function IpixFun(): JSX.Element | null {
     activeCardRef.current = obj;
     setActiveCardIdx(idx);
     dragStartPosRef.current = { x: obj.x, y: obj.y };
+
+    pointerStartRef.current = { x: clientX, y: clientY };
+    hasMovedRef.current = false;
 
     setTargetText(`MENUJU: ${obj.label}`);
 
@@ -325,6 +334,33 @@ export default function IpixFun(): JSX.Element | null {
   const endDrag = useCallback(() => {
     const active = activeCardRef.current;
     if (!active) return;
+
+    // Jika pengguna hanya menekan (klik 1x) tanpa menggeser kartu
+    if (!hasMovedRef.current) {
+      const clickedItem = LINKS.find((l) => l.url === active.url) || {
+        label: active.label,
+        url: active.url,
+        displayUrl: active.displayUrl,
+        image: active.image,
+        color: active.color,
+      };
+
+      // Reset kartu ke posisi asal
+      active.x = dragStartPosRef.current.x;
+      active.y = dragStartPosRef.current.y;
+      applyCardStyle(active);
+
+      activeCardRef.current = null;
+      setActiveCardIdx(null);
+      setTargetText("TARGET LINK");
+      setTargetGlow(false);
+
+      // Buka Animasi Cut-In
+      setSlashCard(clickedItem);
+      setSlashModalOpen(true);
+      return;
+    }
+
     const tgt = targetRef.current?.getBoundingClientRect();
     const container = containerRef.current;
 
@@ -381,6 +417,14 @@ export default function IpixFun(): JSX.Element | null {
       const active = activeCardRef.current;
       const container = containerRef.current;
       if (!active || !container) return;
+
+      const dist = Math.hypot(
+        clientX - pointerStartRef.current.x,
+        clientY - pointerStartRef.current.y
+      );
+      if (dist > 6) {
+        hasMovedRef.current = true;
+      }
 
       const cRect = container.getBoundingClientRect();
       const newX = clientX - cRect.left - offsetRef.current.x;
@@ -666,6 +710,44 @@ export default function IpixFun(): JSX.Element | null {
 
         #modal-card { width: 85%; max-width: 320px; padding: 20px; background: var(--card-bg, #0f172a); border-radius: 16px; border: 1px solid var(--accent, #00f0ff); color: var(--foreground, #fff); }
 
+        /* =========================================
+           ANIMASI CUT-IN MODAL
+           ========================================= */
+        @keyframes slashBackdropIn {
+          0% { opacity: 0; backdrop-filter: blur(0px); }
+          100% { opacity: 1; backdrop-filter: blur(12px); }
+        }
+
+        @keyframes slashCharIn {
+          0% {
+            transform: translateY(80px) scale(0.5) rotate(-10deg);
+            opacity: 0;
+          }
+          65% {
+            transform: translateY(-12px) scale(1.08) rotate(3deg);
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(0) scale(1) rotate(0deg);
+            opacity: 1;
+          }
+        }
+
+        @keyframes slashTextIn {
+          0% {
+            transform: translateX(-120px) skewX(-14deg) scale(0.7);
+            opacity: 0;
+          }
+          70% {
+            transform: translateX(12px) skewX(-14deg) scale(1.08);
+            opacity: 1;
+          }
+          100% {
+            transform: translateX(0) skewX(-14deg) scale(1);
+            opacity: 1;
+          }
+        }
+
         #preview-modal-card {
           width: 90%;
           max-width: 380px;
@@ -837,6 +919,72 @@ export default function IpixFun(): JSX.Element | null {
         );
       })}
 
+      {/* Pop-Up Animasi Cut-In (Tanpa Background Slash Ribbon, Kotak Miring Pasif Dimunculkan Kembali) */}
+      {slashModalOpen && slashCard && (
+        <div 
+          className="modal-backdrop open flex flex-col items-center justify-center p-4 z-[3000]"
+          onClick={() => setSlashModalOpen(false)}
+          style={{ animation: "slashBackdropIn 0.3s forwards" }}
+        >
+          <div 
+            className="relative w-full max-w-sm flex flex-col items-center justify-center pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Area Cut-In Transparan */}
+            <div className="relative w-full h-[430px] flex items-center justify-center overflow-hidden">
+              
+              {/* Karakter Pop-Out Miring */}
+              <div 
+                className="relative z-10 w-full h-[280px] flex items-center justify-center pointer-events-none"
+                style={{ animation: "slashCharIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards" }}
+              >
+                <img 
+                  src={slashCard.image} 
+                  alt={slashCard.label}
+                  className="h-full object-contain filter drop-shadow-[0_15px_30px_rgba(0,0,0,0.85)]"
+                />
+              </div>
+
+              {/* Kotak Miring Pasif Pembungkus Link */}
+              <div 
+                className="absolute bottom-6 z-20 flex flex-col items-center justify-center text-center px-4 w-full pointer-events-none select-none"
+                style={{ animation: "slashTextIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both" }}
+              >
+                <div 
+                  className="transform -skew-x-12 -rotate-2 bg-slate-950/90 px-7 py-3 rounded-2xl border-2 shadow-[0_10px_35px_rgba(0,0,0,0.95)]"
+                  style={{ borderColor: slashCard.color }}
+                >
+                  <h2 className="text-xl font-black uppercase tracking-wider text-white drop-shadow-[0_2px_4px_rgba(0,0,0,1)] italic">
+                    {slashCard.label}
+                  </h2>
+                  <p 
+                    className="text-xs font-mono font-extrabold tracking-widest mt-0.5 truncate max-w-[240px]"
+                    style={{ color: slashCard.color }}
+                  >
+                    {slashCard.displayUrl}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Tombol TUTUP Mengikuti Warna Kartu */}
+            <div className="w-full mt-3 z-30">
+              <button
+                onClick={() => setSlashModalOpen(false)}
+                className="w-full py-3 px-6 rounded-full font-black text-xs uppercase tracking-wider transition active:scale-95 cursor-pointer shadow-xl border border-white/20"
+                style={{
+                  backgroundColor: slashCard.color,
+                  color: "#000000",
+                  boxShadow: `0 4px 20px ${slashCard.color}80`
+                }}
+              >
+                TUTUP
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal Bantuan */}
       <div id="modal" className={`modal-backdrop ${modalOpen ? "open" : ""}`}>
         <div id="modal-card">
@@ -845,13 +993,13 @@ export default function IpixFun(): JSX.Element | null {
           </h3>
           <ul className="space-y-2 text-xs opacity-90">
             <li>
+              • <b>Klik 1x pada Kartu</b> untuk menampilkan animasi slash miring dinamis.
+            </li>
+            <li>
               • <b>Drag Kartu Karakter</b> ke slot <b>TARGET LINK</b> untuk melihat antarmuka link secara langsung.
             </li>
             <li>
               • Kartu yang digeser akan <b>membesar & berputar 3D</b> di posisi paling atas.
-            </li>
-            <li>
-              • Kartu akan <b>mengecil pas ke ukuran target link</b> dan berhenti berputar saat berada di area target.
             </li>
           </ul>
           <button
