@@ -302,11 +302,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const seekToTime = useCallback((timeSec: number) => {
-    if (playerRef.current) {
+    if (playerRef.current && typeof playerRef.current.seekTo === 'function') {
       playerRef.current.seekTo(timeSec, true);
       setCurrentTimeSec(timeSec);
 
-      const dur = playerRef.current.getDuration() || 0;
+      const dur = typeof playerRef.current.getDuration === 'function' ? playerRef.current.getDuration() : 0;
       if (dur > 0) {
         setProgress((timeSec / dur) * 100);
         setCurrentTime(formatTime(timeSec));
@@ -343,7 +343,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     intervalRef.current = setInterval(() => {
       if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function' && !isSeeking.current) {
         const cur = playerRef.current.getCurrentTime() || 0;
-        const dur = playerRef.current.getDuration() || 0;
+        const dur = typeof playerRef.current.getDuration === 'function' ? playerRef.current.getDuration() : 0;
         setCurrentTimeSec(cur);
 
         if (dur > 0) {
@@ -359,14 +359,20 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const togglePlayPause = useCallback(() => {
     if (!playerRef.current) return;
     if (isPlaying) {
-      playerRef.current.pauseVideo();
+      if (typeof playerRef.current.pauseVideo === 'function') {
+        playerRef.current.pauseVideo();
+      }
       setIsPlaying(false);
       try { MediaSession.setPlaybackState({ playbackState: 'paused' }); } catch (e) {}
       try { ForegroundService.stopForegroundService(); } catch (e) {}
     } else {
-      playerRef.current.playVideo();
+      if (typeof playerRef.current.playVideo === 'function') {
+        playerRef.current.playVideo();
+      }
       if (typeof playerRef.current.unMute === 'function') {
         playerRef.current.unMute();
+      }
+      if (typeof playerRef.current.setVolume === 'function') {
         playerRef.current.setVolume(100);
       }
       setIsPlaying(true);
@@ -397,9 +403,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       await MediaSession.setActionHandler({ action: 'play' }, () => {
         if (playerRef.current) {
-          playerRef.current.playVideo();
+          if (typeof playerRef.current.playVideo === 'function') {
+            playerRef.current.playVideo();
+          }
           if (typeof playerRef.current.unMute === 'function') {
             playerRef.current.unMute();
+          }
+          if (typeof playerRef.current.setVolume === 'function') {
             playerRef.current.setVolume(100);
           }
           setIsPlaying(true);
@@ -417,7 +427,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       await MediaSession.setActionHandler({ action: 'pause' }, () => {
         if (playerRef.current) {
-          playerRef.current.pauseVideo();
+          if (typeof playerRef.current.pauseVideo === 'function') {
+            playerRef.current.pauseVideo();
+          }
           setIsPlaying(false);
           try { MediaSession.setPlaybackState({ playbackState: 'paused' }); } catch (e) {}
           try { ForegroundService.stopForegroundService(); } catch (e) {}
@@ -463,10 +475,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (!window.YT || !window.YT.Player) return;
 
-      if (playerRef.current) {
+      if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
         playerRef.current.loadVideoById(song.id);
         if (typeof playerRef.current.unMute === 'function') {
           playerRef.current.unMute();
+        }
+        if (typeof playerRef.current.setVolume === 'function') {
           playerRef.current.setVolume(100);
         }
       } else {
@@ -477,15 +491,16 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           playerVars: { autoplay: 1, controls: 0, disablekb: 1, fs: 0, rel: 0 },
           events: {
             onReady: (event: any) => {
-              event.target.unMute();
-              event.target.setVolume(100);
-              event.target.playVideo();
+              playerRef.current = event.target;
+              if (typeof event.target.unMute === 'function') event.target.unMute();
+              if (typeof event.target.setVolume === 'function') event.target.setVolume(100);
+              if (typeof event.target.playVideo === 'function') event.target.playVideo();
             },
             onStateChange: (event: any) => {
               if (event.data === 1) { // PLAYING
-                if (playerRef.current && typeof playerRef.current.unMute === 'function') {
-                  playerRef.current.unMute();
-                  playerRef.current.setVolume(100);
+                if (playerRef.current) {
+                  if (typeof playerRef.current.unMute === 'function') playerRef.current.unMute();
+                  if (typeof playerRef.current.setVolume === 'function') playerRef.current.setVolume(100);
                 }
                 setIsPlaying(true);
                 startProgressTimer();
@@ -505,8 +520,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
                 if (currentMode === 'repeat-one') {
                   if (playerRef.current) {
-                    playerRef.current.seekTo(0, true);
-                    playerRef.current.playVideo();
+                    if (typeof playerRef.current.seekTo === 'function') playerRef.current.seekTo(0, true);
+                    if (typeof playerRef.current.playVideo === 'function') playerRef.current.playVideo();
                   }
                 } else if (activeSong && playlist.length > 0) {
                   const currentIndex = playlist.findIndex((s) => s.id === activeSong.id);
