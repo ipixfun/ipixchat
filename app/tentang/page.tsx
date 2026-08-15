@@ -36,7 +36,6 @@ interface CardRef {
 
 /* =========================
    Constants & 8 Locked Links
-   Warna disesuaikan dengan warna terang tiap karakter
    ========================= */
 const LINKS: LinkItem[] = [
   {
@@ -44,56 +43,56 @@ const LINKS: LinkItem[] = [
     url: "https://ipixchat.my.id",
     displayUrl: "ipixchat.my.id",
     image: "/tentang/01.webp",
-    color: "#FF5500", // Oranye Neon
+    color: "#FF5500",
   },
   {
     label: "sukachub.my.id",
     url: "https://sukachub.my.id",
     displayUrl: "sukachub.my.id",
     image: "/tentang/02.webp",
-    color: "#E5FF00", // Kuning Neon
+    color: "#E5FF00",
   },
   {
     label: "ipix.my.id",
     url: "https://ipix.my.id",
     displayUrl: "ipix.my.id",
     image: "/tentang/06.webp",
-    color: "#A855F7", // Ungu Magenta Neon
+    color: "#A855F7",
   },
   {
     label: "Growlr@pix",
     url: "https://growlrapp.com",
     displayUrl: "growlrapp.com",
     image: "/tentang/07.webp",
-    color: "#00E5FF", // Cyan Terang
+    color: "#00E5FF",
   },
   {
     label: "iPix.Fun",
     url: "https://ipix.fun",
     displayUrl: "ipix.fun",
     image: "/tentang/08.webp",
-    color: "#EC4899", // Pink Magenta
+    color: "#EC4899",
   },
   {
     label: "X@sixripix",
     url: "https://www.x.com/sixripix",
     displayUrl: "x.com/sixripix",
     image: "/tentang/03.webp",
-    color: "#00FF66", // Hijau Neon
+    color: "#00FF66",
   },
   {
     label: "Walla@pix",
     url: "https://international.walla-app.com/user?id=V2O6MN&app=2",
     displayUrl: "walla-app.com",
     image: "/tentang/04.webp",
-    color: "#00FFAB", // Toska Neon
+    color: "#00FFAB",
   },
   {
     label: "TikTok@ipixaja",
     url: "https://www.tiktok.com/@ipixaja",
     displayUrl: "tiktok.com/@ipixaja",
     image: "/tentang/05.webp",
-    color: "#FF2A6D", // Coral Pink Neon
+    color: "#FF2A6D",
   },
 ];
 
@@ -137,21 +136,6 @@ export default function IpixFun(): JSX.Element | null {
   const [targetText, setTargetText] = useState("TARGET LINK");
   const [targetGlow, setTargetGlow] = useState(false);
   const [activeCardIdx, setActiveCardIdx] = useState<number | null>(null);
-
-  // ---------- Update Warna Kartu ----------
-  const applyCardColors = useCallback(() => {
-    cardRefs.current.forEach((c) => {
-      if (c.el) {
-        c.el.style.setProperty("--card-color", c.color);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    if (mounted) {
-      applyCardColors();
-    }
-  }, [mounted, applyCardColors]);
 
   // ---------- Helper: Bounds ----------
   const getBounds = useCallback(() => {
@@ -204,7 +188,7 @@ export default function IpixFun(): JSX.Element | null {
     if (cardRefs.current[1]) { cardRefs.current[1].x = col2X; cardRefs.current[1].y = topY; }
     if (cardRefs.current[2]) { cardRefs.current[2].x = col3X; cardRefs.current[2].y = topY; }
 
-    // Row 2 (Tengah - 2 Kartu di Kiri & Kanan Target Link)
+    // Row 2 (Tengah - 2 Kartu)
     if (cardRefs.current[3]) { cardRefs.current[3].x = col1X; cardRefs.current[3].y = midY; }
     if (cardRefs.current[4]) { cardRefs.current[4].x = col3X; cardRefs.current[4].y = midY; }
 
@@ -216,13 +200,53 @@ export default function IpixFun(): JSX.Element | null {
     cardRefs.current.forEach((c) => applyCardStyle(c));
   }, [getBounds, applyCardStyle]);
 
+  // ---------- Animasi Kocok / Shuffle Kartu ----------
+  const triggerShuffleAnimation = useCallback(() => {
+    const { tgtCenterX, tgtCenterY } = getBounds();
+    const cx = tgtCenterX - CARD_W / 2;
+    const cy = tgtCenterY - CARD_H / 2;
+
+    cardRefs.current.forEach((c, idx) => {
+      if (!c.el) return;
+
+      c.el.style.setProperty("--cx", `${cx}px`);
+      c.el.style.setProperty("--cy", `${cy}px`);
+      c.el.style.setProperty("--tx", `${c.x}px`);
+      c.el.style.setProperty("--ty", `${c.y}px`);
+
+      c.el.style.animation = "none";
+      const innerEl = c.el.querySelector(".card-inner") as HTMLElement | null;
+      if (innerEl) innerEl.style.animation = "none";
+
+      void c.el.offsetHeight; // Force Reflow
+
+      const delay = idx * 90;
+      c.el.style.animation = `shuffleDeal 0.65s cubic-bezier(0.34, 1.45, 0.64, 1) ${delay}ms both`;
+      if (innerEl) {
+        innerEl.style.animation = `cardSpin3D 0.65s ease-in-out ${delay}ms both`;
+      }
+    });
+
+    const totalTime = LINKS.length * 90 + 700;
+    setTimeout(() => {
+      cardRefs.current.forEach((c) => {
+        if (!c.el) return;
+        c.el.style.animation = "";
+        const innerEl = c.el.querySelector(".card-inner") as HTMLElement | null;
+        if (innerEl) innerEl.style.animation = "";
+        applyCardStyle(c);
+      });
+    }, totalTime);
+  }, [getBounds, applyCardStyle]);
+
   useEffect(() => {
     if (mounted) {
       lockCardPositions();
+      triggerShuffleAnimation();
     }
-  }, [mounted, lockCardPositions]);
+  }, [mounted, lockCardPositions, triggerShuffleAnimation]);
 
-  // ---------- Canvas Drawing (Kosong tanpa Garis) ----------
+  // ---------- Canvas Drawing ----------
   const drawConnections = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -272,6 +296,13 @@ export default function IpixFun(): JSX.Element | null {
     e.preventDefault();
     const obj = cardRefs.current[idx];
     if (!obj) return;
+
+    if (obj.el) {
+      obj.el.style.animation = "";
+      const innerEl = obj.el.querySelector(".card-inner") as HTMLElement | null;
+      if (innerEl) innerEl.style.animation = "";
+    }
+
     const clientX = "touches" in e ? e.touches[0].clientX : (e as ReactMouseEvent).clientX;
     const clientY = "touches" in e ? e.touches[0].clientY : (e as ReactMouseEvent).clientY;
     startDrag(obj, idx, clientX, clientY);
@@ -431,21 +462,22 @@ export default function IpixFun(): JSX.Element | null {
         }
 
         .hud-btn {
-          height: 40px;
+          height: 32px;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 0 16px;
+          padding: 0 10px;
           background: var(--card-bg, rgba(15, 23, 42, 0.9));
           border: 1px solid var(--accent, #00f0ff);
-          border-radius: 12px;
+          border-radius: 10px;
           font-weight: 800;
-          font-size: 0.75rem;
+          font-size: 0.65rem;
           cursor: pointer;
           color: var(--accent, #00f0ff);
           text-transform: uppercase;
           box-shadow: 0 0 10px var(--accent-glow, rgba(0, 240, 255, 0.2));
           transition: all 0.3s;
+          pointer-events: auto;
         }
 
         .hud-btn:active {
@@ -466,6 +498,7 @@ export default function IpixFun(): JSX.Element | null {
           align-items: center;
           justify-content: center;
           z-index: 998;
+          pointer-events: none;
         }
 
         #target-pill { 
@@ -521,6 +554,54 @@ export default function IpixFun(): JSX.Element | null {
           transition: border-color 0.3s, box-shadow 0.3s, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        /* Animasi Rotasi 3D Bergantian Satu-Satu */
+        @keyframes autoFlipSequential {
+          0% {
+            transform: rotateY(0deg);
+          }
+          4% {
+            transform: rotateY(180deg) scale(1.08);
+          }
+          8% {
+            transform: rotateY(360deg) scale(1);
+          }
+          100% {
+            transform: rotateY(360deg);
+          }
+        }
+
+        .card-auto-flip {
+          animation: autoFlipSequential 16s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+          animation-delay: var(--flip-delay, 0s);
+        }
+
+        @keyframes shuffleDeal {
+          0% {
+            transform: translate3d(var(--cx), var(--cy), 0) scale(0.2) rotate(-20deg);
+            opacity: 0;
+          }
+          45% {
+            transform: translate3d(var(--cx), var(--cy), 0) scale(1.15) rotate(12deg);
+            opacity: 1;
+          }
+          100% {
+            transform: translate3d(var(--tx), var(--ty), 0) scale(1) rotate(0deg);
+            opacity: 1;
+          }
+        }
+
+        @keyframes cardSpin3D {
+          0% {
+            transform: rotateY(0deg);
+          }
+          50% {
+            transform: rotateY(180deg) scale(1.1);
+          }
+          100% {
+            transform: rotateY(360deg) scale(1);
+          }
+        }
+
         @keyframes rotateYCard {
           0% { transform: scale(1.1) rotateY(0deg); }
           100% { transform: scale(1.1) rotateY(360deg); }
@@ -528,7 +609,7 @@ export default function IpixFun(): JSX.Element | null {
         .card-active-deploy {
           border: 2px solid var(--card-color, #00f0ff) !important;
           box-shadow: 0 0 20px var(--card-color, #00f0ff), inset 0 0 10px var(--card-color, #00f0ff) !important;
-          animation: rotateYCard 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+          animation: rotateYCard 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
         }
 
         .card-at-target {
@@ -656,8 +737,16 @@ export default function IpixFun(): JSX.Element | null {
         <div id="mp3-player-container" className="mp3-player-container">
           <GlobalMiniPlayer />
         </div>
-        <div className="hud-btn" onClick={() => setModalOpen(true)}>
-          INFO
+        <div className="flex items-center gap-1.5">
+          <button
+            className="hud-btn"
+            onClick={triggerShuffleAnimation}
+          >
+            KOCOK KARTU
+          </button>
+          <div className="hud-btn" onClick={() => setModalOpen(true)}>
+            INFO
+          </div>
         </div>
       </div>
 
@@ -699,6 +788,7 @@ export default function IpixFun(): JSX.Element | null {
         );
 
         const isSelected = activeCardIdx === idx;
+        const flipDelay = `${idx * 2}s`;
 
         return (
           <div
@@ -716,8 +806,13 @@ export default function IpixFun(): JSX.Element | null {
           >
             <div
               className={`card-inner ${
-                isSelected ? "card-active-deploy" : ""
+                isSelected ? "card-active-deploy" : "card-auto-flip"
               } ${isSelected && targetGlow ? "card-at-target" : ""}`}
+              style={
+                {
+                  "--flip-delay": flipDelay,
+                } as CSSProperties
+              }
             >
               <div className="card-front">{renderCardContent()}</div>
               <div className="card-back">{renderCardContent()}</div>

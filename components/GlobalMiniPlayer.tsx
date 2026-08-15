@@ -71,16 +71,12 @@ export default function GlobalMiniPlayer() {
       return "top-1 right-3 w-[190px] sm:w-[230px]"; 
     }
     if (isIpixTab) {
-      // Disesuaikan agar responsif dan memberikan ruang untuk tombol INFO di sebelah kanan
-      return "top-3 left-3 right-20 max-w-[calc(100%-85px)] sm:max-w-[280px]"; 
+      return "top-3 left-3 w-[175px] sm:w-[210px]"; 
     }
-    // Naikkan posisi dari bottom-5 ke bottom-20 agar berada DI ATAS bottom navbar
     return "bottom-20 left-0 right-0 px-3 w-full max-w-md mx-auto"; 
   };
 
-  // Sembunyikan cover hanya di tab Chat & Tema
-  const isCompactHeader = isChatTab || isTemaTab;
-  const showCover = !isCompactHeader || isIpixTab;
+  const isCompactHeader = isChatTab || isTemaTab || isIpixTab;
 
   return (
     <div className={`fixed z-40 flex justify-center pointer-events-auto transition-all duration-200 ${getPositionClass()}`}>
@@ -88,9 +84,7 @@ export default function GlobalMiniPlayer() {
         onClick={handlePlayerClick}
         className={`w-full shadow-md flex items-center justify-between backdrop-blur-md cursor-pointer select-none transition-all duration-200 ${
           isCompactHeader
-            ? "rounded-2xl px-2.5 py-1.5 border-0" 
-            : isIpixTab
-            ? "rounded-2xl px-2 py-1.5 border border-[var(--card-border)]" // Padding disamakan agar tinggi presisi sejajar INFO
+            ? "rounded-2xl px-2.5 py-1.5 border border-[var(--card-border)]" 
             : "rounded-2xl px-3 py-2 border border-[var(--card-border)]"
         }`}
         style={{
@@ -98,33 +92,17 @@ export default function GlobalMiniPlayer() {
           color: 'var(--foreground-heading, #ffffff)',
         }}
       >
-        {/* Info Lagu + Gambar Cover */}
+        {/* Info Lagu (Tanpa Cover Gambar) */}
         <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0 pr-1">
-          {showCover && (
-            currentSong.thumbnail ? (
-              <img
-                src={currentSong.thumbnail}
-                alt=""
-                className={`${isIpixTab ? "w-7 h-7" : "w-9 h-9"} rounded-lg object-cover shrink-0 pointer-events-none`}
-              />
-            ) : (
-              <div className={`${isIpixTab ? "w-7 h-7" : "w-9 h-9"} rounded-lg bg-white/10 shrink-0 flex items-center justify-center text-white/50`}>
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                </svg>
-              </div>
-            )
-          )}
-
           <div className="overflow-hidden min-w-0 flex-1">
             <h4 
-              className={`${isCompactHeader || isIpixTab ? "text-[10px]" : "text-xs"} font-bold truncate leading-tight`} 
+              className={`${isCompactHeader ? "text-[10px]" : "text-xs"} font-bold truncate leading-tight`} 
               style={{ color: 'var(--foreground-heading, #fff)' }}
             >
               {currentSong.title}
             </h4>
             <p 
-              className={`${isCompactHeader || isIpixTab ? "text-[8.5px]" : "text-[10px]"} opacity-70 truncate mt-0.5`}
+              className={`${isCompactHeader ? "text-[8.5px]" : "text-[10px]"} opacity-70 truncate mt-0.5`}
               style={{ color: 'var(--foreground, #aaa)' }}
             >
               {currentSong.artist}
@@ -144,7 +122,7 @@ export default function GlobalMiniPlayer() {
             className="p-1 opacity-80 hover:opacity-100 transition cursor-pointer disabled:opacity-20"
             style={{ color: 'var(--foreground-heading, #fff)' }}
           >
-            <svg className={`${isCompactHeader || isIpixTab ? "w-3 h-3" : "w-4 h-4"} fill-current`} viewBox="0 0 24 24">
+            <svg className={`${isCompactHeader ? "w-3 h-3" : "w-4 h-4"} fill-current`} viewBox="0 0 24 24">
               <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
             </svg>
           </button>
@@ -156,11 +134,11 @@ export default function GlobalMiniPlayer() {
             style={{ color: 'var(--foreground-heading, #fff)' }}
           >
             {isPlaying ? (
-              <svg className={`${isCompactHeader || isIpixTab ? "w-3.5 h-3.5" : "w-5 h-5"} fill-current`} viewBox="0 0 24 24">
+              <svg className={`${isCompactHeader ? "w-3.5 h-3.5" : "w-5 h-5"} fill-current`} viewBox="0 0 24 24">
                 <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
               </svg>
             ) : (
-              <svg className={`${isCompactHeader || isIpixTab ? "w-3.5 h-3.5" : "w-5 h-5"} fill-current ml-0.5`} viewBox="0 0 24 24">
+              <svg className={`${isCompactHeader ? "w-3.5 h-3.5" : "w-5 h-5"} fill-current ml-0.5`} viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             )}
@@ -173,7 +151,7 @@ export default function GlobalMiniPlayer() {
             className="p-1 opacity-80 hover:opacity-100 transition cursor-pointer disabled:opacity-20"
             style={{ color: 'var(--foreground-heading, #fff)' }}
           >
-            <svg className={`${isCompactHeader || isIpixTab ? "w-3 h-3" : "w-4 h-4"} fill-current`} viewBox="0 0 24 24">
+            <svg className={`${isCompactHeader ? "w-3 h-3" : "w-4 h-4"} fill-current`} viewBox="0 0 24 24">
               <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
             </svg>
           </button>
