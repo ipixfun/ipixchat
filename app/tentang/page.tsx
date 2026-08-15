@@ -147,15 +147,26 @@ export default function IpixFun(): JSX.Element | null {
     const tRect = tgt?.getBoundingClientRect() ?? new DOMRect();
     const cRect = container?.getBoundingClientRect() ?? new DOMRect();
 
+    const containerWidth = container ? container.clientWidth : 800;
+    const containerHeight = container ? container.clientHeight : 800;
+
+    // Pastikan titik tengah valid bahkan saat DOM pertama kali dimuat
+    const tgtCenterX = tRect.width > 0 
+      ? (tRect.left - cRect.left + tRect.width / 2) 
+      : (containerWidth / 2);
+    const tgtCenterY = tRect.height > 0 
+      ? (tRect.top - cRect.top + tRect.height / 2) 
+      : (containerHeight / 2);
+
     return {
       topOffset: Math.max(hRect.bottom - cRect.top + 10, 60),
       tgtTop: tRect.top - cRect.top,
       tgtBottom: tRect.bottom - cRect.top,
-      tgtCenterX: tRect.left - cRect.left + tRect.width / 2,
-      tgtCenterY: tRect.top - cRect.top + tRect.height / 2,
-      containerWidth: container ? container.clientWidth : 800,
-      containerHeight: container ? container.clientHeight : 800,
-      bottomLimit: container ? container.clientHeight - BOTTOM_NAV_HEIGHT : 800,
+      tgtCenterX,
+      tgtCenterY,
+      containerWidth,
+      containerHeight,
+      bottomLimit: containerHeight - BOTTOM_NAV_HEIGHT,
     };
   }, []);
 
@@ -241,8 +252,11 @@ export default function IpixFun(): JSX.Element | null {
 
   useEffect(() => {
     if (mounted) {
-      lockCardPositions();
-      triggerShuffleAnimation();
+      // Tunggu hingga frame layout browser siap agar koordinat tepat di tengah
+      requestAnimationFrame(() => {
+        lockCardPositions();
+        triggerShuffleAnimation();
+      });
     }
   }, [mounted, lockCardPositions, triggerShuffleAnimation]);
 
