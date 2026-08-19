@@ -11,7 +11,7 @@ import { supabase } from '@/app/lib/supabaseClient';
 // Import komponen Loading dari loading.tsx
 import Loading from './loading';
 
-// Import HeroBanner secara dinamis dengan ukuran loading yang pas & tidak kekecilan
+// Import HeroBanner secara dinamis dengan ukuran loading yang pas
 const HeroBanner = dynamic(() => import('@/components/HeroBanner'), {
   ssr: false,
   loading: () => (
@@ -26,7 +26,7 @@ const HeroBanner = dynamic(() => import('@/components/HeroBanner'), {
 let memoryCache: any = null;
 
 const DEFAULT_APP_INFO = { appName: "ipixchat", version: "v1.0", apkSize: "4.45 MB", videoUrl: "https://res.cloudinary.com/bjamo8ld/video/upload/v1785508218/ipixchat_dryqj3.mp4", apkDownloadUrl: "https://ipix.my.id/ipixchat.apk", year: new Date().getFullYear(), featuresTitle: "Fitur aplikasi", videoSectionTitle: "Panduan Video", footerText: "IPIXCHAT", footerSubText: "ALL RIGHTS RESERVED", footerUrl: "https://ipix.my.id", };
-const DEFAULT_BANNER_INFO = { apkThankYouTitle: "Support App", apkThankYouDesc: "Terima kasih supportnya sudah menggunakan apk ipixchat. Nikmati pengalaman berinteraksi yang lebih cepat dan lancar.", webBadge: "Terima Kasih", webTitle: "Unduh aplikasi ipixchat", webDesc: "Dapatkan pengalaman interaksi yang lebih optimal, ringan, dan cepat langsung melalui perangkat Android Anda." };
+const DEFAULT_BANNER_INFO = { apkThankYouTitle: "SUKACHUB ai virtual chat", apkThankYouDesc: "Fitur ai chat yang gak seberapa", webBadge: "sukachub.my.id", webTitle: "SUKACHUB ai virtual chat", webDesc: "Fitur ai chat yang gak seberapa" };
 const DEFAULT_PLATFORM_INFO = { badge: "Platform Perpesanan", title: "Ruang Interaksi Personal bersama pix", description: "Aplikasi ini didesain secara khusus untuk memudahkan Anda terhubung dan berinteraksi secara cepat dan terstruktur. Cukup buat Username dan PIN 6 digit angka tanpa proses pendaftaran yang rumit." };
 const DEFAULT_FEATURES = [ { id: 1, title: "Akses Instan & Praktis", text: "Cukup daftarkan Username dan PIN 6 digit angka untuk langsung berinteraksi dengan saya/pix. Akses auto-login membuat sesi percakapan Anda berjalan mulus tanpa hambatan.", action: { label: "Mulai Chat", href: "/chat" }, isHighlight: false }, { id: 2, title: "Pengiriman Media Interaktif", text: "Fitur berbagi gambar dan media yang responsif langsung dari kolom percakapan.", action: null, isHighlight: false }, { id: 3, title: "Kustomisasi Tema Personal", text: "Sesuaikan antarmuka visual aplikasi sesuai selera Anda setelah berhasil masuk.", action: { label: "Ubah Tema", href: "/tema" }, isHighlight: false }, { id: 4, title: "Navigasi & Ekosistem Terpadu", text: "Jelajahi informasi media sosial dan tautan ekosistem ipix hanya dengan menggeser atau melepas kontrol pill.", action: null, isHighlight: false }, { id: 5, title: "Pengembangan Berkelanjutan", text: "Pembaruan fitur baru dan peningkatan performa akan terus dikembangkan secara rutin.", action: null, isHighlight: true } ];
 const DEFAULT_ECOSYSTEM_LINKS = [ { name: "ipix.my.id", url: "https://ipix.my.id" }, { name: "sukachub", url: "https://sukachub.my.id" }, { name: "ipix.fun", url: "https://ipix.fun" }, ];
@@ -34,7 +34,7 @@ const DEFAULT_ECOSYSTEM_LINKS = [ { name: "ipix.my.id", url: "https://ipix.my.id
 export default function HomePage() {
   const router = useRouter(); const [showDownloadConfirm, setShowDownloadConfirm] = useState(false); const [isMounted, setIsMounted] = useState(false); const [isApk, setIsApk] = useState<boolean>(false); const [isAdmin, setIsAdmin] = useState(false); const [userName, setUserName] = useState<string>(''); const [isEditMode, setIsEditMode] = useState(false); const [showAdminLoginModal, setShowAdminLoginModal] = useState(false); const [adminEmailInput, setAdminEmailInput] = useState(''); const [adminPasswordInput, setAdminPasswordInput] = useState(''); const [loginError, setLoginError] = useState(''); const [saveSuccessMsg, setSaveSuccessMsg] = useState(''); const [clickCount, setClickCount] = useState(0);
   const [appInfo, setAppInfo] = useState(DEFAULT_APP_INFO); const [bannerInfo, setBannerInfo] = useState(DEFAULT_BANNER_INFO); const [platformInfo, setPlatformInfo] = useState(DEFAULT_PLATFORM_INFO); const [features, setFeatures] = useState(DEFAULT_FEATURES); const [ecosystemLinks, setEcosystemLinks] = useState(DEFAULT_ECOSYSTEM_LINKS);
-  const [showBanner, setShowBanner] = useState(false); const [showVideo, setShowVideo] = useState(false); const [showPlatform, setShowPlatform] = useState(false); const [showFeatures, setShowFeatures] = useState(false);
+  const [showVideo, setShowVideo] = useState(false); const [showPlatform, setShowPlatform] = useState(false); const [showFeatures, setShowFeatures] = useState(false);
 
   useEffect(() => {
     setIsMounted(true); if (typeof window === 'undefined') return;
@@ -43,17 +43,17 @@ export default function HomePage() {
     const storedUser = localStorage.getItem('ipix_user') || localStorage.getItem('username') || localStorage.getItem('ipix_username'); if (storedUser) setUserName(storedUser.split('●')[0]);
     const cachedData = memoryCache || (() => { try { const stored = localStorage.getItem('ipix_homepage_config'); return stored ? JSON.parse(stored) : null; } catch { return null; } })();
     if (cachedData) { if (cachedData.app_info) setAppInfo({ ...DEFAULT_APP_INFO, ...cachedData.app_info }); if (cachedData.banner_info) setBannerInfo({ ...DEFAULT_BANNER_INFO, ...cachedData.banner_info }); if (cachedData.platform_info) setPlatformInfo({ ...DEFAULT_PLATFORM_INFO, ...cachedData.platform_info }); if (cachedData.features) setFeatures(cachedData.features); if (cachedData.ecosystem_links) setEcosystemLinks(cachedData.ecosystem_links); }
-    supabase.auth.getSession().then(({ data: { session } }) => { const loggedIn = !!session; setIsAdmin(loggedIn); if (session?.user) { const nameFromAuth = session.user.user_metadata?.username || session.user.email?.split('●')[0]?.split('@')[0]; if (nameFromAuth) setUserName(nameFromAuth); } setShowBanner(!loggedIn && !isApkMode); });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { const loggedIn = !!session; setIsAdmin(loggedIn); if (session?.user) { const nameFromAuth = session.user.user_metadata?.username || session.user.email?.split('●')[0]?.split('@')[0]; if (nameFromAuth) setUserName(nameFromAuth); } if (loggedIn) setShowBanner(false); });
+    supabase.auth.getSession().then(({ data: { session } }) => { const loggedIn = !!session; setIsAdmin(loggedIn); if (session?.user) { const nameFromAuth = session.user.user_metadata?.username || session.user.email?.split('●')[0]?.split('@')[0]; if (nameFromAuth) setUserName(nameFromAuth); } });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { const loggedIn = !!session; setIsAdmin(loggedIn); if (session?.user) { const nameFromAuth = session.user.user_metadata?.username || session.user.email?.split('●')[0]?.split('@')[0]; if (nameFromAuth) setUserName(nameFromAuth); } });
     const fetchConfig = async () => { try { const { data, error } = await supabase.from('homepage_config').select('*').eq('id', 1).single(); if (!error && data) { memoryCache = data; localStorage.setItem('ipix_homepage_config', JSON.stringify(data)); if (data.app_info) setAppInfo({ ...DEFAULT_APP_INFO, ...data.app_info }); if (data.banner_info) setBannerInfo({ ...DEFAULT_BANNER_INFO, ...data.banner_info }); if (data.platform_info) setPlatformInfo({ ...DEFAULT_PLATFORM_INFO, ...data.platform_info }); if (data.features) setFeatures(data.features); if (data.ecosystem_links) setEcosystemLinks(data.ecosystem_links); } } catch (err: any) { console.error("Menggunakan fallback data default:", err); } };
     fetchConfig(); return () => subscription.unsubscribe();
   }, [router]);
 
   useEffect(() => { const handleKeyDown = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') { e.preventDefault(); setShowAdminLoginModal((prev) => !prev); } }; window.addEventListener('keydown', handleKeyDown); return () => window.removeEventListener('keydown', handleKeyDown); }, []);
 
-  const handleSecretLogoClick = () => { setClickCount((prev) => { if (prev + 1 >= 5) { window.location.href = "https://sukachub.my.id/chat#admin"; return 0; } return prev + 1; }); setTimeout(() => setClickCount(0), 1500); };
+  const handleSecretLogoClick = () => { setClickCount((prev) => { if (prev + 1 >= 5) { window.location.href = "https://ipixchat.my.id/chat#admin"; return 0; } return prev + 1; }); setTimeout(() => setClickCount(0), 1500); };
   const handleAdminLogin = async (e: React.FormEvent) => { e.preventDefault(); try { const { data, error } = await supabase.auth.signInWithPassword({ email: adminEmailInput, password: adminPasswordInput, }); if (error) throw error; if (data.session) { setIsAdmin(true); setShowAdminLoginModal(false); setAdminEmailInput(''); setAdminPasswordInput(''); setLoginError(''); } } catch { setLoginError('Email atau Password salah!'); } };
-  const toggleEditMode = () => { const newMode = !isEditMode; setIsEditMode(newMode); if (newMode) { setShowBanner(true); setShowVideo(true); setShowPlatform(true); setShowFeatures(true); } };
+  const toggleEditMode = () => { const newMode = !isEditMode; setIsEditMode(newMode); if (newMode) { setShowVideo(true); setShowPlatform(true); setShowFeatures(true); } };
   const handleSaveAllChanges = async () => { try { setSaveSuccessMsg('Menyimpan ke Supabase...'); const payload = { id: 1, app_info: appInfo, banner_info: bannerInfo, platform_info: platformInfo, features: features, ecosystem_links: ecosystemLinks, updated_at: new Date().toISOString() }; memoryCache = payload; if (typeof window !== 'undefined') localStorage.setItem('ipix_homepage_config', JSON.stringify(payload)); const { error } = await supabase.from('homepage_config').upsert(payload); if (error) throw error; setSaveSuccessMsg('Perubahan berhasil disimpan publik!'); setTimeout(() => setSaveSuccessMsg(''), 3000); setIsEditMode(false); } catch (err) { console.error("Gagal menyimpan ke Supabase:", err); alert("Terjadi kesalahan saat menyimpan data ke database."); setSaveSuccessMsg(''); } };
 
   const handleFeatureChange = (id: number, field: string, value: any) => setFeatures(prev => prev.map(f => f.id === id ? { ...f, [field]: value } : f));
@@ -153,76 +153,58 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* HERO BANNER 3D - Ukuran loading presisi */}
+        {/* HERO BANNER 3D */}
         {!isEditMode && (
           <div className="w-full relative z-10">
             <HeroBanner />
           </div>
         )}
         
-        <AnimatePresence mode="wait">
-          {isEditMode ? (
-            <motion.div key="banner-edit" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3 text-xs">
-              <h3 className="text-amber-500 font-black text-xs border-b border-amber-500/30 pb-1.5">Edit Teks Banner & Pill Badge Kiri</h3>
-              <div className="space-y-2">
-                <label className="admin-label">Pill Badge Kiri (Default: Terima Kasih)</label><input type="text" className="admin-input" placeholder="Misal: Terima Kasih / Aplikasi Android" value={bannerInfo.webBadge} onChange={e => setBannerInfo({...bannerInfo, webBadge: e.target.value})} />
-                <label className="admin-label">Banner Web (Unduh)</label><input type="text" className="admin-input" placeholder="Judul" value={bannerInfo.webTitle} onChange={e => setBannerInfo({...bannerInfo, webTitle: e.target.value})} />
-                <textarea rows={3} className="admin-input leading-relaxed" placeholder="Deskripsi" value={bannerInfo.webDesc} onChange={e => setBannerInfo({...bannerInfo, webDesc: e.target.value})} />
-              </div>
-              <div className="space-y-2 pt-2 border-t border-amber-500/30">
-                <label className="admin-label">Banner APK (Support App)</label><input type="text" className="admin-input" placeholder="Judul" value={bannerInfo.apkThankYouTitle} onChange={e => setBannerInfo({...bannerInfo, apkThankYouTitle: e.target.value})} />
-                <textarea rows={3} className="admin-input leading-relaxed" placeholder="Deskripsi" value={bannerInfo.apkThankYouDesc} onChange={e => setBannerInfo({...bannerInfo, apkThankYouDesc: e.target.value})} />
-              </div>
-            </motion.div>
-          ) : isMounted && isApk ? (
-            <motion.div key="banner-apk" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }} className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border text-center flex flex-col items-center justify-center gap-1 z-0" style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}>
-              <div onClick={() => setShowBanner(!showBanner)} className="w-full flex items-center justify-between gap-2 cursor-pointer group z-10">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide shrink-0 border" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)', borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)' }}>{bannerInfo.webBadge || "Terima Kasih"}</span>
-                  <h2 className="text-xs font-black truncate" style={{ color: "var(--foreground-heading)" }}>{renderHighlightedText(bannerInfo.apkThankYouTitle)}</h2>
-                </div>
+        {/* KOLOM SUKACHUB AI VIRTUAL CHAT */}
+        {isEditMode ? (
+          <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3 text-xs">
+            <h3 className="text-amber-500 font-black text-xs border-b border-amber-500/30 pb-1.5">Edit Teks Card Sukachub</h3>
+            <div className="space-y-2">
+              <label className="admin-label">Capsule Link (Default: sukachub.my.id)</label>
+              <input type="text" className="admin-input" value={bannerInfo.webBadge} onChange={e => setBannerInfo({...bannerInfo, webBadge: e.target.value})} />
+              <label className="admin-label">Judul (Default: SUKACHUB ai virtual chat)</label>
+              <input type="text" className="admin-input" value={bannerInfo.webTitle} onChange={e => setBannerInfo({...bannerInfo, webTitle: e.target.value})} />
+              <label className="admin-label">Deskripsi</label>
+              <textarea rows={3} className="admin-input leading-relaxed" value={bannerInfo.webDesc} onChange={e => setBannerInfo({...bannerInfo, webDesc: e.target.value})} />
+            </div>
+          </div>
+        ) : (
+          <div className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border z-0" style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}>
+            <div className="flex flex-col gap-2 z-10 w-full relative">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-xs sm:text-sm font-black tracking-tight truncate min-w-0" style={{ color: "var(--foreground-heading)" }}>
+                  {renderHighlightedText(bannerInfo.webTitle || "SUKACHUB ai virtual chat")}
+                </h2>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  {displayUserName && ( <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow-md" style={{ backgroundColor: 'var(--accent)', color: 'var(--background)', boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 50%, transparent)' }}>{displayUserName}</span> )}
-                  <button aria-label="Toggle banner" className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}><motion.svg animate={{ rotate: showBanner ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg></button>
+                  {displayUserName && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow-md" style={{ backgroundColor: 'var(--accent)', color: 'var(--background)' }}>
+                      {displayUserName}
+                    </span>
+                  )}
+                  <a 
+                    href="https://sukachub.my.id" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide bg-orange-500 text-black shadow-sm transition-transform hover:scale-105 active:scale-95"
+                  >
+                    {bannerInfo.webBadge || "sukachub.my.id"}
+                  </a>
                 </div>
               </div>
-              <AnimatePresence initial={false}>
-                {showBanner && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden w-full pt-2">
-                    <p className="text-[11px] font-medium leading-relaxed max-w-[320px] mx-auto opacity-85 whitespace-pre-line break-words text-justify" style={{ color: "var(--foreground)" }}>{renderHighlightedText(bannerInfo.apkThankYouDesc)}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30 z-0">
-                <svg className="absolute -bottom-1 left-0 w-[200%] h-12 animate-wave-1" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M 0 40 Q 150 10 300 40 T 600 40 T 900 40 T 1200 40 V 120 H 0 Z" fill="var(--accent)" /></svg>
-                <svg className="absolute -bottom-1 left-0 w-[200%] h-10 animate-wave-2 opacity-50" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M 0 30 Q 150 60 300 30 T 600 30 T 900 30 T 1200 30 V 120 H 0 Z" fill="var(--accent)" /></svg>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div key="banner-web" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }} className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border z-0" style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}>
-              <div onClick={() => setShowBanner(!showBanner)} className="flex items-center justify-between gap-2 cursor-pointer group z-10 w-full">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide shrink-0 border" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--accent)', borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)' }}>{bannerInfo.webBadge || "Terima Kasih"}</span>
-                  <h2 className="text-xs sm:text-sm font-black tracking-tight truncate" style={{ color: "var(--foreground-heading)" }}>{renderHighlightedText(bannerInfo.webTitle)} <span className="text-[10px] font-bold opacity-80">({appInfo.apkSize})</span></h2>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {displayUserName && ( <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow-md" style={{ backgroundColor: 'var(--accent)', color: 'var(--background)', boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 50%, transparent)' }}>{displayUserName}</span> )}
-                  <button aria-label="Toggle detail download" className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}><motion.svg animate={{ rotate: showBanner ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg></button>
-                </div>
-              </div>
-              <AnimatePresence initial={false}>
-                {showBanner && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden pt-3">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t pt-2.5" style={{ borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)' }}>
-                      <p className="text-[11px] opacity-85 leading-relaxed flex-1 whitespace-pre-line break-words text-justify" style={{ color: "var(--foreground)" }}>{bannerInfo.webDesc}</p>
-                      <button onClick={() => setShowDownloadConfirm(true)} className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-white font-extrabold text-[11px] shadow-lg color-shift-bg flex justify-center items-center gap-1.5 shrink-0" style={{ backgroundImage: 'linear-gradient(270deg, var(--accent), #ff6b6b, #4ecdc4, var(--accent))' }}><svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg> Download APK</button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <p className="text-[11px] opacity-85 leading-relaxed whitespace-pre-line break-words text-justify" style={{ color: "var(--foreground)" }}>
+                {renderHighlightedText(bannerInfo.webDesc || "Fitur ai chat yang gak seberapa")}
+              </p>
+            </div>
+            <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20 z-0">
+              <svg className="absolute -bottom-1 left-0 w-[200%] h-12 animate-wave-1" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M 0 40 Q 150 10 300 40 T 600 40 T 900 40 T 1200 40 V 120 H 0 Z" fill="var(--accent)" /></svg>
+            </div>
+          </div>
+        )}
 
         {isEditMode ? (
           <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3 text-xs">
@@ -282,10 +264,11 @@ export default function HomePage() {
                 <div className="w-6 h-6 rounded-full flex items-center justify-center border shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--accent) 10%, transparent)", borderColor: "var(--accent)" }}><div className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--accent)" }} /></div>
                 <h3 className="text-sm sm:text-base font-black tracking-tight" style={{ color: "var(--foreground-heading)" }}>{appInfo.featuresTitle}</h3>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full border" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>{appInfo.version}</span>
-                <button aria-label="Toggle detail fitur" className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}><motion.svg animate={{ rotate: showFeatures ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></motion.svg></button>
-              </div>
+              <button aria-label="Toggle detail fitur" className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+                <motion.svg animate={{ rotate: showFeatures ? 180 : 0 }} className="w-3.5 h-3.5 fill-current" style={{ color: 'var(--accent)' }} viewBox="0 0 24 24">
+                  <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+                </motion.svg>
+              </button>
             </div>
 
             <AnimatePresence initial={false}>
