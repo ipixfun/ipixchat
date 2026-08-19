@@ -127,13 +127,7 @@ export default function HomePage() {
         {isEditMode && (
           <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3.5 text-xs">
             <h3 className="text-amber-500 font-black text-xs border-b border-amber-500/30 pb-1.5">Pengaturan Umum & Footer</h3>
-            <div className="grid grid-cols-2 gap-2.5">
-              <div><label className="admin-label">Nama Aplikasi</label><input type="text" className="admin-input" value={appInfo.appName} onChange={e => setAppInfo({...appInfo, appName: e.target.value})} /></div>
-              <div><label className="admin-label">Versi</label><input type="text" className="admin-input" value={appInfo.version} onChange={e => setAppInfo({...appInfo, version: e.target.value})} /></div>
-              <div><label className="admin-label">Ukuran APK</label><input type="text" className="admin-input" value={appInfo.apkSize} onChange={e => setAppInfo({...appInfo, apkSize: e.target.value})} /></div>
-              <div><label className="admin-label">Tahun Footer</label><input type="number" className="admin-input" value={appInfo.year} onChange={e => setAppInfo({...appInfo, year: parseInt(e.target.value)})} /></div>
-            </div>
-            <div><label className="admin-label">Link Download APK</label><input type="text" className="admin-input" value={appInfo.apkDownloadUrl} onChange={e => setAppInfo({...appInfo, apkDownloadUrl: e.target.value})} /></div>
+            <div><label className="admin-label">Tahun Footer</label><input type="number" className="admin-input" value={appInfo.year} onChange={e => setAppInfo({...appInfo, year: parseInt(e.target.value)})} /></div>
             <div className="grid grid-cols-2 gap-2.5 pt-1">
               <div><label className="admin-label">Teks Footer Utama</label><input type="text" className="admin-input" value={appInfo.footerText} onChange={e => setAppInfo({...appInfo, footerText: e.target.value})} /></div>
               <div><label className="admin-label">URL Link Footer</label><input type="text" className="admin-input" value={appInfo.footerUrl} onChange={e => setAppInfo({...appInfo, footerUrl: e.target.value})} /></div>
