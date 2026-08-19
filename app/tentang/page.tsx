@@ -47,16 +47,16 @@ const LINKS: LinkItem[] = [
   },
    {
     label: "sukachub.my.id",
-    url: "https://sukachub.my.id",
-    displayUrl: "sukachub.my.id",
-    image: "/tentang/02.webp",
+    url: "https://ipixchat.my.id",
+    displayUrl: "ipixchat.my.id",
+    image: "/tentang/01.webp",
     color: "#E5FF00",
   },
   {
     label: "ipixchat.my.id",
-    url: "https://ipixchat.my.id",
-    displayUrl: "ipixchat.my.id",
-    image: "/tentang/01.webp",
+    url: "https://sukachub.my.id",
+    displayUrl: "sukachub.my.id",
+    image: "/tentang/02.webp",
     color: "#FF5500",
   },
   {
