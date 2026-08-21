@@ -8,10 +8,8 @@ import BottomNav from '@/components/bottomnav';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/app/lib/supabaseClient';
 
-// Import komponen Loading dari loading.tsx
 import Loading from './loading';
 
-// Import HeroBanner secara dinamis dengan ukuran loading yang pas
 const HeroBanner = dynamic(() => import('@/components/HeroBanner'), {
   ssr: false,
   loading: () => (
@@ -70,6 +68,25 @@ export default function HomePage() {
     <div suppressHydrationWarning className="w-full max-w-2xl mx-auto h-dvh flex flex-col pb-[70px] relative overflow-hidden bg-[var(--background)] font-sans text-xs">
       <style dangerouslySetInnerHTML={{ __html: `
         .hide-scroll::-webkit-scrollbar { display: none; } .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; } .glow-text { text-shadow: 0 0 15px color-mix(in srgb, var(--accent) 50%, transparent); } .glass-card { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); } .color-shift-bg { background-size: 300% 300%; animation: color-shift 5s ease infinite; } @keyframes color-shift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } } @keyframes wave-loop-1 { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-50%, 0, 0); } } @keyframes wave-loop-2 { 0% { transform: translate3d(-50%, 0, 0); } 100% { transform: translate3d(0, 0, 0); } } .animate-wave-1 { animation: wave-loop-1 12s linear infinite; will-change: transform; } .animate-wave-2 { animation: wave-loop-2 8s linear infinite; will-change: transform; } .admin-input { width: 100%; background: color-mix(in srgb, var(--background) 50%, #000000); border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent); color: white; padding: 8px 12px; border-radius: 10px; font-size: 12px; outline: none; transition: all 0.2s; } .admin-input:focus { border-color: var(--accent); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 40%, transparent); } .admin-label { display: block; font-size: 10px; font-weight: 800; color: var(--accent); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        @keyframes shine {
+          0% { transform: translateX(-150%) skewX(-20deg); }
+          40%, 100% { transform: translateX(250%) skewX(-20deg); }
+        }
+        .animate-shine {
+          animation: shine 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes cute-pop {
+          0%, 100% { transform: scale(1) rotate(0deg); }
+          20% { transform: scale(1.3) rotate(-8deg) translateY(-2px); }
+          40% { transform: scale(1.1) rotate(6deg) translateY(0px); }
+          60% { transform: scale(1.25) rotate(-4deg) translateY(-1px); }
+          80% { transform: scale(1) rotate(0deg); }
+        }
+        .animate-cute-pop {
+          animation: cute-pop 2.5s ease-in-out infinite;
+        }
       ` }} />
 
       {isAdmin && isEditMode && (
@@ -156,7 +173,7 @@ export default function HomePage() {
           </div>
         )}
         
-        {/* KOLOM SUKACHUB AI VIRTUAL CHAT (WITH DYNAMIC ICON) */}
+        {/* KOLOM SUKACHUB AI VIRTUAL CHAT */}
         {isEditMode ? (
           <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3 text-xs">
             <h3 className="text-amber-500 font-black text-xs border-b border-amber-500/30 pb-1.5">Edit Teks Card Sukachub</h3>
@@ -174,8 +191,8 @@ export default function HomePage() {
         ) : (
           <div className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border z-0 shadow-md transition-all duration-300" style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "color-mix(in srgb, var(--accent) 30%, var(--card-border))" }}>
             <div className="flex flex-col gap-2.5 z-10 w-full relative">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0 pt-0.5">
                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden shrink-0 border border-orange-500/40 shadow-sm bg-black/20 flex items-center justify-center">
                     <img 
                       src={bannerInfo.webIcon || "/chub.webp"} 
@@ -189,7 +206,8 @@ export default function HomePage() {
                   </h2>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                {/* USERNAME DI ATAS & PILL ORANGE GLOSSY DENGAN ICON POP-UP DI BAWAHNYA */}
+                <div className="flex flex-col items-end gap-1 shrink-0 ml-auto">
                   {displayUserName && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow-md" style={{ backgroundColor: 'var(--accent)', color: 'var(--background)' }}>
                       {displayUserName}
@@ -199,14 +217,18 @@ export default function HomePage() {
                     href="https://sukachub.my.id" 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wide bg-gradient-to-r from-orange-500 to-amber-500 text-black shadow-md transition-all duration-300 hover:scale-105 active:scale-95 border border-orange-400/40"
+                    className="relative overflow-hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wide bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 text-black shadow-lg shadow-orange-500/20 transition-all duration-300 hover:scale-105 active:scale-95 border border-orange-300/50"
                   >
+                    {/* Efek Glossy Kilau Berjalan */}
+                    <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shine pointer-events-none" />
+
+                    {/* Icon Pop-Up Imut */}
                     <img 
                       src={bannerInfo.webIcon || "/chub.webp"} 
                       alt="Chub Badge Icon" 
-                      className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full object-cover shrink-0 ring-1 ring-black/20" 
+                      className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full object-cover shrink-0 ring-1 ring-black/20 animate-cute-pop relative z-10 drop-shadow-sm" 
                     />
-                    <span>{bannerInfo.webBadge || "sukachub.my.id"}</span>
+                    <span className="relative z-10">{bannerInfo.webBadge || "sukachub.my.id"}</span>
                   </a>
                 </div>
               </div>
