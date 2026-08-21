@@ -26,7 +26,7 @@ const HeroBanner = dynamic(() => import('@/components/HeroBanner'), {
 let memoryCache: any = null;
 
 const DEFAULT_APP_INFO = { appName: "ipixchat", version: "v1.0", apkSize: "4.45 MB", videoUrl: "https://res.cloudinary.com/bjamo8ld/video/upload/v1785508218/ipixchat_dryqj3.mp4", apkDownloadUrl: "https://ipix.my.id/ipixchat.apk", year: new Date().getFullYear(), featuresTitle: "Fitur aplikasi", videoSectionTitle: "Panduan Video", footerText: "IPIXCHAT", footerSubText: "ALL RIGHTS RESERVED", footerUrl: "https://ipix.my.id", };
-const DEFAULT_BANNER_INFO = { apkThankYouTitle: "SUKACHUB ai virtual chat", apkThankYouDesc: "Fitur ai chat yang gak seberapa", webBadge: "sukachub.my.id", webTitle: "SUKACHUB ai virtual chat", webDesc: "Fitur ai chat yang gak seberapa" };
+const DEFAULT_BANNER_INFO = { apkThankYouTitle: "SUKACHUB ai virtual chat", apkThankYouDesc: "Fitur ai chat yang gak seberapa", webBadge: "sukachub.my.id", webTitle: "SUKACHUB ai virtual chat", webDesc: "Fitur ai chat yang gak seberapa", webIcon: "/chub.webp" };
 const DEFAULT_PLATFORM_INFO = { badge: "Platform Perpesanan", title: "Ruang Interaksi Personal bersama pix", description: "Aplikasi ini didesain secara khusus untuk memudahkan Anda terhubung dan berinteraksi secara cepat dan terstruktur. Cukup buat Username dan PIN 6 digit angka tanpa proses pendaftaran yang rumit." };
 const DEFAULT_FEATURES = [ { id: 1, title: "Akses Instan & Praktis", text: "Cukup daftarkan Username dan PIN 6 digit angka untuk langsung berinteraksi dengan saya/pix. Akses auto-login membuat sesi percakapan Anda berjalan mulus tanpa hambatan.", action: { label: "Mulai Chat", href: "/chat" }, isHighlight: false }, { id: 2, title: "Pengiriman Media Interaktif", text: "Fitur berbagi gambar dan media yang responsif langsung dari kolom percakapan.", action: null, isHighlight: false }, { id: 3, title: "Kustomisasi Tema Personal", text: "Sesuaikan antarmuka visual aplikasi sesuai selera Anda setelah berhasil masuk.", action: { label: "Ubah Tema", href: "/tema" }, isHighlight: false }, { id: 4, title: "Navigasi & Ekosistem Terpadu", text: "Jelajahi informasi media sosial dan tautan ekosistem ipix hanya dengan menggeser atau melepas kontrol pill.", action: null, isHighlight: false }, { id: 5, title: "Pengembangan Berkelanjutan", text: "Pembaruan fitur baru dan peningkatan performa akan terus dikembangkan secara rutin.", action: null, isHighlight: true } ];
 const DEFAULT_ECOSYSTEM_LINKS = [ { name: "ipix.my.id", url: "https://ipix.my.id" }, { name: "sukachub", url: "https://sukachub.my.id" }, { name: "ipix.fun", url: "https://ipix.fun" }, ];
@@ -156,11 +156,13 @@ export default function HomePage() {
           </div>
         )}
         
-        {/* KOLOM SUKACHUB AI VIRTUAL CHAT */}
+        {/* KOLOM SUKACHUB AI VIRTUAL CHAT (WITH DYNAMIC ICON) */}
         {isEditMode ? (
           <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3 text-xs">
             <h3 className="text-amber-500 font-black text-xs border-b border-amber-500/30 pb-1.5">Edit Teks Card Sukachub</h3>
             <div className="space-y-2">
+              <label className="admin-label">Path / URL Icon (Default: /chub.webp)</label>
+              <input type="text" className="admin-input" value={bannerInfo.webIcon || "/chub.webp"} onChange={e => setBannerInfo({...bannerInfo, webIcon: e.target.value})} />
               <label className="admin-label">Capsule Link (Default: sukachub.my.id)</label>
               <input type="text" className="admin-input" value={bannerInfo.webBadge} onChange={e => setBannerInfo({...bannerInfo, webBadge: e.target.value})} />
               <label className="admin-label">Judul (Default: SUKACHUB ai virtual chat)</label>
@@ -170,15 +172,26 @@ export default function HomePage() {
             </div>
           </div>
         ) : (
-          <div className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border z-0" style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "var(--card-border)" }}>
-            <div className="flex flex-col gap-2 z-10 w-full relative">
+          <div className="p-3.5 sm:p-4 rounded-3xl relative overflow-hidden border z-0 shadow-md transition-all duration-300" style={{ background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, var(--background)) 0%, var(--card-bg) 100%)`, borderColor: "color-mix(in srgb, var(--accent) 30%, var(--card-border))" }}>
+            <div className="flex flex-col gap-2.5 z-10 w-full relative">
               <div className="flex items-center justify-between gap-2">
-                <h2 className="text-xs sm:text-sm font-black tracking-tight truncate min-w-0" style={{ color: "var(--foreground-heading)" }}>
-                  {renderHighlightedText(bannerInfo.webTitle || "SUKACHUB ai virtual chat")}
-                </h2>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden shrink-0 border border-orange-500/40 shadow-sm bg-black/20 flex items-center justify-center">
+                    <img 
+                      src={bannerInfo.webIcon || "/chub.webp"} 
+                      alt="Chub Icon" 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                    />
+                  </div>
+                  <h2 className="text-xs sm:text-sm font-black tracking-tight truncate min-w-0" style={{ color: "var(--foreground-heading)" }}>
+                    {renderHighlightedText(bannerInfo.webTitle || "SUKACHUB ai virtual chat")}
+                  </h2>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0 ml-auto">
                   {displayUserName && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow-md" style={{ backgroundColor: 'var(--accent)', color: 'var(--background)' }}>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow-md" style={{ backgroundColor: 'var(--accent)', color: 'var(--background)' }}>
                       {displayUserName}
                     </span>
                   )}
@@ -186,16 +199,23 @@ export default function HomePage() {
                     href="https://sukachub.my.id" 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide bg-orange-500 text-black shadow-sm transition-transform hover:scale-105 active:scale-95"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wide bg-gradient-to-r from-orange-500 to-amber-500 text-black shadow-md transition-all duration-300 hover:scale-105 active:scale-95 border border-orange-400/40"
                   >
-                    {bannerInfo.webBadge || "sukachub.my.id"}
+                    <img 
+                      src={bannerInfo.webIcon || "/chub.webp"} 
+                      alt="Chub Badge Icon" 
+                      className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full object-cover shrink-0 ring-1 ring-black/20" 
+                    />
+                    <span>{bannerInfo.webBadge || "sukachub.my.id"}</span>
                   </a>
                 </div>
               </div>
+
               <p className="text-[11px] opacity-85 leading-relaxed whitespace-pre-line break-words text-justify" style={{ color: "var(--foreground)" }}>
                 {renderHighlightedText(bannerInfo.webDesc || "Fitur ai chat yang gak seberapa")}
               </p>
             </div>
+
             <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20 z-0">
               <svg className="absolute -bottom-1 left-0 w-[200%] h-12 animate-wave-1" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M 0 40 Q 150 10 300 40 T 600 40 T 900 40 T 1200 40 V 120 H 0 Z" fill="var(--accent)" /></svg>
             </div>
