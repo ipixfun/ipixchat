@@ -113,7 +113,9 @@ export default function HomePage() {
       <header className="sticky top-0 z-20 px-3.5 py-2.5 glass-card border-b" style={{ backgroundColor: "color-mix(in srgb, var(--background) 75%, transparent)", borderColor: "var(--card-border)" }}>
         <div className="flex items-center justify-between gap-1.5">
           <div onClick={handleSecretLogoClick} className="flex items-center gap-1.5 cursor-pointer select-none active:scale-95 transition-transform">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-md overflow-hidden bg-black/10 border" style={{ borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)" }}><img src="/icon.png" alt="ipixchat" className="w-full h-full object-cover" /></div>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-md overflow-hidden bg-black/10 border" style={{ borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)" }}>
+              <img src="/favicon.ico" alt="ipixchat" className="w-full h-full object-cover" />
+            </div>
             <h1 className="text-base font-black tracking-tight glow-text" style={{ color: "var(--foreground-heading)" }}>{appInfo.appName}</h1>
           </div>
           <div className="flex items-center gap-1 justify-end">

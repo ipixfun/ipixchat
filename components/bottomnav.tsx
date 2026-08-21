@@ -76,7 +76,7 @@ export default function BottomNav({ isAuth, handleLogout }: BottomNavProps) {
       label: "iPiX",
       color: "#EF4444", // Merah
       isImage: true,
-      imageSrc: "/icon.png",
+      imageSrc: "/favicon.ico",
     },
   ];
 
