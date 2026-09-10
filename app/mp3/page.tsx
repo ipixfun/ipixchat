@@ -160,7 +160,6 @@ export default function Mp3Page() {
 
   return (
     <div
-      /* PERBAIKAN 1: Menambahkan pb-[180px] agar konten bawah lagu tidak tertutup Mini Player & Nav */
       className="min-h-screen pb-[180px] flex flex-col items-center transition-colors duration-300 font-sans select-none overflow-x-hidden relative"
       style={{
         backgroundColor: 'var(--background, #030303)',
@@ -395,7 +394,7 @@ export default function Mp3Page() {
         )}
       </main>
 
-      {/* MODAL LIRIK */}
+      {/* MODAL LIRIK (FIXED LAYOUT) */}
       <AnimatePresence>
         {showLyricsModal && (
           <motion.div
@@ -403,8 +402,9 @@ export default function Mp3Page() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed top-0 bottom-16 left-0 right-0 z-[200000] max-w-md mx-auto flex flex-col justify-between backdrop-blur-2xl p-4 sm:p-6 overflow-hidden border-x border-white/10 shadow-2xl"
-            style={{ backgroundColor: 'var(--background, #09090b)', color: 'var(--foreground, #f4f4f5)' }}
+            /* MODIFIKASI MODAL LIRIK: Melayang di atas navbar dengan rounded dinamis */
+            className="fixed top-3 bottom-[84px] inset-x-3 z-[200000] max-w-md mx-auto flex flex-col justify-between backdrop-blur-2xl p-4 sm:p-6 overflow-hidden border border-white/15 rounded-[2.5rem] shadow-2xl pb-[env(safe-area-inset-bottom)]"
+            style={{ backgroundColor: 'var(--card-bg, rgba(9, 9, 11, 0.96))', color: 'var(--foreground, #f4f4f5)' }}
           >
             <div className="flex justify-between items-center pb-3 border-b border-white/10 shrink-0 gap-2">
               {currentSong?.thumbnail ? (
@@ -427,7 +427,7 @@ export default function Mp3Page() {
               </button>
             </div>
 
-            <div ref={lyricsContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth py-8 flex flex-col gap-5 no-scrollbar w-full text-center">
+            <div ref={lyricsContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth py-6 flex flex-col gap-5 no-scrollbar w-full text-center">
               {isLoadingLyrics ? (
                 <div className="flex-1 flex items-center justify-center text-sm opacity-50 animate-pulse">Mencari lirik...</div>
               ) : syncedLyrics.length > 0 ? (
@@ -453,7 +453,7 @@ export default function Mp3Page() {
               )}
             </div>
 
-            <div className="flex flex-col gap-2 pt-3 border-t border-white/10 shrink-0 pb-2">
+            <div className="flex flex-col gap-2 pt-3 border-t border-white/10 shrink-0 pb-1">
               <div className="flex flex-col gap-1">
                 <input
                   type="range"
@@ -544,7 +544,6 @@ export default function Mp3Page() {
       </AnimatePresence>
 
       {/* MINI PLAYER */}
-      {/* PERBAIKAN 2: Mengubah bottom-[64px] menjadi bottom-[84px] agar posisinya tepat di atas Telegram Floating Navbar */}
       <div className="fixed bottom-[84px] left-0 right-0 z-50 flex justify-center px-3 pointer-events-auto pb-[env(safe-area-inset-bottom)]">
         <div
           className="w-full max-w-md border rounded-2xl px-3.5 py-2 shadow-2xl flex items-center justify-between backdrop-blur-xl transition-all duration-300"
