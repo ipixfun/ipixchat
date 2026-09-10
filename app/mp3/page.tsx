@@ -85,7 +85,7 @@ export default function Mp3Page() {
     checkAdminFromSupabase();
   }, []);
 
-  // 2. Fetch mandiri dari Prisma (Supabase) agar pasti terbaca di Vercel Deploy
+  // 2. Fetch mandiri dari Prisma (Supabase)
   const fetchPinnedSongsDirectly = async () => {
     try {
       const res = await fetch('/api/quick-picks');
@@ -160,7 +160,8 @@ export default function Mp3Page() {
 
   return (
     <div
-      className="min-h-screen pb-44 flex flex-col items-center transition-colors duration-300 font-sans select-none overflow-x-hidden relative"
+      /* PERBAIKAN 1: Menambahkan pb-[180px] agar konten bawah lagu tidak tertutup Mini Player & Nav */
+      className="min-h-screen pb-[180px] flex flex-col items-center transition-colors duration-300 font-sans select-none overflow-x-hidden relative"
       style={{
         backgroundColor: 'var(--background, #030303)',
         color: 'var(--foreground, #f4f4f5)',
@@ -543,7 +544,8 @@ export default function Mp3Page() {
       </AnimatePresence>
 
       {/* MINI PLAYER */}
-      <div className="fixed bottom-[64px] left-0 right-0 z-50 flex justify-center px-3 pointer-events-auto">
+      {/* PERBAIKAN 2: Mengubah bottom-[64px] menjadi bottom-[84px] agar posisinya tepat di atas Telegram Floating Navbar */}
+      <div className="fixed bottom-[84px] left-0 right-0 z-50 flex justify-center px-3 pointer-events-auto pb-[env(safe-area-inset-bottom)]">
         <div
           className="w-full max-w-md border rounded-2xl px-3.5 py-2 shadow-2xl flex items-center justify-between backdrop-blur-xl transition-all duration-300"
           style={{
