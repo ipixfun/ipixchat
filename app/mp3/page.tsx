@@ -394,7 +394,7 @@ export default function Mp3Page() {
         )}
       </main>
 
-      {/* MODAL LIRIK (FIXED LAYOUT) */}
+      {/* MODAL LIRIK */}
       <AnimatePresence>
         {showLyricsModal && (
           <motion.div
@@ -402,7 +402,6 @@ export default function Mp3Page() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            /* MODIFIKASI MODAL LIRIK: Melayang di atas navbar dengan rounded dinamis */
             className="fixed top-3 bottom-[84px] inset-x-3 z-[200000] max-w-md mx-auto flex flex-col justify-between backdrop-blur-2xl p-4 sm:p-6 overflow-hidden border border-white/15 rounded-[2.5rem] shadow-2xl pb-[env(safe-area-inset-bottom)]"
             style={{ backgroundColor: 'var(--card-bg, rgba(9, 9, 11, 0.96))', color: 'var(--foreground, #f4f4f5)' }}
           >
