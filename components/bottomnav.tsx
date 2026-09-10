@@ -6,15 +6,14 @@ import { usePathname } from "next/navigation";
 interface BottomNavProps {
   isAuth?: boolean;
   handleLogout?: () => void;
-  unreadChatCount?: number;
 }
 
-export default function BottomNav({ isAuth, handleLogout, unreadChatCount = 4 }: BottomNavProps) {
+export default function BottomNav({ isAuth, handleLogout }: BottomNavProps) {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
-  // Sync event pergeseran slide
+  // Sync presisi 100% mengikuti pergeseran slide & durasi audio HeroBanner via event
   useEffect(() => {
     if (!isHome) return;
 
@@ -26,116 +25,143 @@ export default function BottomNav({ isAuth, handleLogout, unreadChatCount = 4 }:
     };
 
     window.addEventListener("hero_slide_change", handleCustomSlide);
-    return () => window.removeEventListener("hero_slide_change", handleCustomSlide);
+    return () => {
+      window.removeEventListener("hero_slide_change", handleCustomSlide);
+    };
   }, [isHome]);
 
   const links = [
     {
       href: "/",
       label: "Home",
-      color: "#382bf0",
-      badge: 0,
+      color: "#EAB308", // Kuning stabil untuk Home
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-          <path d="M11.47 3.841a.75.75 0 0 1 1.06 0l8.69 8.69a.75.75 0 1 1-1.06 1.061l-.69-.691V19.5a2.25 2.25 0 0 1-2.25 2.25h-3a.75.75 0 0 1-.75-.75V15a.75.75 0 0 0-.75-.75h-1.5A.75.75 0 0 0 10.5 15v5.25a.75.75 0 0 1-.75.75h-3A2.25 2.25 0 0 1 4.5 19.5v-6.59l-.69.69a.75.75 0 0 1-1.06-1.061l8.72-8.698Z" />
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-5 h-5 sm:w-5.5 sm:h-5.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
         </svg>
       ),
     },
     {
       href: "/chat",
-      label: "Chats",
-      color: "#2AABEE",
-      badge: unreadChatCount,
+      label: "Chat",
+      color: "#F97316", // Orange
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-          <path d="M4.913 2.658c2.075-.27 4.19-.408 6.337-.408 2.147 0 4.262.139 6.337.408 1.922.25 3.291 1.861 3.405 3.727a4.403 4.403 0 0 1-1.032 3.03l-1.39 1.528 1.258 3.522a.75.75 0 0 1-1.011.932l-3.957-1.76a21.722 21.722 0 0 1-3.61.298c-2.147 0-4.262-.139-6.337-.408C3.02 14.28 1.65 12.668 1.536 10.803a20.088 20.088 0 0 1 0-4.418c.114-1.865 1.484-3.477 3.377-3.727Z" />
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-5 h-5 sm:w-5.5 sm:h-5.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a.75.75 0 01-.81-.548a.75.75 0 01.12-.652a5.58 5.58 0 001.002-2.183A8.204 8.204 0 013 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
         </svg>
       ),
     },
     {
       href: "/tema",
       label: "Tema",
-      color: "#0088CC",
-      badge: 0,
+      color: "#06B6D4", // Cyan
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-          <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clipRule="evenodd" />
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-5 h-5 sm:w-5.5 sm:h-5.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
         </svg>
       ),
     },
     {
       href: "/mp3",
-      label: "Settings",
-      color: "#2AABEE",
-      badge: 0,
+      label: "MP3",
+      color: "#22C55E", // Hijau
       icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-          <path fillRule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.215-.235.235l-1.072.179c-.12.02-.239-.03-.306-.131l-.623-.935c-.509-.763-1.537-.996-2.321-.525l-.754.453c-.785.471-1.053 1.483-.604 2.285l.523.935c.063.113.045.253-.042.348l-.758.826c-.088.095-.224.131-.345.09L1.44 8.52c-.9-.301-1.858.214-2.16 1.114l-.28.841c-.301.9 0 1.872.9 2.172l1.078.36c.121.04.202.152.202.28v1.087c0 .128-.081.24-.202.28l-1.078.36c-.9.301-1.201 1.272-.9 2.172l.28.841c.302.9 1.26 1.415 2.16 1.114l1.072-.358c.121-.04.257-.005.345.09l.758.826c.087.095.105.235.042.348l-.523.935c-.449.802-.181 1.814.604 2.285l.754.453c.784.471 1.812.238 2.321-.525l.623-.935c.067-.101.186-.151.306-.131l1.072.179c.12.02.215.115.235.235l.178 1.072c.151.904.933 1.567 1.85 1.567h.904c.917 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.115-.215.235-.235l1.072-.179c.12-.02.239.03.306.131l.623.935c.509.763 1.537.996 2.321.525l.754-.453c.785-.471 1.053-1.483.604-2.285l-.523-.935c-.063-.113-.045-.253.042-.348l.758-.826c.088-.095.224-.131.345-.09l1.072.358c.9.301 1.858-.214 2.16-1.114l.28-.841c.301-.9 0-1.872-.9-2.172l-1.078-.36c-.121-.04-.202-.152-.202-.28v-1.087c0-.128.081-.24.202-.28l1.078-.36c.9-.301 1.201-1.272.9-2.172l-.28-.841c-.302-.9-1.26-1.415-2.16-1.114l-1.072.358c-.121.04-.257.005-.345-.09l-.758-.826c-.087-.095-.105-.235-.042-.348l.523-.935c.449-.802.181-1.814-.604-2.285l-.754-.453c-.784-.471-1.812-.238-2.321.525l-.623.935c-.067.101-.186.151-.306.131l-1.072-.179c-.12-.02-.215-.115-.235-.235l-.178-1.072c-.151-.904-.933-1.567-1.85-1.567h-.904ZM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-5 h-5 sm:w-5.5 sm:h-5.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 0v12m0-12L9 9m10.5 9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-10.5 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
         </svg>
       ),
     },
     {
       href: "/tentang",
-      label: "Profile",
-      color: "#2AABEE",
-      badge: 0,
+      label: "iPiX",
+      color: "#EF4444", // Merah
       isImage: true,
       imageSrc: "/favicon.ico",
     },
   ];
 
   return (
-    <aside className="fixed bottom-3 left-0 right-0 z-[100000] flex justify-center px-3 pointer-events-none pb-[env(safe-area-inset-bottom)]">
-      <nav className="w-full max-w-md bg-[#1d2733]/95 backdrop-blur-2xl border border-white/10 rounded-full p-1.5 shadow-2xl pointer-events-auto transition-all duration-300">
-        <div className="grid grid-cols-5 items-center">
+    <div className="fixed bottom-3 left-0 right-0 z-[100000] flex justify-center px-3 pointer-events-none pb-[env(safe-area-inset-bottom)]">
+      <nav
+        className="bottom-nav-bar w-full max-w-md rounded-full border backdrop-blur-2xl transition-all duration-300 p-1.5 shadow-2xl pointer-events-auto"
+        style={{
+          backgroundColor: "color-mix(in srgb, var(--background) 85%, transparent)",
+          borderColor: isHome
+            ? `color-mix(in srgb, ${links[currentSlideIndex].color} 30%, transparent)`
+            : "color-mix(in srgb, var(--accent) 20%, var(--card-border, transparent))",
+        }}
+      >
+        <div className="w-full grid grid-cols-5 items-center relative z-[100002]">
           {links.map((link, idx) => {
             const isActiveRoute = pathname === link.href;
             const isCurrentSlideMenu = isHome && currentSlideIndex === idx;
-            const isSelected = isHome ? isCurrentSlideMenu : isActiveRoute;
+
+            let iconColor = "var(--foreground)";
+            let glowFilter = "none";
+            let isHighlighted = false;
+
+            if (isHome) {
+              if (idx === 0) {
+                // Tombol Home tetap menyala stabil dengan warna kuningnya
+                iconColor = link.color;
+                glowFilter = `drop-shadow(0 0 8px color-mix(in srgb, ${link.color} 60%, transparent))`;
+                isHighlighted = true;
+              } else if (isCurrentSlideMenu) {
+                // Hanya ikon menu yang sesuai dengan slide aktif yang akan menyala warnanya
+                iconColor = link.color;
+                glowFilter = `drop-shadow(0 0 8px color-mix(in srgb, ${link.color} 65%, transparent))`;
+                isHighlighted = true;
+              }
+            } else if (isActiveRoute) {
+              iconColor = "var(--accent)";
+              glowFilter = "drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 60%, transparent))";
+              isHighlighted = true;
+            }
 
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className="flex flex-col items-center justify-center py-1 group select-none active:scale-95 transition-transform duration-150 touch-manipulation"
+                className="flex flex-col items-center justify-center py-1 rounded-2xl transition-all duration-200 select-none active:scale-95 touch-manipulation group min-w-0 cursor-pointer pointer-events-auto relative z-[100003]"
               >
-                {/* Visual Pill Indicator (Bentuk Kapsul Telegram) */}
-                <div className="relative flex items-center justify-center">
+                {/* Pill Container ala Telegram */}
+                <div
+                  className={`px-4 py-1 rounded-full transition-all duration-300 flex items-center justify-center ${
+                    isHighlighted ? "bg-white/10" : ""
+                  }`}
+                >
                   <div
-                    className={`flex items-center justify-center px-4 py-1 rounded-full transition-all duration-300 ${
-                      isSelected
-                        ? "bg-[#2b5278] text-[#5288c1] scale-105"
-                        : "text-gray-400 group-hover:text-gray-200"
+                    className={`transition-all duration-500 flex items-center justify-center shrink-0 pointer-events-none ${
+                      isHighlighted
+                        ? "scale-110"
+                        : "opacity-50 group-hover:opacity-80 scale-100"
                     }`}
+                    style={{
+                      color: iconColor,
+                      filter: glowFilter,
+                    }}
                   >
                     {link.isImage ? (
                       <img
                         src={link.imageSrc}
                         alt={link.label}
-                        className={`w-6 h-6 rounded-full object-cover border transition-all duration-300 ${
-                          isSelected ? "border-[#5288c1]" : "border-transparent opacity-60"
+                        className={`w-5 h-5 sm:w-5.5 sm:h-5.5 object-cover rounded-md transition-all duration-300 ${
+                          isHighlighted ? "brightness-110" : "grayscale opacity-70"
                         }`}
                       />
                     ) : (
-                      <div className="shrink-0">{link.icon}</div>
+                      link.icon
                     )}
                   </div>
-
-                  {/* Badge Notifikasi Telegram */}
-                  {link.badge > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-[#2481cc] text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center border-2 border-[#1d2733] shadow-md">
-                      {link.badge > 99 ? "99+" : link.badge}
-                    </span>
-                  )}
                 </div>
 
-                {/* Label Teks */}
                 <span
-                  className={`text-[10px] font-medium tracking-tight mt-0.5 transition-colors duration-200 ${
-                    isSelected
-                      ? "text-[#5288c1] font-semibold"
-                      : "text-gray-400 group-hover:text-gray-200"
+                  className={`text-[9px] sm:text-[10px] font-bold tracking-wide transition-all duration-300 mt-0.5 truncate max-w-full px-1 pointer-events-none ${
+                    isHighlighted ? "opacity-100" : "opacity-50 group-hover:opacity-80"
                   }`}
+                  style={{
+                    color: iconColor,
+                  }}
                 >
                   {link.label}
                 </span>
@@ -144,6 +170,6 @@ export default function BottomNav({ isAuth, handleLogout, unreadChatCount = 4 }:
           })}
         </div>
       </nav>
-    </aside>
+    </div>
   );
 }
